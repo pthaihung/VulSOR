@@ -1,0 +1,2393 @@
+from __future__ import annotations
+
+import json
+import shutil
+
+import pytest
+
+from vulsor.cli import build_parser
+from vulsor.cli import main
+from vulsor.cli import _build_diagnosis
+from vulsor.cli import _clang_args_from_compile_context
+from vulsor.cli import _context_facts
+from vulsor.cli import _dataset_context_coverage
+from vulsor.cli import _dataset_context_split_coverage
+from vulsor.cli import _dataset_stage_summary_rows
+from vulsor.cli import _format_dataset_inspection_text
+from vulsor.cli import _resolve_sample_selection
+from vulsor.cli import _interactive_source_file_options
+from vulsor.cli import _stage_coverage
+from vulsor.cli import _stage_vs_dataset_coverage
+from vulsor.agents.BaseAgent import (
+    _line_numbers,
+    _normalize_llm_payload,
+    _source_windows,
+    _validate_llm_reasoning,
+    _validate_llm_view_payload,
+)
+from vulsor.config import load_llm_config
+from vulsor.tools.agent_tool_registry import run_agent_tool
+from vulsor.analysis.program import analyze_source_code_tolerant
+from vulsor.ui.console import MenuAction
+from vulsor.ui.console import show_main_menu
+
+
+# ---------------------------------------------------------------------------
+# Interactive CLI
+# ---------------------------------------------------------------------------
+
+
+def test_main_without_arguments_opens_interactive(monkeypatch):
+    called = False
+
+    def fake_interactive():
+        nonlocal called
+        called = True
+        return 0
+
+    monkeypatch.setattr(
+        "vulsor.cli._run_interactive",
+        fake_interactive,
+    )
+
+    result = main([])
+
+    assert result == 0
+    assert called is True
+
+
+def test_interactive_exit(monkeypatch):
+    monkeypatch.setattr(
+        "vulsor.cli.show_main_menu",
+        lambda: MenuAction.EXIT,
+    )
+
+    assert main([]) == 0
+
+
+def test_show_main_menu_selects_evaluate(monkeypatch):
+    keys = iter(
+        [
+            "down",
+            "down",
+            "enter",
+        ]
+    )
+
+    monkeypatch.setattr(
+        "vulsor.ui.console._read_key",
+        lambda: next(keys),
+    )
+
+    assert show_main_menu() is MenuAction.EVALUATE
+
+
+def test_show_main_menu_selects_exit(monkeypatch):
+    keys = iter(
+        [
+            "down",
+            "down",
+            "down",
+            "down",
+            "down",
+            "down",
+            "down",
+            "enter",
+        ]
+    )
+
+    monkeypatch.setattr(
+        "vulsor.ui.console._read_key",
+        lambda: next(keys),
+    )
+
+    assert show_main_menu() is MenuAction.EXIT
+
+
+def test_show_main_menu_selects_agent(monkeypatch):
+    keys = iter(
+        [
+            "down",
+            "down",
+            "down",
+            "down",
+            "enter",
+        ]
+    )
+
+    monkeypatch.setattr(
+        "vulsor.ui.console._read_key",
+        lambda: next(keys),
+    )
+
+    assert show_main_menu() is MenuAction.AGENT
+
+
+def test_show_main_menu_quit_key(monkeypatch):
+    monkeypatch.setattr(
+        "vulsor.ui.console._read_key",
+        lambda: "q",
+    )
+
+    assert show_main_menu() is MenuAction.EXIT
+
+
+# ---------------------------------------------------------------------------
+# Parser
+# ---------------------------------------------------------------------------
+
+
+def test_inspect_accepts_file() -> None:
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "inspect",
+            "--file",
+            "sample.c",
+        ]
+    )
+
+    assert args.command == "inspect"
+    assert args.file.name == "sample.c"
+    assert args.config is None
+
+
+def test_config_is_command_local() -> None:
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "evaluate",
+            "--config",
+            "configs/primevul.yaml",
+            "--dataset",
+            "primevul",
+            "--split",
+            "test",
+            "--limit",
+            "10",
+        ]
+    )
+
+    assert args.command == "evaluate"
+    assert args.config.name == "primevul.yaml"
+    assert args.dataset == "primevul"
+    assert args.split == "test"
+    assert args.limit == 10
+
+
+def test_run_accepts_until_stage() -> None:
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "run",
+            "--file",
+            "sample.c",
+            "--until-stage",
+            "program_analysis",
+        ]
+    )
+
+    assert args.command == "run"
+    assert args.until_stage == "program_analysis"
+
+
+def test_run_program_analysis_file_outputs_json(capsys) -> None:
+    fixture = "tests/fixtures/simple.cpp"
+
+    result = main(
+        [
+            "run",
+            "--file",
+            fixture,
+            "--until-stage",
+            "program_analysis",
+            "--format",
+            "json",
+        ]
+    )
+
+    output = json.loads(capsys.readouterr().out)
+
+    assert result == 0
+    assert output["stage_reached"] == "program_analysis"
+    assert output["program_facts"]["functions"]
+    assert output["program_facts"]["control_flow"]
+    assert output["program_facts"]["data_flow"]
+
+
+def test_inspect_file_outputs_program_analysis_summary(capsys) -> None:
+    result = main(
+        [
+            "inspect",
+            "--file",
+            "tests/fixtures/simple.cpp",
+        ]
+    )
+
+    output = capsys.readouterr().out
+
+    assert result == 0
+    assert "stage_reached: program_analysis" in output
+    assert "functions: 1" in output
+    assert "control_flow_edges: 4" in output
+    assert "Functions:" in output
+    assert "- foo (function:foo:3) lines 3-6" in output
+    assert "Operations:" in output
+    assert "- call memcpy(dst, src, len) at 5:9" in output
+    assert "Control Flow:" in output
+    assert "- B2 -> B1 [if [B2.4]]" in output
+    assert "Data Flow:" in output
+    assert "- len: 3:36 -> 5:26" in output
+    assert "Call Graph:" in output
+    assert "- foo -> memcpy at 5:9" in output
+
+
+def test_inspect_dataset_outputs_json_for_multiple_samples(
+    tmp_path,
+    capsys,
+) -> None:
+    dataset_root = tmp_path / "dataset"
+    input_dir = dataset_root / "inputs"
+    input_dir.mkdir(parents=True)
+
+    records = [
+        {
+            "sample_id": "sample_000000",
+            "code": "int add_one(int value) { return value + 1; }\n",
+        },
+        {
+            "sample_id": "sample_000001",
+            "code": (
+                "int choose(int value) {\n"
+                "    if (value > 0) return value;\n"
+                "    return 0;\n"
+                "}\n"
+            ),
+        },
+    ]
+
+    input_file = input_dir / "test.jsonl"
+    input_file.write_text(
+        "\n".join(json.dumps(record) for record in records) + "\n",
+        encoding="utf-8",
+    )
+
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        "\n".join(
+            [
+                "datasets:",
+                "  local:",
+                f"    root: {dataset_root.as_posix()}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = main(
+        [
+            "inspect",
+            "--config",
+            str(config_file),
+            "--dataset",
+            "local",
+            "--split",
+            "test",
+            "--limit",
+            "2",
+            "--format",
+            "json",
+            "--brain-context-dir",
+            str(tmp_path / "brain_context"),
+        ]
+    )
+
+    output = json.loads(capsys.readouterr().out)
+
+    assert result == 0
+    assert output["dataset"] == "local"
+    assert output["split"] == "test"
+    assert output["count"] == 2
+    assert [
+        sample["sample_id"]
+        for sample in output["samples"]
+    ] == ["sample_000000", "sample_000001"]
+    assert all(
+        sample["status"] == "ok"
+        for sample in output["samples"]
+    )
+    assert output["samples"][0]["result"]["program_facts"]["functions"]
+    assert output["samples"][0]["analysis"]["links"]["function_links"]
+    assert output["samples"][0]["analysis"]["tool_status"]["clang"][
+        "uses"
+    ] == [
+        "ast_json",
+        "cfg_dump",
+    ]
+    assert output["samples"][0]["analysis"]["tool_status"]["joern"][
+        "cpg_integrated"
+    ] is True
+    manifest_path = tmp_path / "brain_context" / "local" / "test" / "manifest.json"
+    artifact_path = (
+        tmp_path
+        / "brain_context"
+        / "local"
+        / "test"
+        / "sample_000000.json"
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+
+    assert output["brain_context"]["count"] == 2
+    assert manifest["count"] == 2
+    assert artifact["artifact_kind"] == "program_analysis"
+    assert artifact["sample_id"] == "sample_000000"
+    assert artifact["sample"]["analysis"]["context_facts"]
+
+
+def test_state_agent_reads_brain_context_and_uses_cache(
+    tmp_path,
+    capsys,
+) -> None:
+    dataset_root = tmp_path / "dataset"
+    input_dir = dataset_root / "inputs"
+    brain_context_dir = tmp_path / "brain_context"
+    input_dir.mkdir(parents=True)
+    brain_context_dir.mkdir()
+    (brain_context_dir / "AGENT_GUIDE.md").write_text(
+        "# Agent Guide\n",
+        encoding="utf-8",
+    )
+
+    (input_dir / "test.jsonl").write_text(
+        json.dumps(
+            {
+                "sample_id": "sample_000000",
+                "code": (
+                    "void copy(char *dst, char *src, int len) {\n"
+                    "    memcpy(dst, src, len);\n"
+                    "}\n"
+                ),
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        "\n".join(
+            [
+                "datasets:",
+                "  local:",
+                f"    root: {dataset_root.as_posix()}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    assert main(
+        [
+            "inspect",
+            "--config",
+            str(config_file),
+            "--dataset",
+            "local",
+            "--split",
+            "test",
+            "--limit",
+            "1",
+            "--format",
+            "json",
+            "--brain-context-dir",
+            str(brain_context_dir),
+        ]
+    ) == 0
+    capsys.readouterr()
+
+    assert main(
+        [
+            "agent",
+            "--agent",
+            "state",
+            "--brain-context-dir",
+            str(brain_context_dir),
+            "--dataset",
+            "local",
+            "--split",
+            "test",
+            "--sample",
+            "sample_000000",
+            "--format",
+            "json",
+        ]
+    ) == 0
+    first_output = json.loads(capsys.readouterr().out)
+    state_path = (
+        brain_context_dir
+        / "local"
+        / "test"
+        / "agents"
+        / "sample_000000"
+        / "state.json"
+    )
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+
+    assert first_output["count"] == 1
+    assert first_output["results"][0]["cache_hit"] is False
+    assert state["agent"] == "state"
+    assert any(
+        variable["name"] == "dst"
+        for variable in state["state_view"]["variables"]
+    )
+    assert state["state_view"]["buffers"]
+
+    assert main(
+        [
+            "agent",
+            "--agent",
+            "state",
+            "--brain-context-dir",
+            str(brain_context_dir),
+            "--dataset",
+            "local",
+            "--split",
+            "test",
+            "--sample",
+            "sample_000000",
+            "--format",
+            "json",
+        ]
+    ) == 0
+    second_output = json.loads(capsys.readouterr().out)
+
+    assert second_output["results"][0]["cache_hit"] is True
+
+
+def test_all_semantic_agents_write_views_and_merge(
+    tmp_path,
+    capsys,
+) -> None:
+    dataset_root = tmp_path / "dataset"
+    input_dir = dataset_root / "inputs"
+    brain_context_dir = tmp_path / "brain_context"
+    input_dir.mkdir(parents=True)
+    brain_context_dir.mkdir()
+    (brain_context_dir / "AGENT_GUIDE.md").write_text(
+        "# Agent Guide\n",
+        encoding="utf-8",
+    )
+
+    (input_dir / "test.jsonl").write_text(
+        json.dumps(
+            {
+                "sample_id": "sample_000000",
+                "code": (
+                    "void copy(char *dst, char *src, int len) {\n"
+                    "    if (len > 0) memcpy(dst, src, len);\n"
+                    "}\n"
+                ),
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        "\n".join(
+            [
+                "datasets:",
+                "  local:",
+                f"    root: {dataset_root.as_posix()}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    assert main(
+        [
+            "inspect",
+            "--config",
+            str(config_file),
+            "--dataset",
+            "local",
+            "--split",
+            "test",
+            "--limit",
+            "1",
+            "--format",
+            "json",
+            "--brain-context-dir",
+            str(brain_context_dir),
+        ]
+    ) == 0
+    capsys.readouterr()
+
+    assert main(
+        [
+            "agent",
+            "--agent",
+            "all",
+            "--config",
+            str(config_file),
+            "--brain-context-dir",
+            str(brain_context_dir),
+            "--dataset",
+            "local",
+            "--split",
+            "test",
+            "--sample",
+            "sample_000000",
+            "--format",
+            "json",
+        ]
+    ) == 0
+    output = json.loads(capsys.readouterr().out)
+    agent_dir = (
+        brain_context_dir
+        / "local"
+        / "test"
+        / "agents"
+        / "sample_000000"
+    )
+
+    assert output["count"] == 5
+
+    for name in ("state", "value", "execution", "operation"):
+        payload = json.loads(
+            (agent_dir / f"{name}.json").read_text(encoding="utf-8")
+        )
+        assert payload["agent"] == name
+        assert f"{name}_view" in payload
+        assert payload["_meta"]["prompt"]["path"].endswith(f"{name}.json")
+        assert payload["_meta"]["prompt"]["id"] == f"vulsor.b2.{name}"
+        assert payload["llm"]["enabled"] is False
+        assert payload["_meta"]["boundary"]["verdict"] == "not_allowed"
+        assert payload["_meta"]["view_validation"]["status"] == "ok"
+
+    merged = json.loads(
+        (agent_dir / "agent_semantics.json").read_text(encoding="utf-8")
+    )
+    assert merged["status"] == "ok"
+    assert merged["agent_semantics"]["state_view"]
+    assert merged["agent_semantics"]["value_view"]
+    assert merged["agent_semantics"]["execution_view"]
+    assert merged["agent_semantics"]["operation_view"]
+
+    state = json.loads(
+        (agent_dir / "state.json").read_text(encoding="utf-8")
+    )
+    operation = json.loads(
+        (agent_dir / "operation.json").read_text(encoding="utf-8")
+    )
+
+    buffer_names = {
+        item["name"]
+        for item in state["state_view"]["buffers"]
+    }
+    roles = {
+        item["name"]: item["semantic_role"]
+        for item in operation["operation_view"]["operations"]
+    }
+
+    assert {"dst", "src"} <= buffer_names
+    assert roles["memcpy"] == "copy"
+    assert "operation_inventory" not in operation["operation_view"]
+
+
+def test_agent_llm_config_and_tools_are_allowlisted(tmp_path) -> None:
+    config_path = tmp_path / "agent_llm.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "model: test-model",
+                "max_tool_rounds: 2",
+                "allowed_tools:",
+                "  - get_program_facts",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    config = load_llm_config(config_path)
+    artifact = {
+        "sample_id": "sample_000000",
+        "target": 1,
+        "sample": {
+            "result": {
+                "program_facts": {
+                    "operations": [
+                        {
+                            "id": "operation:memcpy:1:1",
+                            "name": "memcpy",
+                            "cwe": "forbidden",
+                        }
+                    ]
+                }
+            },
+            "analysis": {
+                "context_facts": {
+                    "target": "forbidden",
+                }
+            },
+        },
+    }
+
+    accepted = run_agent_tool(
+        name="get_program_facts",
+        arguments={"fact_type": "operations", "limit": 1},
+        artifact=artifact,
+        allowed_tools=config.allowed_tools,
+    )
+    rejected = run_agent_tool(
+        name="get_context_facts",
+        arguments={},
+        artifact=artifact,
+        allowed_tools=config.allowed_tools,
+    )
+
+    assert config.model == "test-model"
+    assert config.max_tool_rounds == 2
+    assert accepted.status == "ok"
+    assert accepted.output[0]["name"] == "memcpy"
+    assert "cwe" not in accepted.output[0]
+    assert rejected.status == "rejected"
+
+
+def test_agent_llm_config_supports_per_agent_overrides(tmp_path) -> None:
+    config_path = tmp_path / "agent_llm.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "model: shared-model",
+                "max_tool_rounds: 1",
+                "agents:",
+                "  state:",
+                "    model: state-model",
+                "    max_tool_rounds: 2",
+                "    allowed_tools:",
+                "      - get_program_facts",
+                "  value:",
+                "    model: value-model",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    config = load_llm_config(config_path)
+
+    assert config.for_agent("state").model == "state-model"
+    assert config.for_agent("state").max_tool_rounds == 2
+    assert config.for_agent("state").allowed_tools == ("get_program_facts",)
+    assert config.for_agent("value").model == "value-model"
+    assert config.for_agent("value").max_tool_rounds == 1
+    assert config.for_agent("execution").model == "shared-model"
+
+
+def test_llm_view_validation_rejects_string_view() -> None:
+    validation = _validate_llm_view_payload(
+        {
+            "state_view": "agent-specific observations",
+            "reasoning_groups": [],
+        },
+        "state",
+    )
+
+    assert validation["status"] == "unsupported"
+    assert validation["issues"][0]["path"] == "state_view"
+
+
+def test_llm_payload_normalization_keeps_only_lean_view_columns() -> None:
+    payload = {
+        "operation_view": {
+            "operations": [{"name": "memcpy"}],
+            "metadata": {"extra": True},
+            "observations": [
+                {
+                    "claim": "memcpy copies bytes",
+                    "supporting_fact_ids": ["operation:memcpy:10:3"],
+                    "confidence": "high",
+                    "uncertainty": None,
+                    "extra_column": "drop me",
+                }
+            ],
+            "summary": "copy operation observed",
+        },
+        "reasoning_groups": [],
+        "extra_top_level": "drop me too",
+    }
+
+    normalized = _normalize_llm_payload(payload, "operation")
+
+    assert set(normalized) == {"operation_view", "reasoning_groups"}
+    assert set(normalized["operation_view"]) == {"observations", "summary"}
+    assert set(normalized["operation_view"]["observations"][0]) == {
+        "claim",
+        "supporting_fact_ids",
+        "confidence",
+        "uncertainty",
+    }
+
+
+def test_llm_reasoning_accepts_whitespace_folded_excerpt() -> None:
+    brain_view = {
+        "variables": [
+            {
+                "name": "profile",
+                "supporting_fact_ids": [
+                    "definition:profile:435:6",
+                    "use:profile:456:3",
+                ],
+            }
+        ]
+    }
+    payload = {
+        "reasoning_groups": [
+            {
+                "description": "profile is defined as a pointer",
+                "steps": [
+                    {
+                        "claim": "profile is a StringInfo pointer",
+                        "derived_from": "definition:profile:435:6",
+                        "evidence": [
+                            {
+                                "fact_id": "definition:profile:435:6",
+                                "source_location": {"line": 2, "column": 6},
+                                "source_excerpt": "const StringInfo *profile",
+                            }
+                        ],
+                        "confidence": "high",
+                        "uncertainty": None,
+                    }
+                ],
+            }
+        ]
+    }
+    source = {
+        "available": True,
+        "code": "void f(void) {\n  const StringInfo\n    *profile;\n}\n",
+    }
+
+    validation = _validate_llm_reasoning(payload, brain_view, source)
+
+    assert validation["status"] == "ok"
+
+
+def test_llm_reasoning_accepts_missing_line_when_excerpt_exists() -> None:
+    brain_view = {
+        "ordered_operations": [
+            {
+                "operation_id": "operation:SyncAuthenticPixels:None:10",
+                "supporting_fact_ids": [
+                    "operation:SyncAuthenticPixels:None:10",
+                ],
+            }
+        ]
+    }
+    payload = {
+        "reasoning_groups": [
+            {
+                "description": "return path",
+                "steps": [
+                    {
+                        "claim": "function returns SyncAuthenticPixels",
+                        "evidence": [
+                            {
+                                "fact_id": "operation:SyncAuthenticPixels:None:10",
+                                "source_location": {"line": None, "column": 10},
+                                "source_excerpt": "return(SyncAuthenticPixels(image,exception));",
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
+    }
+    source = {
+        "available": True,
+        "code": "int f(void) {\n  return(SyncAuthenticPixels(image,exception));\n}\n",
+    }
+
+    validation = _validate_llm_reasoning(payload, brain_view, source)
+
+    assert validation["status"] == "ok"
+    assert validation["warnings"]
+
+
+def test_llm_reasoning_accepts_nonexact_excerpt_when_fact_symbol_is_on_line() -> None:
+    brain_view = {
+        "variables": [
+            {
+                "name": "exif",
+                "supporting_fact_ids": [
+                    "definition:exif:4:6",
+                ],
+            }
+        ]
+    }
+    payload = {
+        "reasoning_groups": [
+            {
+                "description": "split declaration",
+                "steps": [
+                    {
+                        "claim": "exif is declared",
+                        "evidence": [
+                            {
+                                "fact_id": "definition:exif:4:6",
+                                "source_location": {"line": 4, "column": 6},
+                                "source_excerpt": "const unsigned char *exif",
+                            }
+                        ],
+                    }
+                ],
+            }
+        ]
+    }
+    source = {
+        "available": True,
+        "code": "void f(void) {\n  const unsigned char\n    *directory,\n    *exif;\n}\n",
+    }
+
+    validation = _validate_llm_reasoning(payload, brain_view, source)
+
+    assert validation["status"] == "ok"
+    assert validation["warnings"]
+
+
+def test_interactive_sample_selection_accepts_comma_indices() -> None:
+    samples = [
+        {"sample_id": "test_000000"},
+        {"sample_id": "test_000001"},
+        {"sample_id": "test_000002"},
+    ]
+
+    assert _resolve_sample_selection("1,3", samples) == [
+        "test_000000",
+        "test_000002",
+    ]
+
+
+def test_source_windows_use_fact_id_lines_without_full_source() -> None:
+    brain = {
+        "symbols": [
+            {
+                "supporting_fact_ids": [
+                    "definition:value:45:7",
+                    "use:value:90:13",
+                ]
+            }
+        ]
+    }
+    code = "\n".join(f"line {index}" for index in range(1, 121))
+
+    windows = _source_windows(
+        {"available": True, "sample_id": "sample", "code": code},
+        brain,
+    )
+
+    assert _line_numbers(brain) == {45, 90}
+    assert windows["context_complete"] is False
+    assert windows["requested_source_lines"] == [45, 90]
+    assert len(windows["windows"]) == 2
+    assert all("line 120" not in item["code"] for item in windows["windows"])
+
+
+def test_interactive_agent_runs_from_menu(
+    tmp_path,
+    monkeypatch,
+    capsys,
+) -> None:
+    dataset_root = tmp_path / "dataset"
+    input_dir = dataset_root / "inputs"
+    brain_context_dir = tmp_path / "brain_context"
+    input_dir.mkdir(parents=True)
+    brain_context_dir.mkdir()
+    (brain_context_dir / "AGENT_GUIDE.md").write_text(
+        "# Agent Guide\n",
+        encoding="utf-8",
+    )
+
+    (input_dir / "test.jsonl").write_text(
+        json.dumps(
+            {
+                "sample_id": "sample_000000",
+                "code": "int id(int value) { return value; }\n",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        "\n".join(
+            [
+                "datasets:",
+                "  local:",
+                f"    root: {dataset_root.as_posix()}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    assert main(
+        [
+            "inspect",
+            "--config",
+            str(config_file),
+            "--dataset",
+            "local",
+            "--split",
+            "test",
+            "--limit",
+            "1",
+            "--format",
+            "json",
+            "--brain-context-dir",
+            str(brain_context_dir),
+        ]
+    ) == 0
+    capsys.readouterr()
+
+    inputs = iter(
+        [
+            str(config_file),
+            str(brain_context_dir),
+            "local",
+            "test",
+            "3",
+            "sample_000000",
+            "n",
+            "y",
+            "",
+            "n",
+            "json",
+            "",
+            "n",
+        ]
+    )
+
+    monkeypatch.setattr(
+        "vulsor.cli.console.input",
+        lambda *_args, **_kwargs: next(inputs),
+    )
+
+    from vulsor.cli import _interactive_agent
+
+    assert _interactive_agent() == 0
+    captured = capsys.readouterr().out
+    output = json.loads(captured[captured.index("{"):])
+
+    assert output["agent"] == "value"
+    assert output["count"] == 1
+    assert output["results"][0]["sample_id"] == "sample_000000"
+
+
+def test_interactive_agent_runs_all_comma_selected_samples(
+    tmp_path,
+    monkeypatch,
+    capsys,
+) -> None:
+    brain_context_dir = tmp_path / "brain_context"
+    manifest_dir = brain_context_dir / "local" / "test"
+    manifest_dir.mkdir(parents=True)
+    (brain_context_dir / "AGENT_GUIDE.md").write_text(
+        "# Agent Guide\n",
+        encoding="utf-8",
+    )
+    (manifest_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "samples": [
+                    {"sample_id": "test_000000", "status": "ok"},
+                    {"sample_id": "test_000001", "status": "ok"},
+                    {"sample_id": "test_000002", "status": "ok"},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        "\n".join(
+            [
+                "datasets:",
+                "  local:",
+                f"    root: {(tmp_path / 'dataset').as_posix()}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    seen_samples = []
+
+    def fake_handle_agent(args, _config):
+        seen_samples.append(args.sample)
+        return 0
+
+    preview_calls = []
+
+    monkeypatch.setattr("vulsor.cli._handle_agent", fake_handle_agent)
+    monkeypatch.setattr(
+        "vulsor.cli._interactive_view_agent_outputs",
+        lambda **kwargs: preview_calls.append(kwargs),
+    )
+    inputs = iter(
+        [
+            str(config_file),
+            str(brain_context_dir),
+            "local",
+            "test",
+            "",
+            "1,2,3",
+            "n",
+            "y",
+            "",
+            "n",
+            "text",
+            "",
+            "y",
+        ]
+    )
+    monkeypatch.setattr(
+        "vulsor.cli.console.input",
+        lambda *_args, **_kwargs: next(inputs),
+    )
+
+    from vulsor.cli import _interactive_agent
+
+    assert _interactive_agent() == 0
+    assert seen_samples == ["test_000000", "test_000001", "test_000002"]
+    assert preview_calls == []
+    captured = capsys.readouterr().out
+    assert "Sample:" in captured
+    assert "test_000002" in captured
+
+
+def test_interactive_inspect_file_rejects_non_source_file(
+    tmp_path,
+    monkeypatch,
+    capsys,
+) -> None:
+    config_file = tmp_path / "primevul.yaml"
+    config_file.write_text("datasets: {}\n", encoding="utf-8")
+    inputs = iter([str(config_file)])
+
+    monkeypatch.setattr(
+        "vulsor.cli.console.input",
+        lambda *_args, **_kwargs: next(inputs),
+    )
+
+    from vulsor.cli import _interactive_inspect_file
+
+    assert _interactive_inspect_file() == 0
+    captured = capsys.readouterr().out
+
+    assert "expects a C/C++ file" in captured
+    assert ".yaml" in captured
+
+
+def test_interactive_source_file_suggestions_only_include_source_files(
+    tmp_path,
+) -> None:
+    (tmp_path / "configs").mkdir()
+    (tmp_path / "configs" / "primevul.yaml").write_text(
+        "datasets: {}\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "sample.c").write_text(
+        "int main(void) { return 0; }\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "experiments").mkdir()
+    (tmp_path / "experiments" / "old.c").write_text(
+        "int old(void) { return 0; }\n",
+        encoding="utf-8",
+    )
+
+    suggestions = _interactive_source_file_options(tmp_path)
+
+    assert "src\\sample.c" in suggestions or "src/sample.c" in suggestions
+    assert all("primevul.yaml" not in item for item in suggestions)
+    assert all("experiments" not in item for item in suggestions)
+
+
+def test_interactive_inspect_dataset_outputs_json(
+    tmp_path,
+    monkeypatch,
+    capsys,
+) -> None:
+    dataset_root = tmp_path / "dataset"
+    input_dir = dataset_root / "inputs"
+    input_dir.mkdir(parents=True)
+
+    records = [
+        {
+            "sample_id": "sample_000000",
+            "code": "int first(int value) { return value; }\n",
+        },
+        {
+            "sample_id": "sample_000001",
+            "code": "int second(int value) { return value + 1; }\n",
+        },
+    ]
+
+    (input_dir / "test.jsonl").write_text(
+        "\n".join(json.dumps(record) for record in records) + "\n",
+        encoding="utf-8",
+    )
+
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        "\n".join(
+            [
+                "datasets:",
+                "  local:",
+                f"    root: {dataset_root.as_posix()}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    inputs = iter(
+        [
+            "2",
+            str(config_file),
+            "",
+            "local",
+            "test",
+            "2",
+            "2",
+            "1",
+            "json",
+            "",
+            "n",
+            "1",
+        ]
+    )
+
+    monkeypatch.setattr(
+        "vulsor.cli.console.input",
+        lambda *_args, **_kwargs: next(inputs),
+    )
+    monkeypatch.chdir(tmp_path)
+
+    from vulsor.cli import _interactive_inspect
+
+    result = _interactive_inspect()
+    captured = capsys.readouterr().out
+
+    assert result == 0
+    assert "JSON Output" in captured
+    assert '"dataset": "local"' in captured
+    assert '"split": "test"' in captured
+    assert "sample_000000" in captured
+    assert "sample_000001" in captured
+    assert "Summary" in captured
+
+
+def test_inspect_dataset_outputs_json_for_random_samples(
+    tmp_path,
+    capsys,
+) -> None:
+    dataset_root = tmp_path / "dataset"
+    input_dir = dataset_root / "inputs"
+    input_dir.mkdir(parents=True)
+
+    records = [
+        {
+            "sample_id": f"sample_{index:06d}",
+            "code": f"int f{index}(int value) {{ return value; }}\n",
+        }
+        for index in range(5)
+    ]
+
+    (input_dir / "test.jsonl").write_text(
+        "\n".join(json.dumps(record) for record in records) + "\n",
+        encoding="utf-8",
+    )
+
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        "\n".join(
+            [
+                "datasets:",
+                "  local:",
+                f"    root: {dataset_root.as_posix()}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = main(
+        [
+            "inspect",
+            "--config",
+            str(config_file),
+            "--dataset",
+            "local",
+            "--split",
+            "test",
+            "--random",
+            "2",
+            "--seed",
+            "7",
+            "--format",
+            "json",
+            "--brain-context-dir",
+            str(tmp_path / "brain_context"),
+        ]
+    )
+
+    output = json.loads(capsys.readouterr().out)
+
+    assert result == 0
+    assert output["count"] == 2
+    assert all(
+        sample["status"] == "ok"
+        for sample in output["samples"]
+    )
+
+
+def test_inspect_dataset_recovers_partial_facts_from_bad_snippet(
+    tmp_path,
+    capsys,
+) -> None:
+    dataset_root = tmp_path / "dataset"
+    input_dir = dataset_root / "inputs"
+    input_dir.mkdir(parents=True)
+
+    (input_dir / "test.jsonl").write_text(
+        json.dumps(
+            {
+                "sample_id": "sample_000000",
+                "code": (
+                    "static ProjectType example(ProjectObject *object) {\n"
+                    "    return ProjectFalse;\n"
+                    "}\n"
+                ),
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        "\n".join(
+            [
+                "datasets:",
+                "  local:",
+                f"    root: {dataset_root.as_posix()}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = main(
+        [
+            "inspect",
+            "--config",
+            str(config_file),
+            "--dataset",
+            "local",
+            "--split",
+            "test",
+            "--limit",
+            "1",
+            "--format",
+            "json",
+            "--brain-context-dir",
+            str(tmp_path / "brain_context"),
+        ]
+    )
+
+    output = json.loads(capsys.readouterr().out)
+    sample = output["samples"][0]
+
+    assert result == 0
+    assert sample["status"] == "partial"
+    assert sample["result"]["program_facts"]["functions"][0]["name"] == (
+        "example"
+    )
+    assert sample["analysis"]["scope"] == "function"
+    assert sample["analysis"]["context_mode"] == "recovered_function"
+    assert sample["analysis"]["complete"] is False
+    assert sample["analysis"]["completeness"]["ast"]["status"] == (
+        "recovered"
+    )
+    assert sample["analysis"]["completeness"]["cfg"]["status"] == (
+        "missing"
+    )
+    assert sample["analysis"]["missing_context"][0]["kind"] == (
+        "unknown_type"
+    )
+    assert sample["analysis"]["missing_context"][0]["symbol"] == (
+        "ProjectType"
+    )
+    assert sample["analysis"]["missing_context_summary"] == {
+        "unique_symbols": 3,
+        "total_occurrences": 6,
+        "by_kind": {
+            "unknown_type": 2,
+            "undeclared_identifier": 1,
+        },
+    }
+    assert (
+        "project headers, typedefs, macros, and build flags may be unavailable"
+        in sample["analysis"]["limitations"]
+    )
+    assert (
+        "program analysis emits facts only; it does not infer vulnerability verdicts"
+        in sample["analysis"]["limitations"]
+    )
+    assert (
+        "program analysis does not infer VULNERABLE/BENIGN verdicts"
+        in sample["analysis"]["rules"]
+    )
+    assert "AST recovered from Clang errors" in sample["diagnostics"]
+    assert "CFG unavailable" in sample["diagnostics"]
+
+
+def test_dataset_stage_summary_groups_one_row_per_sample() -> None:
+    payload = {
+        "samples": [
+            {
+                "sample_id": "sample_000000",
+                "status": "partial",
+                "diagnostics": [
+                    "AST recovered from Clang errors",
+                    "CFG unavailable: missing project headers",
+                ],
+                "analysis": {
+                    "missing_context": [
+                        {
+                            "kind": "unknown_type",
+                            "symbol": "ProjectType",
+                        }
+                    ],
+                    "limitations": [
+                        "project headers, typedefs, macros, and build flags may be unavailable",
+                    ],
+                },
+            }
+        ]
+    }
+
+    rows = _dataset_stage_summary_rows(payload)
+
+    assert len(rows) == 1
+    assert rows[0]["sample_id"] == "sample_000000"
+    assert rows[0]["source"] == "missing"
+    assert rows[0]["context"] == "missing"
+    assert rows[0]["ast"] == "missing"
+    assert rows[0]["cfg"] == "missing"
+    assert rows[0]["data_flow"] == "missing"
+    assert rows[0]["cpg"] == "missing"
+    assert rows[0]["dataset"].startswith("100.0% missing:")
+
+
+def test_dataset_stage_summary_reports_dataset_context_gaps() -> None:
+    payload = {
+        "samples": [
+            {
+                "sample_id": "sample_000000",
+                "status": "partial",
+                "analysis": {
+                    "source_context": {
+                        "file_context_available": True,
+                        "resolved_file_available": True,
+                        "compile_context": {
+                            "whole_file_available": True,
+                            "project_headers_available": False,
+                            "compile_commands_available": False,
+                            "include_paths_available": False,
+                            "macros_available": "partial",
+                        },
+                        "target_function": {
+                            "body_available": True,
+                            "indexed": True,
+                        },
+                        "file_function_index": {
+                            "available": True,
+                        },
+                        "call_context": {
+                            "available": True,
+                        },
+                    },
+                    "context_facts": {
+                        "available": True,
+                    },
+                },
+            }
+        ]
+    }
+
+    rows = _dataset_stage_summary_rows(payload)
+
+    assert rows[0]["dataset"] == (
+        "40.0% missing: headers, compile_commands, include_paths, macros"
+    )
+
+
+def test_dataset_context_coverage_reports_aggregate_percent_inputs() -> None:
+    payload = {
+        "samples": [
+            {
+                "analysis": {
+                    "source_context": {
+                        "file_context_available": True,
+                        "resolved_file_available": True,
+                        "compile_context": {
+                            "whole_file_available": True,
+                            "project_headers_available": False,
+                            "compile_commands_available": False,
+                            "include_paths_available": False,
+                            "macros_available": "partial",
+                        },
+                        "target_function": {
+                            "body_available": True,
+                            "indexed": True,
+                        },
+                        "file_function_index": {
+                            "available": True,
+                        },
+                        "call_context": {
+                            "available": True,
+                        },
+                    },
+                },
+            },
+            {
+                "analysis": {
+                    "source_context": {
+                        "file_context_available": False,
+                        "resolved_file_available": False,
+                        "compile_context": {
+                            "whole_file_available": False,
+                            "project_headers_available": False,
+                            "compile_commands_available": False,
+                            "include_paths_available": False,
+                            "macros_available": "partial",
+                        },
+                        "target_function": {
+                            "body_available": False,
+                            "indexed": False,
+                        },
+                        "file_function_index": {
+                            "available": False,
+                        },
+                        "call_context": {
+                            "available": False,
+                        },
+                    },
+                },
+            },
+        ]
+    }
+
+    coverage = dict(_dataset_context_coverage(payload))
+
+    assert coverage["file_info"] == 1
+    assert coverage["whole_file"] == 1
+    assert coverage["target_index"] == 1
+    assert coverage["headers"] == 0
+
+
+def test_dataset_context_split_coverage_uses_full_context_file(tmp_path) -> None:
+    dataset_root = tmp_path / "dataset"
+    context_dir = dataset_root / "context"
+    context_dir.mkdir(parents=True)
+
+    (context_dir / "test.jsonl").write_text(
+        "\n".join(
+            json.dumps(record)
+            for record in [
+                {
+                    "sample_id": "sample_000000",
+                    "file_context_available": True,
+                    "resolved_file_available": True,
+                    "compile_context": {
+                        "whole_file_available": True,
+                        "project_headers_available": False,
+                        "compile_commands_available": False,
+                        "include_paths_available": False,
+                        "macros_available": "partial",
+                    },
+                    "target_function": {
+                        "body_available": True,
+                        "indexed": True,
+                    },
+                    "file_function_index": {
+                        "available": True,
+                    },
+                    "call_context": {
+                        "available": True,
+                    },
+                },
+                {
+                    "sample_id": "sample_000001",
+                    "file_context_available": False,
+                    "resolved_file_available": False,
+                    "compile_context": {
+                        "whole_file_available": False,
+                        "project_headers_available": False,
+                        "compile_commands_available": False,
+                        "include_paths_available": False,
+                        "macros_available": "partial",
+                    },
+                    "target_function": {
+                        "body_available": False,
+                        "indexed": False,
+                    },
+                    "file_function_index": {
+                        "available": False,
+                    },
+                    "call_context": {
+                        "available": False,
+                    },
+                },
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        "\n".join(
+            [
+                "datasets:",
+                "  local:",
+                f"    root: {dataset_root.as_posix()}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    from vulsor.config import load_config
+
+    coverage = _dataset_context_split_coverage(
+        load_config(config_file),
+        "local",
+        "test",
+    )
+
+    counts = dict(coverage["coverage"])
+
+    assert coverage["available"] is True
+    assert coverage["count"] == 2
+    assert counts["file_info"] == 1
+    assert counts["whole_file"] == 1
+    assert counts["target_index"] == 1
+    assert counts["headers"] == 0
+
+
+def test_stage_coverage_is_dynamic_from_sample_statuses() -> None:
+    payload = {
+        "samples": [
+            {
+                "status": "partial",
+                "analysis": {
+                    "source_context": {
+                        "selected_source": "function_snippet",
+                    },
+                    "context_facts": {
+                        "available": True,
+                    },
+                    "completeness": {
+                        "ast": {"status": "recovered"},
+                        "cfg": {"status": "missing"},
+                        "data_flow": {"status": "limited"},
+                    },
+                    "cpg_facts": {
+                        "status": "available",
+                    },
+                },
+            },
+            {
+                "status": "error",
+            },
+        ]
+    }
+
+    coverage = dict(_stage_coverage(payload))
+
+    assert coverage == {
+        "source": 1,
+        "context": 1,
+        "ast": 1,
+        "cfg": 0,
+        "data_flow": 1,
+        "cpg": 1,
+    }
+
+
+def test_stage_vs_dataset_coverage_uses_extracted_facts_and_context() -> None:
+    payload = {
+        "samples": [
+            {
+                "status": "partial",
+                "result": {
+                    "program_facts": {
+                        "functions": [{"name": "f"}],
+                        "cfg_blocks": [],
+                        "data_flow": [{"id": "df"}],
+                        "call_graph": [{"id": "cg"}],
+                    }
+                },
+                "analysis": {
+                    "source_context": {
+                        "file_context_available": True,
+                        "resolved_file_available": True,
+                        "target_function": {
+                            "body_available": True,
+                            "indexed": True,
+                        },
+                        "file_function_index": {
+                            "available": True,
+                        },
+                        "call_context": {
+                            "available": True,
+                        },
+                    },
+                    "completeness": {
+                        "ast": {"status": "recovered"},
+                        "cfg": {"status": "missing"},
+                        "data_flow": {"status": "limited"},
+                    },
+                    "cpg_facts": {
+                        "status": "available",
+                    },
+                },
+            },
+            {
+                "status": "partial",
+                "result": {
+                    "program_facts": {
+                        "functions": [],
+                        "cfg_blocks": [],
+                        "data_flow": [],
+                        "call_graph": [],
+                    }
+                },
+                "analysis": {
+                    "source_context": {
+                        "file_context_available": True,
+                        "resolved_file_available": True,
+                        "target_function": {
+                            "body_available": True,
+                            "indexed": True,
+                        },
+                        "file_function_index": {
+                            "available": True,
+                        },
+                        "call_context": {
+                            "available": False,
+                        },
+                    },
+                    "completeness": {
+                        "ast": {"status": "missing"},
+                        "cfg": {"status": "missing"},
+                        "data_flow": {"status": "missing"},
+                    },
+                    "cpg_facts": {
+                        "status": "not_requested",
+                    },
+                },
+            },
+        ]
+    }
+
+    coverage = {
+        label: (count, total)
+        for label, count, total in _stage_vs_dataset_coverage(payload)
+    }
+
+    assert coverage["ast/target_body"] == (1, 2)
+    assert coverage["cfg/target_index"] == (0, 2)
+    assert coverage["data_flow/target_index"] == (1, 2)
+    assert coverage["call_graph/call_context"] == (1, 1)
+    assert coverage["cpg/call_context"] == (1, 1)
+
+
+def test_dataset_inspection_text_format_is_plain_sections() -> None:
+    payload = {
+        "dataset": "local",
+        "split": "test",
+        "count": 1,
+        "brain_context": {
+            "artifact_dir": "brain_context/local/test",
+            "count": 1,
+        },
+        "dataset_context_split": {
+            "available": True,
+            "count": 2,
+            "coverage": [
+                ("file_info", 1),
+                ("whole_file", 1),
+                ("target_body", 1),
+                ("target_index", 1),
+                ("file_index", 1),
+                ("call_context", 1),
+                ("headers", 0),
+                ("compile_commands", 0),
+                ("include_paths", 0),
+                ("macros", 0),
+            ],
+        },
+        "samples": [
+            {
+                "sample_id": "sample_000000",
+                "status": "partial",
+                "result": {
+                    "program_facts": {
+                        "functions": [{"name": "f"}],
+                        "operations": [{"name": "memcpy"}],
+                        "cfg_blocks": [],
+                        "data_flow": [],
+                        "call_graph": [],
+                    }
+                },
+                "analysis": {
+                    "source_context": {
+                        "selected_source": "function_snippet",
+                        "file_context_available": True,
+                        "resolved_file_available": True,
+                        "compile_context": {
+                            "whole_file_available": True,
+                            "project_headers_available": False,
+                            "compile_commands_available": False,
+                            "include_paths_available": False,
+                            "macros_available": "partial",
+                        },
+                        "target_function": {
+                            "body_available": True,
+                            "indexed": True,
+                        },
+                        "file_function_index": {
+                            "available": True,
+                        },
+                        "call_context": {
+                            "available": True,
+                        },
+                    },
+                    "context_facts": {
+                        "available": True,
+                    },
+                    "completeness": {
+                        "ast": {
+                            "status": "recovered",
+                            "reason": "Clang emitted recoverable AST JSON despite diagnostics",
+                        },
+                        "cfg": {
+                            "status": "missing",
+                            "reason": "Clang CFG dump failed or produced no CFG text",
+                        },
+                        "data_flow": {
+                            "status": "limited",
+                            "reason": "syntactic data-flow was built from recovered AST facts",
+                        },
+                    },
+                    "cpg_facts": {
+                        "status": "not_requested",
+                    },
+                    "build_diagnosis": {
+                        "issues": [
+                            {
+                                "component": "cfg",
+                                "classification": "dataset_compile_context_missing",
+                                "fixable": True,
+                                "message": "headers are unavailable",
+                            }
+                        ]
+                    },
+                    "missing_context_summary": {
+                        "unique_symbols": 2,
+                        "total_occurrences": 5,
+                        "by_kind": {"unknown_type": 2},
+                    },
+                },
+                "diagnostics": ["AST recovered from Clang errors"],
+            }
+        ],
+    }
+
+    output = _format_dataset_inspection_text(payload)
+
+    assert "Summary:" in output
+    assert "Dataset context selected:" in output
+    assert "Dataset context split (2 samples):" in output
+    assert "file_info 1 (50.0%)" in output
+    assert "Stage coverage:" in output
+    assert "Stage vs dataset:" in output
+    assert "sample_000000 [partial]" in output
+    assert "artifact:" in output
+    assert "sample_000000.json" in output
+    assert "table_row: source=available" in output
+    assert "stage_details:" in output
+    assert "facts:" in output
+    assert "operations=1" in output
+    assert "dataset_context:" in output
+    assert "missing_symbols: unique=2" in output
+    assert "root_causes:" in output
+    assert "dataset_compile_context_missing" in output
+    assert "diagnostics:" in output
+    assert "Stage Summary" not in output
+    assert "┏" not in output
+
+
+def test_dataset_inspection_text_separates_sample_blocks() -> None:
+    payload = {
+        "dataset": "local",
+        "split": "test",
+        "count": 2,
+        "samples": [
+            {
+                "sample_id": "sample_000000",
+                "status": "error",
+                "error": "failed",
+            },
+            {
+                "sample_id": "sample_000001",
+                "status": "error",
+                "error": "failed",
+            },
+        ],
+    }
+
+    output = _format_dataset_inspection_text(payload)
+
+    assert "\n\n- sample_000001 [error]" in output
+
+
+def test_context_facts_summarize_updated_context() -> None:
+    context_facts = _context_facts(
+        {
+            "target_function": {
+                "name": "example",
+                "start_line": 4,
+                "end_line": 8,
+                "indexed": True,
+                "body_available": True,
+            },
+            "file_function_index": {
+                "available": True,
+                "function_count": 3,
+                "functions": [
+                    {"name": "helper"},
+                    {"name": "example"},
+                    {"name": "caller"},
+                ],
+            },
+            "call_context": {
+                "available": True,
+                "scope": "same_file",
+                "direct_callees": [
+                    {
+                        "name": "helper",
+                        "body_available": True,
+                    },
+                    {
+                        "name": "external_call",
+                        "body_available": False,
+                    },
+                ],
+                "direct_callers": [
+                    {"name": "caller"},
+                ],
+                "limitations": [
+                    "same-file heuristic only",
+                ],
+            },
+        }
+    )
+
+    assert context_facts["available"] is True
+    assert context_facts["target"]["name"] == "example"
+    assert context_facts["same_file_index"]["function_count"] == 3
+    assert (
+        context_facts["same_file_call_context"]["direct_callee_count"]
+        == 2
+    )
+    assert (
+        context_facts["same_file_call_context"][
+            "direct_callee_body_count"
+        ]
+        == 1
+    )
+    assert (
+        context_facts["same_file_call_context"]["direct_caller_count"]
+        == 1
+    )
+    assert "not a vulnerability label" in context_facts["trust_boundary"]
+
+
+def test_compile_context_builds_clang_args() -> None:
+    args = _clang_args_from_compile_context(
+        {
+            "include_paths": [
+                "include",
+            ],
+            "system_include_paths": [
+                "system",
+            ],
+            "macros": {
+                "ENABLE_FEATURE": True,
+                "SIZE": 16,
+            },
+            "defines": [
+                "LOCAL_ONLY",
+            ],
+            "undefines": [
+                "OLD_FLAG",
+            ],
+            "extra_clang_args": [
+                "-std=c11",
+            ],
+        }
+    )
+
+    assert args == (
+        "-Iinclude",
+        "-isystemsystem",
+        "-DENABLE_FEATURE",
+        "-DSIZE=16",
+        "-DLOCAL_ONLY",
+        "-UOLD_FLAG",
+        "-std=c11",
+    )
+
+
+@pytest.mark.skipif(
+    shutil.which("joern") is None or shutil.which("c2cpg") is None,
+    reason="Joern/c2cpg is not installed",
+)
+def test_inspect_dataset_can_include_real_cpg_facts(
+    tmp_path,
+    capsys,
+) -> None:
+    dataset_root = tmp_path / "dataset"
+    input_dir = dataset_root / "inputs"
+    input_dir.mkdir(parents=True)
+
+    (input_dir / "test.jsonl").write_text(
+        json.dumps(
+            {
+                "sample_id": "sample_000000",
+                "code": "int foo(int value) { return value + 1; }\n",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        "\n".join(
+            [
+                "datasets:",
+                "  local:",
+                f"    root: {dataset_root.as_posix()}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = main(
+        [
+            "inspect",
+            "--config",
+            str(config_file),
+            "--dataset",
+            "local",
+            "--split",
+            "test",
+            "--limit",
+            "1",
+            "--cpg",
+            "--format",
+            "json",
+            "--brain-context-dir",
+            str(tmp_path / "brain_context"),
+        ]
+    )
+
+    output = json.loads(capsys.readouterr().out)
+    cpg_facts = output["samples"][0]["analysis"]["cpg_facts"]
+
+    assert result == 0
+    assert cpg_facts["status"] == "available"
+    assert cpg_facts["method_count"] > 0
+    assert cpg_facts["call_count"] > 0
+    assert any(
+        method["name"] == "foo"
+        for method in cpg_facts["methods"]
+    )
+    assert cpg_facts["trust_boundary"].startswith("real CPG facts")
+
+
+def test_inspect_dataset_auto_uses_whole_file_context(
+    tmp_path,
+    capsys,
+) -> None:
+    dataset_root = tmp_path / "dataset"
+    input_dir = dataset_root / "inputs"
+    context_dir = dataset_root / "context"
+    raw_dir = tmp_path / "raw"
+    input_dir.mkdir(parents=True)
+    context_dir.mkdir()
+    raw_dir.mkdir()
+
+    whole_file = raw_dir / "example.c"
+    whole_file.write_text(
+        "\n".join(
+            [
+                "typedef int ProjectType;",
+                "typedef int ProjectObject;",
+                "enum { ProjectFalse = 0 };",
+                "static ProjectType example(ProjectObject *object) {",
+                "    return ProjectFalse;",
+                "}",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    (input_dir / "test.jsonl").write_text(
+        json.dumps(
+            {
+                "sample_id": "sample_000000",
+                "code": (
+                    "static ProjectType example(ProjectObject *object) {\n"
+                    "    return ProjectFalse;\n"
+                    "}\n"
+                ),
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (context_dir / "test.jsonl").write_text(
+        json.dumps(
+            {
+                "sample_id": "sample_000000",
+                "analysis_scope": "function",
+                "source_kind": "function_snippet",
+                "file_context_available": True,
+                "resolved_file_available": True,
+                "resolved_file_content_path": whole_file.as_posix(),
+                "file_name": "example.c",
+                "original_file_path": "src/example.c",
+                "function_start_line": 4,
+                "function_end_line": 6,
+                "target_function": {
+                    "name": "example",
+                    "start_line": 4,
+                    "end_line": 6,
+                    "body_available": True,
+                    "indexed": True,
+                },
+                "file_function_index": {
+                    "available": True,
+                    "function_count": 1,
+                    "functions": [
+                        {
+                            "name": "example",
+                            "start_line": 4,
+                            "end_line": 6,
+                            "direct_call_count": 0,
+                        }
+                    ],
+                },
+                "call_context": {
+                    "available": True,
+                    "scope": "same_file",
+                    "direct_callees": [],
+                    "direct_callers": [],
+                    "limitations": [
+                        "same-file heuristic only",
+                    ],
+                },
+                "compile_context": {
+                    "whole_file_available": True,
+                    "project_headers_available": False,
+                    "compile_commands_available": False,
+                    "include_paths_available": False,
+                    "macros_available": "partial",
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        "\n".join(
+            [
+                "datasets:",
+                "  local:",
+                f"    root: {dataset_root.as_posix()}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = main(
+        [
+            "inspect",
+            "--config",
+            str(config_file),
+            "--dataset",
+            "local",
+            "--split",
+            "test",
+            "--limit",
+            "1",
+            "--analysis-scope",
+            "auto",
+            "--format",
+            "json",
+            "--brain-context-dir",
+            str(tmp_path / "brain_context"),
+        ]
+    )
+
+    output = json.loads(capsys.readouterr().out)
+    sample = output["samples"][0]
+
+    assert result == 0
+    assert sample["analysis"]["source_context"]["selected_source"] == (
+        "whole_file"
+    )
+    assert sample["analysis"]["source_context"]["target_line_range"] == {
+        "start": 4,
+        "end": 6,
+    }
+    assert sample["analysis"]["build_diagnosis"]["issues"][0][
+        "classification"
+    ] == "function_range_cfg_omitted"
+    assert sample["analysis"]["context_facts"]["target"]["name"] == (
+        "example"
+    )
+    assert sample["analysis"]["context_facts"][
+        "same_file_call_context"
+    ]["available"] is True
+    assert sample["analysis"]["missing_context"] == []
+    assert sample["result"]["program_facts"]["functions"][0]["name"] == (
+        "example"
+    )
+
+
+def test_build_diagnosis_flags_compile_context_not_applied() -> None:
+    analysis = analyze_source_code_tolerant(
+        (
+            "static int example(int value) {\n"
+            "    ProjectType missing;\n"
+            "    return value;\n"
+            "}\n"
+        ),
+        scope="function",
+    )
+
+    diagnosis = _build_diagnosis(
+        analysis,
+        {
+            "resolved_file_available": True,
+            "compile_context": {
+                "compile_commands_available": True,
+                "include_paths_available": True,
+                "macros_available": True,
+            },
+        },
+    )
+
+    assert any(
+        issue["classification"] == "pipeline_context_not_applied"
+        for issue in diagnosis["issues"]
+    )
+
+
+# ---------------------------------------------------------------------------
+# Input-source validation
+# ---------------------------------------------------------------------------
+
+
+def test_inspect_rejects_file_with_sample() -> None:
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "inspect",
+            "--file",
+            "sample.c",
+            "--sample",
+            "test_000123",
+        ]
+    )
+
+    with pytest.raises(
+        SystemExit,
+        match="--sample cannot be used with --file",
+    ):
+        from vulsor.cli import _validate_input_source_args
+
+        _validate_input_source_args(args)
+
+
+def test_inspect_rejects_file_with_split() -> None:
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "inspect",
+            "--file",
+            "sample.c",
+            "--split",
+            "test",
+        ]
+    )
+
+    with pytest.raises(
+        SystemExit,
+        match="--split cannot be used with --file",
+    ):
+        from vulsor.cli import _validate_input_source_args
+
+        _validate_input_source_args(args)
+
+
+# ---------------------------------------------------------------------------
+# Evaluate validation
+# ---------------------------------------------------------------------------
+
+
+def test_evaluate_rejects_invalid_limit() -> None:
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "evaluate",
+            "--dataset",
+            "primevul",
+            "--split",
+            "test",
+            "--limit",
+            "0",
+        ]
+    )
+
+    with pytest.raises(
+        SystemExit,
+        match="--limit must be >= 1",
+    ):
+        from vulsor.cli import _validate_evaluate_args
+
+        _validate_evaluate_args(args)
+
+
+def test_evaluate_rejects_negative_offset() -> None:
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "evaluate",
+            "--dataset",
+            "primevul",
+            "--split",
+            "test",
+            "--offset",
+            "-1",
+        ]
+    )
+
+    with pytest.raises(
+        SystemExit,
+        match="--offset must be >= 0",
+    ):
+        from vulsor.cli import _validate_evaluate_args
+
+        _validate_evaluate_args(args)
+
+
+def test_evaluate_rejects_sample_with_offset() -> None:
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "evaluate",
+            "--dataset",
+            "primevul",
+            "--split",
+            "test",
+            "--sample",
+            "test_000123",
+            "--offset",
+            "10",
+        ]
+    )
+
+    with pytest.raises(
+        SystemExit,
+        match="--offset cannot be used with --sample",
+    ):
+        from vulsor.cli import _validate_evaluate_args
+
+        _validate_evaluate_args(args)
+
+
+def test_evaluate_rejects_resume_without_cache_dir() -> None:
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "evaluate",
+            "--dataset",
+            "primevul",
+            "--split",
+            "test",
+            "--resume",
+        ]
+    )
+
+    with pytest.raises(
+        SystemExit,
+        match="--resume requires --cache-dir",
+    ):
+        from vulsor.cli import _validate_evaluate_args
+
+        _validate_evaluate_args(args)
+
+
+def test_evaluate_rejects_resume_with_no_cache() -> None:
+    parser = build_parser()
+
+    args = parser.parse_args(
+        [
+            "evaluate",
+            "--dataset",
+            "primevul",
+            "--split",
+            "test",
+            "--resume",
+            "--cache-dir",
+            ".cache",
+            "--no-cache",
+        ]
+    )
+
+    with pytest.raises(
+        SystemExit,
+        match="--resume cannot be used with --no-cache",
+    ):
+        from vulsor.cli import _validate_evaluate_args
+
+        _validate_evaluate_args(args)
