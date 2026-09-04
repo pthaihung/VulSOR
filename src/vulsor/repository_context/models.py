@@ -6,7 +6,7 @@ from pydantic import AnyUrl, BaseModel, ConfigDict, Field, field_validator
 
 
 class StrictModel(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
 
 class EvidencePhase(str, Enum):
@@ -16,6 +16,16 @@ class EvidencePhase(str, Enum):
 
 class RelationFamily(str, Enum):
     CALL = "call"
+    ARGUMENT = "argument"
+    DATA_FLOW = "data_flow"
+    CONTROL_DEPENDENCE = "control_dependence"
+    DECLARATION = "declaration"
+    TYPE = "type"
+
+
+class QueryFamily(str, Enum):
+    CALL = "call"
+    CALL_ARGUMENT = "call_argument"
     ARGUMENT = "argument"
     DATA_FLOW = "data_flow"
     CONTROL_DEPENDENCE = "control_dependence"
@@ -86,12 +96,14 @@ class EvidenceBudget(StrictModel):
 
 class EvidenceRequest(StrictModel):
     request_id: str = Field(min_length=1)
-    phase: EvidencePhase
+    phase: EvidencePhase = Field(strict=False)
     obligation_ref: str = Field(min_length=1)
     repository_ref: RepositoryRef
     anchor: SourceAnchor
     questions: tuple[str, ...] = Field(min_length=1)
-    allowed_relations: tuple[RelationFamily, ...] = Field(min_length=1)
+    allowed_relations: tuple[RelationFamily, ...] = Field(
+        min_length=1, strict=False
+    )
     budget: EvidenceBudget = Field(default_factory=EvidenceBudget)
 
     @field_validator("questions")
@@ -111,13 +123,13 @@ class SourceLocation(StrictModel):
 
 
 class EvidenceProvenance(StrictModel):
-    query_family: RelationFamily
+    query_family: QueryFamily = Field(strict=False)
     cpg_node_types: tuple[str, ...] = ()
     cpg_node_ids: tuple[int, ...] = ()
 
 
 class EvidenceItem(StrictModel):
-    evidence_id: str = Field(pattern=r"^repo_ev_[0-9a-f]{16}$")
+    evidence_id: str = Field(pattern=r"^repo_ev_(?:[0-9]{3}|[0-9a-f]{16})$")
     kind: str = Field(min_length=1)
     subject: str = Field(min_length=1)
     relation: str = Field(min_length=1)
@@ -134,7 +146,7 @@ class Limitation(StrictModel):
 
 
 class AnchorResolution(StrictModel):
-    status: AnchorStatus
+    status: AnchorStatus = Field(strict=False)
     candidate_count: int = Field(ge=0)
 
 
@@ -148,7 +160,7 @@ class BudgetUsage(StrictModel):
 
 class RepositoryEvidence(StrictModel):
     request_id: str = Field(min_length=1)
-    status: EvidenceStatus
+    status: EvidenceStatus = Field(strict=False)
     resolved_revision: str | None = None
     anchor_resolution: AnchorResolution
     evidence: tuple[EvidenceItem, ...] = ()
