@@ -1,12 +1,31 @@
 """Typed contracts for repository-context evidence requests and results."""
 
 from enum import Enum
+from typing import Any
 
 from pydantic import AnyUrl, BaseModel, ConfigDict, Field, field_validator
 
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
+
+    @field_validator(
+        "questions",
+        "allowed_relations",
+        "cpg_node_types",
+        "cpg_node_ids",
+        "conditions",
+        "path",
+        "evidence",
+        "limitations",
+        mode="before",
+        check_fields=False,
+    )
+    @classmethod
+    def accept_json_lists(cls, value: Any) -> Any:
+        if isinstance(value, list):
+            return tuple(value)
+        return value
 
 
 class EvidencePhase(str, Enum):
@@ -111,6 +130,18 @@ class EvidenceRequest(StrictModel):
     def non_blank_questions(cls, values: tuple[str, ...]) -> tuple[str, ...]:
         if any(not value.strip() for value in values):
             raise ValueError("questions must not contain blank values")
+        return values
+
+    @field_validator("allowed_relations", mode="before")
+    @classmethod
+    def parse_relation_values(cls, values: Any) -> Any:
+        if isinstance(values, list):
+            values = tuple(values)
+        if isinstance(values, tuple):
+            return tuple(
+                RelationFamily(value) if isinstance(value, str) else value
+                for value in values
+            )
         return values
 
 

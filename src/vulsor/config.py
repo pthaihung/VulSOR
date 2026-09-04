@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictInt
 
 from vulsor.repository_context.models import EvidenceBudget
 
@@ -48,10 +48,10 @@ class DatasetConfig(BaseModel):
 class RepositoryContextConfig(BaseModel):
     enabled: bool = False
     cache_root: Path = Path("workspace/repository_context")
-    clone_timeout_seconds: int = Field(default=600, ge=1)
-    build_timeout_seconds: int = Field(default=1800, ge=1)
-    query_timeout_seconds: int = Field(default=120, ge=1)
-    lock_timeout_seconds: int = Field(default=60, ge=1)
+    clone_timeout_seconds: StrictInt = Field(default=600, ge=1)
+    build_timeout_seconds: StrictInt = Field(default=1800, ge=1)
+    query_timeout_seconds: StrictInt = Field(default=120, ge=1)
+    lock_timeout_seconds: StrictInt = Field(default=60, ge=1)
     default_budget: EvidenceBudget = Field(default_factory=EvidenceBudget)
 
 
