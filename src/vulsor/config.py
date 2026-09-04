@@ -14,6 +14,8 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
+from vulsor.repository_context.models import EvidenceBudget
+
 
 class ToolsConfig(BaseModel):
     """External tool executables, resolved via PATH by default.
@@ -27,6 +29,9 @@ class ToolsConfig(BaseModel):
 
     clang: str = "clang"
     clang_cpp: str = Field(default="clang++", alias="clang++")
+    git: str = "git"
+    joern: str = "joern"
+    joern_parse: str = Field(default="joern-parse", alias="joern-parse")
 
 
 class DatasetConfig(BaseModel):
@@ -37,6 +42,17 @@ class DatasetConfig(BaseModel):
     """
 
     root: Path
+    repository_index_dir: Path | None = None
+
+
+class RepositoryContextConfig(BaseModel):
+    enabled: bool = False
+    cache_root: Path = Path("workspace/repository_context")
+    clone_timeout_seconds: int = Field(default=600, ge=1)
+    build_timeout_seconds: int = Field(default=1800, ge=1)
+    query_timeout_seconds: int = Field(default=120, ge=1)
+    lock_timeout_seconds: int = Field(default=60, ge=1)
+    default_budget: EvidenceBudget = Field(default_factory=EvidenceBudget)
 
 
 class VulSORConfig(BaseModel):
@@ -49,6 +65,9 @@ class VulSORConfig(BaseModel):
 
     tools: ToolsConfig = Field(default_factory=ToolsConfig)
     datasets: dict[str, DatasetConfig] = Field(default_factory=dict)
+    repository_context: RepositoryContextConfig = Field(
+        default_factory=RepositoryContextConfig
+    )
 
 
 class AgentLLMOverride(BaseModel):
