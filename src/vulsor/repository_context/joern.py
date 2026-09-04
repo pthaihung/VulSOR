@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import stat
 import subprocess
 import tempfile
 from pathlib import Path
 from typing import Sequence, cast
+
+from pydantic import ValidationError
 
 from vulsor.config import (  # type: ignore[import-untyped]
     RepositoryContextConfig,
@@ -17,12 +20,13 @@ from vulsor.config import (  # type: ignore[import-untyped]
 )
 
 from .git_repository import CommandResult, CommandRunner, SubprocessCommandRunner
-from .models import EvidenceRequest
+from .models import EvidenceRequest, RepositoryEvidence
 
 
 _MAX_DIAGNOSTIC_CHARS = 4096
 _REPARSE_POINT = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
 _SMOKE_FIELDS = ("methodCount", "callCount", "fileCount")
+_CMD_METACHARACTERS = frozenset('&|<>()^%!"\r\n')
 
 
 class JoernError(RuntimeError):
@@ -43,12 +47,12 @@ class JoernCommandError(JoernError):
     ) -> None:
         self.arguments = _redact_arguments(arguments, paths)
         self.returncode = returncode
-        self.stdout = _diagnostic(stdout, paths)
-        self.stderr = _diagnostic(stderr, paths)
-        details = _format_diagnostics(self.stdout, self.stderr)
+        self.stdout, self.stderr = _capped_streams(stdout, stderr, paths)
+        self.diagnostics = _truncate(_format_diagnostics(self.stdout, self.stderr))
         super().__init__(
             f"Joern command failed with exit code {returncode}: "
-            f"{_format_arguments(self.arguments)}{details}"
+            f"{_format_arguments(self.arguments)}"
+            f"{self.diagnostics if self.diagnostics else ''}"
         )
 
 
@@ -66,12 +70,12 @@ class JoernCommandTimeoutError(JoernError):
     ) -> None:
         self.arguments = _redact_arguments(arguments, paths)
         self.timeout = timeout
-        self.stdout = _diagnostic(stdout, paths)
-        self.stderr = _diagnostic(stderr, paths)
-        details = _format_diagnostics(self.stdout, self.stderr)
+        self.stdout, self.stderr = _capped_streams(stdout, stderr, paths)
+        self.diagnostics = _truncate(_format_diagnostics(self.stdout, self.stderr))
         super().__init__(
             f"Joern command timed out after {timeout} seconds: "
-            f"{_format_arguments(self.arguments)}{details}"
+            f"{_format_arguments(self.arguments)}"
+            f"{self.diagnostics if self.diagnostics else ''}"
         )
 
 
@@ -81,6 +85,10 @@ class JoernOutputError(JoernError):
 
 class JoernSchemaError(JoernError):
     """Joern output did not satisfy the adapter's JSON boundary contract."""
+
+
+class JoernCleanupError(JoernError):
+    """A temporary Joern transport file could not be safely removed."""
 
 
 def _is_link_like(path: Path) -> bool:
@@ -112,13 +120,23 @@ def _is_link_like(path: Path) -> bool:
 def _path_variants(path: Path) -> tuple[str, ...]:
     variants = {str(path), os.fspath(path)}
     try:
-        variants.add(str(path.absolute()))
+        absolute = path.absolute()
+        variants.add(str(absolute))
     except (OSError, RuntimeError):
-        pass
+        absolute = None
     try:
-        variants.add(str(path.resolve(strict=False)))
+        resolved = path.resolve(strict=False)
+        variants.add(str(resolved))
     except (OSError, RuntimeError):
-        pass
+        resolved = None
+
+    for candidate in (absolute, resolved):
+        if candidate is None:
+            continue
+        current = candidate
+        while current.parent != current and current.parent.parent != current.parent:
+            variants.add(str(current.parent))
+            current = current.parent
     return tuple(value for value in variants if value)
 
 
@@ -139,23 +157,38 @@ def _sanitize_text(value: object, paths: Sequence[Path] = ()) -> str:
             lowered = text.casefold()
             start = lowered.find(variant.casefold())
             while start >= 0:
-                text = text[:start] + "<local-path>" + text[
-                    start + len(variant) :
-                ]
+                text = text[:start] + "<local-path>" + text[start + len(variant) :]
                 lowered = text.casefold()
                 start = lowered.find(variant.casefold(), start + len("<local-path>"))
     return text
 
 
-def _truncate(value: str) -> str:
-    if len(value) <= _MAX_DIAGNOSTIC_CHARS:
+def _truncate(value: str, limit: int = _MAX_DIAGNOSTIC_CHARS) -> str:
+    if len(value) <= limit:
         return value
     marker = "...[truncated]"
-    return value[: _MAX_DIAGNOSTIC_CHARS - len(marker)] + marker
+    return value[: limit - len(marker)] + marker
 
 
 def _diagnostic(value: object, paths: Sequence[Path]) -> str:
     return _truncate(_sanitize_text(value, paths))
+
+
+def _capped_streams(
+    stdout: object,
+    stderr: object,
+    paths: Sequence[Path],
+) -> tuple[str, str]:
+    safe_stdout = _sanitize_text(stdout, paths)
+    safe_stderr = _sanitize_text(stderr, paths)
+    if len(safe_stdout) + len(safe_stderr) <= _MAX_DIAGNOSTIC_CHARS:
+        return safe_stdout, safe_stderr
+
+    stdout_limit = min(len(safe_stdout), _MAX_DIAGNOSTIC_CHARS // 2)
+    stderr_limit = min(len(safe_stderr), _MAX_DIAGNOSTIC_CHARS - stdout_limit)
+    remaining = _MAX_DIAGNOSTIC_CHARS - stdout_limit - stderr_limit
+    stdout_limit = min(len(safe_stdout), stdout_limit + remaining)
+    return _truncate(safe_stdout, stdout_limit), _truncate(safe_stderr, stderr_limit)
 
 
 def _redact_arguments(
@@ -217,7 +250,9 @@ def _validate_directory(path: Path, label: str) -> None:
         if not os.path.lexists(path):
             raise JoernError(f"{label} does not exist")
         if _is_link_like(path):
-            raise JoernError(f"{label} must not be a symlink, junction, or reparse point")
+            raise JoernError(
+                f"{label} must not be a symlink, junction, or reparse point"
+            )
         if not path.is_dir():
             raise JoernError(f"{label} must be a directory")
     except JoernError:
@@ -254,7 +289,9 @@ def _validate_output_target(path: Path, label: str) -> bool:
     try:
         exists = os.path.lexists(path)
         if exists and _is_link_like(path):
-            raise JoernError(f"{label} must not be a symlink, junction, or reparse point")
+            raise JoernError(
+                f"{label} must not be a symlink, junction, or reparse point"
+            )
         if exists and not path.is_file():
             raise JoernError(f"{label} must be a regular file")
         return exists
@@ -266,16 +303,61 @@ def _validate_output_target(path: Path, label: str) -> bool:
         ) from None
 
 
-def _remove_created_file(path: Path, existed_before: bool) -> None:
-    if existed_before:
+def _validate_source_tree(source_root: Path) -> None:
+    pending = [source_root]
+    while pending:
+        directory = pending.pop()
+        try:
+            with os.scandir(directory) as entries:
+                for entry in entries:
+                    child = Path(entry.path)
+                    if _is_link_like(child):
+                        raise JoernError(
+                            "source root contains a symlink, junction, or reparse point"
+                        )
+                    try:
+                        if entry.is_dir(follow_symlinks=False):
+                            pending.append(child)
+                        elif not entry.is_file(follow_symlinks=False):
+                            raise JoernError(
+                                "source root contains an unsupported filesystem entry"
+                            )
+                    except JoernError:
+                        raise
+                    except (OSError, RuntimeError) as exc:
+                        raise JoernError(
+                            "could not inspect source root: "
+                            f"{_sanitize_text(exc, (source_root, child))}"
+                        ) from None
+        except JoernError:
+            raise
+        except (OSError, RuntimeError) as exc:
+            raise JoernError(
+                "could not traverse source root: "
+                f"{_sanitize_text(exc, (source_root, directory))}"
+            ) from None
+
+
+def _is_batch_launcher(executable: str) -> bool:
+    if Path(executable).suffix.casefold() in {".bat", ".cmd"}:
+        return True
+    resolved = shutil.which(executable)
+    return resolved is not None and Path(resolved).suffix.casefold() in {
+        ".bat",
+        ".cmd",
+    }
+
+
+def _validate_batch_arguments(command: Sequence[str]) -> None:
+    if not _is_batch_launcher(command[0]):
         return
-    try:
-        if os.path.lexists(path) and (
-            _is_link_like(path) or not path.is_dir()
-        ):
-            path.unlink(missing_ok=True)
-    except OSError:
-        pass
+    if any(
+        any(character in _CMD_METACHARACTERS for character in argument)
+        for argument in command
+    ):
+        raise JoernError(
+            "refusing command with cmd metacharacters for a Windows batch launcher"
+        )
 
 
 def _as_text(value: object) -> str:
@@ -336,15 +418,11 @@ class JoernAdapter:
         self.config = repository_config
         self._runner = runner or SubprocessCommandRunner()
 
-        selected_smoke = _choose_alias(
-            smoke_script, smoke_script_path, "smoke script"
-        )
+        selected_smoke = _choose_alias(smoke_script, smoke_script_path, "smoke script")
         selected_evidence = _choose_alias(
             evidence_script, evidence_script_path, "evidence script"
         )
-        selected_query = _choose_alias(
-            query_script, query_script_path, "query script"
-        )
+        selected_query = _choose_alias(query_script, query_script_path, "query script")
         if selected_evidence is not None and selected_query is not None:
             if Path(selected_evidence) != Path(selected_query):
                 raise ValueError("conflicting evidence script values")
@@ -383,25 +461,47 @@ class JoernAdapter:
         source_root = Path(source_root)
         output_path = Path(output_path)
         _validate_directory(source_root, "source root")
-        existed_before = _validate_output_target(output_path, "CPG output")
-        command = (
-            self.joern_parse_executable,
-            os.fspath(source_root),
-            "--language",
-            "C",
-            "-o",
-            os.fspath(output_path),
-        )
+        _validate_source_tree(source_root)
+        _validate_output_target(output_path, "CPG output")
+        temporary_output: Path | None = None
+        primary: BaseException | None = None
         try:
+            temporary_output = self._temporary_file(
+                f".{output_path.name}.joern-",
+                directory=output_path.parent,
+                paths=(output_path,),
+            )
+            command = (
+                self.joern_parse_executable,
+                os.fspath(source_root),
+                "--language",
+                "C",
+                "-o",
+                os.fspath(temporary_output),
+            )
             self._run(
                 command,
                 timeout=self.config.build_timeout_seconds,
-                paths=(source_root, output_path),
+                paths=(source_root, output_path, temporary_output),
             )
-            _validate_regular_file(output_path, "CPG output", nonempty=True)
-        except Exception:
-            _remove_created_file(output_path, existed_before)
+            _validate_regular_file(
+                temporary_output, "temporary CPG output", nonempty=True
+            )
+            try:
+                temporary_output.replace(output_path)
+            except OSError as exc:
+                raise JoernError(
+                    "could not publish CPG output: "
+                    f"{_sanitize_text(exc, self._diagnostic_paths((output_path,)))}"
+                ) from None
+        except BaseException as exc:
+            primary = exc
             raise
+        finally:
+            if temporary_output is not None:
+                self._finish_cleanup(
+                    ((temporary_output, "temporary CPG output"),), primary
+                )
 
     def smoke(self, cpg_path: Path) -> dict[str, object]:
         """Run the smoke script and validate its readiness counts."""
@@ -409,8 +509,10 @@ class JoernAdapter:
         cpg_path = Path(cpg_path)
         _validate_regular_file(cpg_path, "CPG input", nonempty=True)
         script_path = self._validated_script(self.smoke_script, "smoke script")
-        output_path = self._temporary_file(".joern-smoke-")
+        output_path: Path | None = None
+        primary: BaseException | None = None
         try:
+            output_path = self._temporary_file(".joern-smoke-")
             command = self._script_command(
                 script_path,
                 (f"cpgFile={os.fspath(cpg_path)}", f"outFile={os.fspath(output_path)}"),
@@ -420,11 +522,18 @@ class JoernAdapter:
                 timeout=self.config.query_timeout_seconds,
                 paths=(cpg_path, script_path, output_path),
             )
-            payload = self._read_json_object(output_path, (cpg_path, script_path))
+            payload = self._read_json_object(
+                output_path,
+                self._diagnostic_paths((cpg_path, script_path, output_path)),
+            )
             self._validate_smoke_payload(payload)
             return payload
+        except BaseException as exc:
+            primary = exc
+            raise
         finally:
-            self._remove_temporary_file(output_path)
+            if output_path is not None:
+                self._finish_cleanup(((output_path, "smoke output"),), primary)
 
     def query(
         self,
@@ -438,25 +547,24 @@ class JoernAdapter:
         script_path = self._validated_script(
             self.evidence_script, "repository evidence script"
         )
+        try:
+            request_model = (
+                request
+                if isinstance(request, EvidenceRequest)
+                else EvidenceRequest.model_validate(request)
+            )
+        except (TypeError, ValueError) as exc:
+            raise JoernError(
+                f"invalid Joern evidence request: {_truncate(str(exc))}"
+            ) from None
+
         output_path: Path | None = None
         request_path: Path | None = None
+        primary: BaseException | None = None
         try:
             output_path = self._temporary_file(".joern-query-")
             request_path = self._temporary_file(".joern-request-")
-            try:
-                request_model = (
-                    request
-                    if isinstance(request, EvidenceRequest)
-                    else EvidenceRequest.model_validate(request)
-                )
-                request_path.write_text(
-                    request_model.model_dump_json(), encoding="utf-8"
-                )
-            except (OSError, TypeError, ValueError) as exc:
-                raise JoernError(
-                    f"could not write Joern request file: "
-                    f"{_sanitize_text(exc, (request_path,))}"
-                ) from None
+            request_path.write_text(request_model.model_dump_json(), encoding="utf-8")
 
             command = self._script_command(
                 script_path,
@@ -471,30 +579,98 @@ class JoernAdapter:
                 timeout=self.config.query_timeout_seconds,
                 paths=(cpg_path, script_path, request_path, output_path),
             )
-            return self._read_json_object(
-                output_path, (cpg_path, script_path, request_path)
+            payload = self._read_json_object(
+                output_path,
+                self._diagnostic_paths(
+                    (cpg_path, script_path, request_path, output_path)
+                ),
             )
+            return self._validate_query_payload(payload, request_model)
+        except (OSError, TypeError, ValueError) as exc:
+            request_error_paths = (request_path,) if request_path is not None else ()
+            primary = JoernError(
+                f"could not write Joern request file: "
+                f"{_sanitize_text(exc, self._diagnostic_paths(request_error_paths))}"
+            )
+            raise primary from None
+        except BaseException as exc:
+            primary = exc
+            raise
         finally:
+            cleanup_paths: list[tuple[Path, str]] = []
             if request_path is not None:
-                self._remove_temporary_file(request_path)
+                cleanup_paths.append((request_path, "request file"))
             if output_path is not None:
-                self._remove_temporary_file(output_path)
+                cleanup_paths.append((output_path, "query output"))
+            self._finish_cleanup(cleanup_paths, primary)
+
+    def _diagnostic_paths(self, paths: Sequence[Path]) -> tuple[Path, ...]:
+        return (*paths, Path(self.config.cache_root))
 
     @staticmethod
-    def _temporary_file(prefix: str) -> Path:
-        descriptor, name = tempfile.mkstemp(prefix=prefix, suffix=".json")
-        os.close(descriptor)
-        return Path(name)
-
-    @staticmethod
-    def _remove_temporary_file(path: Path) -> None:
+    def _temporary_file(
+        prefix: str,
+        *,
+        directory: Path | None = None,
+        paths: Sequence[Path] = (),
+    ) -> Path:
         try:
-            if os.path.lexists(path) and (
-                _is_link_like(path) or not path.is_dir()
-            ):
-                path.unlink(missing_ok=True)
-        except OSError:
-            pass
+            descriptor, name = tempfile.mkstemp(
+                prefix=prefix,
+                suffix=".json" if directory is None else ".tmp",
+                dir=directory,
+            )
+            os.close(descriptor)
+            return Path(name)
+        except OSError as exc:
+            raise JoernError(
+                f"could not create temporary Joern file: {_diagnostic(exc, paths)}"
+            ) from None
+
+    def _cleanup_temporary_file(self, path: Path, label: str) -> None:
+        try:
+            if not os.path.lexists(path):
+                return
+            if not _is_link_like(path) and not path.is_file():
+                raise JoernCleanupError(
+                    f"could not clean Joern {label}: path is not a file or link"
+                )
+            path.unlink(missing_ok=True)
+        except JoernCleanupError:
+            raise
+        except FileNotFoundError:
+            return
+        except (OSError, RuntimeError) as exc:
+            raise JoernCleanupError(
+                f"could not clean Joern {label}: "
+                f"{_diagnostic(exc, self._diagnostic_paths((path,)))}"
+            ) from None
+
+    def _finish_cleanup(
+        self,
+        paths: Sequence[tuple[Path, str]],
+        primary: BaseException | None,
+    ) -> None:
+        failures: list[JoernCleanupError] = []
+        for path, label in paths:
+            try:
+                self._cleanup_temporary_file(path, label)
+            except JoernCleanupError as exc:
+                failures.append(exc)
+        if not failures:
+            return
+
+        cleanup_error = JoernCleanupError(
+            "Joern temporary-file cleanup failed: "
+            + "; ".join(str(failure) for failure in failures)
+        )
+        if primary is None:
+            raise cleanup_error
+        add_note = getattr(primary, "add_note", None)
+        if callable(add_note):
+            add_note(str(cleanup_error))
+        else:
+            setattr(primary, "joern_cleanup_error", cleanup_error)
 
     @staticmethod
     def _validated_script(path: Path, label: str) -> Path:
@@ -521,8 +697,7 @@ class JoernAdapter:
             raw = output_path.read_text(encoding="utf-8")
         except (OSError, UnicodeError) as exc:
             raise JoernOutputError(
-                f"could not read Joern explicit output: "
-                f"{_sanitize_text(exc, paths)}"
+                f"could not read Joern explicit output: {_sanitize_text(exc, paths)}"
             ) from None
         try:
             payload = json.loads(raw)
@@ -533,6 +708,24 @@ class JoernAdapter:
         if not isinstance(payload, dict):
             raise JoernSchemaError("Joern explicit output must be a JSON object")
         return cast(dict[str, object], payload)
+
+    @staticmethod
+    def _validate_query_payload(
+        payload: dict[str, object],
+        request: EvidenceRequest,
+    ) -> dict[str, object]:
+        try:
+            evidence = RepositoryEvidence.model_validate(payload)
+        except ValidationError as exc:
+            raise JoernSchemaError(
+                "Joern query output violates RepositoryEvidence schema: "
+                f"{_truncate(str(exc))}"
+            ) from None
+        if evidence.request_id != request.request_id:
+            raise JoernSchemaError(
+                "Joern query output request_id does not match the request"
+            )
+        return cast(dict[str, object], evidence.model_dump(mode="json"))
 
     @staticmethod
     def _validate_smoke_payload(payload: dict[str, object]) -> None:
@@ -554,9 +747,7 @@ class JoernAdapter:
                 )
             counts[field] = value
         if counts["methodCount"] < 1:
-            raise JoernSchemaError(
-                "Joern smoke field methodCount must be at least 1"
-            )
+            raise JoernSchemaError("Joern smoke field methodCount must be at least 1")
 
     def _run(
         self,
@@ -565,6 +756,8 @@ class JoernAdapter:
         timeout: float | None,
         paths: Sequence[Path],
     ) -> CommandResult:
+        diagnostic_paths = self._diagnostic_paths(paths)
+        _validate_batch_arguments(command)
         try:
             result = self._runner.run(command, timeout=timeout)
         except subprocess.TimeoutExpired as exc:
@@ -576,17 +769,18 @@ class JoernAdapter:
                 timeout,
                 stdout=_as_text(output),
                 stderr=_as_text(getattr(exc, "stderr", "")),
-                paths=paths,
+                paths=diagnostic_paths,
             ) from None
         except FileNotFoundError:
             raise JoernError(
                 f"Joern executable was not found: "
-                f"{_sanitize_text(command[0], paths)}"
+                f"{_sanitize_text(command[0], diagnostic_paths)}"
             ) from None
         except OSError as exc:
             raise JoernError(
-                f"could not start Joern command {_format_arguments(_redact_arguments(command, paths))}: "
-                f"{_diagnostic(exc, paths)}"
+                "could not start Joern command "
+                f"{_format_arguments(_redact_arguments(command, diagnostic_paths))}: "
+                f"{_diagnostic(exc, diagnostic_paths)}"
             ) from None
 
         if result.returncode != 0:
@@ -595,7 +789,7 @@ class JoernAdapter:
                 result.returncode,
                 stdout=result.stdout,
                 stderr=result.stderr,
-                paths=paths,
+                paths=diagnostic_paths,
             )
         return result
 
