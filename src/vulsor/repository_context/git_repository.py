@@ -242,34 +242,51 @@ class GitRepositoryResolver:
         revision = _normalized_revision(ref)
         canonical_url = canonicalize_repository_url(ref.repository_url)
         mirror_root = self.mirror_path_for_url(canonical_url)
-        self._ensure_mirror(canonical_url, mirror_root)
-
+        mirror_root.parent.mkdir(parents=True, exist_ok=True)
         revision_root = self.revision_path_for(ref)
         revision_parent = revision_root.parent
         revision_parent.mkdir(parents=True, exist_ok=True)
 
         with _directory_lock(
-            revision_root.parent / f".{revision}.lock",
+            mirror_root.parent / f".{mirror_root.name}.lock",
             timeout=self.config.lock_timeout_seconds,
         ):
-            quarantine_root: Path | None = None
-            if _path_exists(revision_root):
-                if self._checkout_is_valid(revision_root, revision):
-                    return ResolvedRepository(
-                        repository_root=revision_root,
-                        resolved_revision=revision,
-                        mirror_root=mirror_root,
-                    )
-                quarantine_root = self._quarantine_checkout(revision_root, revision)
+            with _directory_lock(
+                revision_root.parent / f".{revision}.lock",
+                timeout=self.config.lock_timeout_seconds,
+            ):
+                if _path_exists(revision_root):
+                    if self._checkout_is_valid(revision_root, revision):
+                        self._verify_existing_mirror_if_present(
+                            canonical_url,
+                            mirror_root,
+                        )
+                        return ResolvedRepository(
+                            repository_root=revision_root,
+                            resolved_revision=revision,
+                            mirror_root=mirror_root,
+                        )
 
-            try:
-                self._materialize_revision(mirror_root, revision_root, revision)
-            except Exception as exc:
+                self._ensure_mirror(canonical_url, mirror_root)
+                if not self._mirror_contains_revision(mirror_root, revision):
+                    self._refresh_mirror(mirror_root)
+                    if not self._mirror_contains_revision(mirror_root, revision):
+                        raise RepositoryRevisionNotFoundError(
+                            f"requested Git revision is not present: {revision}"
+                        )
+
+                quarantine_root: Path | None = None
+                if _path_exists(revision_root):
+                    quarantine_root = self._quarantine_checkout(revision_root, revision)
+
+                try:
+                    self._materialize_revision(mirror_root, revision_root, revision)
+                except Exception as exc:
+                    if quarantine_root is not None:
+                        _cleanup_failed_path(quarantine_root, exc)
+                    raise
                 if quarantine_root is not None:
-                    _cleanup_failed_path(quarantine_root, exc)
-                raise
-            if quarantine_root is not None:
-                _remove_tree(quarantine_root)
+                    _remove_tree(quarantine_root)
 
         return ResolvedRepository(
             repository_root=revision_root,
@@ -281,43 +298,64 @@ class GitRepositoryResolver:
         mirror_parent = mirror_root.parent
         mirror_parent.mkdir(parents=True, exist_ok=True)
 
-        with _directory_lock(
-            mirror_parent / f".{mirror_root.name}.lock",
-            timeout=self.config.lock_timeout_seconds,
-        ):
-            if _path_exists(mirror_root):
-                if mirror_root.is_symlink() or not mirror_root.is_dir():
-                    raise RepositoryResolutionError(
-                        f"repository mirror cache entry is not a directory: {mirror_root}"
-                    )
-                self._verify_mirror(mirror_root, canonical_url)
-                # A mirror is a cache of refs, not a permanent snapshot. Fetch
-                # under the same lock so a newly-created requested commit is
-                # visible before any revision checkout is materialized.
-                self._run_git(
-                    "-C",
-                    str(mirror_root),
-                    "fetch",
-                    "--prune",
-                    "origin",
+        if _path_exists(mirror_root):
+            if mirror_root.is_symlink() or not mirror_root.is_dir():
+                raise RepositoryResolutionError(
+                    f"repository mirror cache entry is not a directory: {mirror_root}"
                 )
-                return
+            self._verify_mirror(mirror_root, canonical_url)
+            return
 
-            temporary_root = Path(
-                tempfile.mkdtemp(prefix=f".{mirror_root.stem}.", dir=str(self.cache_root))
+        temporary_root = Path(
+            tempfile.mkdtemp(prefix=f".{mirror_root.stem}.", dir=str(self.cache_root))
+        )
+        try:
+            self._run_git(
+                "clone",
+                "--mirror",
+                canonical_url,
+                str(temporary_root),
             )
-            try:
-                self._run_git(
-                    "clone",
-                    "--mirror",
-                    canonical_url,
-                    str(temporary_root),
-                )
-                self._verify_mirror(temporary_root, canonical_url)
-                temporary_root.replace(mirror_root)
-            except Exception as exc:
-                _cleanup_failed_path(temporary_root, exc)
-                raise
+            self._verify_mirror(temporary_root, canonical_url)
+            temporary_root.replace(mirror_root)
+        except Exception as exc:
+            _cleanup_failed_path(temporary_root, exc)
+            raise
+
+    def _verify_existing_mirror_if_present(
+        self,
+        canonical_url: str,
+        mirror_root: Path,
+    ) -> None:
+        if not _path_exists(mirror_root):
+            return
+        if mirror_root.is_symlink() or not mirror_root.is_dir():
+            raise RepositoryResolutionError(
+                f"repository mirror cache entry is not a directory: {mirror_root}"
+            )
+        self._verify_mirror(mirror_root, canonical_url)
+
+    def _mirror_contains_revision(self, mirror_root: Path, revision: str) -> bool:
+        try:
+            self._run_git(
+                "-C",
+                str(mirror_root),
+                "cat-file",
+                "-e",
+                f"{revision}^{{commit}}",
+            )
+        except RepositoryCommandError:
+            return False
+        return True
+
+    def _refresh_mirror(self, mirror_root: Path) -> None:
+        self._run_git(
+            "-C",
+            str(mirror_root),
+            "fetch",
+            "--prune",
+            "origin",
+        )
 
     def _verify_mirror(self, mirror_root: Path, canonical_url: str) -> None:
         result = self._run_git(
@@ -617,16 +655,15 @@ _CREDENTIAL_URL = re.compile(
     r"(?P<prefix>\b(?:https?|ssh|file)://)(?P<userinfo>[^/\s@]+)@",
     re.IGNORECASE,
 )
-_QUERY_CREDENTIAL = re.compile(
-    r"(?P<prefix>[?&](?:access_token|auth|key|password|secret|token)="
-    r")(?:[^&#\s]+)",
+_QUERY_PARAMETER = re.compile(
+    r"(?P<prefix>[?&][^=?&#\s]+=)(?:[^&#\s]*)",
     re.IGNORECASE,
 )
 
 
 def _redact_text(value: str) -> str:
     redacted = _CREDENTIAL_URL.sub(r"\g<prefix>***@", value)
-    return _QUERY_CREDENTIAL.sub(r"\g<prefix>***", redacted)
+    return _QUERY_PARAMETER.sub(r"\g<prefix>***", redacted)
 
 
 def _redact_arguments(arguments: Sequence[str]) -> tuple[str, ...]:

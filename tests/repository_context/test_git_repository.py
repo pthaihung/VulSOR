@@ -5,6 +5,9 @@ import os
 import shutil
 import stat
 import subprocess
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Sequence
 
@@ -136,6 +139,52 @@ def test_resolve_materializes_requested_immutable_revisions(
     assert mirrors == [old.mirror_root]
 
 
+def test_cached_revision_resolves_when_origin_is_unavailable(
+    tmp_path: Path,
+    two_commit_repository: tuple[Path, str, str],
+) -> None:
+    repository, revision, _ = two_commit_repository
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=tmp_path / "cache",
+            clone_timeout_seconds=30,
+            lock_timeout_seconds=5,
+        )
+    )
+    resolver.resolve(repository_ref(repository, revision))
+    repository.rename(tmp_path / "offline-source")
+
+    resolved = resolver.resolve(repository_ref(repository, revision))
+
+    assert resolved.resolved_revision == revision
+    assert (resolved.repository_root / "old.txt").read_text(encoding="utf-8") == (
+        "old revision\n"
+    )
+
+
+def test_existing_mirror_materializes_revision_offline(
+    tmp_path: Path,
+    two_commit_repository: tuple[Path, str, str],
+) -> None:
+    repository, first_revision, second_revision = two_commit_repository
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=tmp_path / "cache",
+            clone_timeout_seconds=30,
+            lock_timeout_seconds=5,
+        )
+    )
+    resolver.resolve(repository_ref(repository, first_revision))
+    repository.rename(tmp_path / "offline-source")
+
+    resolved = resolver.resolve(repository_ref(repository, second_revision))
+
+    assert resolved.resolved_revision == second_revision
+    assert (resolved.repository_root / "new.txt").read_text(encoding="utf-8") == (
+        "new revision\n"
+    )
+
+
 def test_existing_mirror_is_fetched_before_resolving_new_commit(
     tmp_path: Path,
     two_commit_repository: tuple[Path, str, str],
@@ -160,6 +209,91 @@ def test_existing_mirror_is_fetched_before_resolving_new_commit(
     assert (resolved.repository_root / "latest.txt").read_text(encoding="utf-8") == (
         "fetched revision\n"
     )
+
+
+def test_mirror_refresh_and_revision_clone_are_serialized(
+    tmp_path: Path,
+    two_commit_repository: tuple[Path, str, str],
+) -> None:
+    repository, first_revision, second_revision = two_commit_repository
+    base_resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=tmp_path / "cache",
+            clone_timeout_seconds=30,
+            lock_timeout_seconds=5,
+        )
+    )
+    base_resolver.resolve(repository_ref(repository, first_revision))
+    (repository / "latest.txt").write_text("fetched revision\n", encoding="utf-8")
+    run_git("add", "latest.txt", cwd=repository)
+    run_git("commit", "-m", "fetched revision", cwd=repository)
+    latest_revision = run_git("rev-parse", "HEAD", cwd=repository).stdout.strip()
+
+    class SerializedRunner:
+        def __init__(self) -> None:
+            self.delegate = SubprocessCommandRunner()
+            self.state_lock = threading.Lock()
+            self.fetch_started = threading.Event()
+            self.active_fetch = False
+            self.active_clone = False
+            self.violations: list[str] = []
+
+        def run(
+            self,
+            arguments: Sequence[str],
+            *,
+            cwd: Path | None = None,
+            timeout: int | float | None = None,
+        ) -> CommandResult:
+            is_fetch = "fetch" in arguments
+            is_revision_clone = "clone" in arguments and "--no-checkout" in arguments
+            if is_fetch:
+                with self.state_lock:
+                    if self.active_clone:
+                        self.violations.append("fetch overlapped clone")
+                    self.active_fetch = True
+                    self.fetch_started.set()
+                time.sleep(0.1)
+            if is_revision_clone:
+                with self.state_lock:
+                    if self.active_fetch:
+                        self.violations.append("clone overlapped fetch")
+                    self.active_clone = True
+                time.sleep(0.2)
+            try:
+                return self.delegate.run(arguments, cwd=cwd, timeout=timeout)
+            finally:
+                with self.state_lock:
+                    if is_fetch:
+                        self.active_fetch = False
+                    if is_revision_clone:
+                        self.active_clone = False
+
+    runner = SerializedRunner()
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=tmp_path / "cache",
+            clone_timeout_seconds=30,
+            lock_timeout_seconds=5,
+        ),
+        runner=runner,
+    )
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        latest_future = executor.submit(
+            resolver.resolve,
+            repository_ref(repository, latest_revision),
+        )
+        assert runner.fetch_started.wait(timeout=5)
+        second_future = executor.submit(
+            resolver.resolve,
+            repository_ref(repository, second_revision),
+        )
+        latest = latest_future.result()
+        second = second_future.result()
+
+    assert latest.resolved_revision == latest_revision
+    assert second.resolved_revision == second_revision
+    assert runner.violations == []
 
 
 def test_dirty_cached_checkout_is_rebuilt(
@@ -231,11 +365,12 @@ def test_non_detached_cached_checkout_is_rebuilt(
 def test_existing_mirror_must_have_requested_origin_url(
     tmp_path: Path,
     two_commit_repository: tuple[Path, str, str],
+    short_cache_root: Path,
 ) -> None:
     repository, revision, _ = two_commit_repository
     resolver = GitRepositoryResolver(
         RepositoryContextConfig(
-            cache_root=tmp_path / "cache",
+            cache_root=short_cache_root,
             clone_timeout_seconds=30,
             lock_timeout_seconds=5,
         )
@@ -307,7 +442,10 @@ def test_subprocess_timeout_is_mapped_to_project_error(
 def test_command_errors_redact_repository_credentials(
     tmp_path: Path,
 ) -> None:
-    secret_url = "https://deploy-token:supersecret@example.test/acme/demo.git"
+    secret_url = (
+        "https://deploy-token:supersecret@example.test/acme/demo.git"
+        "?api_key=api-secret&client_secret=client-secret"
+    )
     actual_arguments: list[str] = []
 
     class FailingRunner:
@@ -341,15 +479,24 @@ def test_command_errors_redact_repository_credentials(
     error = caught.value
     assert any(secret_url in argument for argument in actual_arguments)
     assert all("supersecret" not in argument for argument in error.arguments)
+    assert all("api-secret" not in argument for argument in error.arguments)
+    assert all("client-secret" not in argument for argument in error.arguments)
     assert "supersecret" not in error.stderr
+    assert "api-secret" not in error.stderr
+    assert "client-secret" not in error.stderr
     assert "deploy-token" not in str(error)
     assert "supersecret" not in str(error)
+    assert "api-secret" not in str(error)
+    assert "client-secret" not in str(error)
 
 
 def test_timeout_errors_redact_repository_credentials(
     tmp_path: Path,
 ) -> None:
-    secret_url = "ssh://deploy-token:supersecret@example.test/acme/demo.git"
+    secret_url = (
+        "ssh://deploy-token:supersecret@example.test/acme/demo.git"
+        "?api_key=api-secret&client_secret=client-secret"
+    )
     actual_arguments: list[str] = []
 
     class TimeoutRunner:
@@ -382,8 +529,12 @@ def test_timeout_errors_redact_repository_credentials(
 
     assert any(secret_url in argument for argument in actual_arguments)
     assert all("supersecret" not in argument for argument in caught.value.arguments)
+    assert all("api-secret" not in argument for argument in caught.value.arguments)
+    assert all("client-secret" not in argument for argument in caught.value.arguments)
     assert "deploy-token" not in str(caught.value)
     assert "supersecret" not in str(caught.value)
+    assert "api-secret" not in str(caught.value)
+    assert "client-secret" not in str(caught.value)
 
 
 def test_read_only_failed_temp_cleanup_is_portable(
