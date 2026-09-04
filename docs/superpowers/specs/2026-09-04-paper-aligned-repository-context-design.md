@@ -86,9 +86,11 @@ RepositoryEvidence for B3/B4
 ```
 
 The Python implementation lives under `src/vulsor/repository_context/`.
-Joern scripts live under `scripts/joern/` and must print exactly one JSON
-document to stdout; diagnostic text is written to stderr. Python is the owner
-of process timeouts, cache paths, schema validation, and output persistence.
+Joern scripts live under `scripts/joern/` and write exactly one JSON document
+to the explicit `outFile` parameter using Java NIO. Python does not parse the
+Joern console stream as data because the interpreter writes operational logs
+there. Python is the owner of process timeouts, cache paths, schema validation,
+and final artifact persistence.
 
 ## Data Contracts
 
