@@ -565,6 +565,81 @@ def test_subprocess_timeout_is_mapped_to_project_error(
         resolver.resolve(repository_ref(repository, revision))
 
 
+def test_oserror_redacts_repository_credentials(
+    tmp_path: Path,
+) -> None:
+    secret_url = (
+        "https://user:secret@example.test/acme/demo.git"
+        "?api_key=query-secret&client_secret=client-secret"
+    )
+
+    class OSErrorRunner:
+        def run(
+            self,
+            arguments: Sequence[str],
+            *,
+            cwd: Path | None = None,
+            timeout: int | float | None = None,
+        ) -> CommandResult:
+            raise OSError(f"could not execute {secret_url}")
+
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=tmp_path / "cache",
+            clone_timeout_seconds=7,
+            lock_timeout_seconds=5,
+        ),
+        runner=OSErrorRunner(),
+    )
+
+    with pytest.raises(RepositoryResolutionError) as caught:
+        resolver.resolve(
+            RepositoryRef(
+                repository_id="local",
+                repository_url=secret_url,
+                revision="a" * 40,
+            )
+        )
+
+    message = str(caught.value)
+    assert secret_url not in message
+    assert "user:secret@" not in message
+    assert "query-secret" not in message
+    assert "client-secret" not in message
+
+
+def test_read_only_conversion_fails_closed_on_walk_error(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    two_commit_repository: tuple[Path, str, str],
+) -> None:
+    repository, revision, _ = two_commit_repository
+    real_walk = os.walk
+    walk_calls = 0
+
+    def failing_walk(path, *args, **kwargs):
+        nonlocal walk_calls
+        walk_calls += 1
+        if walk_calls == 1:
+            kwargs["onerror"](OSError("simulated traversal failure"))
+            return iter(())
+        return real_walk(path, *args, **kwargs)
+
+    monkeypatch.setattr(os, "walk", failing_walk)
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=tmp_path / "cache",
+            clone_timeout_seconds=30,
+            lock_timeout_seconds=5,
+        )
+    )
+
+    with pytest.raises(RepositoryResolutionError, match="travers"):
+        resolver.resolve(repository_ref(repository, revision))
+
+    assert not resolver.revision_path_for(repository_ref(repository, revision)).exists()
+
+
 def test_command_errors_redact_repository_credentials(
     tmp_path: Path,
 ) -> None:

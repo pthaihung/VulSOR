@@ -526,9 +526,10 @@ class GitRepositoryResolver:
                 f"Git executable was not found: {self._git_executable}"
             ) from None
         except OSError as exc:
+            safe_error = _redact_text(str(exc))
             raise RepositoryResolutionError(
                 f"could not start Git command "
-                f"{_format_arguments(_redact_arguments(command))}: {exc}"
+                f"{_format_arguments(_redact_arguments(command))}: {safe_error}"
             ) from None
 
         if result.returncode != 0:
@@ -625,21 +626,42 @@ def _path_exists(path: Path) -> bool:
 def _make_tree_read_only(path: Path) -> None:
     """Remove write permission from every non-symlink entry in a tree."""
 
-    for directory, directory_names, file_names in os.walk(
-        path,
-        topdown=True,
-        followlinks=False,
-    ):
-        directory_path = Path(directory)
-        for name in directory_names:
-            child = directory_path / name
-            if not child.is_symlink():
-                os.chmod(child, _read_only_mode(child))
-        for name in file_names:
-            child = directory_path / name
-            if not child.is_symlink():
-                os.chmod(child, _read_only_mode(child))
-        os.chmod(directory_path, _read_only_mode(directory_path))
+    traversal_errors: list[OSError] = []
+
+    def onerror(error: OSError) -> None:
+        traversal_errors.append(error)
+
+    try:
+        for directory, directory_names, file_names in os.walk(
+            path,
+            topdown=True,
+            followlinks=False,
+            onerror=onerror,
+        ):
+            directory_path = Path(directory)
+            for name in directory_names:
+                child = directory_path / name
+                if not child.is_symlink():
+                    os.chmod(child, _read_only_mode(child))
+            for name in file_names:
+                child = directory_path / name
+                if not child.is_symlink():
+                    os.chmod(child, _read_only_mode(child))
+            os.chmod(directory_path, _read_only_mode(directory_path))
+    except OSError as exc:
+        raise RepositoryResolutionError(
+            f"could not make repository checkout read-only at {path}: "
+            f"{_redact_text(str(exc))}"
+        ) from exc
+
+    if traversal_errors:
+        detail = "; ".join(
+            _redact_text(str(error)) for error in traversal_errors if str(error)
+        )
+        raise RepositoryResolutionError(
+            f"could not traverse repository checkout while making it read-only: "
+            f"{detail or 'unknown traversal error'}"
+        ) from traversal_errors[0]
 
 
 def _make_tree_writable(path: Path) -> None:
