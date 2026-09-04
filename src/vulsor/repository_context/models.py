@@ -240,7 +240,7 @@ class RepositoryEvidence(StrictModel):
     request_id: str = Field(min_length=1)
     status: EvidenceStatus = Field(strict=False)
     resolved_revision: str | None = Field(
-        default=None, pattern=r"^[0-9a-fA-F]{40}$"
+        pattern=r"^[0-9a-fA-F]{40}$"
     )
     anchor_resolution: AnchorResolution
     evidence: tuple[EvidenceItem, ...] = ()

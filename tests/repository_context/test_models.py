@@ -163,6 +163,7 @@ def repository_evidence_payload() -> dict[str, object]:
     return {
         "request_id": "req-1",
         "status": "complete",
+        "resolved_revision": None,
         "anchor_resolution": {"status": "exact", "candidate_count": 1},
         "evidence": [
             {
@@ -213,6 +214,22 @@ def test_repository_evidence_accepts_full_revision() -> None:
     )
 
     assert result.resolved_revision == "a" * 40
+
+
+def test_repository_evidence_requires_resolved_revision_key() -> None:
+    payload = repository_evidence_payload()
+    payload.pop("resolved_revision")
+
+    with pytest.raises(ValidationError):
+        RepositoryEvidence.model_validate(payload)
+
+
+def test_unavailable_repository_evidence_accepts_null_revision() -> None:
+    result = RepositoryEvidence.model_validate(
+        json.loads(json.dumps(repository_evidence_payload() | {"status": "unavailable"}))
+    )
+
+    assert result.resolved_revision is None
 
 
 @pytest.mark.parametrize(
