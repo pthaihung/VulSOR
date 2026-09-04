@@ -59,8 +59,14 @@ def match_sample_to_file(sample_code: str, file_text: str) -> SourceMatch:
     exact_offsets = all_offsets(file_text, sample_code)
     if len(exact_offsets) == 1:
         offset = exact_offsets[0]
-        start_line = file_text.count("\n", 0, offset) + 1
-        end_line = start_line + sample_code.rstrip("\r\n").count("\n")
+        normalized_prefix = file_text[:offset].replace("\r\n", "\n").replace(
+            "\r", "\n"
+        )
+        start_line = normalized_prefix.count("\n") + 1
+        normalized_sample = sample_code.rstrip("\r\n").replace(
+            "\r\n", "\n"
+        ).replace("\r", "\n")
+        end_line = start_line + normalized_sample.count("\n")
         return SourceMatch(SourceMatchStatus.EXACT, start_line, end_line, 1)
     if len(exact_offsets) > 1:
         return SourceMatch(

@@ -36,6 +36,34 @@ def test_exact_match_is_accepted_with_original_line_numbers() -> None:
     assert result.candidate_count == 1
 
 
+@pytest.mark.parametrize(
+    ("source", "sample", "expected_start_line", "expected_end_line"),
+    (
+        ("a\nb", "b", 2, 2),
+        ("a\rb", "b", 2, 2),
+        ("a\r\nb", "b", 2, 2),
+        ("a\r\nb\rc\nd", "c", 3, 3),
+        (
+            "header\r\nfirst\rsecond\nthird",
+            "first\rsecond\nthird",
+            2,
+            4,
+        ),
+    ),
+)
+def test_exact_match_counts_all_newline_sequences_consistently(
+    source: str,
+    sample: str,
+    expected_start_line: int,
+    expected_end_line: int,
+) -> None:
+    result = match_sample_to_file(sample, source)
+
+    assert result.status is SourceMatchStatus.EXACT
+    assert result.start_line == expected_start_line
+    assert result.end_line == expected_end_line
+
+
 def test_exact_duplicate_matches_are_ambiguous() -> None:
     sample = "return 1;"
     source = "int first(void) { return 1; }\nint second(void) { return 1; }"
