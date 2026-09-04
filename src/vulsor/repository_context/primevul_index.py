@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,7 +11,12 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from .index import _atomic_write_text, _reject_nul_path, write_repository_index
+from .index import (
+    _atomic_write_text,
+    _reject_nul_path,
+    _validate_repository_relative_file_path,
+    write_repository_index,
+)
 from .models import RepositoryIndexRecord, RepositoryRef, TargetAnchor
 
 
@@ -128,22 +132,6 @@ class _SourceMatch:
 
 source_match = _SourceMatch()
 normalized_code_sha256 = source_match.normalized_code_sha256
-
-
-def _validate_repository_relative_file_path(file_path: object) -> str:
-    if not isinstance(file_path, str):
-        raise TypeError("file_path must be a string")
-    if "\x00" in file_path:
-        raise ValueError("file_path must not contain NUL bytes")
-    if (
-        not file_path.strip()
-        or file_path.startswith("/")
-        or "\\" in file_path
-        or re.match(r"^[A-Za-z]:", file_path)
-        or any(segment == ".." for segment in file_path.split("/"))
-    ):
-        raise ValueError("file_path must be a repository-relative POSIX path")
-    return file_path
 
 
 def normalize_primevul_record(

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
 from collections.abc import Iterable, Mapping
 from pathlib import Path
@@ -11,6 +12,22 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from .models import RepositoryIndexRecord
+
+
+def _validate_repository_relative_file_path(file_path: object) -> str:
+    if not isinstance(file_path, str):
+        raise TypeError("file_path must be a string")
+    if "\x00" in file_path:
+        raise ValueError("file_path must not contain NUL bytes")
+    if (
+        not file_path.strip()
+        or file_path.startswith("/")
+        or "\\" in file_path
+        or re.match(r"^[A-Za-z]:", file_path)
+        or any(segment == ".." for segment in file_path.split("/"))
+    ):
+        raise ValueError("file_path must be a repository-relative POSIX path")
+    return file_path
 
 
 class RepositoryIndex:
@@ -34,6 +51,9 @@ class RepositoryIndex:
                 try:
                     line = raw_line.decode("utf-8", errors="strict")
                     record = RepositoryIndexRecord.model_validate(json.loads(line))
+                    _validate_repository_relative_file_path(
+                        record.target.file_path
+                    )
                 except (UnicodeDecodeError, ValueError, ValidationError) as exc:
                     raise ValueError(
                         f"Invalid repository index record at {path}:{line_number}"

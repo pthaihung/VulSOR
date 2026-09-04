@@ -142,6 +142,31 @@ def test_repository_index_reports_malformed_record_location(tmp_path: Path) -> N
         RepositoryIndex.load(index_path)
 
 
+@pytest.mark.parametrize(
+    "file_path",
+    (
+        "/src/demo.c",
+        "C:/src/demo.c",
+        "../demo.c",
+        "src/../demo.c",
+        "src/demo\x00.c",
+    ),
+)
+def test_repository_index_rejects_unsafe_target_file_paths(
+    tmp_path: Path,
+    file_path: str,
+) -> None:
+    index_path = tmp_path / "index.jsonl"
+    payload = json.loads(
+        normalize_primevul_record(raw_record(), FIELD_MAP).model_dump_json()
+    )
+    payload["target"]["file_path"] = file_path
+    index_path.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match=r"Invalid repository index record at .*:1"):
+        RepositoryIndex.load(index_path)
+
+
 def test_write_repository_index_rejects_duplicates_before_writing(
     tmp_path: Path,
 ) -> None:
