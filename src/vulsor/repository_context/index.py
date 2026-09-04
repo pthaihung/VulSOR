@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 
@@ -22,14 +24,15 @@ class RepositoryIndex:
         records: dict[str, RepositoryIndexRecord] = {}
         first_lines: dict[str, int] = {}
 
-        with path.open("r", encoding="utf-8") as handle:
-            for line_number, line in enumerate(handle, start=1):
-                if not line.strip():
+        with path.open("rb") as handle:
+            for line_number, raw_line in enumerate(handle, start=1):
+                if not raw_line.strip():
                     continue
 
                 try:
+                    line = raw_line.decode("utf-8", errors="strict")
                     record = RepositoryIndexRecord.model_validate(json.loads(line))
-                except (ValueError, ValidationError) as exc:
+                except (UnicodeDecodeError, ValueError, ValidationError) as exc:
                     raise ValueError(
                         f"Invalid repository index record at {path}:{line_number}"
                     ) from exc
@@ -63,9 +66,43 @@ def write_repository_index(
 ) -> None:
     """Write records in sample order and atomically replace ``path``."""
     values = records.values() if isinstance(records, Mapping) else records
-    ordered = sorted(values, key=lambda record: record.sample_id)
+    materialized = list(values)
+    first_positions: dict[str, int] = {}
+    for position, record in enumerate(materialized, start=1):
+        if record.sample_id in first_positions:
+            raise ValueError(
+                f"Duplicate sample_id {record.sample_id!r}: first record at "
+                f"position {first_positions[record.sample_id]} and duplicate "
+                f"record at position {position}"
+            )
+        first_positions[record.sample_id] = position
+
+    ordered = sorted(materialized, key=lambda record: record.sample_id)
     payload = "".join(f"{record.model_dump_json()}\n" for record in ordered)
 
-    temporary_path = path.with_suffix(".tmp")
-    temporary_path.write_text(payload, encoding="utf-8")
-    temporary_path.replace(path)
+    _atomic_write_text(path, payload)
+
+
+def _atomic_write_text(path: Path, payload: str) -> None:
+    """Write text through an exclusive sibling temporary file."""
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        dir=path.parent,
+    )
+    temporary_path = Path(temporary_name)
+
+    try:
+        with os.fdopen(
+            descriptor,
+            "w",
+            encoding="utf-8",
+            errors="strict",
+            newline="",
+        ) as handle:
+            handle.write(payload)
+            handle.flush()
+        temporary_path.replace(path)
+    except BaseException:
+        temporary_path.unlink(missing_ok=True)
+        raise

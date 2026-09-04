@@ -13,13 +13,16 @@ from vulsor.repository_context.primevul_index import (
 
 
 def raw_record(
-    *, sample_id: str = "s1", code: str = "int target(void) { return 0; }"
+    *,
+    sample_id: str = "s1",
+    code: str = "int target(void) { return 0; }",
+    file_path: str = "src/demo.c",
 ) -> dict:
     return {
         "id": sample_id,
         "project_url": "https://github.com/acme/demo.git",
         "commit_id": "a" * 40,
-        "file_path": "src/demo.c",
+        "file_path": file_path,
         "func_name": "target",
         "start": 4,
         "end": 8,
@@ -29,6 +32,27 @@ def raw_record(
         "commit_message": "fix issue",
         "pair_id": "pair-1",
     }
+
+
+def field_map_kwargs(**overrides: str | None) -> dict[str, str | None]:
+    values: dict[str, str | None] = {
+        "sample_id": "id",
+        "repository_id": "project",
+        "repository_url": "project_url",
+        "revision": "commit_id",
+        "file_path": "file_path",
+        "function_name": "func_name",
+        "code": "func",
+        "start_line": "start",
+        "end_line": "end",
+    }
+    values.update(overrides)
+    return values
+
+
+def test_field_map_rejects_protected_cve_mapping_before_normalization() -> None:
+    with pytest.raises(ValueError, match=r"protected.*cve"):
+        PrimeVulFieldMap(**field_map_kwargs(code="cve"))
 
 
 def test_normalizer_whitelists_locator_fields() -> None:
@@ -118,6 +142,67 @@ def test_repository_index_reports_malformed_record_location(tmp_path: Path) -> N
         RepositoryIndex.load(index_path)
 
 
+def test_write_repository_index_rejects_duplicates_before_writing(
+    tmp_path: Path,
+) -> None:
+    output_path = tmp_path / "index.jsonl"
+    output_path.write_text("existing\n", encoding="utf-8")
+    record = normalize_primevul_record(raw_record(), FIELD_MAP)
+
+    with pytest.raises(ValueError, match=r"Duplicate sample_id 's1'.*1.*2"):
+        write_repository_index([record, record], output_path)
+
+    assert output_path.read_text(encoding="utf-8") == "existing\n"
+
+
+@pytest.mark.parametrize("collision", ("input_output", "input_reject", "output_reject"))
+def test_normalizer_rejects_resolved_path_collisions_without_overwriting(
+    tmp_path: Path,
+    collision: str,
+) -> None:
+    input_path = tmp_path / "input.jsonl"
+    output_path = tmp_path / "output.jsonl"
+    reject_path = tmp_path / "rejects.jsonl"
+    input_path.write_text(json.dumps(raw_record()) + "\n", encoding="utf-8")
+    output_path.write_text("output sentinel\n", encoding="utf-8")
+    reject_path.write_text("reject sentinel\n", encoding="utf-8")
+
+    if collision == "input_output":
+        output_path = tmp_path / "." / input_path.name
+    elif collision == "input_reject":
+        reject_path = tmp_path / "." / input_path.name
+    else:
+        reject_path = tmp_path / "." / output_path.name
+
+    with pytest.raises(ValueError, match="distinct"):
+        normalize_primevul_jsonl(input_path, output_path, reject_path, FIELD_MAP)
+
+    assert input_path.read_text(encoding="utf-8") == json.dumps(raw_record()) + "\n"
+    assert (tmp_path / "output.jsonl").read_text(encoding="utf-8") == (
+        "output sentinel\n"
+    )
+    assert (tmp_path / "rejects.jsonl").read_text(encoding="utf-8") == (
+        "reject sentinel\n"
+    )
+
+
+@pytest.mark.parametrize("code", ("", " \t\r\n"))
+def test_normalizer_rejects_blank_source_code_before_hashing(code: str) -> None:
+    with pytest.raises(ValueError, match="source code.*blank"):
+        normalize_primevul_record(raw_record(code=code), FIELD_MAP)
+
+
+@pytest.mark.parametrize(
+    "file_path",
+    ("/src/demo.c", "C:/src/demo.c", "../demo.c", "src/../demo.c", r"src\demo.c"),
+)
+def test_normalizer_rejects_non_repository_relative_file_paths(
+    file_path: str,
+) -> None:
+    with pytest.raises(ValueError, match="repository-relative POSIX"):
+        normalize_primevul_record(raw_record(file_path=file_path), FIELD_MAP)
+
+
 def test_write_repository_index_sorts_records_and_replaces_target(
     tmp_path: Path,
 ) -> None:
@@ -136,6 +221,24 @@ def test_write_repository_index_sorts_records_and_replaces_target(
     ]
     assert [record["sample_id"] for record in written] == ["s1", "s2"]
     assert not output_path.with_suffix(".tmp").exists()
+
+
+def test_atomic_writes_leave_unrelated_temp_files_untouched(tmp_path: Path) -> None:
+    input_path = tmp_path / "raw.jsonl"
+    output_path = tmp_path / "index.jsonl"
+    reject_path = tmp_path / "rejects.jsonl"
+    output_temp = output_path.with_suffix(".tmp")
+    reject_temp = reject_path.with_suffix(".tmp")
+    input_path.write_text(json.dumps(raw_record()) + "\n", encoding="utf-8")
+    output_temp.write_text("unrelated output temp\n", encoding="utf-8")
+    reject_temp.write_text("unrelated reject temp\n", encoding="utf-8")
+
+    normalize_primevul_jsonl(input_path, output_path, reject_path, FIELD_MAP)
+
+    assert output_temp.read_text(encoding="utf-8") == "unrelated output temp\n"
+    assert reject_temp.read_text(encoding="utf-8") == "unrelated reject temp\n"
+    assert output_path.exists()
+    assert reject_path.exists()
 
 
 def test_normalize_primevul_jsonl_writes_rejects_without_raw_metadata(
@@ -168,3 +271,40 @@ def test_normalize_primevul_jsonl_writes_rejects_without_raw_metadata(
     assert "commit_id" in rejects[0]["reason"]
     assert "CVE-X" not in reject_path.read_text(encoding="utf-8")
     assert "fix issue" not in reject_path.read_text(encoding="utf-8")
+
+
+def test_normalize_primevul_jsonl_reports_duplicate_line_and_sample_id(
+    tmp_path: Path,
+) -> None:
+    input_path = tmp_path / "raw.jsonl"
+    output_path = tmp_path / "index.jsonl"
+    reject_path = tmp_path / "rejects.jsonl"
+    input_path.write_text(
+        json.dumps(raw_record()) + "\n" + json.dumps(raw_record()) + "\n",
+        encoding="utf-8",
+    )
+
+    normalize_primevul_jsonl(input_path, output_path, reject_path, FIELD_MAP)
+
+    reject = json.loads(reject_path.read_text(encoding="utf-8").splitlines()[0])
+    assert reject["line"] == 2
+    assert reject["sample_id"] == "s1"
+    assert "duplicate" in reject["reason"]
+    assert "1" in reject["reason"]
+
+
+def test_normalize_primevul_jsonl_rejects_invalid_utf8_per_line(
+    tmp_path: Path,
+) -> None:
+    input_path = tmp_path / "raw.jsonl"
+    output_path = tmp_path / "index.jsonl"
+    reject_path = tmp_path / "rejects.jsonl"
+    input_path.write_bytes(
+        json.dumps(raw_record()).encode("utf-8") + b"\n" + b"{\xff}\n"
+    )
+
+    normalize_primevul_jsonl(input_path, output_path, reject_path, FIELD_MAP)
+
+    assert len(output_path.read_text(encoding="utf-8").splitlines()) == 1
+    reject = json.loads(reject_path.read_text(encoding="utf-8").splitlines()[0])
+    assert reject == {"line": 2, "reason": "invalid_utf8", "sample_id": None}

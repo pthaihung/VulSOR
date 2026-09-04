@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,8 +12,46 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from .index import write_repository_index
+from .index import _atomic_write_text, write_repository_index
 from .models import RepositoryIndexRecord, RepositoryRef, TargetAnchor
+
+
+_PROTECTED_RAW_KEYS = frozenset(
+    {
+        "cve",
+        "cve_desc",
+        "cve_id",
+        "cwe",
+        "cwe_id",
+        "cvss",
+        "nvd_url",
+        "pair_id",
+        "commit_message",
+        "commit_url",
+        "label",
+        "risk",
+        "severity",
+        "side",
+        "target",
+        "weakness",
+        "vulnerability",
+        "vulnerability_type",
+        "vulnerable",
+        "vuln",
+    }
+)
+
+
+def _normalized_raw_key(raw_key: str) -> str:
+    return raw_key.strip().casefold().replace("-", "_")
+
+
+def _is_protected_raw_key(raw_key: str) -> bool:
+    normalized = _normalized_raw_key(raw_key)
+    return normalized in _PROTECTED_RAW_KEYS or any(
+        token in normalized
+        for token in ("cve", "cwe", "cvss", "nvd", "vuln", "severity")
+    )
 
 
 @dataclass(frozen=True)
@@ -28,6 +67,29 @@ class PrimeVulFieldMap:
     code: str
     start_line: str | None = None
     end_line: str | None = None
+
+    def __post_init__(self) -> None:
+        for output_field in (
+            "sample_id",
+            "repository_id",
+            "repository_url",
+            "revision",
+            "file_path",
+            "function_name",
+            "code",
+            "start_line",
+            "end_line",
+        ):
+            raw_key = getattr(self, output_field)
+            if raw_key is None:
+                continue
+            if not isinstance(raw_key, str) or not raw_key.strip():
+                raise ValueError(f"{output_field} mapping must be a nonblank string")
+            if _is_protected_raw_key(raw_key):
+                raise ValueError(
+                    f"{output_field} cannot map protected raw metadata key "
+                    f"{raw_key!r}"
+                )
 
 
 FIELD_MAP = PrimeVulFieldMap(
@@ -53,6 +115,8 @@ def _normalize_code(code: str) -> str:
 def _normalized_code_sha256(code: str) -> str:
     if not isinstance(code, str):
         raise TypeError("code must be a string")
+    if not code.strip():
+        raise ValueError("source code must not be blank")
     return hashlib.sha256(_normalize_code(code).encode("utf-8")).hexdigest()
 
 
@@ -66,11 +130,32 @@ source_match = _SourceMatch()
 normalized_code_sha256 = source_match.normalized_code_sha256
 
 
+def _validate_repository_relative_file_path(file_path: object) -> str:
+    if not isinstance(file_path, str):
+        raise TypeError("file_path must be a string")
+    if (
+        not file_path.strip()
+        or file_path.startswith("/")
+        or "\\" in file_path
+        or re.match(r"^[A-Za-z]:", file_path)
+        or any(segment == ".." for segment in file_path.split("/"))
+    ):
+        raise ValueError("file_path must be a repository-relative POSIX path")
+    return file_path
+
+
 def normalize_primevul_record(
     raw: Mapping[str, Any],
     field_map: PrimeVulFieldMap,
 ) -> RepositoryIndexRecord:
     """Convert one raw record while retaining only repository locator fields."""
+    code = raw[field_map.code]
+    if not isinstance(code, str):
+        raise TypeError("source code must be a string")
+    if not code.strip():
+        raise ValueError("source code must not be blank")
+
+    file_path = _validate_repository_relative_file_path(raw[field_map.file_path])
     start_line = (
         raw[field_map.start_line] if field_map.start_line is not None else None
     )
@@ -84,13 +169,11 @@ def normalize_primevul_record(
             revision=raw[field_map.revision],
         ),
         target=TargetAnchor(
-            file_path=raw[field_map.file_path],
+            file_path=file_path,
             function_name=raw[field_map.function_name],
             start_line=start_line,
             end_line=end_line,
-            normalized_code_sha256=source_match.normalized_code_sha256(
-                raw[field_map.code]
-            ),
+            normalized_code_sha256=source_match.normalized_code_sha256(code),
         ),
     )
 
@@ -106,6 +189,9 @@ def _sanitized_reason(exc: Exception) -> str:
     if isinstance(exc, json.JSONDecodeError):
         return "invalid_json"
 
+    if isinstance(exc, UnicodeDecodeError):
+        return "invalid_utf8"
+
     if isinstance(exc, ValidationError):
         details = []
         for error in exc.errors():
@@ -119,7 +205,26 @@ def _sanitized_reason(exc: Exception) -> str:
     if isinstance(exc, TypeError):
         return "invalid_record_type"
 
+    if isinstance(exc, ValueError):
+        return str(exc) or "invalid_record"
+
     return "invalid_record"
+
+
+def _ensure_distinct_paths(
+    input_path: Path,
+    output_path: Path,
+    reject_path: Path,
+) -> None:
+    resolved_paths = {
+        input_path.resolve(strict=False),
+        output_path.resolve(strict=False),
+        reject_path.resolve(strict=False),
+    }
+    if len(resolved_paths) != 3:
+        raise ValueError(
+            "input_path, output_path, and reject_path must resolve to distinct paths"
+        )
 
 
 def normalize_primevul_jsonl(
@@ -129,21 +234,50 @@ def normalize_primevul_jsonl(
     field_map: PrimeVulFieldMap = FIELD_MAP,
 ) -> None:
     """Normalize raw JSONL, writing valid records and sanitized rejects."""
+    input_path = Path(input_path)
+    output_path = Path(output_path)
+    reject_path = Path(reject_path)
+    _ensure_distinct_paths(input_path, output_path, reject_path)
+
     accepted: dict[str, RepositoryIndexRecord] = {}
+    first_lines: dict[str, int] = {}
     rejects: list[dict[str, object]] = []
 
-    with input_path.open("r", encoding="utf-8") as handle:
-        for line_number, line in enumerate(handle, start=1):
-            if not line.strip():
+    with input_path.open("rb") as handle:
+        for line_number, raw_line in enumerate(handle, start=1):
+            if not raw_line.strip():
                 continue
 
             raw: object = None
             try:
+                line = raw_line.decode("utf-8", errors="strict")
+            except UnicodeDecodeError as exc:
+                rejects.append(
+                    {
+                        "line": line_number,
+                        "sample_id": None,
+                        "reason": _sanitized_reason(exc),
+                    }
+                )
+                continue
+
+            try:
                 raw = json.loads(line)
                 record = normalize_primevul_record(raw, field_map)
                 if record.sample_id in accepted:
-                    raise ValueError("duplicate sample_id")
+                    rejects.append(
+                        {
+                            "line": line_number,
+                            "sample_id": record.sample_id,
+                            "reason": (
+                                "duplicate_sample_id: "
+                                f"first_line={first_lines[record.sample_id]}"
+                            ),
+                        }
+                    )
+                    continue
                 accepted[record.sample_id] = record
+                first_lines[record.sample_id] = line_number
             except (KeyError, TypeError, ValueError, ValidationError) as exc:
                 rejects.append(
                     {
@@ -154,10 +288,10 @@ def normalize_primevul_jsonl(
                 )
 
     write_repository_index(accepted, output_path)
-    reject_path.write_text(
+    _atomic_write_text(
+        reject_path,
         "".join(
             f"{json.dumps(reject, ensure_ascii=False, sort_keys=True)}\n"
             for reject in rejects
         ),
-        encoding="utf-8",
     )
