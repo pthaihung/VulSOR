@@ -572,11 +572,28 @@ def test_all_semantic_agents_write_views_and_merge(
     merged = json.loads(
         (agent_dir / "agent_semantics.json").read_text(encoding="utf-8")
     )
+    semantic_cpg = json.loads(
+        (agent_dir / "semantic_cpg.json").read_text(encoding="utf-8")
+    )
     assert merged["status"] == "ok"
     assert merged["agent_semantics"]["state_view"]
     assert merged["agent_semantics"]["value_view"]
     assert merged["agent_semantics"]["execution_view"]
     assert merged["agent_semantics"]["operation_view"]
+    assert semantic_cpg["artifact_kind"] == "semantic_cpg_overlay"
+    assert semantic_cpg["sample_id"] == "sample_000000"
+    assert semantic_cpg["graph"]["summary"]["node_count"] > 0
+    assert semantic_cpg["graph"]["summary"]["edge_count"] > 0
+    assert any(
+        node["type"] == "Operation"
+        and node["properties"].get("name") == "memcpy"
+        for node in semantic_cpg["graph"]["nodes"]
+    )
+    assert any(
+        edge["type"] == "SUPPORTED_BY"
+        and edge["target"] == "fact:operation:memcpy:2:18"
+        for edge in semantic_cpg["graph"]["edges"]
+    )
 
     state = json.loads(
         (agent_dir / "state.json").read_text(encoding="utf-8")
@@ -597,6 +614,148 @@ def test_all_semantic_agents_write_views_and_merge(
     assert {"dst", "src"} <= buffer_names
     assert roles["memcpy"] == "copy"
     assert "operation_inventory" not in operation["operation_view"]
+
+    experiment_dir = (
+        tmp_path
+        / "experiments"
+        / "local"
+        / "test"
+        / "execution"
+    )
+    experiment_dir.mkdir(parents=True)
+    (experiment_dir / "sample_000000.json").write_text(
+        json.dumps(
+            {
+                "llm": {
+                    "enabled": True,
+                    "provider": "test-provider",
+                    "model": "test-model",
+                    "result": {
+                        "status": "ok",
+                        "output": {
+                            "execution_view": {
+                                "observations": [
+                                    {
+                                        "claim": "memcpy executes under the observed function body",
+                                        "supporting_fact_ids": [
+                                            "operation:memcpy:2:18"
+                                        ],
+                                        "confidence": "high",
+                                        "uncertainty": None,
+                                    }
+                                ],
+                                "summary": "memcpy is present in execution order.",
+                            },
+                            "reasoning_groups": [
+                                {
+                                    "description": "copy operation reasoning",
+                                    "steps": [
+                                        {
+                                            "claim": "memcpy is evidence for a copy operation",
+                                            "derived_from": "operation:memcpy:2:18",
+                                            "evidence": [
+                                                {
+                                                    "fact_id": "operation:memcpy:2:18",
+                                                    "source_location": {
+                                                        "line": 2,
+                                                        "column": 18,
+                                                    },
+                                                    "source_excerpt": "unavailable",
+                                                }
+                                            ],
+                                            "confidence": "high",
+                                            "uncertainty": None,
+                                        }
+                                    ],
+                                }
+                            ],
+                        },
+                        "usage": {},
+                        "view_validation": {"status": "ok", "issues": []},
+                        "reasoning_validation": {
+                            "status": "ok",
+                            "issues": [],
+                        },
+                    },
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    original_experiment = (
+        experiment_dir / "sample_000000.json"
+    ).read_text(encoding="utf-8")
+
+    assert main(
+        [
+            "agent",
+            "--agent",
+            "execution",
+            "--config",
+            str(config_file),
+            "--brain-context-dir",
+            str(brain_context_dir),
+            "--dataset",
+            "local",
+            "--split",
+            "test",
+            "--sample",
+            "sample_000000",
+            "--experiments-dir",
+            str(tmp_path / "experiments"),
+            "--force",
+            "--format",
+            "json",
+        ]
+    ) == 0
+    capsys.readouterr()
+    assert (
+        experiment_dir / "sample_000000.json"
+    ).read_text(encoding="utf-8") == original_experiment
+
+    assert main(
+        [
+            "agent",
+            "--agent",
+            "merge",
+            "--config",
+            str(config_file),
+            "--brain-context-dir",
+            str(brain_context_dir),
+            "--dataset",
+            "local",
+            "--split",
+            "test",
+            "--sample",
+            "sample_000000",
+            "--experiments-dir",
+            str(tmp_path / "experiments"),
+            "--force",
+            "--format",
+            "json",
+        ]
+    ) == 0
+    capsys.readouterr()
+
+    merged = json.loads(
+        (agent_dir / "agent_semantics.json").read_text(encoding="utf-8")
+    )
+    semantic_cpg = json.loads(
+        (agent_dir / "semantic_cpg.json").read_text(encoding="utf-8")
+    )
+    assert merged["agent_semantics"]["llm_semantics"]["execution"][
+        "observations"
+    ]
+    assert any(
+        node["type"] == "SemanticObservation"
+        and "memcpy executes" in node["properties"].get("claim", "")
+        for node in semantic_cpg["graph"]["nodes"]
+    )
+    assert any(
+        edge["type"] == "REFERS_TO"
+        and edge["target"] == "operation:memcpy:2:18"
+        for edge in semantic_cpg["graph"]["edges"]
+    )
 
 
 def test_agent_llm_config_and_tools_are_allowlisted(tmp_path) -> None:
@@ -1317,13 +1476,18 @@ def test_inspect_dataset_recovers_partial_facts_from_bad_snippet(
         "example"
     )
     assert sample["analysis"]["scope"] == "function"
-    assert sample["analysis"]["context_mode"] == "recovered_function"
+    assert sample["analysis"]["context_mode"] == (
+        "synthetic_recovered_function"
+    )
     assert sample["analysis"]["complete"] is False
     assert sample["analysis"]["completeness"]["ast"]["status"] == (
         "recovered"
     )
     assert sample["analysis"]["completeness"]["cfg"]["status"] == (
-        "missing"
+        "recovered"
+    )
+    assert sample["analysis"]["completeness"]["cfg"]["reason"] == (
+        "Clang CFG was recovered using explicit synthetic compile context"
     )
     assert sample["analysis"]["missing_context"][0]["kind"] == (
         "unknown_type"
@@ -1344,6 +1508,51 @@ def test_inspect_dataset_recovers_partial_facts_from_bad_snippet(
         in sample["analysis"]["limitations"]
     )
     assert (
+        "CFG facts were recovered with explicit synthetic compile context; recovery assumptions are not vulnerability evidence"
+        in sample["analysis"]["limitations"]
+    )
+    assert sample["analysis"]["recovery_assumptions"] == [
+        {
+            "kind": "synthetic_typedef",
+            "symbol": "ProjectType",
+            "declaration": "typedef int ProjectType;",
+            "reason": (
+                "Clang reported missing type 'ProjectType'; declaration is "
+                "used only to recover AST/CFG shape."
+            ),
+            "provenance": "synthetic_context",
+            "trust": "compile_recovery_only",
+            "used_for": "clang_ast_cfg_recovery",
+            "not_evidence_for_verdict": True,
+        },
+        {
+            "kind": "synthetic_typedef",
+            "symbol": "ProjectObject",
+            "declaration": "typedef int ProjectObject;",
+            "reason": (
+                "Clang reported missing type 'ProjectObject'; declaration is "
+                "used only to recover AST/CFG shape."
+            ),
+            "provenance": "synthetic_context",
+            "trust": "compile_recovery_only",
+            "used_for": "clang_ast_cfg_recovery",
+            "not_evidence_for_verdict": True,
+        },
+        {
+            "kind": "synthetic_macro_constant",
+            "symbol": "ProjectFalse",
+            "declaration": "#define ProjectFalse 0",
+            "reason": (
+                "Clang reported undeclared identifier 'ProjectFalse'; macro "
+                "is used only to recover AST/CFG shape."
+            ),
+            "provenance": "synthetic_context",
+            "trust": "compile_recovery_only",
+            "used_for": "clang_ast_cfg_recovery",
+            "not_evidence_for_verdict": True,
+        },
+    ]
+    assert (
         "program analysis emits facts only; it does not infer vulnerability verdicts"
         in sample["analysis"]["limitations"]
     )
@@ -1352,7 +1561,6 @@ def test_inspect_dataset_recovers_partial_facts_from_bad_snippet(
         in sample["analysis"]["rules"]
     )
     assert "AST recovered from Clang errors" in sample["diagnostics"]
-    assert "CFG unavailable" in sample["diagnostics"]
 
 
 def test_dataset_stage_summary_groups_one_row_per_sample() -> None:

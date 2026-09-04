@@ -2052,6 +2052,7 @@ def _analysis_metadata(
         ),
         "missing_context_summary": _missing_context_summary(analysis),
         "missing_context": analysis.missing_context,
+        "recovery_assumptions": analysis.recovery_assumptions,
         "links": analysis.links,
         "limitations": analysis.limitations,
         "rules": PROGRAM_ANALYSIS_RULES,
@@ -2195,6 +2196,22 @@ def _build_diagnosis(
                 compile_context,
             )
         )
+    elif analysis.recovery_assumptions and _has_compile_context(
+        compile_context
+    ) and not source_context.get("clang_args_applied"):
+        issues.append(
+            {
+                "component": "synthetic_context",
+                "classification": "pipeline_context_not_applied",
+                "fixable": True,
+                "message": (
+                    "dataset context advertises compile information, but "
+                    "B1 still needed explicit synthetic recovery assumptions; "
+                    "wire concrete include paths, macros, or Clang args into "
+                    "the Clang invocation"
+                ),
+            }
+        )
 
     data_flow_status = (
         analysis.completeness.get("data_flow")
@@ -2265,13 +2282,7 @@ def _cfg_issue(
             ),
         }
 
-    has_compile_context = any(
-        bool(compile_context.get(key))
-        for key in (
-            "compile_commands_available",
-            "include_paths_available",
-        )
-    ) or compile_context.get("macros_available") is True
+    has_compile_context = _has_compile_context(compile_context)
 
     if has_compile_context:
         if source_context.get("clang_args_applied"):
@@ -2341,6 +2352,16 @@ def _cfg_issue(
             "toolchain handling"
         ),
     }
+
+
+def _has_compile_context(compile_context: dict) -> bool:
+    return any(
+        bool(compile_context.get(key))
+        for key in (
+            "compile_commands_available",
+            "include_paths_available",
+        )
+    ) or compile_context.get("macros_available") is True
 
 
 def _analyze_dataset_sample(
@@ -3433,6 +3454,7 @@ def _handle_agent(
                     sample_id=args.sample,
                     limit=args.limit,
                     force=args.force,
+                    experiments_dir=args.experiments_dir,
                 )
             )
     elif args.agent == "merge":
@@ -3442,6 +3464,7 @@ def _handle_agent(
             sample_id=args.sample,
             limit=args.limit,
             force=args.force,
+            experiments_dir=args.experiments_dir,
         )
     else:
         results = run_semantic_agent_for_manifest(

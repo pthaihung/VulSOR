@@ -34,6 +34,20 @@ class MissingContext:
 
 
 @dataclass(frozen=True)
+class RecoveryAssumption:
+    """Synthetic compile context used only to recover parser facts."""
+
+    kind: str
+    symbol: str
+    declaration: str
+    reason: str
+    provenance: str = "synthetic_context"
+    trust: str = "compile_recovery_only"
+    used_for: str = "clang_ast_cfg_recovery"
+    not_evidence_for_verdict: bool = True
+
+
+@dataclass(frozen=True)
 class FunctionLinks:
     """Facts that belong to one analyzed function."""
 
@@ -87,6 +101,7 @@ class ProgramAnalysisResult:
     limitations: tuple[str, ...] = ()
     completeness: dict[str, AnalysisPassStatus] | None = None
     missing_context: tuple[MissingContext, ...] = ()
+    recovery_assumptions: tuple[RecoveryAssumption, ...] = ()
     links: ProgramFactLinks | None = None
 
 
@@ -123,57 +138,43 @@ def analyze_source_file_tolerant(
     clang_args: Sequence[str] = (),
 ) -> ProgramAnalysisResult:
     """Run analysis while preserving recoverable AST facts."""
-    adapter = ClangAdapter(executable=clang_executable)
-    analyzer = ASTAnalyzer()
-    diagnostics: list[str] = []
-
-    ast_result = adapter.dump_ast_with_source(
+    base = _run_tolerant_pass(
         source_file,
-        allow_errors=True,
-        extra_args=clang_args,
+        clang_executable=clang_executable,
+        clang_args=clang_args,
     )
+    facts = base["facts"]
+    diagnostics = list(base["diagnostics"])
+    recovered_ast = bool(base["recovered_ast"])
+    cfg_available = bool(base["cfg_available"])
+    missing_context = _extract_missing_context(tuple(diagnostics))
+    recovery_assumptions: tuple[RecoveryAssumption, ...] = ()
+    recovery_diagnostics: tuple[str, ...] = ()
 
-    ast_output: ASTOutput
-    recovered_ast = False
-
-    if isinstance(ast_result, tuple):
-        ast_output, ast_diagnostics = ast_result
-
-        if ast_diagnostics:
-            diagnostics.append(ast_diagnostics)
-            recovered_ast = True
-    else:
-        ast_output = ast_result
-
-    cfg_result = adapter.dump_cfg(
-        source_file,
-        allow_errors=True,
-        extra_args=clang_args,
-    )
-
-    if isinstance(cfg_result, ClangRunResult):
-        cfg_output = cfg_result.output
-
-        if cfg_result.diagnostics:
-            diagnostics.append(cfg_result.diagnostics)
-    else:
-        cfg_output = cfg_result
-
-    if cfg_output.strip():
-        facts = analyzer.analyze_program(
-            ast_output,
-            cfg_output,
+    if not cfg_available and missing_context:
+        repair = _try_synthetic_context_recovery(
+            source_file,
+            clang_executable=clang_executable,
+            clang_args=clang_args,
+            missing_context=missing_context,
         )
-    else:
-        facts = analyzer.analyze(ast_output)
+        recovery_assumptions = repair["assumptions"]
+        recovery_diagnostics = repair["diagnostics"]
+
+        if repair["cfg_available"]:
+            facts = repair["facts"]
+            cfg_available = True
 
     facts = _ensure_data_flow(facts)
-    cfg_available = bool(cfg_output.strip())
     complete = not diagnostics and cfg_available
     context_mode = (
         f"strict_{scope}"
         if complete
-        else f"recovered_{scope}"
+        else (
+            f"synthetic_recovered_{scope}"
+            if cfg_available and recovery_assumptions
+            else f"recovered_{scope}"
+        )
     )
     limitations = _analysis_limitations(
         facts=facts,
@@ -181,19 +182,27 @@ def analyze_source_file_tolerant(
         recovered_ast=recovered_ast,
         cfg_available=cfg_available,
         scope=scope,
+        recovery_assumptions=recovery_assumptions,
     )
-    missing_context = _extract_missing_context(tuple(diagnostics))
     completeness = _analysis_completeness(
         facts=facts,
         recovered_ast=recovered_ast,
         cfg_available=cfg_available,
         diagnostics=tuple(diagnostics),
+        recovery_assumptions=recovery_assumptions,
     )
 
     return ProgramAnalysisResult(
         facts=facts,
         complete=complete,
-        diagnostics=tuple(diagnostics),
+        diagnostics=tuple(
+            diagnostics
+            + [
+                f"synthetic context recovery diagnostics:\n{item}"
+                for item in recovery_diagnostics
+                if item
+            ]
+        ),
         recovered_ast=recovered_ast,
         cfg_available=cfg_available,
         scope=scope,
@@ -201,6 +210,7 @@ def analyze_source_file_tolerant(
         limitations=limitations,
         completeness=completeness,
         missing_context=missing_context,
+        recovery_assumptions=recovery_assumptions,
         links=build_program_fact_links(facts),
     )
 
@@ -245,6 +255,199 @@ def analyze_source_code_tolerant(
         )
 
 
+def _run_tolerant_pass(
+    source_file: Path,
+    *,
+    clang_executable: str,
+    clang_args: Sequence[str],
+) -> dict:
+    adapter = ClangAdapter(executable=clang_executable)
+    analyzer = ASTAnalyzer()
+    diagnostics: list[str] = []
+
+    ast_result = adapter.dump_ast_with_source(
+        source_file,
+        allow_errors=True,
+        extra_args=clang_args,
+    )
+
+    recovered_ast = False
+
+    if isinstance(ast_result, tuple):
+        ast_output, ast_diagnostics = ast_result
+
+        if ast_diagnostics:
+            diagnostics.append(ast_diagnostics)
+            recovered_ast = True
+    else:
+        ast_output = ast_result
+
+    cfg_result = adapter.dump_cfg(
+        source_file,
+        allow_errors=True,
+        extra_args=clang_args,
+    )
+
+    if isinstance(cfg_result, ClangRunResult):
+        cfg_output = cfg_result.output
+
+        if cfg_result.diagnostics:
+            diagnostics.append(cfg_result.diagnostics)
+    else:
+        cfg_output = cfg_result
+
+    if cfg_output.strip():
+        facts = analyzer.analyze_program(
+            ast_output,
+            cfg_output,
+        )
+    else:
+        facts = analyzer.analyze(ast_output)
+
+    return {
+        "facts": facts,
+        "diagnostics": tuple(diagnostics),
+        "recovered_ast": recovered_ast,
+        "cfg_available": bool(cfg_output.strip()),
+    }
+
+
+def _try_synthetic_context_recovery(
+    source_file: Path,
+    *,
+    clang_executable: str,
+    clang_args: Sequence[str],
+    missing_context: tuple[MissingContext, ...],
+) -> dict:
+    source_text = source_file.read_text(encoding="utf-8")
+    assumptions = _recovery_assumptions(missing_context, source_text)
+    if not assumptions:
+        return {
+            "facts": ProgramFacts((), (), (), (), (), ()),
+            "diagnostics": (),
+            "cfg_available": False,
+            "assumptions": (),
+        }
+
+    with tempfile.TemporaryDirectory(prefix="vulsor-recovery-") as directory:
+        header_path = Path(directory) / "synthetic_context.h"
+        header_path.write_text(
+            "\n".join(
+                [
+                    "/* Synthetic compile context for parser recovery only. */",
+                    *[
+                        assumption.declaration
+                        for assumption in assumptions
+                    ],
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        recovered = _run_tolerant_pass(
+            source_file,
+            clang_executable=clang_executable,
+            clang_args=(
+                *clang_args,
+                "-include",
+                str(header_path),
+            ),
+        )
+
+    return {
+        "facts": recovered["facts"],
+        "diagnostics": recovered["diagnostics"],
+        "cfg_available": recovered["cfg_available"],
+        "assumptions": assumptions,
+    }
+
+
+def _recovery_assumptions(
+    missing_context: tuple[MissingContext, ...],
+    source_text: str,
+) -> tuple[RecoveryAssumption, ...]:
+    assumptions = []
+    seen: set[tuple[str, str]] = set()
+
+    for item in missing_context:
+        symbol = item.symbol
+        if not _safe_c_identifier(symbol):
+            continue
+
+        if item.kind == "unknown_type":
+            declaration = _synthetic_type_declaration(symbol)
+            kind = "synthetic_typedef"
+            reason = (
+                f"Clang reported missing type {symbol!r}; declaration is "
+                "used only to recover AST/CFG shape."
+            )
+        elif item.kind == "undeclared_identifier":
+            if _looks_like_type_use(symbol, source_text):
+                declaration = _synthetic_type_declaration(symbol)
+                kind = "synthetic_typedef"
+                reason = (
+                    f"Clang reported undeclared identifier {symbol!r}, but "
+                    "the source uses it in a declaration-shaped context; "
+                    "typedef is used only to recover AST/CFG shape."
+                )
+            else:
+                declaration = f"#define {symbol} 0"
+                kind = "synthetic_macro_constant"
+                reason = (
+                    f"Clang reported undeclared identifier {symbol!r}; macro "
+                    "is used only to recover AST/CFG shape."
+                )
+        else:
+            continue
+
+        key = (kind, symbol)
+        if key in seen:
+            continue
+        seen.add(key)
+        assumptions.append(
+            RecoveryAssumption(
+                kind=kind,
+                symbol=symbol,
+                declaration=declaration,
+                reason=reason,
+            )
+        )
+
+    return tuple(assumptions)
+
+
+def _synthetic_type_declaration(symbol: str) -> str:
+    builtin_type_aliases = {
+        "size_t": "typedef unsigned long size_t;",
+        "ssize_t": "typedef long ssize_t;",
+        "uint8_t": "typedef unsigned char uint8_t;",
+        "uint16_t": "typedef unsigned short uint16_t;",
+        "uint32_t": "typedef unsigned int uint32_t;",
+        "uint64_t": "typedef unsigned long long uint64_t;",
+        "int8_t": "typedef signed char int8_t;",
+        "int16_t": "typedef short int16_t;",
+        "int32_t": "typedef int int32_t;",
+        "int64_t": "typedef long long int64_t;",
+        "bool": "typedef int bool;",
+    }
+    return builtin_type_aliases.get(symbol, f"typedef int {symbol};")
+
+
+def _looks_like_type_use(symbol: str, source_text: str) -> bool:
+    declaration_patterns = (
+        rf"\b{re.escape(symbol)}\s+\*?\s*[A-Za-z_][A-Za-z0-9_]*\b",
+        rf"\b{re.escape(symbol)}\s*\*+\s*[A-Za-z_][A-Za-z0-9_]*\b",
+    )
+    return any(
+        re.search(pattern, source_text) is not None
+        for pattern in declaration_patterns
+    )
+
+
+def _safe_c_identifier(symbol: str) -> bool:
+    return re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", symbol) is not None
+
+
 def _analysis_limitations(
     *,
     facts: ProgramFacts,
@@ -252,6 +455,7 @@ def _analysis_limitations(
     recovered_ast: bool,
     cfg_available: bool,
     scope: str,
+    recovery_assumptions: tuple[RecoveryAssumption, ...] = (),
 ) -> tuple[str, ...]:
     """Explain expected limits instead of hiding missing context."""
     limitations: list[str] = []
@@ -282,6 +486,10 @@ def _analysis_limitations(
         limitations.append(
             "CFG missing: usually caused by incomplete dataset/project compile context such as headers, typedefs, macros, or build flags"
         )
+    elif recovery_assumptions:
+        limitations.append(
+            "CFG facts were recovered with explicit synthetic compile context; recovery assumptions are not vulnerability evidence"
+        )
 
     if facts.data_flow:
         limitations.append(
@@ -309,6 +517,7 @@ def _analysis_completeness(
     recovered_ast: bool,
     cfg_available: bool,
     diagnostics: tuple[str, ...],
+    recovery_assumptions: tuple[RecoveryAssumption, ...] = (),
 ) -> dict[str, AnalysisPassStatus]:
     """Describe which facts are complete for this sample."""
     ast_reason = None
@@ -320,6 +529,10 @@ def _analysis_completeness(
 
     if not cfg_available:
         cfg_reason = "Clang CFG dump failed or produced no CFG text"
+    elif recovery_assumptions:
+        cfg_reason = (
+            "Clang CFG was recovered using explicit synthetic compile context"
+        )
 
     data_flow_status = "available" if facts.data_flow else "empty"
     data_flow_reason = None
@@ -343,7 +556,13 @@ def _analysis_completeness(
             reason=ast_reason,
         ),
         "cfg": AnalysisPassStatus(
-            status="available" if cfg_available else "missing",
+            status=(
+                "recovered"
+                if cfg_available and recovery_assumptions
+                else "available"
+                if cfg_available
+                else "missing"
+            ),
             reason=cfg_reason,
         ),
         "data_flow": AnalysisPassStatus(
@@ -475,6 +694,7 @@ def focus_analysis_on_line_range(
         limitations=tuple(dict.fromkeys(limitations)),
         completeness=completeness,
         missing_context=analysis.missing_context,
+        recovery_assumptions=analysis.recovery_assumptions,
         links=build_program_fact_links(focused_facts),
     )
 

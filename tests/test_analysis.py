@@ -729,8 +729,8 @@ def test_program_analysis_links_related_facts():
     )
 
 
-def test_tolerant_analysis_builds_data_flow_when_cfg_is_missing():
-    """Recovered AST facts should still feed syntactic data-flow."""
+def test_tolerant_analysis_recovers_cfg_with_explicit_assumptions():
+    """Synthetic context recovery must be explicit and non-evidentiary."""
     analysis = analyze_source_code_tolerant(
         (
             "static int example(int object) {\n"
@@ -741,15 +741,19 @@ def test_tolerant_analysis_builds_data_flow_when_cfg_is_missing():
         scope="function",
     )
 
-    assert analysis.cfg_available is False
+    assert analysis.cfg_available is True
     assert analysis.facts.definitions
     assert analysis.facts.uses
     assert analysis.facts.data_flow
     assert analysis.completeness is not None
-    assert analysis.completeness["cfg"].status == "missing"
+    assert analysis.completeness["cfg"].status == "recovered"
     assert analysis.completeness["data_flow"].status == "limited"
+    assert analysis.recovery_assumptions
+    assert analysis.recovery_assumptions[0].symbol == "ProjectType"
+    assert analysis.recovery_assumptions[0].trust == "compile_recovery_only"
+    assert analysis.recovery_assumptions[0].not_evidence_for_verdict is True
     assert any(
-        limitation.startswith("CFG missing:")
+        limitation.startswith("CFG facts were recovered with explicit")
         for limitation in analysis.limitations
     )
     assert any(

@@ -123,6 +123,12 @@ B1 nhận C/C++ source hoặc sample trong dataset, rồi tạo program facts:
 - `source_context`
 - `context_facts`
 
+Nếu dataset thiếu header/typedef/macro/build flags và Clang không dựng được CFG,
+B1 có thể thử một pass recovery bằng synthetic compile context. Mọi stub được
+ghi rõ trong `analysis.recovery_assumptions` với `trust:
+compile_recovery_only` và `not_evidence_for_verdict: true`; chúng chỉ giúp
+khôi phục AST/CFG shape, không được dùng làm bằng chứng vulnerability/CWE.
+
 Chạy B1 cho một sample PrimeVul:
 
 ```powershell
@@ -226,13 +232,23 @@ brain_context/{dataset}/{split}/agents/{sample_id}/value.json
 brain_context/{dataset}/{split}/agents/{sample_id}/execution.json
 brain_context/{dataset}/{split}/agents/{sample_id}/operation.json
 brain_context/{dataset}/{split}/agents/{sample_id}/agent_semantics.json
+brain_context/{dataset}/{split}/agents/{sample_id}/semantic_cpg.json
 ```
 
 Ví dụ:
 
 ```text
 brain_context/primevul/test/agents/test_000000/agent_semantics.json
+brain_context/primevul/test/agents/test_000000/semantic_cpg.json
 ```
+
+Khi merge tạo `agent_semantics.json`, B2 tự sinh thêm `semantic_cpg.json` cho
+cùng sample. Đây là semantic property graph/CPG overlay từ B2, gồm `nodes`,
+`edges`, và `summary` để dễ query; nó không thay thế Joern CPG đầy đủ.
+Nếu có output LLM hợp lệ trong `experiments/{dataset}/{split}/{agent}/{sample_id}.json`,
+merge sẽ nhúng thêm `llm_semantics` vào `agent_semantics.json` và graph sẽ có
+node `SemanticObservation`, `ReasoningGroup`, `ReasoningStep` cùng các edge
+`SUPPORTED_BY`/`REFERS_TO` về fact hoặc node semantic liên quan.
 
 ## B2 Với LLM
 

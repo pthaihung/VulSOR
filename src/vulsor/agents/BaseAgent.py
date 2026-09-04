@@ -18,6 +18,7 @@ from vulsor.agents.SemanticViews import (
     list_of_dicts,
     validate_semantic_view,
 )
+from vulsor.agents.SemanticGraph import build_semantic_cpg_overlay
 from vulsor.config import AgentLLMConfig
 
 
@@ -225,6 +226,7 @@ def run_semantic_merge_for_manifest(
     sample_id: str | None = None,
     limit: int | None = None,
     force: bool = False,
+    experiments_dir: Path = Path("experiments"),
 ) -> list[AgentRunResult]:
     """Merge the four B2 semantic views into one artifact per sample."""
     manifest = _read_json(manifest_path)
@@ -253,6 +255,7 @@ def run_semantic_merge_for_manifest(
                 Path(path),
                 brain_context_dir=brain_context_dir,
                 force=force,
+                experiments_dir=experiments_dir,
             )
         )
 
@@ -315,7 +318,7 @@ class BaseAgent:
             cached = _read_json(output_path)
 
             if _cache_key_from_output(cached) == cache_key:
-                if not experiment_path.is_file():
+                if use_llm and not experiment_path.is_file():
                     experiment_path.parent.mkdir(parents=True, exist_ok=True)
                     _atomic_write_json(experiment_path, cached)
                 runtime = _runtime_from_output(cached)
@@ -325,7 +328,7 @@ class BaseAgent:
                     status=str(cached.get("status", "ok")),
                     output_path=str(output_path),
                     cache_hit=True,
-                    experiment_path=str(experiment_path),
+                    experiment_path=str(experiment_path) if use_llm else None,
                     agent=self.agent_name,
                     error=_agent_output_error(cached),
                     input_tokens=int(runtime.get("input_tokens", 0)),
@@ -366,8 +369,9 @@ class BaseAgent:
             output_dir.mkdir(parents=True, exist_ok=True)
             _atomic_write_json(output_path, output)
 
-        experiment_path.parent.mkdir(parents=True, exist_ok=True)
-        _atomic_write_json(experiment_path, output)
+        if use_llm:
+            experiment_path.parent.mkdir(parents=True, exist_ok=True)
+            _atomic_write_json(experiment_path, output)
         runtime = _runtime_from_output(output)
 
         return AgentRunResult(
@@ -375,7 +379,7 @@ class BaseAgent:
             status=str(output["status"]),
             output_path=str(output_path),
             cache_hit=False,
-            experiment_path=str(experiment_path),
+            experiment_path=str(experiment_path) if use_llm else None,
             agent=self.agent_name,
             error=_agent_output_error(output),
             input_tokens=int(runtime.get("input_tokens", 0)),
@@ -624,23 +628,39 @@ def merge_semantic_views(
     *,
     brain_context_dir: Path = Path("brain_context"),
     force: bool = False,
+    experiments_dir: Path = Path("experiments"),
 ) -> AgentRunResult:
     """Merge state/value/execution/operation artifacts for one sample."""
     artifact_path = artifact_path.resolve()
     brain_context_dir = brain_context_dir.resolve()
+    experiments_dir = experiments_dir.resolve()
     artifact = _read_json(artifact_path)
     dataset = str(artifact["dataset"])
     split = str(artifact["split"])
     sample_id = str(artifact["sample_id"])
     agent_dir = brain_context_dir / dataset / split / "agents" / sample_id
     output_path = agent_dir / "agent_semantics.json"
+    graph_path = agent_dir / "semantic_cpg.json"
     input_paths = [agent_dir / f"{name}.json" for name in SEMANTIC_AGENTS]
-    cache_key = _merge_cache_key(artifact_path, input_paths)
+    experiment_paths = [
+        experiments_dir / dataset / split / name / f"{sample_id}.json"
+        for name in SEMANTIC_AGENTS
+    ]
+    cache_key = _merge_cache_key(
+        artifact_path,
+        [*input_paths, *experiment_paths],
+    )
 
     if not force and output_path.is_file():
         cached = _read_json(output_path)
 
         if _cache_key_from_output(cached) == cache_key:
+            _write_semantic_cpg_overlay(
+                graph_path,
+                cached,
+                semantic_path=output_path,
+                force=False,
+            )
             return AgentRunResult(
                 sample_id=sample_id,
                 status=str(cached.get("status", "ok")),
@@ -669,6 +689,10 @@ def merge_semantic_views(
 
     sample = artifact.get("sample", {})
     analysis = sample.get("analysis", {})
+    llm_semantics = _llm_semantics_for_sample(
+        experiment_paths,
+        agent_names=SEMANTIC_AGENTS,
+    )
     payload = {
         "schema_version": SCHEMA_VERSION,
         "artifact_kind": "semantic_agent_merge",
@@ -678,8 +702,13 @@ def merge_semantic_views(
         "agent_semantics": {
             "sample_id": sample_id,
             "source_artifact": str(artifact_path),
+            "recovery_assumptions": analysis.get(
+                "recovery_assumptions",
+                [],
+            ),
             **views,
             "cross_view_links": cross_view_links(views),
+            "llm_semantics": llm_semantics,
             "missing_semantic_context": missing,
         },
         "_meta": {
@@ -695,6 +724,12 @@ def merge_semantic_views(
     }
     agent_dir.mkdir(parents=True, exist_ok=True)
     _atomic_write_json(output_path, payload)
+    _write_semantic_cpg_overlay(
+        graph_path,
+        payload,
+        semantic_path=output_path,
+        force=True,
+    )
 
     return AgentRunResult(
         sample_id=sample_id,
@@ -703,6 +738,91 @@ def merge_semantic_views(
         cache_hit=False,
         agent="merge",
     )
+
+
+def _write_semantic_cpg_overlay(
+    graph_path: Path,
+    semantic_payload: dict[str, Any],
+    *,
+    semantic_path: Path,
+    force: bool,
+) -> None:
+    """Write the per-sample semantic CPG overlay beside agent_semantics.json."""
+    if not force and graph_path.is_file():
+        cached = _read_json(graph_path)
+        meta = cached.get("_meta")
+        if isinstance(meta, dict) and meta.get("source_hash") == _file_hash(
+            semantic_path
+        ):
+            return
+
+    graph_payload = build_semantic_cpg_overlay(semantic_payload)
+    graph_payload["source_semantics"] = str(semantic_path)
+    graph_payload["_meta"]["source_semantics"] = str(semantic_path)
+    graph_payload["_meta"]["source_hash"] = _file_hash(semantic_path)
+    _atomic_write_json(graph_path, graph_payload)
+
+
+def _llm_semantics_for_sample(
+    experiment_paths: list[Path],
+    *,
+    agent_names: tuple[str, ...],
+) -> dict[str, Any]:
+    """Collect validated LLM observations/reasoning from experiment outputs."""
+    llm_semantics: dict[str, Any] = {}
+
+    for agent_name, path in zip(agent_names, experiment_paths):
+        if not path.is_file():
+            continue
+
+        output = _read_json(path)
+        llm = output.get("llm")
+        result = llm.get("result") if isinstance(llm, dict) else None
+        if not isinstance(result, dict):
+            continue
+
+        if result.get("status") != "ok":
+            continue
+
+        view_validation = result.get("view_validation")
+        reasoning_validation = result.get("reasoning_validation")
+        if (
+            isinstance(view_validation, dict)
+            and view_validation.get("status") != "ok"
+        ):
+            continue
+        if (
+            isinstance(reasoning_validation, dict)
+            and reasoning_validation.get("status") != "ok"
+        ):
+            continue
+
+        parsed = result.get("output")
+        if not isinstance(parsed, dict):
+            continue
+
+        view = parsed.get(f"{agent_name}_view")
+        observations = []
+        summary = None
+        if isinstance(view, dict):
+            observations = list_of_dicts(view.get("observations"))
+            summary = view.get("summary")
+
+        llm_semantics[agent_name] = {
+            "source": str(path),
+            "provider": llm.get("provider") if isinstance(llm, dict) else None,
+            "model": llm.get("model") if isinstance(llm, dict) else None,
+            "observations": observations,
+            "summary": summary if isinstance(summary, str) else None,
+            "reasoning_groups": list_of_dicts(
+                parsed.get("reasoning_groups")
+            ),
+            "usage": result.get("usage") or {},
+            "view_validation": view_validation or {},
+            "reasoning_validation": reasoning_validation or {},
+        }
+
+    return llm_semantics
 
 
 def _facts_and_analysis(
