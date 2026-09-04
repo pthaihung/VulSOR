@@ -261,6 +261,15 @@ class GitRepositoryResolver:
                             canonical_url,
                             mirror_root,
                         )
+                        if not self._mirror_contains_revision(mirror_root, revision):
+                            self._refresh_mirror(mirror_root)
+                            if not self._mirror_contains_revision(
+                                mirror_root,
+                                revision,
+                            ):
+                                raise RepositoryRevisionNotFoundError(
+                                    f"requested Git revision is not present: {revision}"
+                                )
                         return ResolvedRepository(
                             repository_root=revision_root,
                             resolved_revision=revision,
@@ -328,7 +337,13 @@ class GitRepositoryResolver:
         mirror_root: Path,
     ) -> None:
         if not _path_exists(mirror_root):
-            return
+            try:
+                self._ensure_mirror(canonical_url, mirror_root)
+            except RepositoryResolutionError as exc:
+                raise RepositoryResolutionError(
+                    "cached repository checkout is valid, but its mirror is "
+                    "missing and could not be restored"
+                ) from exc
         if mirror_root.is_symlink() or not mirror_root.is_dir():
             raise RepositoryResolutionError(
                 f"repository mirror cache entry is not a directory: {mirror_root}"
@@ -336,17 +351,21 @@ class GitRepositoryResolver:
         self._verify_mirror(mirror_root, canonical_url)
 
     def _mirror_contains_revision(self, mirror_root: Path, revision: str) -> bool:
+        # Reachability from a mirror ref is the practical local cache boundary.
+        # It excludes arbitrary dangling objects, without claiming that Git's
+        # object database alone cryptographically authenticates the repository.
         try:
-            self._run_git(
+            result = self._run_git(
                 "-C",
                 str(mirror_root),
-                "cat-file",
-                "-e",
-                f"{revision}^{{commit}}",
+                "for-each-ref",
+                "--contains",
+                revision,
+                "--format=%(refname)",
             )
         except RepositoryCommandError:
             return False
-        return True
+        return bool(result.stdout.strip())
 
     def _refresh_mirror(self, mirror_root: Path) -> None:
         self._run_git(
@@ -425,6 +444,7 @@ class GitRepositoryResolver:
                 raise
 
             self._verify_checkout(temporary_root, revision)
+            _make_tree_read_only(temporary_root)
             temporary_root.replace(revision_root)
         except Exception as exc:
             _cleanup_failed_path(temporary_root, exc)
@@ -447,6 +467,7 @@ class GitRepositoryResolver:
             status = self._run_git(
                 "-C",
                 str(repository_root),
+                "--no-optional-locks",
                 "status",
                 "--porcelain=v1",
                 "--untracked-files=all",
@@ -601,6 +622,56 @@ def _path_exists(path: Path) -> bool:
     return path.exists() or path.is_symlink()
 
 
+def _make_tree_read_only(path: Path) -> None:
+    """Remove write permission from every non-symlink entry in a tree."""
+
+    for directory, directory_names, file_names in os.walk(
+        path,
+        topdown=True,
+        followlinks=False,
+    ):
+        directory_path = Path(directory)
+        for name in directory_names:
+            child = directory_path / name
+            if not child.is_symlink():
+                os.chmod(child, _read_only_mode(child))
+        for name in file_names:
+            child = directory_path / name
+            if not child.is_symlink():
+                os.chmod(child, _read_only_mode(child))
+        os.chmod(directory_path, _read_only_mode(directory_path))
+
+
+def _make_tree_writable(path: Path) -> None:
+    """Restore owner write permission for tests and failed-cache cleanup."""
+
+    for directory, directory_names, file_names in os.walk(
+        path,
+        topdown=True,
+        followlinks=False,
+    ):
+        directory_path = Path(directory)
+        os.chmod(directory_path, _writable_mode(directory_path))
+        for name in directory_names:
+            child = directory_path / name
+            if not child.is_symlink():
+                os.chmod(child, _writable_mode(child))
+        for name in file_names:
+            child = directory_path / name
+            if not child.is_symlink():
+                os.chmod(child, _writable_mode(child))
+
+
+def _read_only_mode(path: Path) -> int:
+    return os.stat(path, follow_symlinks=False).st_mode & ~(
+        stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
+    )
+
+
+def _writable_mode(path: Path) -> int:
+    return os.stat(path, follow_symlinks=False).st_mode | stat.S_IWUSR
+
+
 def _cleanup_failed_path(path: Path, original_error: BaseException) -> None:
     try:
         _remove_tree(path)
@@ -621,8 +692,13 @@ def _remove_tree(path: Path) -> None:
     failures: list[BaseException] = []
 
     def retry_remove(function, target: str, exc_info) -> None:
+        target_path = Path(target)
         try:
-            os.chmod(target, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+            os.chmod(target_path.parent, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+        except OSError:
+            pass
+        try:
+            os.chmod(target_path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
         except OSError:
             pass
         try:
@@ -634,6 +710,10 @@ def _remove_tree(path: Path) -> None:
         if path.is_symlink():
             path.unlink()
         elif path.is_dir():
+            try:
+                _make_tree_writable(path)
+            except OSError as exc:
+                failures.append(exc)
             shutil.rmtree(path, onerror=retry_remove)
         else:
             try:

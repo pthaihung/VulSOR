@@ -139,6 +139,77 @@ def test_resolve_materializes_requested_immutable_revisions(
     assert mirrors == [old.mirror_root]
 
 
+def test_materialized_checkout_is_read_only_and_reusable(
+    two_commit_repository: tuple[Path, str, str],
+    short_cache_root: Path,
+) -> None:
+    repository, revision, _ = two_commit_repository
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=short_cache_root,
+            clone_timeout_seconds=30,
+            lock_timeout_seconds=5,
+        )
+    )
+
+    resolved = resolver.resolve(repository_ref(repository, revision))
+    tracked_file = resolved.repository_root / "old.txt"
+
+    assert tracked_file.stat().st_mode & stat.S_IWRITE == 0
+    assert (resolved.repository_root / ".git" / "HEAD").stat().st_mode & stat.S_IWRITE == 0
+    cached = resolver.resolve(repository_ref(repository, revision))
+
+    assert cached.repository_root == resolved.repository_root
+    assert tracked_file.read_text(encoding="utf-8") == "old revision\n"
+    git_repository_module._remove_tree(resolved.repository_root)
+    assert not resolved.repository_root.exists()
+
+
+def test_valid_checkout_restores_an_evicted_mirror(
+    two_commit_repository: tuple[Path, str, str],
+    short_cache_root: Path,
+) -> None:
+    repository, revision, _ = two_commit_repository
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=short_cache_root,
+            clone_timeout_seconds=30,
+            lock_timeout_seconds=5,
+        )
+    )
+
+    resolved = resolver.resolve(repository_ref(repository, revision))
+    git_repository_module._remove_tree(resolved.mirror_root)
+    assert not resolved.mirror_root.exists()
+
+    restored = resolver.resolve(repository_ref(repository, revision))
+
+    assert restored.mirror_root.is_dir()
+    assert restored.repository_root == resolved.repository_root
+
+
+def test_valid_checkout_without_mirror_fails_when_origin_is_offline(
+    tmp_path: Path,
+    two_commit_repository: tuple[Path, str, str],
+    short_cache_root: Path,
+) -> None:
+    repository, revision, _ = two_commit_repository
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=short_cache_root,
+            clone_timeout_seconds=30,
+            lock_timeout_seconds=5,
+        )
+    )
+
+    resolved = resolver.resolve(repository_ref(repository, revision))
+    git_repository_module._remove_tree(resolved.mirror_root)
+    repository.rename(tmp_path / "offline-source")
+
+    with pytest.raises(RepositoryResolutionError, match="mirror"):
+        resolver.resolve(repository_ref(repository, revision))
+
+
 def test_cached_revision_resolves_when_origin_is_unavailable(
     tmp_path: Path,
     two_commit_repository: tuple[Path, str, str],
@@ -209,6 +280,58 @@ def test_existing_mirror_is_fetched_before_resolving_new_commit(
     assert (resolved.repository_root / "latest.txt").read_text(encoding="utf-8") == (
         "fetched revision\n"
     )
+
+
+def test_dangling_mirror_object_is_not_revision_available(
+    two_commit_repository: tuple[Path, str, str],
+    short_cache_root: Path,
+) -> None:
+    repository, first_revision, second_revision = two_commit_repository
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=short_cache_root,
+            clone_timeout_seconds=30,
+            lock_timeout_seconds=5,
+        )
+    )
+    resolved = resolver.resolve(repository_ref(repository, first_revision))
+    tree = run_git(
+        "rev-parse",
+        f"{second_revision}^{{tree}}",
+        cwd=resolved.mirror_root,
+    ).stdout.strip()
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "GIT_AUTHOR_EMAIL": "tests@example.test",
+            "GIT_AUTHOR_NAME": "VulSOR tests",
+            "GIT_COMMITTER_EMAIL": "tests@example.test",
+            "GIT_COMMITTER_NAME": "VulSOR tests",
+        }
+    )
+    dangling = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(resolved.mirror_root),
+            "commit-tree",
+            tree,
+            "-p",
+            second_revision,
+            "-m",
+            "dangling commit",
+        ],
+        check=True,
+        capture_output=True,
+        encoding="utf-8",
+        errors="replace",
+        env=environment,
+        shell=False,
+        text=True,
+    ).stdout.strip()
+
+    with pytest.raises(RepositoryRevisionNotFoundError):
+        resolver.resolve(repository_ref(repository, dangling))
 
 
 def test_mirror_refresh_and_revision_clone_are_serialized(
@@ -311,6 +434,7 @@ def test_dirty_cached_checkout_is_rebuilt(
     )
 
     resolved = resolver.resolve(repository_ref(repository, revision))
+    git_repository_module._make_tree_writable(resolved.repository_root)
     (resolved.repository_root / "old.txt").write_text("tampered\n", encoding="utf-8")
     run_git("add", "old.txt", cwd=resolved.repository_root)
     (resolved.repository_root / "untracked.txt").write_text(
@@ -328,6 +452,7 @@ def test_dirty_cached_checkout_is_rebuilt(
     assert run_git(
         "-C",
         str(rebuilt.repository_root),
+        "--no-optional-locks",
         "status",
         "--porcelain=v1",
         "--untracked-files=all",
@@ -349,6 +474,7 @@ def test_non_detached_cached_checkout_is_rebuilt(
     )
 
     resolved = resolver.resolve(repository_ref(repository, revision))
+    git_repository_module._make_tree_writable(resolved.repository_root)
     run_git("-C", str(resolved.repository_root), "switch", "-c", "tampered-branch")
 
     rebuilt = resolver.resolve(repository_ref(repository, revision))
