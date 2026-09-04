@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import shutil
+import stat
 import subprocess
 import tempfile
 import time
@@ -36,10 +38,10 @@ class RepositoryCommandError(RepositoryResolutionError):
         returncode: int,
         stderr: str,
     ) -> None:
-        self.arguments = tuple(arguments)
+        self.arguments = _redact_arguments(arguments)
         self.returncode = returncode
-        self.stderr = stderr
-        detail = stderr.strip() or "no error output"
+        self.stderr = _redact_text(stderr)
+        detail = self.stderr.strip() or "no error output"
         super().__init__(
             f"Git command failed with exit code {returncode}: "
             f"{_format_arguments(self.arguments)}: {detail}"
@@ -50,7 +52,7 @@ class RepositoryCommandTimeoutError(RepositoryResolutionError):
     """A Git command exceeded its configured timeout."""
 
     def __init__(self, arguments: Sequence[str], timeout: float | None) -> None:
-        self.arguments = tuple(arguments)
+        self.arguments = _redact_arguments(arguments)
         self.timeout = timeout
         super().__init__(
             f"Git command timed out after {timeout} seconds: "
@@ -60,6 +62,10 @@ class RepositoryCommandTimeoutError(RepositoryResolutionError):
 
 class RepositoryRevisionNotFoundError(RepositoryResolutionError):
     """The requested full revision is not present in the repository."""
+
+
+class RepositoryCleanupError(RepositoryResolutionError):
+    """A temporary or quarantined cache path could not be removed."""
 
 
 class RepositoryLockTimeoutError(RepositoryResolutionError):
@@ -151,7 +157,7 @@ def canonicalize_repository_url(repository_url: object) -> str:
         parsed = urlsplit(raw_url)
     except ValueError as exc:
         raise RepositoryResolutionError(
-            f"invalid repository URL: {raw_url!r}"
+            f"invalid repository URL: {_redact_text(raw_url)!r}"
         ) from exc
     scheme = parsed.scheme.lower()
     if scheme not in _SUPPORTED_URL_SCHEMES:
@@ -170,7 +176,7 @@ def canonicalize_repository_url(repository_url: object) -> str:
             )
         except ValueError as exc:
             raise RepositoryResolutionError(
-                f"invalid repository URL: {raw_url!r}"
+                f"invalid repository URL: {_redact_text(raw_url)!r}"
             ) from exc
 
     path = parsed.path
@@ -238,7 +244,7 @@ class GitRepositoryResolver:
         mirror_root = self.mirror_path_for_url(canonical_url)
         self._ensure_mirror(canonical_url, mirror_root)
 
-        revision_root = self.cache_root / "revisions" / mirror_root.stem / revision
+        revision_root = self.revision_path_for(ref)
         revision_parent = revision_root.parent
         revision_parent.mkdir(parents=True, exist_ok=True)
 
@@ -246,48 +252,24 @@ class GitRepositoryResolver:
             revision_root.parent / f".{revision}.lock",
             timeout=self.config.lock_timeout_seconds,
         ):
-            if revision_root.exists():
-                if not revision_root.is_dir():
-                    raise RepositoryResolutionError(
-                        f"repository revision cache entry is not a directory: {revision_root}"
+            quarantine_root: Path | None = None
+            if _path_exists(revision_root):
+                if self._checkout_is_valid(revision_root, revision):
+                    return ResolvedRepository(
+                        repository_root=revision_root,
+                        resolved_revision=revision,
+                        mirror_root=mirror_root,
                     )
-                self._verify_checkout(revision_root, revision)
-                return ResolvedRepository(
-                    repository_root=revision_root,
-                    resolved_revision=revision,
-                    mirror_root=mirror_root,
-                )
+                quarantine_root = self._quarantine_checkout(revision_root, revision)
 
-            temporary_root = Path(
-                tempfile.mkdtemp(prefix=f".{revision}.", dir=str(self.cache_root))
-            )
             try:
-                self._run_git(
-                    "clone",
-                    "--no-checkout",
-                    str(mirror_root),
-                    str(temporary_root),
-                )
-                try:
-                    self._run_git(
-                        "-C",
-                        str(temporary_root),
-                        "checkout",
-                        "--detach",
-                        revision,
-                    )
-                except RepositoryCommandError as exc:
-                    if _looks_like_missing_revision(exc.stderr):
-                        raise RepositoryRevisionNotFoundError(
-                            f"requested Git revision is not present: {revision}"
-                        ) from exc
-                    raise
-
-                self._verify_checkout(temporary_root, revision)
-                temporary_root.replace(revision_root)
-            except Exception:
-                shutil.rmtree(temporary_root, ignore_errors=True)
+                self._materialize_revision(mirror_root, revision_root, revision)
+            except Exception as exc:
+                if quarantine_root is not None:
+                    _cleanup_failed_path(quarantine_root, exc)
                 raise
+            if quarantine_root is not None:
+                _remove_tree(quarantine_root)
 
         return ResolvedRepository(
             repository_root=revision_root,
@@ -303,12 +285,22 @@ class GitRepositoryResolver:
             mirror_parent / f".{mirror_root.name}.lock",
             timeout=self.config.lock_timeout_seconds,
         ):
-            if mirror_root.exists():
-                if not mirror_root.is_dir():
+            if _path_exists(mirror_root):
+                if mirror_root.is_symlink() or not mirror_root.is_dir():
                     raise RepositoryResolutionError(
                         f"repository mirror cache entry is not a directory: {mirror_root}"
                     )
-                self._verify_mirror(mirror_root)
+                self._verify_mirror(mirror_root, canonical_url)
+                # A mirror is a cache of refs, not a permanent snapshot. Fetch
+                # under the same lock so a newly-created requested commit is
+                # visible before any revision checkout is materialized.
+                self._run_git(
+                    "-C",
+                    str(mirror_root),
+                    "fetch",
+                    "--prune",
+                    "origin",
+                )
                 return
 
             temporary_root = Path(
@@ -321,12 +313,13 @@ class GitRepositoryResolver:
                     canonical_url,
                     str(temporary_root),
                 )
+                self._verify_mirror(temporary_root, canonical_url)
                 temporary_root.replace(mirror_root)
-            except Exception:
-                shutil.rmtree(temporary_root, ignore_errors=True)
+            except Exception as exc:
+                _cleanup_failed_path(temporary_root, exc)
                 raise
 
-    def _verify_mirror(self, mirror_root: Path) -> None:
+    def _verify_mirror(self, mirror_root: Path, canonical_url: str) -> None:
         result = self._run_git(
             "-C",
             str(mirror_root),
@@ -337,6 +330,107 @@ class GitRepositoryResolver:
             raise RepositoryResolutionError(
                 f"repository mirror is not a bare Git mirror: {mirror_root}"
             )
+
+        try:
+            origin = self._run_git(
+                "-C",
+                str(mirror_root),
+                "config",
+                "--get",
+                "remote.origin.url",
+            ).stdout.strip()
+        except RepositoryCommandError:
+            raise RepositoryResolutionError(
+                "repository mirror remote origin URL is missing"
+            ) from None
+        try:
+            origin_canonical = canonicalize_repository_url(origin)
+        except RepositoryResolutionError:
+            raise RepositoryResolutionError(
+                "repository mirror remote origin URL is invalid"
+            ) from None
+        if origin_canonical != canonical_url:
+            raise RepositoryResolutionError(
+                "repository mirror remote origin URL does not match requested URL"
+            )
+
+    def _materialize_revision(
+        self,
+        mirror_root: Path,
+        revision_root: Path,
+        revision: str,
+    ) -> None:
+        temporary_root = Path(
+            tempfile.mkdtemp(prefix=f".{revision}.", dir=str(self.cache_root))
+        )
+        try:
+            self._run_git(
+                "clone",
+                "--no-checkout",
+                "--no-hardlinks",
+                str(mirror_root),
+                str(temporary_root),
+            )
+            try:
+                self._run_git(
+                    "-C",
+                    str(temporary_root),
+                    "checkout",
+                    "--detach",
+                    revision,
+                )
+            except RepositoryCommandError as exc:
+                if _looks_like_missing_revision(exc.stderr):
+                    raise RepositoryRevisionNotFoundError(
+                        f"requested Git revision is not present: {revision}"
+                    ) from None
+                raise
+
+            self._verify_checkout(temporary_root, revision)
+            temporary_root.replace(revision_root)
+        except Exception as exc:
+            _cleanup_failed_path(temporary_root, exc)
+            raise
+
+    def _checkout_is_valid(self, repository_root: Path, revision: str) -> bool:
+        if repository_root.is_symlink() or not repository_root.is_dir():
+            return False
+        try:
+            self._verify_checkout(repository_root, revision)
+            head_name = self._run_git(
+                "-C",
+                str(repository_root),
+                "rev-parse",
+                "--abbrev-ref",
+                "HEAD",
+            ).stdout.strip()
+            if head_name != "HEAD":
+                return False
+            status = self._run_git(
+                "-C",
+                str(repository_root),
+                "status",
+                "--porcelain=v1",
+                "--untracked-files=all",
+                "--ignored=matching",
+            ).stdout
+            return status == ""
+        except RepositoryCommandTimeoutError:
+            raise
+        except RepositoryResolutionError:
+            return False
+
+    def _quarantine_checkout(self, revision_root: Path, revision: str) -> Path:
+        quarantine_root = Path(
+            tempfile.mkdtemp(prefix=f".invalid-{revision}.", dir=str(self.cache_root))
+        )
+        try:
+            _remove_tree(quarantine_root)
+            revision_root.replace(quarantine_root)
+        except Exception as exc:
+            _cleanup_failed_path(quarantine_root, exc)
+            raise
+        return quarantine_root
 
     def _verify_checkout(self, repository_root: Path, requested_revision: str) -> None:
         result = self._run_git(
@@ -363,19 +457,20 @@ class GitRepositoryResolver:
                 command,
                 timeout=self.config.clone_timeout_seconds,
             )
-        except subprocess.TimeoutExpired as exc:
+        except subprocess.TimeoutExpired:
             raise RepositoryCommandTimeoutError(
                 command,
                 self.config.clone_timeout_seconds,
-            ) from exc
-        except FileNotFoundError as exc:
+            ) from None
+        except FileNotFoundError:
             raise RepositoryResolutionError(
                 f"Git executable was not found: {self._git_executable}"
-            ) from exc
+            ) from None
         except OSError as exc:
             raise RepositoryResolutionError(
-                f"could not start Git command {_format_arguments(command)}: {exc}"
-            ) from exc
+                f"could not start Git command "
+                f"{_format_arguments(_redact_arguments(command))}: {exc}"
+            ) from None
 
         if result.returncode != 0:
             raise RepositoryCommandError(command, result.returncode, result.stderr)
@@ -464,6 +559,80 @@ def _looks_like_missing_revision(stderr: str) -> bool:
     )
 
 
+def _path_exists(path: Path) -> bool:
+    return path.exists() or path.is_symlink()
+
+
+def _cleanup_failed_path(path: Path, original_error: BaseException) -> None:
+    try:
+        _remove_tree(path)
+    except RepositoryCleanupError as cleanup_error:
+        raise cleanup_error from original_error
+    except OSError as cleanup_error:
+        raise RepositoryCleanupError(
+            f"could not clean up temporary repository path {path}: {cleanup_error}"
+        ) from original_error
+
+
+def _remove_tree(path: Path) -> None:
+    """Remove a cache tree, retrying failures after making entries writable."""
+
+    if not _path_exists(path):
+        return
+
+    failures: list[BaseException] = []
+
+    def retry_remove(function, target: str, exc_info) -> None:
+        try:
+            os.chmod(target, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+        except OSError:
+            pass
+        try:
+            function(target)
+        except OSError as exc:
+            failures.append(exc)
+
+    try:
+        if path.is_symlink():
+            path.unlink()
+        elif path.is_dir():
+            shutil.rmtree(path, onerror=retry_remove)
+        else:
+            try:
+                path.unlink()
+            except OSError:
+                retry_remove(os.unlink, str(path), None)
+    except OSError as exc:
+        failures.append(exc)
+
+    if failures or _path_exists(path):
+        detail = "; ".join(str(failure) for failure in failures if str(failure))
+        raise RepositoryCleanupError(
+            f"could not clean up repository path {path}"
+            + (f": {detail}" if detail else "")
+        )
+
+
+_CREDENTIAL_URL = re.compile(
+    r"(?P<prefix>\b(?:https?|ssh|file)://)(?P<userinfo>[^/\s@]+)@",
+    re.IGNORECASE,
+)
+_QUERY_CREDENTIAL = re.compile(
+    r"(?P<prefix>[?&](?:access_token|auth|key|password|secret|token)="
+    r")(?:[^&#\s]+)",
+    re.IGNORECASE,
+)
+
+
+def _redact_text(value: str) -> str:
+    redacted = _CREDENTIAL_URL.sub(r"\g<prefix>***@", value)
+    return _QUERY_CREDENTIAL.sub(r"\g<prefix>***", redacted)
+
+
+def _redact_arguments(arguments: Sequence[str]) -> tuple[str, ...]:
+    return tuple(_redact_text(argument) for argument in arguments)
+
+
 def _format_arguments(arguments: Sequence[str]) -> str:
     return " ".join(repr(argument) for argument in arguments)
 
@@ -471,6 +640,7 @@ def _format_arguments(arguments: Sequence[str]) -> str:
 __all__ = [
     "CommandResult",
     "CommandRunner",
+    "RepositoryCleanupError",
     "GitCommandError",
     "GitCommandTimeoutError",
     "GitRepositoryError",

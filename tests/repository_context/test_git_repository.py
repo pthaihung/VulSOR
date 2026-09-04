@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import shutil
+import stat
 import subprocess
 from pathlib import Path
 from typing import Sequence
@@ -9,10 +11,14 @@ from typing import Sequence
 import pytest
 
 from vulsor.config import RepositoryContextConfig
+from vulsor.repository_context import git_repository as git_repository_module
 from vulsor.repository_context.git_repository import (
     CommandResult,
     GitRepositoryResolver,
+    RepositoryCleanupError,
+    RepositoryCommandError,
     RepositoryCommandTimeoutError,
+    RepositoryResolutionError,
     RepositoryRevisionNotFoundError,
     SubprocessCommandRunner,
     canonicalize_repository_url,
@@ -73,6 +79,24 @@ def repository_ref(repository: Path, revision: str) -> RepositoryRef:
     )
 
 
+@pytest.fixture
+def short_cache_root(
+    tmp_path: Path,
+    request: pytest.FixtureRequest,
+) -> Path:
+    """Keep Git's internal object paths below Windows' legacy path limit."""
+
+    suffix = hashlib.sha256(str(tmp_path).encode("utf-8")).hexdigest()[:10]
+    cache_root = Path(tmp_path.anchor) / f"vulsor-test-cache-{suffix}"
+
+    def cleanup() -> None:
+        if cache_root.exists():
+            git_repository_module._remove_tree(cache_root)
+
+    request.addfinalizer(cleanup)
+    return cache_root
+
+
 def test_resolve_materializes_requested_immutable_revisions(
     tmp_path: Path,
     two_commit_repository: tuple[Path, str, str],
@@ -112,6 +136,125 @@ def test_resolve_materializes_requested_immutable_revisions(
     assert mirrors == [old.mirror_root]
 
 
+def test_existing_mirror_is_fetched_before_resolving_new_commit(
+    tmp_path: Path,
+    two_commit_repository: tuple[Path, str, str],
+) -> None:
+    repository, first_revision, _ = two_commit_repository
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=tmp_path / "cache",
+            clone_timeout_seconds=30,
+            lock_timeout_seconds=5,
+        )
+    )
+
+    resolver.resolve(repository_ref(repository, first_revision))
+    (repository / "latest.txt").write_text("fetched revision\n", encoding="utf-8")
+    run_git("add", "latest.txt", cwd=repository)
+    run_git("commit", "-m", "fetched revision", cwd=repository)
+    latest_revision = run_git("rev-parse", "HEAD", cwd=repository).stdout.strip()
+
+    resolved = resolver.resolve(repository_ref(repository, latest_revision))
+
+    assert (resolved.repository_root / "latest.txt").read_text(encoding="utf-8") == (
+        "fetched revision\n"
+    )
+
+
+def test_dirty_cached_checkout_is_rebuilt(
+    tmp_path: Path,
+    two_commit_repository: tuple[Path, str, str],
+    short_cache_root: Path,
+) -> None:
+    repository, revision, _ = two_commit_repository
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=short_cache_root,
+            clone_timeout_seconds=30,
+            lock_timeout_seconds=5,
+        )
+    )
+
+    resolved = resolver.resolve(repository_ref(repository, revision))
+    (resolved.repository_root / "old.txt").write_text("tampered\n", encoding="utf-8")
+    run_git("add", "old.txt", cwd=resolved.repository_root)
+    (resolved.repository_root / "untracked.txt").write_text(
+        "must be removed\n",
+        encoding="utf-8",
+    )
+
+    rebuilt = resolver.resolve(repository_ref(repository, revision))
+
+    assert rebuilt.repository_root == resolved.repository_root
+    assert (rebuilt.repository_root / "old.txt").read_text(encoding="utf-8") == (
+        "old revision\n"
+    )
+    assert not (rebuilt.repository_root / "untracked.txt").exists()
+    assert run_git(
+        "-C",
+        str(rebuilt.repository_root),
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all",
+    ).stdout == ""
+
+
+def test_non_detached_cached_checkout_is_rebuilt(
+    tmp_path: Path,
+    two_commit_repository: tuple[Path, str, str],
+    short_cache_root: Path,
+) -> None:
+    repository, revision, _ = two_commit_repository
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=short_cache_root,
+            clone_timeout_seconds=30,
+            lock_timeout_seconds=5,
+        )
+    )
+
+    resolved = resolver.resolve(repository_ref(repository, revision))
+    run_git("-C", str(resolved.repository_root), "switch", "-c", "tampered-branch")
+
+    rebuilt = resolver.resolve(repository_ref(repository, revision))
+
+    assert run_git(
+        "-C",
+        str(rebuilt.repository_root),
+        "rev-parse",
+        "--abbrev-ref",
+        "HEAD",
+    ).stdout.strip() == "HEAD"
+
+
+def test_existing_mirror_must_have_requested_origin_url(
+    tmp_path: Path,
+    two_commit_repository: tuple[Path, str, str],
+) -> None:
+    repository, revision, _ = two_commit_repository
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=tmp_path / "cache",
+            clone_timeout_seconds=30,
+            lock_timeout_seconds=5,
+        )
+    )
+    resolved = resolver.resolve(repository_ref(repository, revision))
+    wrong_source = (tmp_path / "wrong-source").as_uri()
+    run_git(
+        "-C",
+        str(resolved.mirror_root),
+        "remote",
+        "set-url",
+        "origin",
+        wrong_source,
+    )
+
+    with pytest.raises(RepositoryResolutionError, match="remote origin"):
+        resolver.resolve(repository_ref(repository, revision))
+
+
 def test_unknown_revision_does_not_leave_ready_revision_entry(
     tmp_path: Path,
     two_commit_repository: tuple[Path, str, str],
@@ -146,7 +289,7 @@ def test_subprocess_timeout_is_mapped_to_project_error(
             cwd: Path | None = None,
             timeout: int | float | None = None,
         ) -> CommandResult:
-            raise subprocess.TimeoutExpired(list(arguments), timeout)
+            raise subprocess.TimeoutExpired(list(arguments), float(timeout or 0))
 
     resolver = GitRepositoryResolver(
         RepositoryContextConfig(
@@ -159,6 +302,138 @@ def test_subprocess_timeout_is_mapped_to_project_error(
 
     with pytest.raises(RepositoryCommandTimeoutError, match="timed out"):
         resolver.resolve(repository_ref(repository, revision))
+
+
+def test_command_errors_redact_repository_credentials(
+    tmp_path: Path,
+) -> None:
+    secret_url = "https://deploy-token:supersecret@example.test/acme/demo.git"
+    actual_arguments: list[str] = []
+
+    class FailingRunner:
+        def run(
+            self,
+            arguments: Sequence[str],
+            *,
+            cwd: Path | None = None,
+            timeout: int | float | None = None,
+        ) -> CommandResult:
+            actual_arguments.extend(arguments)
+            return CommandResult(tuple(arguments), 128, "", f"cannot access {secret_url}")
+
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=tmp_path / "cache",
+            clone_timeout_seconds=7,
+            lock_timeout_seconds=5,
+        ),
+        runner=FailingRunner(),
+    )
+    ref = RepositoryRef(
+        repository_id="local",
+        repository_url=secret_url,
+        revision="a" * 40,
+    )
+
+    with pytest.raises(RepositoryCommandError) as caught:
+        resolver.resolve(ref)
+
+    error = caught.value
+    assert any(secret_url in argument for argument in actual_arguments)
+    assert all("supersecret" not in argument for argument in error.arguments)
+    assert "supersecret" not in error.stderr
+    assert "deploy-token" not in str(error)
+    assert "supersecret" not in str(error)
+
+
+def test_timeout_errors_redact_repository_credentials(
+    tmp_path: Path,
+) -> None:
+    secret_url = "ssh://deploy-token:supersecret@example.test/acme/demo.git"
+    actual_arguments: list[str] = []
+
+    class TimeoutRunner:
+        def run(
+            self,
+            arguments: Sequence[str],
+            *,
+            cwd: Path | None = None,
+            timeout: int | float | None = None,
+        ) -> CommandResult:
+            actual_arguments.extend(arguments)
+            raise subprocess.TimeoutExpired(list(arguments), float(timeout or 0))
+
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=tmp_path / "cache",
+            clone_timeout_seconds=7,
+            lock_timeout_seconds=5,
+        ),
+        runner=TimeoutRunner(),
+    )
+    ref = RepositoryRef(
+        repository_id="local",
+        repository_url=secret_url,
+        revision="a" * 40,
+    )
+
+    with pytest.raises(RepositoryCommandTimeoutError) as caught:
+        resolver.resolve(ref)
+
+    assert any(secret_url in argument for argument in actual_arguments)
+    assert all("supersecret" not in argument for argument in caught.value.arguments)
+    assert "deploy-token" not in str(caught.value)
+    assert "supersecret" not in str(caught.value)
+
+
+def test_read_only_failed_temp_cleanup_is_portable(
+    tmp_path: Path,
+) -> None:
+    temporary_root = tmp_path / "temporary-checkout"
+    temporary_root.mkdir()
+    read_only_file = temporary_root / "read-only.txt"
+    read_only_file.write_text("cleanup me\n", encoding="utf-8")
+    os.chmod(read_only_file, stat.S_IREAD)
+
+    git_repository_module._remove_tree(temporary_root)
+
+    assert not temporary_root.exists()
+
+
+def test_failed_temp_cleanup_errors_are_propagated(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    class FailingRunner:
+        def run(
+            self,
+            arguments: Sequence[str],
+            *,
+            cwd: Path | None = None,
+            timeout: int | float | None = None,
+        ) -> CommandResult:
+            return CommandResult(tuple(arguments), 128, "", "clone failed")
+
+    def fail_cleanup(path: Path) -> None:
+        raise OSError("cleanup blocked")
+
+    monkeypatch.setattr(git_repository_module, "_remove_tree", fail_cleanup)
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=tmp_path / "cache",
+            clone_timeout_seconds=7,
+            lock_timeout_seconds=5,
+        ),
+        runner=FailingRunner(),
+    )
+    ref = RepositoryRef(
+        repository_id="local",
+        repository_url="https://example.test/acme/demo.git",
+        revision="a" * 40,
+    )
+
+    with pytest.raises(RepositoryCleanupError, match="cleanup"):
+        resolver.resolve(ref)
 
 
 def test_equivalent_repository_urls_share_sha256_cache_identity(
