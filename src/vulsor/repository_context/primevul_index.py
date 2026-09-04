@@ -12,7 +12,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from .index import _atomic_write_text, write_repository_index
+from .index import _atomic_write_text, _reject_nul_path, write_repository_index
 from .models import RepositoryIndexRecord, RepositoryRef, TargetAnchor
 
 
@@ -133,6 +133,8 @@ normalized_code_sha256 = source_match.normalized_code_sha256
 def _validate_repository_relative_file_path(file_path: object) -> str:
     if not isinstance(file_path, str):
         raise TypeError("file_path must be a string")
+    if "\x00" in file_path:
+        raise ValueError("file_path must not contain NUL bytes")
     if (
         not file_path.strip()
         or file_path.startswith("/")
@@ -216,6 +218,9 @@ def _ensure_distinct_paths(
     output_path: Path,
     reject_path: Path,
 ) -> None:
+    _reject_nul_path(input_path, "input_path")
+    _reject_nul_path(output_path, "output_path")
+    _reject_nul_path(reject_path, "reject_path")
     resolved_paths = {
         input_path.resolve(strict=False),
         output_path.resolve(strict=False),

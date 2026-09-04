@@ -21,6 +21,8 @@ class RepositoryIndex:
 
     @classmethod
     def load(cls, path: Path) -> "RepositoryIndex":
+        path = Path(path)
+        _reject_nul_path(path, "path")
         records: dict[str, RepositoryIndexRecord] = {}
         first_lines: dict[str, int] = {}
 
@@ -65,6 +67,8 @@ def write_repository_index(
     path: Path,
 ) -> None:
     """Write records in sample order and atomically replace ``path``."""
+    path = Path(path)
+    _reject_nul_path(path, "path")
     values = records.values() if isinstance(records, Mapping) else records
     materialized = list(values)
     first_positions: dict[str, int] = {}
@@ -85,6 +89,7 @@ def write_repository_index(
 
 def _atomic_write_text(path: Path, payload: str) -> None:
     """Write text through an exclusive sibling temporary file."""
+    _reject_nul_path(path, "path")
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=f".{path.name}.",
         suffix=".tmp",
@@ -106,3 +111,8 @@ def _atomic_write_text(path: Path, payload: str) -> None:
     except BaseException:
         temporary_path.unlink(missing_ok=True)
         raise
+
+
+def _reject_nul_path(path: Path, label: str) -> None:
+    if "\x00" in str(path):
+        raise ValueError(f"{label} must not contain NUL bytes")

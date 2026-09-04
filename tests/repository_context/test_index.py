@@ -194,13 +194,50 @@ def test_normalizer_rejects_blank_source_code_before_hashing(code: str) -> None:
 
 @pytest.mark.parametrize(
     "file_path",
-    ("/src/demo.c", "C:/src/demo.c", "../demo.c", "src/../demo.c", r"src\demo.c"),
+    (
+        "/src/demo.c",
+        "C:/src/demo.c",
+        "../demo.c",
+        "src/../demo.c",
+        r"src\demo.c",
+    ),
 )
 def test_normalizer_rejects_non_repository_relative_file_paths(
     file_path: str,
 ) -> None:
     with pytest.raises(ValueError, match="repository-relative POSIX"):
         normalize_primevul_record(raw_record(file_path=file_path), FIELD_MAP)
+
+
+def test_normalizer_rejects_nul_target_file_path() -> None:
+    with pytest.raises(ValueError, match="NUL"):
+        normalize_primevul_record(raw_record(file_path="src/demo\x00.c"), FIELD_MAP)
+
+
+@pytest.mark.parametrize("path_name", ("input", "output", "reject"))
+def test_normalizer_rejects_nul_in_filesystem_paths_before_resolution(
+    tmp_path: Path,
+    path_name: str,
+) -> None:
+    input_path = tmp_path / "raw.jsonl"
+    output_path = tmp_path / "index.jsonl"
+    reject_path = tmp_path / "rejects.jsonl"
+    input_path.write_text(json.dumps(raw_record()) + "\n", encoding="utf-8")
+    paths = {
+        "input": Path(str(input_path) + "\x00"),
+        "output": Path(str(output_path) + "\x00"),
+        "reject": Path(str(reject_path) + "\x00"),
+    }
+    selected_path = paths[path_name]
+    if path_name == "input":
+        input_path = selected_path
+    elif path_name == "output":
+        output_path = selected_path
+    else:
+        reject_path = selected_path
+
+    with pytest.raises(ValueError, match="NUL"):
+        normalize_primevul_jsonl(input_path, output_path, reject_path, FIELD_MAP)
 
 
 def test_write_repository_index_sorts_records_and_replaces_target(
