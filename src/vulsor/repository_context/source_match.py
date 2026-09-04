@@ -22,6 +22,11 @@ class SourceMatch:
     candidate_count: int
 
 
+def _validate_nonblank_source(code: str) -> None:
+    if not code.strip():
+        raise ValueError("source code must not be blank")
+
+
 def normalized_lines_with_numbers(code: str) -> list[tuple[int, str]]:
     normalized_newlines = code.replace("\r\n", "\n").replace("\r", "\n")
     return [
@@ -45,10 +50,12 @@ def all_offsets(text: str, needle: str) -> list[int]:
 
 
 def normalized_code_sha256(code: str) -> str:
+    _validate_nonblank_source(code)
     return hashlib.sha256(normalize_source(code).encode("utf-8")).hexdigest()
 
 
 def match_sample_to_file(sample_code: str, file_text: str) -> SourceMatch:
+    _validate_nonblank_source(sample_code)
     exact_offsets = all_offsets(file_text, sample_code)
     if len(exact_offsets) == 1:
         offset = exact_offsets[0]

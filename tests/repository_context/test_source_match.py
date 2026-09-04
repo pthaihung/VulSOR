@@ -1,5 +1,7 @@
 import hashlib
 
+import pytest
+
 from vulsor.repository_context.source_match import (
     SourceMatchStatus,
     all_offsets,
@@ -124,3 +126,19 @@ def test_normalized_code_sha256_hashes_normalized_source() -> None:
     assert normalized_code_sha256(code) == hashlib.sha256(
         b"first\nsecond"
     ).hexdigest()
+
+
+@pytest.mark.parametrize("sample_code", ("", " \t\r\n"))
+def test_match_sample_to_file_rejects_blank_sample_before_matching(
+    sample_code: str,
+) -> None:
+    with pytest.raises(ValueError, match="source code must not be blank"):
+        match_sample_to_file(sample_code, "int f(void) { return 1; }")
+
+
+@pytest.mark.parametrize("code", ("", " \t\r\n"))
+def test_normalized_code_sha256_rejects_blank_source_before_hashing(
+    code: str,
+) -> None:
+    with pytest.raises(ValueError, match="source code must not be blank"):
+        normalized_code_sha256(code)
