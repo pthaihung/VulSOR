@@ -12,10 +12,10 @@ from typing import Any
 from pydantic import ValidationError
 
 from .index import (
-    _atomic_write_text,
+    _atomic_write_text_pair,
+    _repository_index_payload,
     _reject_nul_path,
     _validate_repository_relative_file_path,
-    write_repository_index,
 )
 from .models import RepositoryIndexRecord, RepositoryRef, TargetAnchor
 
@@ -280,8 +280,9 @@ def normalize_primevul_jsonl(
                     }
                 )
 
-    write_repository_index(accepted, output_path)
-    _atomic_write_text(
+    _atomic_write_text_pair(
+        output_path,
+        _repository_index_payload(accepted),
         reject_path,
         "".join(
             f"{json.dumps(reject, ensure_ascii=True, sort_keys=True)}\n"

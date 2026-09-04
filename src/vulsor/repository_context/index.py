@@ -89,6 +89,13 @@ def write_repository_index(
     """Write records in sample order and atomically replace ``path``."""
     path = Path(path)
     _reject_nul_path(path, "path")
+    _atomic_write_text(path, _repository_index_payload(records))
+
+
+def _repository_index_payload(
+    records: Iterable[RepositoryIndexRecord]
+    | Mapping[str, RepositoryIndexRecord],
+) -> str:
     values = records.values() if isinstance(records, Mapping) else records
     materialized = list(values)
     first_positions: dict[str, int] = {}
@@ -102,17 +109,15 @@ def write_repository_index(
         first_positions[record.sample_id] = position
 
     ordered = sorted(materialized, key=lambda record: record.sample_id)
-    payload = "".join(f"{record.model_dump_json()}\n" for record in ordered)
-
-    _atomic_write_text(path, payload)
+    return "".join(f"{record.model_dump_json()}\n" for record in ordered)
 
 
-def _atomic_write_text(path: Path, payload: str) -> None:
+def _stage_text(path: Path, payload: str, suffix: str) -> Path:
     """Write text through an exclusive sibling temporary file."""
     _reject_nul_path(path, "path")
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=f".{path.name}.",
-        suffix=".tmp",
+        suffix=suffix,
         dir=path.parent,
     )
     temporary_path = Path(temporary_name)
@@ -127,6 +132,74 @@ def _atomic_write_text(path: Path, payload: str) -> None:
         ) as handle:
             handle.write(payload)
             handle.flush()
+        return temporary_path
+    except BaseException:
+        temporary_path.unlink(missing_ok=True)
+        raise
+
+
+def _backup_existing(path: Path) -> Path | None:
+    descriptor, backup_name = tempfile.mkstemp(
+        prefix=f".{path.name}.",
+        suffix=".bak",
+        dir=path.parent,
+    )
+    os.close(descriptor)
+    backup_path = Path(backup_name)
+
+    try:
+        if not path.exists():
+            backup_path.unlink(missing_ok=True)
+            return None
+        os.replace(path, backup_path)
+        return backup_path
+    except BaseException:
+        backup_path.unlink(missing_ok=True)
+        raise
+
+
+def _atomic_write_text_pair(
+    first_path: Path,
+    first_payload: str,
+    second_path: Path,
+    second_payload: str,
+) -> None:
+    """Publish two staged files with rollback on a publication failure."""
+    first_path = Path(first_path)
+    second_path = Path(second_path)
+    _reject_nul_path(first_path, "first_path")
+    _reject_nul_path(second_path, "second_path")
+
+    staged_paths: list[Path] = []
+    backups: list[tuple[Path, Path | None]] = []
+    try:
+        staged_paths.append(_stage_text(first_path, first_payload, ".tmp"))
+        staged_paths.append(_stage_text(second_path, second_payload, ".tmp"))
+
+        backups.append((first_path, _backup_existing(first_path)))
+        backups.append((second_path, _backup_existing(second_path)))
+
+        staged_paths[0].replace(first_path)
+        staged_paths[1].replace(second_path)
+    except BaseException:
+        for destination, backup_path in reversed(backups):
+            if backup_path is None:
+                destination.unlink(missing_ok=True)
+            else:
+                os.replace(backup_path, destination)
+        raise
+    finally:
+        for staged_path in staged_paths:
+            staged_path.unlink(missing_ok=True)
+        for _, backup_path in backups:
+            if backup_path is not None:
+                backup_path.unlink(missing_ok=True)
+
+
+def _atomic_write_text(path: Path, payload: str) -> None:
+    """Write text through an exclusive sibling temporary file."""
+    temporary_path = _stage_text(path, payload, ".tmp")
+    try:
         temporary_path.replace(path)
     except BaseException:
         temporary_path.unlink(missing_ok=True)

@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from vulsor.repository_context import index as index_module
 from vulsor.repository_context.index import RepositoryIndex, write_repository_index
 from vulsor.repository_context.primevul_index import (
     FIELD_MAP,
@@ -329,6 +330,89 @@ def test_atomic_replace_failure_preserves_outputs_and_cleans_temps(
     assert reject_path.read_text(encoding="utf-8") == "previous rejected\n"
     assert not list(tmp_path.glob(f".{output_path.name}.*.tmp"))
     assert not list(tmp_path.glob(f".{reject_path.name}.*.tmp"))
+
+
+def test_second_destination_replace_failure_rolls_back_both_outputs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    input_path = tmp_path / "raw.jsonl"
+    output_path = tmp_path / "index.jsonl"
+    reject_path = tmp_path / "rejects.jsonl"
+    input_path.write_text(json.dumps(raw_record()) + "\n", encoding="utf-8")
+    output_path.write_text("previous accepted\n", encoding="utf-8")
+    reject_path.write_text("previous rejected\n", encoding="utf-8")
+    real_replace = Path.replace
+
+    def fail_second_destination(source: Path, target: Path) -> Path:
+        if (
+            Path(target).resolve() == reject_path.resolve()
+            and source.suffix == ".tmp"
+        ):
+            raise OSError("simulated second destination replace failure")
+        return real_replace(source, target)
+
+    monkeypatch.setattr(Path, "replace", fail_second_destination)
+
+    with pytest.raises(OSError, match="second destination"):
+        normalize_primevul_jsonl(input_path, output_path, reject_path, FIELD_MAP)
+
+    assert output_path.read_text(encoding="utf-8") == "previous accepted\n"
+    assert reject_path.read_text(encoding="utf-8") == "previous rejected\n"
+    assert not list(tmp_path.glob(f".{output_path.name}.*.tmp"))
+    assert not list(tmp_path.glob(f".{reject_path.name}.*.tmp"))
+    assert not list(tmp_path.glob(f".{output_path.name}.*.bak"))
+    assert not list(tmp_path.glob(f".{reject_path.name}.*.bak"))
+
+
+def test_temp_flush_failure_preserves_outputs_and_cleans_temps(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    input_path = tmp_path / "raw.jsonl"
+    output_path = tmp_path / "index.jsonl"
+    reject_path = tmp_path / "rejects.jsonl"
+    input_path.write_text(json.dumps(raw_record()) + "\n", encoding="utf-8")
+    output_path.write_text("previous accepted\n", encoding="utf-8")
+    reject_path.write_text("previous rejected\n", encoding="utf-8")
+    real_fdopen = index_module.os.fdopen
+    flush_count = 0
+
+    class FlushFailure:
+        def __init__(self, handle) -> None:
+            self._handle = handle
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc_info):
+            return self._handle.__exit__(*exc_info)
+
+        def write(self, payload: str) -> int:
+            return self._handle.write(payload)
+
+        def flush(self) -> None:
+            raise OSError("simulated temp flush failure")
+
+    def fail_second_flush(*args, **kwargs):
+        nonlocal flush_count
+        flush_count += 1
+        handle = real_fdopen(*args, **kwargs)
+        if flush_count == 2:
+            return FlushFailure(handle)
+        return handle
+
+    monkeypatch.setattr(index_module.os, "fdopen", fail_second_flush)
+
+    with pytest.raises(OSError, match="temp flush"):
+        normalize_primevul_jsonl(input_path, output_path, reject_path, FIELD_MAP)
+
+    assert output_path.read_text(encoding="utf-8") == "previous accepted\n"
+    assert reject_path.read_text(encoding="utf-8") == "previous rejected\n"
+    assert not list(tmp_path.glob(f".{output_path.name}.*.tmp"))
+    assert not list(tmp_path.glob(f".{reject_path.name}.*.tmp"))
+    assert not list(tmp_path.glob(f".{output_path.name}.*.bak"))
+    assert not list(tmp_path.glob(f".{reject_path.name}.*.bak"))
 
 
 def test_normalize_primevul_jsonl_writes_rejects_without_raw_metadata(
