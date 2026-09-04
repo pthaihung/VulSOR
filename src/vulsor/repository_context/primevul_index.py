@@ -284,7 +284,7 @@ def normalize_primevul_jsonl(
     _atomic_write_text(
         reject_path,
         "".join(
-            f"{json.dumps(reject, ensure_ascii=False, sort_keys=True)}\n"
+            f"{json.dumps(reject, ensure_ascii=True, sort_keys=True)}\n"
             for reject in rejects
         ),
     )

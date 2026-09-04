@@ -283,6 +283,7 @@ def test_write_repository_index_sorts_records_and_replaces_target(
     ]
     assert [record["sample_id"] for record in written] == ["s1", "s2"]
     assert not output_path.with_suffix(".tmp").exists()
+    assert not list(output_path.parent.glob(f".{output_path.name}.*.tmp"))
 
 
 def test_atomic_writes_leave_unrelated_temp_files_untouched(tmp_path: Path) -> None:
@@ -301,6 +302,33 @@ def test_atomic_writes_leave_unrelated_temp_files_untouched(tmp_path: Path) -> N
     assert reject_temp.read_text(encoding="utf-8") == "unrelated reject temp\n"
     assert output_path.exists()
     assert reject_path.exists()
+    assert not list(tmp_path.glob(f".{output_path.name}.*.tmp"))
+    assert not list(tmp_path.glob(f".{reject_path.name}.*.tmp"))
+
+
+def test_atomic_replace_failure_preserves_outputs_and_cleans_temps(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    input_path = tmp_path / "raw.jsonl"
+    output_path = tmp_path / "index.jsonl"
+    reject_path = tmp_path / "rejects.jsonl"
+    input_path.write_text(json.dumps(raw_record()) + "\n", encoding="utf-8")
+    output_path.write_text("previous accepted\n", encoding="utf-8")
+    reject_path.write_text("previous rejected\n", encoding="utf-8")
+
+    def fail_replace(source: Path, target: Path) -> Path:
+        raise OSError("simulated replace failure")
+
+    monkeypatch.setattr(Path, "replace", fail_replace)
+
+    with pytest.raises(OSError, match="simulated replace failure"):
+        normalize_primevul_jsonl(input_path, output_path, reject_path, FIELD_MAP)
+
+    assert output_path.read_text(encoding="utf-8") == "previous accepted\n"
+    assert reject_path.read_text(encoding="utf-8") == "previous rejected\n"
+    assert not list(tmp_path.glob(f".{output_path.name}.*.tmp"))
+    assert not list(tmp_path.glob(f".{reject_path.name}.*.tmp"))
 
 
 def test_normalize_primevul_jsonl_writes_rejects_without_raw_metadata(
@@ -333,6 +361,28 @@ def test_normalize_primevul_jsonl_writes_rejects_without_raw_metadata(
     assert "commit_id" in rejects[0]["reason"]
     assert "CVE-X" not in reject_path.read_text(encoding="utf-8")
     assert "fix issue" not in reject_path.read_text(encoding="utf-8")
+
+
+def test_normalize_primevul_jsonl_escapes_surrogate_reject_sample_id(
+    tmp_path: Path,
+) -> None:
+    input_path = tmp_path / "raw.jsonl"
+    output_path = tmp_path / "index.jsonl"
+    reject_path = tmp_path / "rejects.jsonl"
+    invalid = raw_record(sample_id="\ud800")
+    invalid.pop("commit_id")
+    input_path.write_text(
+        json.dumps(raw_record()) + "\n" + json.dumps(invalid) + "\n",
+        encoding="utf-8",
+    )
+
+    normalize_primevul_jsonl(input_path, output_path, reject_path, FIELD_MAP)
+
+    assert len(output_path.read_text(encoding="utf-8").splitlines()) == 1
+    reject_bytes = reject_path.read_bytes()
+    assert b"\\ud800" in reject_bytes
+    reject = json.loads(reject_bytes.decode("utf-8").splitlines()[0])
+    assert reject["sample_id"] == "\ud800"
 
 
 def test_normalize_primevul_jsonl_reports_duplicate_line_and_sample_id(
