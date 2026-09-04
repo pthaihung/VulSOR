@@ -270,6 +270,7 @@ class GitRepositoryResolver:
                                 raise RepositoryRevisionNotFoundError(
                                     f"requested Git revision is not present: {revision}"
                                 )
+                        _make_tree_read_only(revision_root)
                         return ResolvedRepository(
                             repository_root=revision_root,
                             resolved_revision=revision,

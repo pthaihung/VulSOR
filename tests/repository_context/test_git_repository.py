@@ -165,6 +165,32 @@ def test_materialized_checkout_is_read_only_and_reusable(
     assert not resolved.repository_root.exists()
 
 
+def test_cached_checkout_reprotects_writable_file_without_content_change(
+    two_commit_repository: tuple[Path, str, str],
+    short_cache_root: Path,
+) -> None:
+    repository, revision, _ = two_commit_repository
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=short_cache_root,
+            clone_timeout_seconds=30,
+            lock_timeout_seconds=5,
+        )
+    )
+
+    resolved = resolver.resolve(repository_ref(repository, revision))
+    tracked_file = resolved.repository_root / "old.txt"
+    expected_content = tracked_file.read_text(encoding="utf-8")
+    os.chmod(tracked_file, stat.S_IRUSR | stat.S_IWUSR)
+    assert tracked_file.read_text(encoding="utf-8") == expected_content
+
+    reused = resolver.resolve(repository_ref(repository, revision))
+
+    assert reused.repository_root == resolved.repository_root
+    assert tracked_file.stat().st_mode & stat.S_IWRITE == 0
+    assert tracked_file.read_text(encoding="utf-8") == expected_content
+
+
 def test_valid_checkout_restores_an_evicted_mirror(
     two_commit_repository: tuple[Path, str, str],
     short_cache_root: Path,
