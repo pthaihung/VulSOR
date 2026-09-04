@@ -213,13 +213,8 @@ class CpgCache:
                 raise ValueError("cache_root conflicts with config.cache_root")
 
         self.config: RepositoryContextConfig = repository_config
-        self.cache_root = Path(repository_config.cache_root).expanduser().resolve()
-        try:
-            self.cache_root.mkdir(parents=True, exist_ok=True)
-        except OSError as exc:
-            raise CpgCacheError(
-                f"could not create CPG cache root {self.cache_root}: {exc}"
-            ) from exc
+        self.cache_root = Path(repository_config.cache_root).expanduser().absolute()
+        self._ensure_cache_root()
         self.cache_dir = self.cache_root / "cpg"
         self._ensure_cache_directory()
 
@@ -316,7 +311,51 @@ class CpgCache:
             return identity_or_key
         return self.cache_key_for(self._validated_identity(identity_or_key))
 
+    @staticmethod
+    def _path_ancestry(path: Path) -> list[Path]:
+        return [*reversed(path.parents), path]
+
+    @staticmethod
+    def _validate_directory_path(path: Path, label: str) -> None:
+        if not os.path.lexists(path):
+            raise CpgCacheError(f"{label} does not exist: {path}")
+        if _is_link_like(path):
+            raise CpgCacheError(
+                f"{label} is a symlink, junction, or reparse point: {path}"
+            )
+        if not path.is_dir():
+            raise CpgCacheError(f"{label} is not a directory: {path}")
+
+    def _ensure_cache_root(self) -> None:
+        cache_paths = self._path_ancestry(self.cache_root)
+        try:
+            first_missing_index = next(
+                (
+                    index
+                    for index, path in enumerate(cache_paths)
+                    if not os.path.lexists(path)
+                ),
+                len(cache_paths),
+            )
+            for path in cache_paths[:first_missing_index]:
+                self._validate_directory_path(path, "CPG cache path")
+            for path in cache_paths[first_missing_index:]:
+                try:
+                    path.mkdir(exist_ok=True)
+                except OSError as exc:
+                    raise CpgCacheError(
+                        f"could not create CPG cache root {self.cache_root}: {exc}"
+                    ) from exc
+                self._validate_directory_path(path, "CPG cache path")
+        except CpgCacheError:
+            raise
+        except (OSError, RuntimeError) as exc:
+            raise CpgCacheError(
+                f"could not verify CPG cache root {self.cache_root}: {exc}"
+            ) from exc
+
     def _ensure_cache_directory(self) -> None:
+        self._verify_cache_root()
         try:
             self.cache_dir.mkdir(exist_ok=True)
         except OSError as exc:
@@ -325,13 +364,21 @@ class CpgCache:
             ) from exc
         self._verify_cache_directory()
 
+    def _verify_cache_root(self) -> None:
+        try:
+            for path in self._path_ancestry(self.cache_root):
+                label = "CPG cache root" if path == self.cache_root else "CPG cache path"
+                self._validate_directory_path(path, label)
+        except CpgCacheError:
+            raise
+        except (OSError, RuntimeError) as exc:
+            raise CpgCacheError(
+                f"could not verify CPG cache root {self.cache_root}: {exc}"
+            ) from exc
+
     def _verify_cache_directory(self) -> None:
         try:
-            cache_paths = [
-                *reversed(self.cache_root.parents),
-                self.cache_root,
-                self.cache_dir,
-            ]
+            cache_paths = self._path_ancestry(self.cache_dir)
             for path in cache_paths:
                 if path == self.cache_root:
                     label = "CPG cache root"
@@ -339,14 +386,7 @@ class CpgCache:
                     label = "CPG cache directory"
                 else:
                     label = "CPG cache path"
-                if not os.path.lexists(path):
-                    raise CpgCacheError(f"{label} does not exist: {path}")
-                if _is_link_like(path):
-                    raise CpgCacheError(
-                        f"{label} is a symlink, junction, or reparse point: {path}"
-                    )
-                if not path.is_dir():
-                    raise CpgCacheError(f"{label} is not a directory: {path}")
+                self._validate_directory_path(path, label)
         except CpgCacheError:
             raise
         except (OSError, RuntimeError) as exc:

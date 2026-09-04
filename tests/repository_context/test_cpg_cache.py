@@ -259,6 +259,24 @@ def _remove_junction(path: Path) -> None:
         os.rmdir(path)
 
 
+def test_cache_initialization_rejects_preexisting_junction_ancestor(
+    tmp_path: Path,
+) -> None:
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    redirected_parent = tmp_path / "cache-parent"
+    _junction_or_skip(redirected_parent, outside)
+    cache_root = redirected_parent / "cache-root"
+
+    try:
+        with pytest.raises(CpgCacheError, match="cache path|junction|reparse"):
+            CpgCache(cache_root=cache_root)
+        assert not (outside / "cache-root").exists()
+        assert not (outside / "cache-root" / "cpg").exists()
+    finally:
+        _remove_junction(redirected_parent)
+
+
 def test_ready_entry_with_symlink_descendant_is_rejected(tmp_path: Path) -> None:
     cache = CpgCache(cache_root=tmp_path)
     current = identity()
