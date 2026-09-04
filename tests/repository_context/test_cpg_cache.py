@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import stat
+import subprocess
 import time
 from pathlib import Path
 from typing import Literal, cast
@@ -235,6 +236,29 @@ def _symlink_or_skip(link: Path, target: Path) -> None:
         pytest.skip("symlinks are unavailable in this environment")
 
 
+def _junction_or_skip(link: Path, target: Path) -> None:
+    if os.name != "nt":
+        pytest.skip("Windows junctions are unavailable on this platform")
+    try:
+        result = subprocess.run(
+            ["cmd.exe", "/d", "/c", "mklink", "/J", str(link), str(target)],
+            capture_output=True,
+            check=False,
+            encoding="utf-8",
+            errors="replace",
+            shell=False,
+        )
+    except OSError:
+        pytest.skip("Windows junction creation is unavailable in this environment")
+    if result.returncode != 0:
+        pytest.skip("Windows junction creation is unavailable in this environment")
+
+
+def _remove_junction(path: Path) -> None:
+    if os.name == "nt" and os.path.lexists(path):
+        os.rmdir(path)
+
+
 def test_ready_entry_with_symlink_descendant_is_rejected(tmp_path: Path) -> None:
     cache = CpgCache(cache_root=tmp_path)
     current = identity()
@@ -263,6 +287,45 @@ def test_builder_symlink_descendant_is_rejected_and_not_promoted(
 
     assert cache.read(identity()) is None
     assert not list((tmp_path / "cpg").glob("*.building-*"))
+
+
+def test_builder_junction_descendant_is_rejected_without_touching_target(
+    tmp_path: Path,
+) -> None:
+    cache = CpgCache(cache_root=tmp_path)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    outside_file = outside / "read-only.txt"
+    outside_file.write_text("outside", encoding="utf-8")
+    os.chmod(outside_file, stat.S_IREAD)
+    target_mode = stat.S_IMODE(os.stat(outside_file).st_mode)
+
+    def build(directory: Path) -> None:
+        (directory / "cpg.bin").write_bytes(b"ready")
+        _junction_or_skip(directory / "outside", outside)
+
+    with pytest.raises(CpgCacheError, match="symlink|junction|reparse"):
+        cache.get_or_build(identity(), build)
+
+    assert stat.S_IMODE(os.stat(outside_file).st_mode) == target_mode
+    assert not list((tmp_path / "cpg").glob("*.building-*"))
+
+
+def test_replaced_cache_directory_junction_is_rejected_before_lock_creation(
+    tmp_path: Path,
+) -> None:
+    cache = CpgCache(cache_root=tmp_path)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    cache.cache_dir.rmdir()
+    _junction_or_skip(cache.cache_dir, outside)
+
+    try:
+        with pytest.raises(CpgCacheError, match="cache directory|junction|reparse"):
+            cache.read(identity())
+        assert not list(outside.glob(".*.lock"))
+    finally:
+        _remove_junction(cache.cache_dir)
 
 
 def test_builder_exception_cleans_temporary_and_leaves_no_ready_entry(

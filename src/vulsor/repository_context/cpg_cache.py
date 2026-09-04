@@ -26,6 +26,7 @@ from .models import StrictModel
 _FULL_SHA = re.compile(r"^[0-9a-fA-F]{40}$")
 _CACHE_KEY = re.compile(r"^[0-9a-f]{64}$")
 _SUPPORTED_URL_SCHEMES = frozenset({"https", "http", "ssh", "file"})
+_REPARSE_POINT = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
 _MANIFEST_FIELDS = frozenset(
     {"schema_version", "cache_key", "identity", "status", "cpg_size_bytes"}
 )
@@ -147,6 +148,32 @@ CpgLockTimeoutError = CpgCacheLockTimeoutError
 CpgBuilder = Callable[[Path], None]
 
 
+def _is_link_like(path: Path) -> bool:
+    """Return whether ``path`` is a symlink, junction, or reparse point."""
+
+    try:
+        if path.is_symlink():
+            return True
+    except (OSError, RuntimeError):
+        return True
+
+    is_junction = getattr(path, "is_junction", None)
+    if is_junction is not None:
+        try:
+            if is_junction():
+                return True
+        except (OSError, RuntimeError):
+            return True
+
+    try:
+        info = os.lstat(path)
+    except FileNotFoundError:
+        return False
+    except OSError:
+        return True
+    return bool(getattr(info, "st_file_attributes", 0) & _REPARSE_POINT)
+
+
 class CpgCache:
     """Store and validate one CPG artifact per deterministic identity key.
 
@@ -154,6 +181,10 @@ class CpgCache:
     and must write a non-empty regular file named ``cpg.bin`` in that directory.
     The directory is promoted to the ready entry only after the file and manifest
     have been validated.
+
+    Cache paths are revalidated at cooperative lock boundaries. This bounds the
+    cache's path-safety guarantee to cooperating users; eliminating hostile
+    operating-system-level TOCTOU races would require platform-specific handles.
     """
 
     def __init__(
@@ -226,6 +257,7 @@ class CpgCache:
 
         current = self._validated_identity(identity)
         key = self.cache_key_for(current)
+        self._verify_cache_directory()
         with self._cache_lock(self.cache_dir / f".{key}.lock"):
             return self._read_ready(current, key)
 
@@ -234,6 +266,7 @@ class CpgCache:
 
         current = self._validated_identity(identity)
         key = self.cache_key_for(current)
+        self._verify_cache_directory()
         entry_path = self.cache_dir / key
         lock_path = self.cache_dir / f".{key}.lock"
         building_path: Path | None = None
@@ -257,6 +290,7 @@ class CpgCache:
                 )
                 self._write_manifest(building_path / "manifest.json", manifest)
                 self._validate_tree(building_path, "temporary CPG build path")
+                self._verify_cache_directory()
                 building_path.replace(entry_path)
                 building_path = None
             finally:
@@ -289,24 +323,36 @@ class CpgCache:
             raise CpgCacheError(
                 f"could not create CPG cache directory {self.cache_dir}: {exc}"
             ) from exc
+        self._verify_cache_directory()
+
+    def _verify_cache_directory(self) -> None:
         try:
-            is_symlink = self.cache_dir.is_symlink()
+            if not os.path.lexists(self.cache_dir):
+                raise CpgCacheError(
+                    f"CPG cache directory does not exist: {self.cache_dir}"
+                )
+            is_link_like = _is_link_like(self.cache_dir)
             is_directory = self.cache_dir.is_dir()
-        except OSError as exc:
+            if is_link_like or not is_directory:
+                raise CpgCacheError(
+                    f"CPG cache directory is not a real directory: {self.cache_dir}"
+                )
+        except CpgCacheError:
+            raise
+        except (OSError, RuntimeError) as exc:
             raise CpgCacheError(
                 f"could not verify CPG cache directory {self.cache_dir}: {exc}"
             ) from exc
-        if is_symlink or not is_directory:
-            raise CpgCacheError(
-                f"CPG cache directory is not a real directory: {self.cache_dir}"
-            )
 
     def _read_ready(self, identity: CpgIdentity, key: str) -> CpgArtifact | None:
         entry_path = self.cache_dir / key
         if not os.path.lexists(entry_path):
             return None
-        if entry_path.is_symlink():
-            raise CpgCacheError(f"refusing to read symlink cache entry: {entry_path}")
+        if _is_link_like(entry_path):
+            raise CpgCacheError(
+                f"refusing to read symlink, junction, or reparse-point cache entry: "
+                f"{entry_path}"
+            )
         if not entry_path.is_dir():
             return None
         self._validate_tree(entry_path, "cache entry")
@@ -354,6 +400,7 @@ class CpgCache:
         )
 
     def _create_building_directory(self, building_path: Path) -> None:
+        self._verify_cache_directory()
         if os.path.lexists(building_path):
             raise CpgCacheError(
                 f"temporary CPG build path already exists: {building_path}"
@@ -406,8 +453,10 @@ class CpgCache:
     def _validate_tree(self, root: Path, label: str) -> None:
         if not os.path.lexists(root):
             raise CpgCacheError(f"{label} does not exist: {root}")
-        if root.is_symlink():
-            raise CpgCacheError(f"{label} must not be a symlink: {root}")
+        if _is_link_like(root):
+            raise CpgCacheError(
+                f"{label} must not be a symlink, junction, or reparse point: {root}"
+            )
         if not root.is_dir():
             raise CpgCacheError(f"{label} is not a directory: {root}")
         self._assert_safe_existing_path(root, label)
@@ -427,8 +476,11 @@ class CpgCache:
             self._assert_safe_existing_path(directory_path, label)
             for name in (*directory_names, *file_names):
                 child = directory_path / name
-                if child.is_symlink():
-                    raise CpgCacheError(f"{label} contains symlink: {child}")
+                if _is_link_like(child):
+                    raise CpgCacheError(
+                        f"{label} contains a symlink, junction, or reparse point: "
+                        f"{child}"
+                    )
                 self._assert_safe_existing_path(child, label)
 
         if traversal_errors:
@@ -443,8 +495,10 @@ class CpgCache:
             raise CpgCacheError(
                 f"{label} escaped the deterministic cache directory"
             ) from exc
-        if path != self.cache_dir and path.is_symlink():
-            raise CpgCacheError(f"{label} must not be a symlink: {path}")
+        if path != self.cache_dir and _is_link_like(path):
+            raise CpgCacheError(
+                f"{label} must not be a symlink, junction, or reparse point: {path}"
+            )
         try:
             resolved = path.resolve(strict=False)
         except (OSError, RuntimeError) as exc:
@@ -459,11 +513,12 @@ class CpgCache:
     @staticmethod
     def _make_writable(path: Path) -> None:
         try:
-            info = os.lstat(path)
+            os.lstat(path)
         except FileNotFoundError:
             return
-        if stat.S_ISLNK(info.st_mode):
+        if _is_link_like(path):
             return
+        info = os.lstat(path)
         mode = stat.S_IMODE(info.st_mode) | stat.S_IWUSR
         if stat.S_ISDIR(info.st_mode):
             mode |= stat.S_IXUSR
@@ -487,21 +542,84 @@ class CpgCache:
             onerror=onerror,
         ):
             directory_path = Path(directory)
-            for name in (*directory_names, *file_names):
+            safe_directory_names: list[str] = []
+            for name in directory_names:
                 child = directory_path / name
-                if not child.is_symlink():
+                if _is_link_like(child):
+                    continue
+                safe_directory_names.append(name)
+                try:
+                    cls._make_writable(child)
+                except OSError as exc:
+                    failures.append(exc)
+            directory_names[:] = safe_directory_names
+            for name in file_names:
+                child = directory_path / name
+                if _is_link_like(child):
+                    continue
+                try:
+                    cls._make_writable(child)
+                except OSError as exc:
+                    failures.append(exc)
+        return failures
+
+    @staticmethod
+    def _remove_link_like(path: Path) -> None:
+        info = os.lstat(path)
+        try:
+            is_symlink = path.is_symlink()
+        except (OSError, RuntimeError) as exc:
+            raise OSError(f"could not classify link-like path {path}: {exc}") from exc
+        if stat.S_ISDIR(info.st_mode) and not is_symlink:
+            path.rmdir()
+        else:
+            path.unlink()
+
+    @classmethod
+    def _remove_link_like_descendants(cls, path: Path) -> list[OSError]:
+        failures: list[OSError] = []
+
+        def onerror(error: OSError) -> None:
+            failures.append(error)
+
+        for directory, directory_names, file_names in os.walk(
+            path,
+            topdown=True,
+            followlinks=False,
+            onerror=onerror,
+        ):
+            directory_path = Path(directory)
+            safe_directory_names: list[str] = []
+            for name in directory_names:
+                child = directory_path / name
+                if _is_link_like(child):
                     try:
-                        cls._make_writable(child)
+                        cls._remove_link_like(child)
+                    except FileNotFoundError:
+                        pass
                     except OSError as exc:
                         failures.append(exc)
+                    continue
+                safe_directory_names.append(name)
+            directory_names[:] = safe_directory_names
+            for name in file_names:
+                child = directory_path / name
+                if not _is_link_like(child):
+                    continue
+                try:
+                    cls._remove_link_like(child)
+                except FileNotFoundError:
+                    pass
+                except OSError as exc:
+                    failures.append(exc)
         return failures
 
     def _remove_tree(self, path: Path, label: str) -> None:
         if not os.path.lexists(path):
             return
-        if path.is_symlink():
+        if _is_link_like(path):
             try:
-                path.unlink()
+                self._remove_link_like(path)
             except OSError as exc:
                 raise CpgCacheCleanupError(
                     f"could not clean up {label} {path}: {exc}"
@@ -509,10 +627,14 @@ class CpgCache:
             return
         self._assert_safe_existing_path(path, label)
         failures = self._make_tree_writable(path)
+        failures.extend(self._remove_link_like_descendants(path))
 
         def retry_remove(function, target: str, _exc_info) -> None:
             target_path = Path(target)
             try:
+                if _is_link_like(target_path):
+                    self._remove_link_like(target_path)
+                    return
                 self._make_writable(target_path.parent)
                 self._make_writable(target_path)
             except OSError as exc:
@@ -549,8 +671,11 @@ class CpgCache:
     def _remove_invalid_entry(self, entry_path: Path) -> None:
         if not os.path.lexists(entry_path):
             return
-        if entry_path.is_symlink():
-            raise CpgCacheError(f"refusing to use symlink cache entry: {entry_path}")
+        if _is_link_like(entry_path):
+            raise CpgCacheError(
+                f"refusing to use symlink, junction, or reparse-point cache entry: "
+                f"{entry_path}"
+            )
         self._assert_safe_existing_path(entry_path, "cache entry")
         self._remove_tree(entry_path, "invalid CPG cache entry")
 
@@ -559,8 +684,10 @@ class CpgCache:
 
     @contextmanager
     def _cache_lock(self, lock_path: Path) -> Iterator[None]:
+        self._verify_cache_directory()
         self._acquire_lock(lock_path)
         try:
+            self._verify_cache_directory()
             yield
         finally:
             try:
