@@ -18,8 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class ToolsConfig(BaseModel):
     """External tool executables, resolved via PATH by default.
 
-    Do NOT hard-code machine-specific paths here (e.g. no
-    'D:\\tools\\joern\\...'). If a machine needs a specific path, that
+    Do NOT hard-code machine-specific paths here. If a machine needs a specific path, that
     belongs in that machine's own config YAML, not in this schema's
     defaults (VulSOR.md, "Environment state on Windows").
     """
@@ -28,8 +27,6 @@ class ToolsConfig(BaseModel):
 
     clang: str = "clang"
     clang_cpp: str = Field(default="clang++", alias="clang++")
-    java: str = "java"
-    joern: str = "joern"
 
 
 class DatasetConfig(BaseModel):
@@ -82,8 +79,6 @@ class AgentLLMConfig(BaseModel):
     max_tool_rounds: int = 1
     allowed_tools: tuple[str, ...] = (
         "get_program_facts",
-        "get_context_facts",
-        "get_cpg_facts",
         "get_fact_links",
         "get_completeness",
         "get_limitations",

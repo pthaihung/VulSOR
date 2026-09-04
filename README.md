@@ -17,7 +17,6 @@ là verdict vulnerability.
 - Python 3.10+
 - Clang có trong `PATH`
 - PowerShell hoặc terminal tương đương
-- Joern chỉ cần nếu dùng `inspect --cpg`
 
 Kiểm tra môi trường:
 
@@ -64,8 +63,6 @@ Nội dung chính:
 tools:
   clang: clang
   clang++: clang++
-  java: java
-  joern: joern
 
 datasets:
   primevul:
@@ -120,8 +117,6 @@ B1 nhận C/C++ source hoặc sample trong dataset, rồi tạo program facts:
 - `links`
 - `completeness`
 - `missing_context`
-- `source_context`
-- `context_facts`
 
 Nếu dataset thiếu header/typedef/macro/build flags và Clang không dựng được CFG,
 B1 có thể thử một pass recovery bằng synthetic compile context. Mọi stub được
@@ -137,7 +132,6 @@ vulsor inspect `
   --dataset primevul `
   --split test `
   --sample test_000000 `
-  --analysis-scope auto `
   --format json `
   --brain-context-dir brain_context
 ```
@@ -151,7 +145,6 @@ vulsor inspect `
   --split test `
   --limit 10 `
   --jobs 1 `
-  --analysis-scope auto `
   --format text `
   --brain-context-dir brain_context
 ```
@@ -243,8 +236,8 @@ brain_context/primevul/test/agents/test_000000/semantic_cpg.json
 ```
 
 Khi merge tạo `agent_semantics.json`, B2 tự sinh thêm `semantic_cpg.json` cho
-cùng sample. Đây là semantic property graph/CPG overlay từ B2, gồm `nodes`,
-`edges`, và `summary` để dễ query; nó không thay thế Joern CPG đầy đủ.
+cùng sample. Đây là semantic property graph overlay từ B2, gồm `nodes`,
+`edges`, và `summary` để dễ query; nó không phải repository CPG.
 Nếu có output LLM hợp lệ trong `experiments/{dataset}/{split}/{agent}/{sample_id}.json`,
 merge sẽ nhúng thêm `llm_semantics` vào `agent_semantics.json` và graph sẽ có
 node `SemanticObservation`, `ReasoningGroup`, `ReasoningStep` cùng các edge
@@ -345,17 +338,9 @@ data/PrimeVul_clean/
     train.jsonl
     valid.jsonl
     test.jsonl
-  context/
-    train.jsonl
-    valid.jsonl
-    test.jsonl
 ```
 
 `inputs/*.jsonl` chứa `sample_id` và `code`.
-
-`context/*.jsonl` là technical sidecar, có thể chứa whole-file path, target
-function range, compile context và call context. Đây không phải label và không
-được dùng như verdict evidence.
 
 ## Luồng B1 -> B2
 

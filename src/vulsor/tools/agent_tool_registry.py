@@ -39,14 +39,6 @@ TOOL_DESCRIPTIONS = {
         "Return a selected program_facts list or dict from the current B1 "
         "artifact. Arguments: fact_type optional, limit optional."
     ),
-    "get_context_facts": (
-        "Return context_facts from the current B1 artifact. Context facts are "
-        "hints, not proof."
-    ),
-    "get_cpg_facts": (
-        "Return cpg_facts from the current B1 artifact when Joern/CPG was "
-        "enabled."
-    ),
     "get_fact_links": "Return analysis.links from the current B1 artifact.",
     "get_completeness": (
         "Return analysis.completeness and build_diagnosis from the current B1 "
@@ -64,14 +56,6 @@ TOOL_SCHEMAS = {
     "get_program_facts": {
         "input": {"fact_type": "string|null", "limit": "integer|null"},
         "output": "selected program_facts list or object",
-    },
-    "get_context_facts": {
-        "input": {},
-        "output": "analysis.context_facts object; hints, not proof",
-    },
-    "get_cpg_facts": {
-        "input": {},
-        "output": "analysis.cpg_facts object or empty object",
     },
     "get_fact_links": {
         "input": {},
@@ -142,12 +126,6 @@ def run_agent_tool(
 
     if name == "get_program_facts":
         return _get_program_facts(artifact, arguments or {})
-
-    if name == "get_context_facts":
-        return _get_analysis_field(artifact, name, "context_facts")
-
-    if name == "get_cpg_facts":
-        return _get_analysis_field(artifact, name, "cpg_facts")
 
     if name == "get_fact_links":
         return _get_analysis_field(artifact, name, "links")

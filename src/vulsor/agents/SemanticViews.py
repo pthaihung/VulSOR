@@ -30,10 +30,11 @@ def build_state_view(artifact: dict[str, Any]) -> dict[str, Any]:
     operations = list_of_dicts(facts.get("operations"))
     variable_items = variable_records(definitions, uses, data_flow)
     buffers = buffer_candidates(variable_items, operations)
+    functions = function_summaries(list_of_dicts(facts.get("functions")))
 
     return {
-        "target": analysis.get("context_facts", {}).get("target", {}),
-        "functions": function_summaries(list_of_dicts(facts.get("functions"))),
+        "target": target_summary(functions),
+        "functions": functions,
         "variables": variable_items,
         "objects": object_candidates(variable_items),
         "buffers": buffers,
@@ -189,10 +190,6 @@ def build_operation_view(artifact: dict[str, Any]) -> dict[str, Any]:
             for item in records
             if item["semantic_role"] in source_sink_roles
         ],
-        "helper_call_context": analysis.get("context_facts", {}).get(
-            "same_file_call_context",
-            {},
-        ),
         "missing_operation_facts_summary": missing_context_summary(
             analysis,
             component="operation",
@@ -1002,6 +999,24 @@ def function_summaries(
         }
         for function in functions
     ]
+
+
+def target_summary(functions: list[dict[str, Any]]) -> dict[str, Any]:
+    """Return the target summary from the local function facts."""
+    if len(functions) != 1:
+        return {
+            "available": False,
+            "function_count": len(functions),
+        }
+
+    function = functions[0]
+    return {
+        "available": True,
+        "name": function.get("name"),
+        "start_line": function.get("start_line"),
+        "end_line": function.get("end_line"),
+        "body_available": True,
+    }
 
 
 def looks_buffer_like(name: str) -> bool:

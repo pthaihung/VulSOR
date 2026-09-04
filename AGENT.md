@@ -61,7 +61,7 @@ adjudicator -> verdict
 
 | Stage | Status | Notes |
 |---|---|---|
-| B1 Program Analysis | Mostly implemented, still limited | Clang AST, CFG parser, syntactic data-flow, syntactic call graph, fact links, dataset inspection, context_facts, compile-context arg plumbing, optional Joern/CPG facts |
+| B1 Program Analysis | Mostly implemented, still limited | Clang AST, CFG parser, syntactic data-flow, syntactic call graph, fact links, and function-only dataset inspection |
 | B2 Semantic Reconstruction | Started | State/Value/Execution/Operation agents exist as OOP classes; deterministic semantic fallback exists; optional LLM API interpretation and tool access are configured separately |
 | B3 Obligation Generation | Not implemented | No LLM obligation generation yet |
 | B4 Obligation Validation | Not implemented | No real validator yet |
@@ -137,7 +137,7 @@ implemented.
 Preferred technical order:
 
 ```text
-AST -> CFG -> data-flow -> call graph -> Joern/CPG
+AST -> CFG -> data-flow -> call graph
 ```
 
 Current implementation:
@@ -156,17 +156,15 @@ Current implementation:
 | Data-flow | Implemented, syntactic | same variable + source order |
 | Call graph | Implemented, syntactic | caller -> callee, linked by `operation_id` |
 | Fact links | Implemented | function -> facts, operation -> call, definition -> use |
-| Compile context args | Implemented when concrete args exist | include paths, system includes, defines, undefines, extra clang args |
-| Dataset context facts | Implemented | `analysis.context_facts` from PrimeVul sidecar |
-| Context function index | Improved | Handles functions/methods inside C/C++ scoped blocks such as namespaces |
-| Joern status adapter | Implemented | `src/vulsor/tools/joern.py` reports availability/integration status |
-| Joern/CPG facts | Implemented when requested | `inspect --cpg` runs c2cpg + Joern script and emits real method/call CPG facts |
+| Dataset input boundary | Implemented | function snippet only; no sidecar or whole-file loading |
 | Evidence | Not implemented | `verification/*` has no real verifier yet |
+
+Dataset inspection is intentionally limited to the function source supplied in
+`inputs/{split}.jsonl`. Repository-wide context retrieval is reserved for the
+future obligation-driven B3/B4 stages.
 
 Data-flow no longer depends on CFG. If CFG fails but AST recovers definitions
 and uses, VulSOR still builds syntactic data-flow.
-
----
 
 ## 4. ProgramFacts
 
@@ -205,9 +203,9 @@ Fact links:
 | `definition_use_links` | links `DefinitionFact` -> `UseFact` through `DataFlowFact` |
 | `unresolved_notes` | records facts that cannot be linked yet, e.g. CFG block source location |
 
-Important: PrimeVul caller/callee context is not inserted into `ProgramFacts`.
-It is exposed separately as `analysis.context_facts` because it is currently a
-same-file heuristic, not Clang/Joern proof.
+ProgramFacts contains only facts extracted from the target function source.
+Missing project symbols are recorded as limitations and are not replaced with
+repository guesses.
 
 ---
 
@@ -216,169 +214,24 @@ same-file heuristic, not Clang/Joern proof.
 CLI dataset inspect:
 
 ```powershell
-vulsor inspect --config configs\primevul.yaml --dataset primevul --split test --limit 1 --analysis-scope auto --format json
-vulsor inspect --config configs\primevul.yaml --dataset primevul --split test --limit 1 --analysis-scope auto --cpg --format json
+vulsor inspect --config configs\primevul.yaml --dataset primevul --split test --limit 1 --format json
 ```
 
-Interactive JSON/pretty dataset inspect renders a compact `Stage Summary` table
-below the main sample table. It uses one column per stage (`Source`, `Context`,
-`AST`, `CFG`, `Data Flow`, `CPG`) plus a `Dataset` column. When printed to an
-interactive terminal, both `--format json` and `--format text` also show the
-summary tables on screen. `--format text` keeps the saved/plain payload as text
-sections and includes fuller detail behind the table cells: stage reasons, fact
-counts, dataset context factors, artifact paths, missing symbol summaries,
-root-cause diagnosis, and diagnostics.
-
-The summary panel reports dynamic percentages:
-
-```text
-status counts:
-  complete / partial / stopped
-dataset_context_selected:
-  source/context factors available in the inspected sample subset
-dataset_context_split:
-  source/context factors available across the full dataset split sidecar,
-  even when only a small --limit/--sample subset is inspected
-stage_coverage:
-  B1 stages that produced usable facts/statuses in the inspected subset
-stage_vs_dataset:
-  B1 extracted facts in the inspected subset compared with the relevant
-  dataset-context denominator, for example ast/target_body, cfg/target_index,
-  data_flow/target_index, call_graph/call_context, and cpg/call_context
-```
-
-Interactive terminal summary formatting uses separate headed blocks with
-`count/total (percent)` metrics, so selected-sample coverage, full-split dataset
-coverage, stage coverage, and stage-vs-dataset ratios do not collapse into one
-long wrapped line.
-
-Interactive menu supports:
-
-```text
-Inspect a sample
--> Source file
--> Dataset samples
-   -> One sample id
-   -> First N samples
-   -> All samples
-   -> Random N samples
-   -> Scope: auto/function/file
-   -> Optional Joern/CPG facts
-   -> Output: text/json
-```
-
-Main JSON shape:
-
-```text
-dataset
-split
-count
-brain_context
-samples[]
-  sample_id
-  status
-  result.program_facts
-  analysis.scope
-  analysis.requested_scope
-  analysis.context_mode
-  analysis.complete
-  analysis.source_context
-  analysis.context_facts
-  analysis.tool_status
-  analysis.cpg_facts
-  analysis.completeness
-  analysis.build_diagnosis
-  analysis.missing_context_summary
-  analysis.missing_context
-  analysis.links
-  analysis.limitations
-  analysis.rules
-  diagnostics
-```
-
-`analysis.context_facts` summary:
-
-```text
-available
-target:
-  available, name, start_line, end_line, indexed, body_available
-same_file_index:
-  available, function_count
-same_file_call_context:
-  available, scope, direct_callee_count, direct_callee_body_count,
-  direct_caller_count, limitations
-provenance
-trust_boundary
-```
-
-`analysis.source_context` keeps the fuller sidecar context. `analysis.context_facts`
-is the compact summary for B1 output and later grounding.
-
-`analysis.tool_status` records Program Analysis tool capability:
-
-```text
-clang:
-  executable, available, uses = ast_json/cfg_dump
-joern:
-  executable, available, resolved_path, cpg_integrated, message
-```
-
-`analysis.cpg_facts` records Joern facts only when `--cpg` is enabled:
-
-```text
-status = not_requested / unavailable / partial / available
-method_count
-call_count
-methods[]:
-  name, full_name, filename, line, line_end
-calls[]:
-  caller, callee, method_full_name, dispatch_type, code, filename, line, column
-diagnostics
-provenance = joern/c2cpg
-trust_boundary
-```
-
-If Joern/c2cpg fails, B1 reports diagnostics and does not fabricate CPG facts.
-
-No label/CWE/CVE/pair metadata is used as analysis input.
-
-B1 also writes per-sample artifacts for later stages:
+The dataset inspect command analyzes each `code` field at function scope and
+writes per-sample artifacts for later B2 stages:
 
 ```text
 brain_context/{dataset}/{split}/manifest.json
 brain_context/{dataset}/{split}/{sample_id}.json
 ```
 
-The default artifact directory is `brain_context`. It can be changed with:
+The artifact contains `program_facts`, local analysis completeness,
+`missing_context`, diagnostics, limitations, and fact links. It does not
+contain repository sidecars or repository CPG facts.
 
-```powershell
-vulsor inspect ... --brain-context-dir custom_dir
-```
-
-Artifact shape:
-
-```text
-schema_version = 1
-artifact_kind = program_analysis
-dataset
-split
-sample_id
-sample:
-  sample_id
-  status
-  result.program_facts
-  analysis.source_context
-  analysis.context_facts
-  analysis.tool_status
-  analysis.cpg_facts
-  analysis.completeness
-  analysis.build_diagnosis
-  analysis.missing_context
-  analysis.links
-  analysis.limitations
-  analysis.rules
-  diagnostics
-```
+Interactive output reports source, AST, CFG, data-flow, and call-graph status.
+The `brain_context` directory is an artifact cache name; it is not repository
+context supplied to B2.
 
 B2 should read Program Analysis input from `brain_context`, not from terminal
 output and not directly from PrimeVul labels.
@@ -398,106 +251,12 @@ Run all B2 semantic agents and merge their brain views:
 vulsor agent --agent all --dataset primevul --split test --sample test_000000
 ```
 
-Run all four agents concurrently with an optional progress bar:
-
-```powershell
-vulsor agent --agent all --dataset primevul --split test --sample test_000000 --parallel
-```
-
-Without `--parallel`, agents run sequentially. Parallel mode uses four worker
-threads, one for each semantic agent, and reports completed agent/sample jobs;
-the deterministic merge runs after all four agents finish.
-
-Run with optional LLM interpretation:
-
-```powershell
-vulsor agent --agent all --dataset primevul --split test --sample test_000000 --llm --llm-config configs\agent_llm.yaml
-```
-
-The B2 flow has two phases:
+B2 output remains under:
 
 ```text
-phase 1 (without --llm): B1 artifact -> one filtered brain per agent
-phase 2 (with --llm): that agent brain + source -> concise reasoning output
+brain_context/{dataset}/{split}/agents/{sample_id}/
 ```
 
-The LLM phase does not receive the full B1 artifact as its main context and
-does not replace the brain. Each agent receives only its matching brain:
-`state_view`, `value_view`, `execution_view`, or `operation_view`. The source
-from the dataset input is provided for exact source grounding. API results are
-stored separately under `experiments/{dataset}/{split}/{agent}/{sample_id}.json`.
-
-The merge step is deterministic assembly, not a fifth reasoning agent. It
-combines the four filtered brain views and their cross-view links into
-`agent_semantics.json` for later pipeline stages. It does not merge or invent
-LLM reasoning and it does not produce a verdict.
-
-Interactive `vulsor` menu includes `Run semantic agents`. That flow reads the
-existing `brain_context/{dataset}/{split}/manifest.json`, displays analyzed
-sample ids, lets the user choose one by number or id, then can preview the
-separate output JSON for each selected semantic agent.
-
-Optional LLM interpretation uses `configs/agent_llm.yaml` and JSON prompt files
-under `src/vulsor/agents/prompts/`. API keys are read from the configured
-environment variable, default `OPENAI_API_KEY`; prompt content and model/API
-configuration are kept outside agent logic.
-
-LLM tool access for B2 is also configured in `configs/agent_llm.yaml` through
-`allowed_tools` and `max_tool_rounds`. Shared values can be overridden for
-each semantic agent under `agents`:
-
-```yaml
-model: gpt-4.1-mini
-max_tool_rounds: 1
-agents:
-  state:
-    model: state-model
-    allowed_tools:
-      - get_program_facts
-  value:
-    model: value-model
-    max_tool_rounds: 2
-  execution:
-    model: execution-model
-  operation:
-    model: operation-model
-```
-
-Each agent inherits unspecified values from the shared settings. Tools live in the existing
-`src/vulsor/tools` package, currently in `agent_tool_registry.py`, and only
-return facts already present in the current B1 artifact. They do not inspect
-the repository independently and do not produce verdict/CWE/evidence.
-
-B2 uses OOP inheritance:
-
-```text
-BaseAgent in src/vulsor/agents/BaseAgent.py
-  -> StateAgent      in src/vulsor/agents/StateAgent.py
-  -> ValueAgent      in src/vulsor/agents/ValueAgent.py
-  -> ExecutionAgent  in src/vulsor/agents/ExecutionAgent.py
-  -> OperationAgent  in src/vulsor/agents/OperationAgent.py
-```
-
-The base class owns shared execution concerns such as artifact I/O, cache keys,
-prompt loading, and optional LLM API calls. Each concrete agent owns only its
-local semantic view construction.
-
-State Agent output/cache:
-
-```text
-brain_context/{dataset}/{split}/agents/{sample_id}/state.json
-```
-
-Other B2 output/cache paths:
-
-```text
-brain_context/{dataset}/{split}/agents/{sample_id}/value.json
-brain_context/{dataset}/{split}/agents/{sample_id}/execution.json
-brain_context/{dataset}/{split}/agents/{sample_id}/operation.json
-brain_context/{dataset}/{split}/agents/{sample_id}/agent_semantics.json
-```
-
---- 
 
 ## 5.1 B2 Semantic Agent Architecture
 
@@ -622,8 +381,6 @@ timeout_seconds: 60
 max_tool_rounds: 1
 allowed_tools:
   - get_program_facts
-  - get_context_facts
-  - get_cpg_facts
   - get_fact_links
   - get_completeness
   - get_limitations
@@ -710,7 +467,7 @@ recorded in the current B1 artifact. They must not:
 
 ```text
 read arbitrary repository files
-run Clang/Joern again
+run analyzers again
 fetch network context
 use labels/CWE/CVE/pair metadata
 produce verdicts
@@ -722,8 +479,6 @@ Current allowlisted tool names:
 | Tool | Purpose |
 |---|---|
 | `get_program_facts` | Return all or selected `program_facts`; accepts optional `fact_type` and `limit` |
-| `get_context_facts` | Return `analysis.context_facts`; context remains a hint, not proof |
-| `get_cpg_facts` | Return `analysis.cpg_facts` when B1 was run with CPG enabled |
 | `get_fact_links` | Return `analysis.links` |
 | `get_completeness` | Return `analysis.completeness` and `analysis.build_diagnosis` |
 | `get_limitations` | Return inherited `limitations` and `rules` |
@@ -766,9 +521,8 @@ commit_message
 side
 ```
 
-Note: `analysis.context_facts.target` means the target function summary in B1
-artifacts. It is allowed as function context. Dataset label fields named
-`target` are not allowed as reasoning input.
+The target function in B2 is derived from local `ProgramFacts.functions`.
+Dataset label fields named `target` are not allowed as reasoning input.
 
 ---
 
@@ -779,51 +533,39 @@ artifacts. It is allowed as function context. Dataset label fields named
 ```text
 tools produce program facts only
 program analysis does not infer VULNERABLE/BENIGN verdicts
-missing project context is reported as a limitation, not fabricated
+missing project symbols are reported as limitations, not fabricated
 dataset labels, CWE, CVE, and pair metadata are not used as analysis input
 ```
 
-`limitations` are semi-dynamic per sample. They depend on selected scope,
-diagnostics, CFG availability, and data-flow quality.
+`limitations` are semi-dynamic per sample. They depend on Clang diagnostics,
+CFG availability, and the quality of syntactic local data-flow.
 
 Current meaning:
 
 ```text
 AST/call facts:
-  Usually recoverable if Clang can parse AST.
+  Usually recoverable if Clang can parse the function snippet.
   Partial if Clang emits diagnostics.
 
 CFG:
-  Missing mostly because dataset/project compile context lacks headers,
-  typedefs, macros, or build flags.
-  Another known case: whole-file CFG exists but is not mapped back to selected
-  function range yet.
+  May be missing when the function snippet lacks project declarations or
+  when local Clang analysis cannot produce a CFG dump.
 
 Data-flow:
-  Currently syntactic AST-based reaching-definition.
+  Syntactic AST-based reaching-definition only.
   Does not prove path feasibility, aliasing, pointer flow, field flow, macro
   expansion, or interprocedural flow.
 ```
 
-`build_diagnosis` separates dataset/context problems from fixable pipeline
-problems:
-
-| Classification | Meaning | Fixable by code? |
-|---|---|---|
-| `dataset_file_context_missing` | No whole-file source context | No, context must be added |
-| `dataset_compile_context_missing` | File exists but headers/typedefs/macros/build flags are missing | Partly, by adding compile context |
-| `pipeline_context_not_applied` | Dataset advertises compile info but no concrete args are available to pass | Partly, enrich context with concrete args |
-| `dataset_compile_context_incomplete` | Concrete compile args were passed but Clang still cannot produce complete facts | Partly, add more headers/macros/flags |
-| `function_range_cfg_omitted` | Whole-file CFG may exist but is not mapped to selected function range | Yes |
-| `clang_diagnostics_unclassified` | Clang emitted diagnostics not matched by known missing-context patterns | Yes, extend diagnosis |
-| `tool_or_parser_issue` | CFG missing without useful diagnostics | Yes, debug invocation/parser/toolchain |
-| `recovered_ast_limited` | AST recovered but may miss facts | Partly, better compile context helps |
+`build_diagnosis` reports local Clang and parser limitations. Repository
+context is not silently inferred or loaded by B1.
 
 ---
 
 ## 7. PrimeVul Clean Dataset
 
-PrimeVul clean is used to avoid leakage.
+PrimeVul clean is used to avoid leakage. The B1 loader reads only the source
+inputs; labels and pair metadata stay outside the analysis artifact.
 
 Main directories:
 
@@ -831,140 +573,31 @@ Main directories:
 data/PrimeVul_clean/inputs/{train,valid,test}.jsonl
 data/PrimeVul_clean/labels/{train,valid,test}.jsonl
 data/PrimeVul_clean/paired/{train,valid,test}.jsonl
-data/PrimeVul_clean/context/{train,valid,test}.jsonl
 ```
 
-Current sidecar coverage:
+Each input record supplies `sample_id` and `code`. There is no operational
+context sidecar. B1 does not resolve a whole file, index same-file functions,
+or inject caller/callee hints into B2.
 
-| Split | Total | Has file_info | Resolved whole-file |
-|---|---:|---:|---:|
-| train | 7578 | 4873 | 4839 |
-| valid | 960 | 783 | 783 |
-| test | 870 | 703 | 703 |
-
-Context sidecar contains technical information:
-
-```text
-sample_id
-analysis_scope
-source_kind
-func_hash
-file_context_available
-resolved_file_available
-compile_context
-target_function
-file_function_index
-call_context
-file_name
-file_hash
-original_file_path
-raw_local_file_path
-resolved_file_content_path
-function_start_line
-function_end_line
-```
-
-Expanded context:
-
-```text
-target_function:
-  name, file, file_name, start_line, end_line, body_available, indexed
-
-file_function_index:
-  available, function_count, functions[] with name/start_line/end_line/
-  direct_call_count
-
-call_context:
-  scope = same_file
-  direct_callees[] with call line/column, body_available, same-file definition
-  when found
-  direct_callers[] in the same file when found
-  limitations explicitly say function pointers, virtual dispatch,
-  macro-generated calls, and cross-file calls need Joern/CPG or compile context
-```
-
-This caller/callee context is built by a same-file heuristic parser over the
-resolved whole-file source. It does not replace Joern/CPG.
-
-Context sidecar must not contain leakage keys:
-
-```text
-target
-cwe
-cve
-cve_desc
-nvd_url
-pair_id
-commit_id
-commit_url
-commit_message
-side
-```
-
-PrimeVul is mostly function-level. With `--analysis-scope auto`, VulSOR tries
-whole-file context when available, filters analysis to target function range,
-and falls back to the clean function snippet if whole-file analysis cannot
-recover the target function.
-
-Current real-data check:
-
-```text
-test_000000:
-  target = GetEXIFProperty
-  selected_source = function_snippet after whole-file fallback
-  context_facts.same_file_call_context.direct_callee_count = 65
-  context_facts.same_file_call_context.direct_callee_body_count = 25
-  context_facts.same_file_call_context.direct_caller_count = 1
-
-test_000004:
-  target = ImmutableExecutorState::Initialize / Initialize
-  context builder now indexes the C++ method inside scoped source context
-  file_function_index.function_count = 8
-  context_facts.same_file_call_context.direct_callee_count = 98
-```
+PrimeVul remains function-level. Any missing header, type, macro, or external
+symbol is represented as a local analysis limitation and remains available for
+future obligation-driven repository retrieval.
 
 ---
 
-## 8. Context Builder
+## 8. Repository Context Boundary
 
-Context builder:
-
-```text
-data/build_primevul_context.py
-```
-
-Current behavior:
-
-```text
-reads raw PrimeVul metadata
-keeps labels/CVE/CWE/pair data out of context
-resolves whole-file source when file_info is available
-extracts target function by function name first, then line overlap fallback
-builds same-file function index
-builds same-file direct callee/caller context
-does not duplicate raw callee body text into every context record
-writes JSONL sidecar files used by the dataset loader
-```
-
-Pretty inspection copy:
-
-```text
-data/PrimeVul_clean/context/test.pretty.json
-```
-
-Important: `.jsonl` files are the operational files used by the loader.
-`test.pretty.json` is for human reading only.
-
----
+Repository context is intentionally absent from the current implementation.
+The future paper-aligned design will preprocess one repository revision into a
+CPG, then retrieve bounded call, data-flow, control-dependence, declaration,
+and type evidence only after a concrete obligation requests it.
 
 ## 9. Tool Integration
 
 | Tool | Status | Notes |
 |---|---|---|
-| Clang | Integrated in production Python path | AST JSON, debug.DumpCFG, optional compile args |
-| clang++ | Checked by config/doctor | Not used in main Python B1 path yet |
-| Java | Checked by config/doctor | Needed for Joern later |
-| Joern | Integrated as optional B1 CPG source | `inspect --cpg` uses c2cpg + Joern query script |
+| Clang | Integrated in production Python path | AST JSON, debug.DumpCFG |
+| clang++ | Checked by config/doctor | C/C++ toolchain availability |
 | Native probe | Experimental/debug | `native/`, not production pipeline |
 
 `vulsor doctor` checks PATH for:
@@ -972,8 +605,6 @@ Important: `.jsonl` files are the operational files used by the loader.
 ```text
 clang
 clang++
-java
-joern
 ```
 
 Native probe purpose:
@@ -994,80 +625,60 @@ Do not treat native debug output as vulnerability evidence.
 Only move native helpers into production after interface and tests are clear.
 ```
 
----
-
 ## 10. Known Technical Limits
 
-1. Clang adapter can receive concrete compile args from context:
-   include paths, system includes, defines, undefines, and extra clang args.
-   Current PrimeVul clean context mostly stores availability flags, so many
-   samples still have no concrete args to apply.
-2. CFG depends on Clang semantic analysis and can be missing for function
-   snippets or whole files without project headers.
-3. CFG blocks do not have source locations yet, so they cannot be precisely
-   linked to function/operation ranges.
-4. Data-flow is syntactic local reaching-definition only.
-5. Call graph is syntactic direct calls only.
-6. Context caller/callee is same-file heuristic only.
-7. Function pointers, C++ virtual dispatch, macro-generated calls, and external
-   callees/callers still need deeper Joern queries or a project-level index.
-8. Joern/CPG method/call facts are integrated only when `--cpg` is enabled.
-   They are not used as vulnerability evidence.
-9. Evidence/verification is not implemented; `PipelineResult.evidence` is empty.
-10. `AGENT.md` must be updated after important code changes.
+1. CFG depends on Clang semantic analysis and can be missing for function
+   snippets without project headers.
+2. CFG blocks do not have source locations yet, so they cannot be precisely
+   linked to function or operation ranges.
+3. Data-flow is syntactic local reaching-definition only.
+4. Call graph is syntactic direct calls only.
+5. Function pointers, C++ virtual dispatch, macro-generated calls, and external
+   callees are unresolved local semantics and must remain uncertainty until a
+   future repository retriever supplies evidence.
+6. Evidence and verification are not implemented; `PipelineResult.evidence` is
+   empty.
+7. `AGENT.md` must be updated after important code changes.
 
 Short classification:
 
 ```text
-CFG missing       -> mostly dataset/project compile context missing
-Data-flow missing -> partly dataset/context, partly current pipeline limits
-AST/call facts    -> usually recoverable if Clang can parse AST
-Context calls     -> same-file helper, not full project call graph
-CPG facts         -> real Joern/c2cpg facts when --cpg is enabled
+CFG missing       -> local Clang/source limitation
+data-flow limited -> syntactic local analysis only
+call graph limited -> syntactic direct calls only
+repository facts  -> not implemented; reserved for obligation-driven retrieval
 ```
-
----
 
 ## 11. Latest Test Status
 
-Most recent verification after B2 agent/OOP/LLM-tool integration:
-
-```text
-python -m py_compile src\vulsor\config.py src\vulsor\agents\BaseAgent.py src\vulsor\agents\SemanticViews.py src\vulsor\agents\LLMClient.py src\vulsor\agents\StateAgent.py src\vulsor\agents\ValueAgent.py src\vulsor\agents\ExecutionAgent.py src\vulsor\agents\OperationAgent.py src\vulsor\tools\agent_tool_registry.py src\vulsor\cli.py
-.\.venv\Scripts\python.exe -m pytest
-```
-
-Result:
-
-```text
-74 passed
-```
-
-Main test groups:
+The retained test groups are:
 
 ```text
 tests/test_analysis.py
 tests/test_cli.py
-tests/test_primevul_context.py
 ```
 
----
+The removed repository-context test module is intentionally no longer part of
+the project. Run the suite with:
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m pytest -q
+```
 
 ## 12. Next Work
 
 Priority:
 
-1. Strengthen B2 semantic agents with richer fact grounding and schema tests.
-2. Enrich PrimeVul context with concrete include paths, macro definitions, and
-   compile args when available from project build data.
-3. Upgrade Joern query coverage beyond method/call facts:
-   - resolved project-level call graph
-   - data-dependence / control-dependence facts
-   - function pointer and virtual dispatch handling when Joern can resolve them
-4. Upgrade caller/callee context from same-file heuristic to Joern/CPG or a
-   project-level index.
-5. Map CFG blocks/edges to source locations or function ranges.
-6. Improve diagnosis for parser/toolchain issues.
+1. Strengthen B2 semantic agents with richer grounding and schema tests.
+2. Implement B3 obligation generation from the merged B2 views.
+3. Implement paper-aligned repository retrieval for B3/B4: repository revision
+   identity, one-time CPG preprocessing/cache, obligation-anchored queries for
+   call relations, call arguments, data-flow, control dependence, declaration,
+   and type information, plus bounded source-level evidence.
+4. Implement B4 grounding and obligation-specific evidence bundles.
+5. Implement B5 verification, B6 adjudication, and B8 evaluation.
+6. Map CFG blocks and edges to source locations where local analysis permits.
 
 Avoid for now:
 
@@ -1078,8 +689,6 @@ Do not call partial output vulnerability evidence.
 Do not treat syntactic data-flow as feasibility proof.
 Do not implement the whole pipeline at once.
 ```
-
----
 
 ## 13. Pending Stages To Preserve
 

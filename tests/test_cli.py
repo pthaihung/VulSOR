@@ -1,23 +1,17 @@
 from __future__ import annotations
 
 import json
-import shutil
 
 import pytest
 
 from vulsor.cli import build_parser
 from vulsor.cli import main
 from vulsor.cli import _build_diagnosis
-from vulsor.cli import _clang_args_from_compile_context
-from vulsor.cli import _context_facts
-from vulsor.cli import _dataset_context_coverage
-from vulsor.cli import _dataset_context_split_coverage
 from vulsor.cli import _dataset_stage_summary_rows
 from vulsor.cli import _format_dataset_inspection_text
 from vulsor.cli import _resolve_sample_selection
 from vulsor.cli import _interactive_source_file_options
 from vulsor.cli import _stage_coverage
-from vulsor.cli import _stage_vs_dataset_coverage
 from vulsor.agents.BaseAgent import (
     _line_numbers,
     _normalize_llm_payload,
@@ -25,6 +19,8 @@ from vulsor.agents.BaseAgent import (
     _validate_llm_reasoning,
     _validate_llm_view_payload,
 )
+from vulsor.agents.SemanticViews import build_operation_view
+from vulsor.agents.SemanticViews import build_state_view
 from vulsor.config import load_llm_config
 from vulsor.tools.agent_tool_registry import run_agent_tool
 from vulsor.analysis.program import analyze_source_code_tolerant
@@ -321,15 +317,6 @@ def test_inspect_dataset_outputs_json_for_multiple_samples(
     )
     assert output["samples"][0]["result"]["program_facts"]["functions"]
     assert output["samples"][0]["analysis"]["links"]["function_links"]
-    assert output["samples"][0]["analysis"]["tool_status"]["clang"][
-        "uses"
-    ] == [
-        "ast_json",
-        "cfg_dump",
-    ]
-    assert output["samples"][0]["analysis"]["tool_status"]["joern"][
-        "cpg_integrated"
-    ] is True
     manifest_path = tmp_path / "brain_context" / "local" / "test" / "manifest.json"
     artifact_path = (
         tmp_path
@@ -345,7 +332,52 @@ def test_inspect_dataset_outputs_json_for_multiple_samples(
     assert manifest["count"] == 2
     assert artifact["artifact_kind"] == "program_analysis"
     assert artifact["sample_id"] == "sample_000000"
-    assert artifact["sample"]["analysis"]["context_facts"]
+    analysis = artifact["sample"]["analysis"]
+    assert analysis["scope"] == "function"
+    assert "source_context" not in analysis
+    assert "context_facts" not in analysis
+    assert "cpg_facts" not in analysis
+
+
+def test_b2_views_use_local_program_facts_without_repository_context() -> None:
+    artifact = {
+        "sample": {
+            "result": {
+                "program_facts": {
+                    "functions": [
+                        {
+                            "id": "function:example:1",
+                            "name": "example",
+                            "start_line": 1,
+                            "end_line": 3,
+                        }
+                    ],
+                    "operations": [],
+                    "definitions": [],
+                    "uses": [],
+                    "data_flow": [],
+                    "control_flow": [],
+                    "cfg_blocks": [],
+                }
+            },
+            "analysis": {
+                "missing_context": [],
+                "completeness": {},
+            },
+        }
+    }
+
+    state_view = build_state_view(artifact)
+    operation_view = build_operation_view(artifact)
+
+    assert state_view["target"] == {
+        "available": True,
+        "name": "example",
+        "start_line": 1,
+        "end_line": 3,
+        "body_available": True,
+    }
+    assert "helper_call_context" not in operation_view
 
 
 def test_state_agent_reads_brain_context_and_uses_cache(
@@ -787,11 +819,7 @@ def test_agent_llm_config_and_tools_are_allowlisted(tmp_path) -> None:
                     ]
                 }
             },
-            "analysis": {
-                "context_facts": {
-                    "target": "forbidden",
-                }
-            },
+            "analysis": {},
         },
     }
 
@@ -802,7 +830,7 @@ def test_agent_llm_config_and_tools_are_allowlisted(tmp_path) -> None:
         allowed_tools=config.allowed_tools,
     )
     rejected = run_agent_tool(
-        name="get_context_facts",
+        name="get_limitations",
         arguments={},
         artifact=artifact,
         allowed_tools=config.allowed_tools,
@@ -1323,10 +1351,8 @@ def test_interactive_inspect_dataset_outputs_json(
             "test",
             "2",
             "2",
-            "1",
             "json",
             "",
-            "n",
             "1",
         ]
     )
@@ -1592,209 +1618,10 @@ def test_dataset_stage_summary_groups_one_row_per_sample() -> None:
 
     assert len(rows) == 1
     assert rows[0]["sample_id"] == "sample_000000"
-    assert rows[0]["source"] == "missing"
-    assert rows[0]["context"] == "missing"
+    assert rows[0]["source"] == "available"
     assert rows[0]["ast"] == "missing"
     assert rows[0]["cfg"] == "missing"
     assert rows[0]["data_flow"] == "missing"
-    assert rows[0]["cpg"] == "missing"
-    assert rows[0]["dataset"].startswith("100.0% missing:")
-
-
-def test_dataset_stage_summary_reports_dataset_context_gaps() -> None:
-    payload = {
-        "samples": [
-            {
-                "sample_id": "sample_000000",
-                "status": "partial",
-                "analysis": {
-                    "source_context": {
-                        "file_context_available": True,
-                        "resolved_file_available": True,
-                        "compile_context": {
-                            "whole_file_available": True,
-                            "project_headers_available": False,
-                            "compile_commands_available": False,
-                            "include_paths_available": False,
-                            "macros_available": "partial",
-                        },
-                        "target_function": {
-                            "body_available": True,
-                            "indexed": True,
-                        },
-                        "file_function_index": {
-                            "available": True,
-                        },
-                        "call_context": {
-                            "available": True,
-                        },
-                    },
-                    "context_facts": {
-                        "available": True,
-                    },
-                },
-            }
-        ]
-    }
-
-    rows = _dataset_stage_summary_rows(payload)
-
-    assert rows[0]["dataset"] == (
-        "40.0% missing: headers, compile_commands, include_paths, macros"
-    )
-
-
-def test_dataset_context_coverage_reports_aggregate_percent_inputs() -> None:
-    payload = {
-        "samples": [
-            {
-                "analysis": {
-                    "source_context": {
-                        "file_context_available": True,
-                        "resolved_file_available": True,
-                        "compile_context": {
-                            "whole_file_available": True,
-                            "project_headers_available": False,
-                            "compile_commands_available": False,
-                            "include_paths_available": False,
-                            "macros_available": "partial",
-                        },
-                        "target_function": {
-                            "body_available": True,
-                            "indexed": True,
-                        },
-                        "file_function_index": {
-                            "available": True,
-                        },
-                        "call_context": {
-                            "available": True,
-                        },
-                    },
-                },
-            },
-            {
-                "analysis": {
-                    "source_context": {
-                        "file_context_available": False,
-                        "resolved_file_available": False,
-                        "compile_context": {
-                            "whole_file_available": False,
-                            "project_headers_available": False,
-                            "compile_commands_available": False,
-                            "include_paths_available": False,
-                            "macros_available": "partial",
-                        },
-                        "target_function": {
-                            "body_available": False,
-                            "indexed": False,
-                        },
-                        "file_function_index": {
-                            "available": False,
-                        },
-                        "call_context": {
-                            "available": False,
-                        },
-                    },
-                },
-            },
-        ]
-    }
-
-    coverage = dict(_dataset_context_coverage(payload))
-
-    assert coverage["file_info"] == 1
-    assert coverage["whole_file"] == 1
-    assert coverage["target_index"] == 1
-    assert coverage["headers"] == 0
-
-
-def test_dataset_context_split_coverage_uses_full_context_file(tmp_path) -> None:
-    dataset_root = tmp_path / "dataset"
-    context_dir = dataset_root / "context"
-    context_dir.mkdir(parents=True)
-
-    (context_dir / "test.jsonl").write_text(
-        "\n".join(
-            json.dumps(record)
-            for record in [
-                {
-                    "sample_id": "sample_000000",
-                    "file_context_available": True,
-                    "resolved_file_available": True,
-                    "compile_context": {
-                        "whole_file_available": True,
-                        "project_headers_available": False,
-                        "compile_commands_available": False,
-                        "include_paths_available": False,
-                        "macros_available": "partial",
-                    },
-                    "target_function": {
-                        "body_available": True,
-                        "indexed": True,
-                    },
-                    "file_function_index": {
-                        "available": True,
-                    },
-                    "call_context": {
-                        "available": True,
-                    },
-                },
-                {
-                    "sample_id": "sample_000001",
-                    "file_context_available": False,
-                    "resolved_file_available": False,
-                    "compile_context": {
-                        "whole_file_available": False,
-                        "project_headers_available": False,
-                        "compile_commands_available": False,
-                        "include_paths_available": False,
-                        "macros_available": "partial",
-                    },
-                    "target_function": {
-                        "body_available": False,
-                        "indexed": False,
-                    },
-                    "file_function_index": {
-                        "available": False,
-                    },
-                    "call_context": {
-                        "available": False,
-                    },
-                },
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    config_file = tmp_path / "config.yaml"
-    config_file.write_text(
-        "\n".join(
-            [
-                "datasets:",
-                "  local:",
-                f"    root: {dataset_root.as_posix()}",
-            ]
-        ),
-        encoding="utf-8",
-    )
-
-    from vulsor.config import load_config
-
-    coverage = _dataset_context_split_coverage(
-        load_config(config_file),
-        "local",
-        "test",
-    )
-
-    counts = dict(coverage["coverage"])
-
-    assert coverage["available"] is True
-    assert coverage["count"] == 2
-    assert counts["file_info"] == 1
-    assert counts["whole_file"] == 1
-    assert counts["target_index"] == 1
-    assert counts["headers"] == 0
 
 
 def test_stage_coverage_is_dynamic_from_sample_statuses() -> None:
@@ -1803,19 +1630,10 @@ def test_stage_coverage_is_dynamic_from_sample_statuses() -> None:
             {
                 "status": "partial",
                 "analysis": {
-                    "source_context": {
-                        "selected_source": "function_snippet",
-                    },
-                    "context_facts": {
-                        "available": True,
-                    },
                     "completeness": {
                         "ast": {"status": "recovered"},
                         "cfg": {"status": "missing"},
                         "data_flow": {"status": "limited"},
-                    },
-                    "cpg_facts": {
-                        "status": "available",
                     },
                 },
             },
@@ -1829,100 +1647,10 @@ def test_stage_coverage_is_dynamic_from_sample_statuses() -> None:
 
     assert coverage == {
         "source": 1,
-        "context": 1,
         "ast": 1,
         "cfg": 0,
         "data_flow": 1,
-        "cpg": 1,
     }
-
-
-def test_stage_vs_dataset_coverage_uses_extracted_facts_and_context() -> None:
-    payload = {
-        "samples": [
-            {
-                "status": "partial",
-                "result": {
-                    "program_facts": {
-                        "functions": [{"name": "f"}],
-                        "cfg_blocks": [],
-                        "data_flow": [{"id": "df"}],
-                        "call_graph": [{"id": "cg"}],
-                    }
-                },
-                "analysis": {
-                    "source_context": {
-                        "file_context_available": True,
-                        "resolved_file_available": True,
-                        "target_function": {
-                            "body_available": True,
-                            "indexed": True,
-                        },
-                        "file_function_index": {
-                            "available": True,
-                        },
-                        "call_context": {
-                            "available": True,
-                        },
-                    },
-                    "completeness": {
-                        "ast": {"status": "recovered"},
-                        "cfg": {"status": "missing"},
-                        "data_flow": {"status": "limited"},
-                    },
-                    "cpg_facts": {
-                        "status": "available",
-                    },
-                },
-            },
-            {
-                "status": "partial",
-                "result": {
-                    "program_facts": {
-                        "functions": [],
-                        "cfg_blocks": [],
-                        "data_flow": [],
-                        "call_graph": [],
-                    }
-                },
-                "analysis": {
-                    "source_context": {
-                        "file_context_available": True,
-                        "resolved_file_available": True,
-                        "target_function": {
-                            "body_available": True,
-                            "indexed": True,
-                        },
-                        "file_function_index": {
-                            "available": True,
-                        },
-                        "call_context": {
-                            "available": False,
-                        },
-                    },
-                    "completeness": {
-                        "ast": {"status": "missing"},
-                        "cfg": {"status": "missing"},
-                        "data_flow": {"status": "missing"},
-                    },
-                    "cpg_facts": {
-                        "status": "not_requested",
-                    },
-                },
-            },
-        ]
-    }
-
-    coverage = {
-        label: (count, total)
-        for label, count, total in _stage_vs_dataset_coverage(payload)
-    }
-
-    assert coverage["ast/target_body"] == (1, 2)
-    assert coverage["cfg/target_index"] == (0, 2)
-    assert coverage["data_flow/target_index"] == (1, 2)
-    assert coverage["call_graph/call_context"] == (1, 1)
-    assert coverage["cpg/call_context"] == (1, 1)
 
 
 def test_dataset_inspection_text_format_is_plain_sections() -> None:
@@ -1933,22 +1661,6 @@ def test_dataset_inspection_text_format_is_plain_sections() -> None:
         "brain_context": {
             "artifact_dir": "brain_context/local/test",
             "count": 1,
-        },
-        "dataset_context_split": {
-            "available": True,
-            "count": 2,
-            "coverage": [
-                ("file_info", 1),
-                ("whole_file", 1),
-                ("target_body", 1),
-                ("target_index", 1),
-                ("file_index", 1),
-                ("call_context", 1),
-                ("headers", 0),
-                ("compile_commands", 0),
-                ("include_paths", 0),
-                ("macros", 0),
-            ],
         },
         "samples": [
             {
@@ -1964,31 +1676,6 @@ def test_dataset_inspection_text_format_is_plain_sections() -> None:
                     }
                 },
                 "analysis": {
-                    "source_context": {
-                        "selected_source": "function_snippet",
-                        "file_context_available": True,
-                        "resolved_file_available": True,
-                        "compile_context": {
-                            "whole_file_available": True,
-                            "project_headers_available": False,
-                            "compile_commands_available": False,
-                            "include_paths_available": False,
-                            "macros_available": "partial",
-                        },
-                        "target_function": {
-                            "body_available": True,
-                            "indexed": True,
-                        },
-                        "file_function_index": {
-                            "available": True,
-                        },
-                        "call_context": {
-                            "available": True,
-                        },
-                    },
-                    "context_facts": {
-                        "available": True,
-                    },
                     "completeness": {
                         "ast": {
                             "status": "recovered",
@@ -2003,14 +1690,11 @@ def test_dataset_inspection_text_format_is_plain_sections() -> None:
                             "reason": "syntactic data-flow was built from recovered AST facts",
                         },
                     },
-                    "cpg_facts": {
-                        "status": "not_requested",
-                    },
                     "build_diagnosis": {
                         "issues": [
                             {
                                 "component": "cfg",
-                                "classification": "dataset_compile_context_missing",
+                                "classification": "function_analysis_cfg_missing",
                                 "fixable": True,
                                 "message": "headers are unavailable",
                             }
@@ -2030,11 +1714,7 @@ def test_dataset_inspection_text_format_is_plain_sections() -> None:
     output = _format_dataset_inspection_text(payload)
 
     assert "Summary:" in output
-    assert "Dataset context selected:" in output
-    assert "Dataset context split (2 samples):" in output
-    assert "file_info 1 (50.0%)" in output
     assert "Stage coverage:" in output
-    assert "Stage vs dataset:" in output
     assert "sample_000000 [partial]" in output
     assert "artifact:" in output
     assert "sample_000000.json" in output
@@ -2042,10 +1722,9 @@ def test_dataset_inspection_text_format_is_plain_sections() -> None:
     assert "stage_details:" in output
     assert "facts:" in output
     assert "operations=1" in output
-    assert "dataset_context:" in output
     assert "missing_symbols: unique=2" in output
     assert "root_causes:" in output
-    assert "dataset_compile_context_missing" in output
+    assert "function_analysis_cfg_missing" in output
     assert "diagnostics:" in output
     assert "Stage Summary" not in output
     assert "┏" not in output
@@ -2073,355 +1752,6 @@ def test_dataset_inspection_text_separates_sample_blocks() -> None:
     output = _format_dataset_inspection_text(payload)
 
     assert "\n\n- sample_000001 [error]" in output
-
-
-def test_context_facts_summarize_updated_context() -> None:
-    context_facts = _context_facts(
-        {
-            "target_function": {
-                "name": "example",
-                "start_line": 4,
-                "end_line": 8,
-                "indexed": True,
-                "body_available": True,
-            },
-            "file_function_index": {
-                "available": True,
-                "function_count": 3,
-                "functions": [
-                    {"name": "helper"},
-                    {"name": "example"},
-                    {"name": "caller"},
-                ],
-            },
-            "call_context": {
-                "available": True,
-                "scope": "same_file",
-                "direct_callees": [
-                    {
-                        "name": "helper",
-                        "body_available": True,
-                    },
-                    {
-                        "name": "external_call",
-                        "body_available": False,
-                    },
-                ],
-                "direct_callers": [
-                    {"name": "caller"},
-                ],
-                "limitations": [
-                    "same-file heuristic only",
-                ],
-            },
-        }
-    )
-
-    assert context_facts["available"] is True
-    assert context_facts["target"]["name"] == "example"
-    assert context_facts["same_file_index"]["function_count"] == 3
-    assert (
-        context_facts["same_file_call_context"]["direct_callee_count"]
-        == 2
-    )
-    assert (
-        context_facts["same_file_call_context"][
-            "direct_callee_body_count"
-        ]
-        == 1
-    )
-    assert (
-        context_facts["same_file_call_context"]["direct_caller_count"]
-        == 1
-    )
-    assert "not a vulnerability label" in context_facts["trust_boundary"]
-
-
-def test_compile_context_builds_clang_args() -> None:
-    args = _clang_args_from_compile_context(
-        {
-            "include_paths": [
-                "include",
-            ],
-            "system_include_paths": [
-                "system",
-            ],
-            "macros": {
-                "ENABLE_FEATURE": True,
-                "SIZE": 16,
-            },
-            "defines": [
-                "LOCAL_ONLY",
-            ],
-            "undefines": [
-                "OLD_FLAG",
-            ],
-            "extra_clang_args": [
-                "-std=c11",
-            ],
-        }
-    )
-
-    assert args == (
-        "-Iinclude",
-        "-isystemsystem",
-        "-DENABLE_FEATURE",
-        "-DSIZE=16",
-        "-DLOCAL_ONLY",
-        "-UOLD_FLAG",
-        "-std=c11",
-    )
-
-
-@pytest.mark.skipif(
-    shutil.which("joern") is None or shutil.which("c2cpg") is None,
-    reason="Joern/c2cpg is not installed",
-)
-def test_inspect_dataset_can_include_real_cpg_facts(
-    tmp_path,
-    capsys,
-) -> None:
-    dataset_root = tmp_path / "dataset"
-    input_dir = dataset_root / "inputs"
-    input_dir.mkdir(parents=True)
-
-    (input_dir / "test.jsonl").write_text(
-        json.dumps(
-            {
-                "sample_id": "sample_000000",
-                "code": "int foo(int value) { return value + 1; }\n",
-            }
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    config_file = tmp_path / "config.yaml"
-    config_file.write_text(
-        "\n".join(
-            [
-                "datasets:",
-                "  local:",
-                f"    root: {dataset_root.as_posix()}",
-            ]
-        ),
-        encoding="utf-8",
-    )
-
-    result = main(
-        [
-            "inspect",
-            "--config",
-            str(config_file),
-            "--dataset",
-            "local",
-            "--split",
-            "test",
-            "--limit",
-            "1",
-            "--cpg",
-            "--format",
-            "json",
-            "--brain-context-dir",
-            str(tmp_path / "brain_context"),
-        ]
-    )
-
-    output = json.loads(capsys.readouterr().out)
-    cpg_facts = output["samples"][0]["analysis"]["cpg_facts"]
-
-    assert result == 0
-    assert cpg_facts["status"] == "available"
-    assert cpg_facts["method_count"] > 0
-    assert cpg_facts["call_count"] > 0
-    assert any(
-        method["name"] == "foo"
-        for method in cpg_facts["methods"]
-    )
-    assert cpg_facts["trust_boundary"].startswith("real CPG facts")
-
-
-def test_inspect_dataset_auto_uses_whole_file_context(
-    tmp_path,
-    capsys,
-) -> None:
-    dataset_root = tmp_path / "dataset"
-    input_dir = dataset_root / "inputs"
-    context_dir = dataset_root / "context"
-    raw_dir = tmp_path / "raw"
-    input_dir.mkdir(parents=True)
-    context_dir.mkdir()
-    raw_dir.mkdir()
-
-    whole_file = raw_dir / "example.c"
-    whole_file.write_text(
-        "\n".join(
-            [
-                "typedef int ProjectType;",
-                "typedef int ProjectObject;",
-                "enum { ProjectFalse = 0 };",
-                "static ProjectType example(ProjectObject *object) {",
-                "    return ProjectFalse;",
-                "}",
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    (input_dir / "test.jsonl").write_text(
-        json.dumps(
-            {
-                "sample_id": "sample_000000",
-                "code": (
-                    "static ProjectType example(ProjectObject *object) {\n"
-                    "    return ProjectFalse;\n"
-                    "}\n"
-                ),
-            }
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    (context_dir / "test.jsonl").write_text(
-        json.dumps(
-            {
-                "sample_id": "sample_000000",
-                "analysis_scope": "function",
-                "source_kind": "function_snippet",
-                "file_context_available": True,
-                "resolved_file_available": True,
-                "resolved_file_content_path": whole_file.as_posix(),
-                "file_name": "example.c",
-                "original_file_path": "src/example.c",
-                "function_start_line": 4,
-                "function_end_line": 6,
-                "target_function": {
-                    "name": "example",
-                    "start_line": 4,
-                    "end_line": 6,
-                    "body_available": True,
-                    "indexed": True,
-                },
-                "file_function_index": {
-                    "available": True,
-                    "function_count": 1,
-                    "functions": [
-                        {
-                            "name": "example",
-                            "start_line": 4,
-                            "end_line": 6,
-                            "direct_call_count": 0,
-                        }
-                    ],
-                },
-                "call_context": {
-                    "available": True,
-                    "scope": "same_file",
-                    "direct_callees": [],
-                    "direct_callers": [],
-                    "limitations": [
-                        "same-file heuristic only",
-                    ],
-                },
-                "compile_context": {
-                    "whole_file_available": True,
-                    "project_headers_available": False,
-                    "compile_commands_available": False,
-                    "include_paths_available": False,
-                    "macros_available": "partial",
-                },
-            }
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    config_file = tmp_path / "config.yaml"
-    config_file.write_text(
-        "\n".join(
-            [
-                "datasets:",
-                "  local:",
-                f"    root: {dataset_root.as_posix()}",
-            ]
-        ),
-        encoding="utf-8",
-    )
-
-    result = main(
-        [
-            "inspect",
-            "--config",
-            str(config_file),
-            "--dataset",
-            "local",
-            "--split",
-            "test",
-            "--limit",
-            "1",
-            "--analysis-scope",
-            "auto",
-            "--format",
-            "json",
-            "--brain-context-dir",
-            str(tmp_path / "brain_context"),
-        ]
-    )
-
-    output = json.loads(capsys.readouterr().out)
-    sample = output["samples"][0]
-
-    assert result == 0
-    assert sample["analysis"]["source_context"]["selected_source"] == (
-        "whole_file"
-    )
-    assert sample["analysis"]["source_context"]["target_line_range"] == {
-        "start": 4,
-        "end": 6,
-    }
-    assert sample["analysis"]["build_diagnosis"]["issues"][0][
-        "classification"
-    ] == "function_range_cfg_omitted"
-    assert sample["analysis"]["context_facts"]["target"]["name"] == (
-        "example"
-    )
-    assert sample["analysis"]["context_facts"][
-        "same_file_call_context"
-    ]["available"] is True
-    assert sample["analysis"]["missing_context"] == []
-    assert sample["result"]["program_facts"]["functions"][0]["name"] == (
-        "example"
-    )
-
-
-def test_build_diagnosis_flags_compile_context_not_applied() -> None:
-    analysis = analyze_source_code_tolerant(
-        (
-            "static int example(int value) {\n"
-            "    ProjectType missing;\n"
-            "    return value;\n"
-            "}\n"
-        ),
-        scope="function",
-    )
-
-    diagnosis = _build_diagnosis(
-        analysis,
-        {
-            "resolved_file_available": True,
-            "compile_context": {
-                "compile_commands_available": True,
-                "include_paths_available": True,
-                "macros_available": True,
-            },
-        },
-    )
-
-    assert any(
-        issue["classification"] == "pipeline_context_not_applied"
-        for issue in diagnosis["issues"]
-    )
 
 
 # ---------------------------------------------------------------------------

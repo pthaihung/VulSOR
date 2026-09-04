@@ -41,7 +41,6 @@ from vulsor.pipeline import PipelineResult, STAGE_ORDER, Stage, run_pipeline
 from vulsor.analysis.program import (
     ProgramAnalysisResult,
     analyze_source_code_tolerant,
-    focus_analysis_on_line_range,
 )
 from vulsor.agents.BaseAgent import (
     SEMANTIC_AGENTS,
@@ -49,7 +48,6 @@ from vulsor.agents.BaseAgent import (
     run_semantic_agent_for_manifest,
     run_semantic_merge_for_manifest,
 )
-from vulsor.tools.joern import JoernAdapter
 from vulsor.ui.console import (
     MenuAction,
     clear_screen,
@@ -246,22 +244,6 @@ def _add_inspect_parser(
         type=int,
         default=0,
         help="Skip the first N dataset samples before inspection.",
-    )
-
-    sp.add_argument(
-        "--analysis-scope",
-        choices=["auto", "function", "file"],
-        default="auto",
-        help=(
-            "Dataset analysis scope. 'auto' uses whole-file context "
-            "when available and falls back to the clean function snippet."
-        ),
-    )
-
-    sp.add_argument(
-        "--cpg",
-        action="store_true",
-        help="Also run Joern/c2cpg and include real CPG method/call facts.",
     )
 
     sp.add_argument(
@@ -817,43 +799,14 @@ def _format_dataset_inspection_text(payload: dict) -> str:
             f"- {_count_with_percent('complete', counts.get('ok', 0), total)}",
             f"- {_count_with_percent('partial', counts.get('partial', 0), total)}",
             f"- {_count_with_percent('stopped', counts.get('error', 0), total)}",
-            "",
-            "Dataset context selected:",
         ]
     )
-    lines.extend(
-        f"- {_count_with_percent(label, count, total)}"
-        for label, count in _dataset_context_coverage(payload)
-    )
-    split_coverage = _payload_split_context_coverage(payload)
-
-    if split_coverage:
-        split_total = int(
-            payload.get("dataset_context_split", {}).get("count", 0)
-            or 0
-        )
-        lines.extend(["", f"Dataset context split ({split_total} samples):"])
-        lines.extend(
-            f"- {_count_with_percent(label, count, split_total)}"
-            for label, count in split_coverage
-        )
 
     lines.extend(["", "Stage coverage:"])
     lines.extend(
         f"- {_count_with_percent(label, count, total)}"
         for label, count in _stage_coverage(payload)
     )
-    lines.extend(["", "Stage vs dataset:"])
-    stage_vs_dataset = _stage_vs_dataset_coverage(payload)
-
-    if stage_vs_dataset:
-        lines.extend(
-            f"- {_count_with_percent(label, count, dataset_total)}"
-            for label, count, dataset_total in stage_vs_dataset
-        )
-    else:
-        lines.append("- none")
-
     lines.extend(["", "Samples:"])
 
     artifact_by_sample = _brain_context_artifact_map(payload)
@@ -883,7 +836,6 @@ def _format_dataset_sample_text(
         "sample_id": str(sample.get("sample_id", "-")),
         "status": str(sample.get("status", "unknown")),
         **_sample_stage_statuses(sample),
-        "dataset": _dataset_context_gap_text(sample),
     }
     facts = _sample_program_facts(sample)
     analysis = sample.get("analysis", {})
@@ -891,34 +843,25 @@ def _format_dataset_sample_text(
     if not isinstance(analysis, dict):
         analysis = {}
 
-    source_context = analysis.get("source_context", {})
-    context_facts = analysis.get("context_facts", {})
-    cpg_facts = analysis.get("cpg_facts", {})
     completeness = analysis.get("completeness", {})
     build_diagnosis = analysis.get("build_diagnosis", {})
     missing_summary = analysis.get("missing_context_summary", {})
     diagnostics = list(sample.get("diagnostics", ()))
-    missing, _total = _dataset_context_gaps(sample)
     lines = [
         f"- {row['sample_id']} [{row['status']}]",
         "  table_row: "
         f"source={row['source']}, "
-        f"context={row['context']}, "
         f"ast={row['ast']}, "
         f"cfg={row['cfg']}, "
-        f"data_flow={row['data_flow']}, "
-        f"cpg={row['cpg']}, "
-        f"dataset={row['dataset']}",
+        f"data_flow={row['data_flow']}",
         "  stage_details:",
-        f"  - source: {row['source']} ({_source_detail(source_context)})",
-        f"  - context: {row['context']} ({_context_detail(context_facts)})",
+        f"  - source: {row['source']} (function snippet)",
         f"  - ast: {row['ast']}{_stage_reason_text(completeness, 'ast')}",
         f"  - cfg: {row['cfg']}{_stage_reason_text(completeness, 'cfg')}",
         (
             f"  - data_flow: {row['data_flow']}"
             f"{_stage_reason_text(completeness, 'data_flow')}"
         ),
-        f"  - cpg: {row['cpg']} ({_cpg_detail(cpg_facts)})",
         "  facts:",
         (
             "  - "
@@ -928,19 +871,10 @@ def _format_dataset_sample_text(
             f"data_flow={len(facts.get('data_flow', ()))}, "
             f"call_graph={len(facts.get('call_graph', ()))}"
         ),
-        "  dataset_context:",
     ]
 
     if artifact_path:
         lines.insert(1, f"  artifact: {artifact_path}")
-
-    lines.extend(
-        f"  - {label}: {'available' if available else 'missing'}"
-        for label, available in _dataset_context_checks(sample)
-    )
-
-    if missing:
-        lines.append(f"  - missing_factors: {', '.join(missing)}")
 
     if isinstance(missing_summary, dict) and missing_summary:
         lines.append(
@@ -976,53 +910,6 @@ def _render_json_output(output: str) -> None:
     )
 
 
-def _source_detail(source_context: dict) -> str:
-    """Return detailed text for the source stage."""
-    if not isinstance(source_context, dict) or not source_context:
-        return "no source context metadata"
-
-    selected = source_context.get("selected_source") or "not selected"
-    requested = source_context.get("requested_scope") or "unknown"
-    fallback = source_context.get("fallback_reason")
-
-    parts = [
-        f"requested_scope={requested}",
-        f"selected_source={selected}",
-    ]
-
-    if fallback:
-        parts.append(f"fallback_reason={fallback}")
-
-    return "; ".join(parts)
-
-
-def _context_detail(context_facts: dict) -> str:
-    """Return detailed text for the context stage."""
-    if not isinstance(context_facts, dict) or not context_facts.get("available"):
-        return "no usable context facts"
-
-    target = context_facts.get("target", {})
-    file_index = context_facts.get("same_file_index", {})
-    call_context = context_facts.get("same_file_call_context", {})
-
-    if not isinstance(target, dict):
-        target = {}
-
-    if not isinstance(file_index, dict):
-        file_index = {}
-
-    if not isinstance(call_context, dict):
-        call_context = {}
-
-    return (
-        f"target={target.get('name') or 'unknown'}; "
-        f"same_file_functions={file_index.get('function_count', 0)}; "
-        f"callees={call_context.get('direct_callee_count', 0)}; "
-        f"callee_bodies={call_context.get('direct_callee_body_count', 0)}; "
-        f"callers={call_context.get('direct_caller_count', 0)}"
-    )
-
-
 def _stage_reason_text(completeness: dict, key: str) -> str:
     """Return a readable reason for an analysis pass status."""
     reason = _pass_reason(completeness, key)
@@ -1044,22 +931,6 @@ def _pass_reason(completeness: dict, key: str) -> str:
         return str(value.get("reason") or "")
 
     return str(getattr(value, "reason", "") or "")
-
-
-def _cpg_detail(cpg_facts: dict) -> str:
-    """Return detailed text for the CPG stage."""
-    if not isinstance(cpg_facts, dict) or not cpg_facts:
-        return "no CPG metadata"
-
-    status = cpg_facts.get("status") or "missing"
-    methods = cpg_facts.get("method_count", 0)
-    calls = cpg_facts.get("call_count", 0)
-    diagnostics = cpg_facts.get("diagnostics", ())
-
-    return (
-        f"status={status}; methods={methods}; calls={calls}; "
-        f"diagnostics={len(diagnostics) if isinstance(diagnostics, (list, tuple)) else 0}"
-    )
 
 
 def _format_build_diagnosis_text(build_diagnosis: dict) -> list[str]:
@@ -1163,11 +1034,9 @@ def _render_dataset_inspection(
     table.add_column("Sample", style="bold")
     table.add_column("Status")
     table.add_column("Source")
-    table.add_column("Context")
     table.add_column("AST")
     table.add_column("CFG")
     table.add_column("Data Flow")
-    table.add_column("CPG")
     table.add_column("Message")
 
     for sample in payload["samples"]:
@@ -1176,11 +1045,9 @@ def _render_dataset_inspection(
             sample["sample_id"],
             _status_markup(sample["status"]),
             _status_markup(stages["source"]),
-            _status_markup(stages["context"]),
             _status_markup(stages["ast"]),
             _status_markup(stages["cfg"]),
             _status_markup(stages["data_flow"]),
-            _status_markup(stages["cpg"]),
             _analysis_message(sample),
         )
 
@@ -1196,40 +1063,19 @@ def _sample_stage_statuses(sample: dict) -> dict[str, str]:
     if sample.get("status") == "error":
         return {
             "source": "error",
-            "context": "skip",
             "ast": "skip",
             "cfg": "skip",
             "data_flow": "skip",
-            "cpg": "skip",
         }
 
     analysis = sample.get("analysis", {})
     completeness = analysis.get("completeness", {})
-    source_context = analysis.get("source_context", {})
-    context_facts = analysis.get("context_facts", {})
-    cpg_facts = analysis.get("cpg_facts", {})
-
-    source_status = "available"
-    if isinstance(source_context, dict):
-        if source_context.get("fallback_reason"):
-            source_status = "limited"
-        elif not source_context.get("selected_source"):
-            source_status = "missing"
-
-    context_status = "missing"
-    if isinstance(context_facts, dict):
-        if context_facts.get("available"):
-            context_status = "available"
-        elif source_status == "available":
-            context_status = "empty"
 
     return {
-        "source": source_status,
-        "context": context_status,
+        "source": "available",
         "ast": _pass_status(completeness, "ast"),
         "cfg": _pass_status(completeness, "cfg"),
         "data_flow": _pass_status(completeness, "data_flow"),
-        "cpg": _cpg_stage_status(cpg_facts),
     }
 
 
@@ -1244,19 +1090,6 @@ def _pass_status(completeness: dict, key: str) -> str:
         return str(value.get("status") or "missing")
 
     return str(getattr(value, "status", "missing") or "missing")
-
-
-def _cpg_stage_status(cpg_facts: dict) -> str:
-    """Return the compact Joern/CPG stage status."""
-    if not isinstance(cpg_facts, dict):
-        return "missing"
-
-    status = str(cpg_facts.get("status") or "missing")
-
-    if status == "not_requested":
-        return "skip"
-
-    return status
 
 
 def _status_markup(status: str) -> str:
@@ -1313,37 +1146,6 @@ def _render_dataset_issue_summary(payload: dict) -> None:
         f"  - {_summary_ratio_text('partial', counts.get('partial', 0), total)}",
         f"  - {_summary_ratio_text('stopped', counts.get('error', 0), total)}",
     ]
-    dataset_coverage = _dataset_context_coverage(payload)
-
-    if dataset_coverage:
-        summary_lines.extend(
-            [
-                "",
-                *_summary_metric_lines(
-                    "Dataset context - selected samples",
-                    dataset_coverage,
-                    total,
-                ),
-            ]
-        )
-    split_coverage = _payload_split_context_coverage(payload)
-
-    if split_coverage:
-        split_total = int(
-            payload.get("dataset_context_split", {}).get("count", 0)
-            or 0
-        )
-        summary_lines.extend(
-            [
-                "",
-                *_summary_metric_lines(
-                    f"Dataset context - full split ({split_total} samples)",
-                    split_coverage,
-                    split_total,
-                ),
-            ]
-        )
-
     stage_coverage = _stage_coverage(payload)
 
     if stage_coverage:
@@ -1355,20 +1157,6 @@ def _render_dataset_issue_summary(payload: dict) -> None:
                     stage_coverage,
                     total,
                 ),
-            ]
-        )
-
-    stage_vs_dataset = _stage_vs_dataset_coverage(payload)
-
-    if stage_vs_dataset:
-        summary_lines.extend(
-            [
-                "",
-                "Stage facts vs available dataset context",
-                *[
-                    f"  - {_summary_ratio_text(label, count, dataset_total)}"
-                    for label, count, dataset_total in stage_vs_dataset
-                ],
             ]
         )
 
@@ -1396,23 +1184,17 @@ def _render_dataset_issue_summary(payload: dict) -> None:
     issue_table = Table(title="Stage Summary", show_lines=True)
     issue_table.add_column("Sample", style="bold", no_wrap=True)
     issue_table.add_column("Source")
-    issue_table.add_column("Context")
     issue_table.add_column("AST")
     issue_table.add_column("CFG")
     issue_table.add_column("Data Flow")
-    issue_table.add_column("CPG")
-    issue_table.add_column("Dataset")
 
     for row in stage_summaries:
         issue_table.add_row(
             row["sample_id"],
             _status_markup(row["source"]),
-            _status_markup(row["context"]),
             _status_markup(row["ast"]),
             _status_markup(row["cfg"]),
             _status_markup(row["data_flow"]),
-            _status_markup(row["cpg"]),
-            row["dataset"],
         )
 
     console.print(issue_table)
@@ -1427,7 +1209,6 @@ def _dataset_stage_summary_rows(payload: dict) -> list[dict[str, str]]:
             "sample_id": str(sample.get("sample_id", "-")),
             "status": str(sample.get("status", "unknown")),
             **_sample_stage_statuses(sample),
-            "dataset": _dataset_context_gap_text(sample),
         }
         rows.append(row)
 
@@ -1455,105 +1236,13 @@ def _count_with_percent(label: str, count: int, total: int) -> str:
     return f"{label} {count} ({percent:.1f}%)"
 
 
-def _dataset_context_coverage(payload: dict) -> list[tuple[str, int]]:
-    """Return aggregate dataset-context coverage for inspected samples."""
-    counts = {
-        label: 0
-        for label, _available in _dataset_context_checks({})
-    }
-
-    for sample in payload.get("samples", ()):
-        for label, available in _dataset_context_checks(sample):
-            if available:
-                counts[label] += 1
-
-    return list(counts.items())
-
-
-def _dataset_context_split_coverage(
-    config: VulSORConfig,
-    dataset_name: str,
-    split: str,
-) -> dict:
-    """Return dataset-context coverage across the full configured split."""
-    dataset = config.datasets.get(dataset_name)
-
-    if dataset is None:
-        return {
-            "available": False,
-            "reason": "dataset is not configured",
-        }
-
-    context_file = dataset.root / "context" / f"{split}.jsonl"
-
-    if not context_file.is_file():
-        return {
-            "available": False,
-            "reason": f"context sidecar not found: {context_file}",
-        }
-
-    counts = {
-        label: 0
-        for label, _available in _dataset_context_checks({})
-    }
-    total = 0
-
-    with context_file.open("r", encoding="utf-8") as handle:
-        for line_number, line in enumerate(handle, start=1):
-            if not line.strip():
-                continue
-
-            try:
-                record = json.loads(line)
-            except json.JSONDecodeError as exc:
-                raise ValueError(
-                    f"Invalid JSONL record at {context_file}:{line_number}"
-                ) from exc
-
-            sample = {
-                "analysis": {
-                    "source_context": record,
-                    "context_facts": _context_facts(record),
-                }
-            }
-            total += 1
-
-            for label, available in _dataset_context_checks(sample):
-                if available:
-                    counts[label] += 1
-
-    return {
-        "available": True,
-        "path": str(context_file),
-        "count": total,
-        "coverage": list(counts.items()),
-    }
-
-
-def _payload_split_context_coverage(payload: dict) -> list[tuple[str, int]]:
-    """Return full-split dataset coverage embedded in a payload."""
-    split_context = payload.get("dataset_context_split", {})
-
-    if not isinstance(split_context, dict) or not split_context.get("available"):
-        return []
-
-    coverage = split_context.get("coverage", ())
-
-    return [
-        (str(label), int(count))
-        for label, count in coverage
-    ]
-
-
 def _stage_coverage(payload: dict) -> list[tuple[str, int]]:
     """Return aggregate stage coverage for inspected samples."""
     counts = {
         "source": 0,
-        "context": 0,
         "ast": 0,
         "cfg": 0,
         "data_flow": 0,
-        "cpg": 0,
     }
 
     for sample in payload.get("samples", ()):
@@ -1569,54 +1258,6 @@ def _stage_coverage(payload: dict) -> list[tuple[str, int]]:
 def _stage_counts_as_available(status: str) -> bool:
     """Return true when a stage produced usable facts."""
     return status in {"available", "limited", "recovered", "partial", "empty"}
-
-
-def _stage_vs_dataset_coverage(payload: dict) -> list[tuple[str, int, int]]:
-    """Return B1 fact coverage over samples where dataset context exists."""
-    counters = {
-        "ast/target_body": [0, 0],
-        "cfg/target_index": [0, 0],
-        "data_flow/target_index": [0, 0],
-        "call_graph/call_context": [0, 0],
-        "cpg/call_context": [0, 0],
-    }
-
-    for sample in payload.get("samples", ()):
-        checks = dict(_dataset_context_checks(sample))
-        facts = _sample_program_facts(sample)
-        statuses = _sample_stage_statuses(sample)
-
-        if checks.get("target_body"):
-            counters["ast/target_body"][1] += 1
-
-            if facts and facts.get("functions"):
-                counters["ast/target_body"][0] += 1
-
-        if checks.get("target_index"):
-            counters["cfg/target_index"][1] += 1
-            counters["data_flow/target_index"][1] += 1
-
-            if facts and facts.get("cfg_blocks"):
-                counters["cfg/target_index"][0] += 1
-
-            if facts and facts.get("data_flow"):
-                counters["data_flow/target_index"][0] += 1
-
-        if checks.get("call_context"):
-            counters["call_graph/call_context"][1] += 1
-            counters["cpg/call_context"][1] += 1
-
-            if facts and facts.get("call_graph"):
-                counters["call_graph/call_context"][0] += 1
-
-            if _stage_counts_as_available(statuses.get("cpg", "missing")):
-                counters["cpg/call_context"][0] += 1
-
-    return [
-        (label, values[0], values[1])
-        for label, values in counters.items()
-        if values[1] > 0
-    ]
 
 
 def _sample_program_facts(sample: dict) -> dict:
@@ -1641,95 +1282,6 @@ def _sample_program_facts(sample: dict) -> dict:
         }
 
     return facts
-
-
-def _dataset_context_gap_text(sample: dict) -> str:
-    """Return dataset-context missing percentage and missing factors."""
-    missing, total = _dataset_context_gaps(sample)
-    missing_percent = 0.0
-
-    if total:
-        missing_percent = len(missing) * 100 / total
-
-    if not missing:
-        return "0.0% missing: none"
-
-    return (
-        f"{missing_percent:.1f}% missing: "
-        f"{', '.join(missing)}"
-    )
-
-
-def _dataset_context_gaps(sample: dict) -> tuple[list[str], int]:
-    """Classify which dataset-provided context factors are unavailable."""
-    checks = _dataset_context_checks(sample)
-    missing = [
-        name
-        for name, available in checks
-        if not available
-    ]
-
-    return missing, len(checks)
-
-
-def _dataset_context_checks(sample: dict) -> tuple[tuple[str, bool], ...]:
-    """Return dataset-context factor availability for one sample."""
-    analysis = sample.get("analysis", {})
-
-    if not isinstance(analysis, dict):
-        analysis = {}
-
-    source_context = analysis.get("source_context", {})
-    context_facts = analysis.get("context_facts", {})
-
-    if not isinstance(source_context, dict):
-        source_context = {}
-
-    if not isinstance(context_facts, dict):
-        context_facts = {}
-
-    compile_context = source_context.get("compile_context", {})
-    target = source_context.get("target_function", {})
-    file_index = source_context.get("file_function_index", {})
-    call_context = source_context.get("call_context", {})
-
-    if not isinstance(compile_context, dict):
-        compile_context = {}
-
-    if not isinstance(target, dict):
-        target = {}
-
-    if not isinstance(file_index, dict):
-        file_index = {}
-
-    if not isinstance(call_context, dict):
-        call_context = {}
-
-    return (
-        ("file_info", source_context.get("file_context_available") is True),
-        (
-            "whole_file",
-            source_context.get("resolved_file_available") is True
-            or compile_context.get("whole_file_available") is True,
-        ),
-        ("target_body", target.get("body_available") is True),
-        ("target_index", target.get("indexed") is True),
-        ("file_index", file_index.get("available") is True),
-        ("call_context", call_context.get("available") is True),
-        (
-            "headers",
-            compile_context.get("project_headers_available") is True,
-        ),
-        (
-            "compile_commands",
-            compile_context.get("compile_commands_available") is True,
-        ),
-        (
-            "include_paths",
-            compile_context.get("include_paths_available") is True,
-        ),
-        ("macros", compile_context.get("macros_available") is True),
-    )
 
 
 def _dataset_issue_rows(payload: dict) -> list[tuple[str, str, str]]:
@@ -1855,56 +1407,6 @@ def _missing_context_issue_text(items: list) -> str:
     return _short_error("; ".join(details) + suffix)
 
 
-def _context_summary_line(context_facts: dict) -> str:
-    """Return a compact one-line summary for enriched context facts."""
-    if not isinstance(context_facts, dict):
-        return ""
-
-    if not context_facts.get("available"):
-        return ""
-
-    target = context_facts.get("target", {})
-    call_context = context_facts.get("same_file_call_context", {})
-    file_index = context_facts.get("same_file_index", {})
-
-    if not isinstance(target, dict):
-        target = {}
-
-    if not isinstance(call_context, dict):
-        call_context = {}
-
-    if not isinstance(file_index, dict):
-        file_index = {}
-
-    name = target.get("name") or "unknown"
-    callee_count = call_context.get("direct_callee_count", 0)
-    callee_body_count = call_context.get("direct_callee_body_count", 0)
-    caller_count = call_context.get("direct_caller_count", 0)
-    function_count = file_index.get("function_count", 0)
-
-    return (
-        f"target={name}, same_file_functions={function_count}, "
-        f"callees={callee_count}, callee_bodies={callee_body_count}, "
-        f"callers={caller_count}"
-    )
-
-
-def _cpg_summary_line(cpg_facts: dict) -> str:
-    """Return a compact one-line summary for Joern CPG facts."""
-    if not isinstance(cpg_facts, dict):
-        return ""
-
-    status = cpg_facts.get("status")
-
-    if status == "not_requested":
-        return ""
-
-    return (
-        f"status={status}, methods={cpg_facts.get('method_count', 0)}, "
-        f"calls={cpg_facts.get('call_count', 0)}"
-    )
-
-
 def _render_program_facts_detail(result: PipelineResult) -> None:
     """Render detailed program facts with Rich tables."""
     facts = result.program_facts
@@ -2027,188 +1529,38 @@ def _diagnostic_summary(diagnostic: str) -> str:
 
 def _analysis_metadata(
     analysis: ProgramAnalysisResult,
-    *,
-    requested_scope: str | None = None,
-    source_context: dict | None = None,
-    tool_status: dict | None = None,
-    cpg_facts: dict | None = None,
 ) -> dict:
     """Return explicit scope, completeness, and methodology metadata."""
-    source_context = source_context or {}
-
     return {
         "scope": analysis.scope,
-        "requested_scope": requested_scope,
         "context_mode": analysis.context_mode,
         "complete": analysis.complete,
-        "source_context": source_context,
-        "context_facts": _context_facts(source_context),
-        "tool_status": tool_status or {},
-        "cpg_facts": cpg_facts or _cpg_not_requested(),
         "completeness": analysis.completeness or {},
-        "build_diagnosis": _build_diagnosis(
-            analysis,
-            source_context,
-        ),
+        "build_diagnosis": _build_diagnosis(analysis),
         "missing_context_summary": _missing_context_summary(analysis),
         "missing_context": analysis.missing_context,
         "recovery_assumptions": analysis.recovery_assumptions,
         "links": analysis.links,
         "limitations": analysis.limitations,
         "rules": PROGRAM_ANALYSIS_RULES,
-    }
-
-
-def _context_facts(source_context: dict) -> dict:
-    """Summarize dataset context without treating it as tool evidence."""
-    target_function = source_context.get("target_function", {})
-    file_function_index = source_context.get("file_function_index", {})
-    call_context = source_context.get("call_context", {})
-
-    if not isinstance(target_function, dict):
-        target_function = {}
-
-    if not isinstance(file_function_index, dict):
-        file_function_index = {}
-
-    if not isinstance(call_context, dict):
-        call_context = {}
-
-    direct_callees = _dict_items(call_context.get("direct_callees"))
-    direct_callers = _dict_items(call_context.get("direct_callers"))
-    indexed_functions = _dict_items(file_function_index.get("functions"))
-    same_file_callees = [
-        callee
-        for callee in direct_callees
-        if callee.get("body_available") is True
-    ]
-    available = bool(
-        target_function
-        or file_function_index.get("available")
-        or call_context.get("available")
-    )
-
-    return {
-        "available": available,
-        "target": {
-            "available": bool(target_function),
-            "name": target_function.get("name"),
-            "start_line": target_function.get("start_line"),
-            "end_line": target_function.get("end_line"),
-            "indexed": target_function.get("indexed"),
-            "body_available": target_function.get("body_available"),
-        },
-        "same_file_index": {
-            "available": bool(file_function_index.get("available")),
-            "function_count": file_function_index.get(
-                "function_count",
-                len(indexed_functions),
-            ),
-        },
-        "same_file_call_context": {
-            "available": bool(call_context.get("available")),
-            "scope": call_context.get("scope"),
-            "direct_callee_count": len(direct_callees),
-            "direct_callee_body_count": len(same_file_callees),
-            "direct_caller_count": len(direct_callers),
-            "limitations": call_context.get("limitations", ()),
-        },
-        "provenance": (
-            "PrimeVul clean context sidecar built from raw file_info "
-            "and resolved whole-file source when available"
-        ),
-        "trust_boundary": (
-            "technical context only; not a vulnerability label, verdict, "
-            "or verification evidence"
-        ),
-    }
-
-
-def _dict_items(value) -> list[dict]:
-    """Return only dictionary entries from a JSON-like list value."""
-    if not isinstance(value, list):
-        return []
-
-    return [
-        item
-        for item in value
-        if isinstance(item, dict)
-    ]
-
-
-def _cpg_not_requested() -> dict:
-    """Return explicit metadata when Joern/CPG was not requested."""
-    return {
-        "status": "not_requested",
-        "available": False,
-        "complete": False,
-        "method_count": 0,
-        "call_count": 0,
-        "methods": (),
-        "calls": (),
-        "diagnostics": (),
-        "provenance": "joern/c2cpg",
-    }
-
-
-def _cpg_metadata(cpg_result) -> dict:
-    """Convert a Joern CPG result into JSON-friendly B1 metadata."""
-    status = "available" if cpg_result.complete else "partial"
-
-    if not cpg_result.available:
-        status = "unavailable"
-
-    return {
-        "status": status,
-        "available": cpg_result.available,
-        "complete": cpg_result.complete,
-        "cpg_integrated": cpg_result.cpg_integrated,
-        "method_count": len(cpg_result.methods),
-        "call_count": len(cpg_result.calls),
-        "methods": cpg_result.methods,
-        "calls": cpg_result.calls,
-        "diagnostics": cpg_result.diagnostics,
-        "provenance": "joern/c2cpg",
-        "trust_boundary": (
-            "real CPG facts from Joern; still not vulnerability verdict "
-            "or verification evidence"
-        ),
-    }
+}
 
 
 def _build_diagnosis(
     analysis: ProgramAnalysisResult,
-    source_context: dict,
 ) -> dict:
     """Classify fixable analysis failures without guessing facts."""
-    compile_context = source_context.get("compile_context", {})
-
-    if not isinstance(compile_context, dict):
-        compile_context = {}
-
     issues: list[dict] = []
 
     if not analysis.cfg_available:
         issues.append(
-            _cfg_issue(
-                analysis,
-                source_context,
-                compile_context,
-            )
-        )
-    elif analysis.recovery_assumptions and _has_compile_context(
-        compile_context
-    ) and not source_context.get("clang_args_applied"):
-        issues.append(
             {
-                "component": "synthetic_context",
-                "classification": "pipeline_context_not_applied",
+                "component": "cfg",
+                "classification": "function_analysis_cfg_missing",
                 "fixable": True,
                 "message": (
-                    "dataset context advertises compile information, but "
-                    "B1 still needed explicit synthetic recovery assumptions; "
-                    "wire concrete include paths, macros, or Clang args into "
-                    "the Clang invocation"
+                    "CFG is missing for the function snippet; inspect Clang "
+                    "diagnostics, source syntax, or local toolchain handling"
                 ),
             }
         )
@@ -2259,252 +1611,17 @@ def _build_diagnosis(
     }
 
 
-def _cfg_issue(
-    analysis: ProgramAnalysisResult,
-    source_context: dict,
-    compile_context: dict,
-) -> dict:
-    """Classify why CFG is missing and whether it is fixable."""
-    cfg_status = (
-        analysis.completeness.get("cfg")
-        if analysis.completeness
-        else None
-    )
-
-    if cfg_status and cfg_status.status == "omitted":
-        return {
-            "component": "cfg",
-            "classification": "function_range_cfg_omitted",
-            "fixable": True,
-            "message": (
-                "whole-file CFG was produced but is not yet mapped back "
-                "to the selected function line range"
-            ),
-        }
-
-    has_compile_context = _has_compile_context(compile_context)
-
-    if has_compile_context:
-        if source_context.get("clang_args_applied"):
-            return {
-                "component": "cfg",
-                "classification": "dataset_compile_context_incomplete",
-                "fixable": True,
-                "message": (
-                    "compile context was passed to Clang, but CFG is still "
-                    "missing; the sample likely needs additional headers, "
-                    "typedefs, macros, or build flags"
-                ),
-            }
-
-        return {
-            "component": "cfg",
-            "classification": "pipeline_context_not_applied",
-            "fixable": True,
-            "message": (
-                "dataset context advertises compile information, but no "
-                "concrete include paths, macros, or Clang args were available "
-                "to pass into Clang"
-            ),
-        }
-
-    if not source_context.get("resolved_file_available"):
-        return {
-            "component": "cfg",
-            "classification": "dataset_file_context_missing",
-            "fixable": False,
-            "message": (
-                "whole-file source context is unavailable for this sample"
-            ),
-        }
-
-    if analysis.missing_context:
-        return {
-            "component": "cfg",
-            "classification": "dataset_compile_context_missing",
-            "fixable": True,
-            "message": (
-                "Clang diagnostics name missing project symbols; "
-                "adding headers, typedefs, macros, or build flags can "
-                "recover CFG"
-            ),
-        }
-
-    if analysis.diagnostics:
-        return {
-            "component": "cfg",
-            "classification": "clang_diagnostics_unclassified",
-            "fixable": True,
-            "message": (
-                "Clang emitted diagnostics but they did not match the "
-                "known missing-context patterns; inspect diagnostics or "
-                "extend diagnostic parsing"
-            ),
-        }
-
-    return {
-        "component": "cfg",
-        "classification": "tool_or_parser_issue",
-        "fixable": True,
-        "message": (
-            "CFG is missing without useful diagnostics; this points to "
-            "Clang invocation, CFG parser, language suffix, or local "
-            "toolchain handling"
-        ),
-    }
-
-
-def _has_compile_context(compile_context: dict) -> bool:
-    return any(
-        bool(compile_context.get(key))
-        for key in (
-            "compile_commands_available",
-            "include_paths_available",
-        )
-    ) or compile_context.get("macros_available") is True
-
-
 def _analyze_dataset_sample(
     *,
     sample,
     clang_executable: str,
-    requested_scope: str,
-) -> tuple[ProgramAnalysisResult, dict]:
-    """Analyze one dataset sample using clean context when available."""
-    context = sample.context or {}
-    source_context = _source_context_metadata(
-        context,
-        requested_scope=requested_scope,
-    )
-    clang_args = _clang_args_from_compile_context(
-        source_context.get("compile_context", {})
-    )
-    source_context["clang_args_applied"] = list(clang_args)
-    resolved_file = _resolved_context_file(context)
-    use_file_context = (
-        requested_scope == "file"
-        or (
-            requested_scope == "auto"
-            and resolved_file is not None
-        )
-    )
-
-    if use_file_context and resolved_file is None:
-        source_context["selected_source"] = "function_snippet"
-        source_context["fallback_reason"] = (
-            "whole-file context is unavailable for this sample"
-        )
-        analysis = analyze_source_code_tolerant(
-            source_code=sample.code,
-            clang_executable=clang_executable,
-            scope="function",
-            clang_args=clang_args,
-        )
-        return analysis, source_context
-
-    if not use_file_context:
-        source_context["selected_source"] = "function_snippet"
-        analysis = analyze_source_code_tolerant(
-            source_code=sample.code,
-            clang_executable=clang_executable,
-            scope="function",
-            clang_args=clang_args,
-        )
-        return analysis, source_context
-
-    source_context["selected_source"] = "whole_file"
-    source_context["attempted_source"] = "whole_file"
-    source_code = resolved_file.read_text(encoding="utf-8")
-    suffix = _source_suffix(context)
-    effective_scope = (
-        "file"
-        if requested_scope == "file"
-        else "function"
-    )
-    analysis = analyze_source_code_tolerant(
-        source_code=source_code,
+) -> ProgramAnalysisResult:
+    """Analyze one dataset sample using only its target function snippet."""
+    return analyze_source_code_tolerant(
+        source_code=sample.code,
         clang_executable=clang_executable,
-        suffix=suffix,
-        scope=effective_scope,
-        clang_args=clang_args,
+        scope="function",
     )
-
-    if effective_scope == "function":
-        target_function = context.get("target_function", {})
-
-        if not isinstance(target_function, dict):
-            target_function = {}
-
-        start_line = (
-            target_function.get("start_line")
-            if isinstance(target_function.get("start_line"), int)
-            else context.get("function_start_line")
-        )
-        end_line = (
-            target_function.get("end_line")
-            if isinstance(target_function.get("end_line"), int)
-            else context.get("function_end_line")
-        )
-
-        if isinstance(start_line, int) and isinstance(end_line, int):
-            analysis = focus_analysis_on_line_range(
-                analysis,
-                start_line=start_line,
-                end_line=end_line,
-            )
-            source_context["target_line_range"] = {
-                "start": start_line,
-                "end": end_line,
-            }
-
-    if (
-        requested_scope == "auto"
-        and not analysis.facts.functions
-    ):
-        source_context["selected_source"] = "function_snippet"
-        source_context["fallback_reason"] = (
-            "target function was not recoverable from whole-file analysis"
-        )
-        snippet_analysis = analyze_source_code_tolerant(
-            source_code=sample.code,
-            clang_executable=clang_executable,
-            scope="function",
-            clang_args=clang_args,
-        )
-        return snippet_analysis, source_context
-
-    return analysis, source_context
-
-
-def _analyze_cpg_for_sample(
-    *,
-    sample,
-    source_context: dict,
-    joern_executable: str,
-) -> dict:
-    """Run Joern CPG extraction for the same source selected by B1."""
-    context = sample.context or {}
-    selected_source = source_context.get("selected_source")
-    resolved_file = _resolved_context_file(context)
-
-    if selected_source == "whole_file" and resolved_file is not None:
-        source_code = resolved_file.read_text(encoding="utf-8")
-        suffix = _source_suffix(context)
-    else:
-        source_code = sample.code
-        suffix = ".c"
-
-    include_paths, defines = _cpg_compile_inputs(
-        source_context.get("compile_context", {})
-    )
-    cpg_result = JoernAdapter(joern_executable).analyze_source_code(
-        source_code,
-        suffix=suffix,
-        include_paths=include_paths,
-        defines=defines,
-    )
-
-    return _cpg_metadata(cpg_result)
 
 
 def _write_brain_context_artifacts(
@@ -2585,184 +1702,6 @@ def _safe_artifact_name(value: str) -> str:
     return name or "sample"
 
 
-def _program_analysis_tool_status(config: VulSORConfig) -> dict:
-    """Return tool capability status relevant to Program Analysis."""
-    joern_status = JoernAdapter(config.tools.joern).status()
-
-    return {
-        "clang": {
-            "executable": config.tools.clang,
-            "available": shutil.which(config.tools.clang) is not None,
-            "uses": [
-                "ast_json",
-                "cfg_dump",
-            ],
-        },
-        "joern": {
-            "executable": joern_status.executable,
-            "available": joern_status.available,
-            "resolved_path": joern_status.resolved_path,
-            "cpg_integrated": joern_status.cpg_integrated,
-            "message": joern_status.message,
-        },
-    }
-
-
-def _cpg_compile_inputs(
-    compile_context: dict,
-) -> tuple[tuple[str, ...], tuple[str, ...]]:
-    """Return include paths and defines supported by c2cpg."""
-    if not isinstance(compile_context, dict):
-        return (), ()
-
-    include_paths = tuple(
-        dict.fromkeys(
-            _string_items(
-                compile_context.get("include_paths")
-                or compile_context.get("include_dirs")
-                or compile_context.get("includes")
-            )
-            + _string_items(
-                compile_context.get("system_include_paths")
-                or compile_context.get("system_includes")
-            )
-        )
-    )
-    defines = tuple(
-        dict.fromkeys(
-            _macro_args(compile_context.get("macros"))
-            + _macro_args(compile_context.get("defines"))
-        )
-    )
-
-    return include_paths, defines
-
-
-def _clang_args_from_compile_context(compile_context: dict) -> tuple[str, ...]:
-    """Translate sidecar compile context into conservative Clang args."""
-    if not isinstance(compile_context, dict):
-        return ()
-
-    args: list[str] = []
-
-    for include_path in _string_items(
-        compile_context.get("include_paths")
-        or compile_context.get("include_dirs")
-        or compile_context.get("includes")
-    ):
-        args.append(f"-I{include_path}")
-
-    for system_include_path in _string_items(
-        compile_context.get("system_include_paths")
-        or compile_context.get("system_includes")
-    ):
-        args.append(f"-isystem{system_include_path}")
-
-    for macro in _macro_args(compile_context.get("macros")):
-        args.append(f"-D{macro}")
-
-    for macro in _macro_args(compile_context.get("defines")):
-        args.append(f"-D{macro}")
-
-    for macro in _string_items(
-        compile_context.get("undefines")
-        or compile_context.get("undefined_macros")
-    ):
-        args.append(f"-U{macro}")
-
-    args.extend(
-        _string_items(
-            compile_context.get("extra_clang_args")
-            or compile_context.get("clang_args")
-            or compile_context.get("compiler_args")
-        )
-    )
-
-    return tuple(dict.fromkeys(args))
-
-
-def _string_items(value) -> list[str]:
-    """Return non-empty string entries from a JSON-like value."""
-    if isinstance(value, str) and value:
-        return [value]
-
-    if not isinstance(value, list):
-        return []
-
-    return [
-        item
-        for item in value
-        if isinstance(item, str) and item
-    ]
-
-
-def _macro_args(value) -> list[str]:
-    """Return macro definitions in NAME or NAME=VALUE form."""
-    if isinstance(value, dict):
-        return [
-            key if macro_value is True else f"{key}={macro_value}"
-            for key, macro_value in value.items()
-            if isinstance(key, str) and key
-        ]
-
-    return _string_items(value)
-
-
-def _source_context_metadata(
-    context: dict,
-    *,
-    requested_scope: str,
-) -> dict:
-    """Expose technical context without label or vulnerability metadata."""
-    return {
-        "requested_scope": requested_scope,
-        "file_context_available": bool(
-            context.get("file_context_available")
-        ),
-        "resolved_file_available": bool(
-            context.get("resolved_file_available")
-        ),
-        "source_kind": context.get("source_kind", "function_snippet"),
-        "file_name": context.get("file_name"),
-        "original_file_path": context.get("original_file_path"),
-        "resolved_file_content_path": context.get(
-            "resolved_file_content_path"
-        ),
-        "compile_context": context.get("compile_context", {}),
-        "target_function": context.get("target_function", {}),
-        "file_function_index": context.get("file_function_index", {}),
-        "call_context": context.get("call_context", {}),
-    }
-
-
-def _resolved_context_file(context: dict) -> Path | None:
-    """Return the resolved whole-file source path when it exists."""
-    path_text = context.get("resolved_file_content_path")
-
-    if not isinstance(path_text, str) or not path_text:
-        return None
-
-    path = Path(path_text)
-
-    if path.is_file():
-        return path
-
-    return None
-
-
-def _source_suffix(context: dict) -> str:
-    """Choose a C/C++ suffix for temporary whole-file analysis."""
-    file_name = context.get("file_name")
-
-    if isinstance(file_name, str):
-        suffix = Path(file_name).suffix.lower()
-
-        if suffix in {".c", ".cc", ".cpp", ".cxx", ".h", ".hpp"}:
-            return suffix
-
-    return ".c"
-
-
 def _missing_context_summary(
     analysis: ProgramAnalysisResult,
 ) -> dict:
@@ -2808,16 +1747,6 @@ def _analysis_message(sample: dict) -> str:
         return "ok"
 
     return _short_error("; ".join(messages))
-
-
-def _selected_source(analysis: dict) -> str:
-    """Return the compact source label used for a rendered row."""
-    source_context = analysis.get("source_context", {})
-
-    if not isinstance(source_context, dict):
-        return "-"
-
-    return source_context.get("selected_source") or "-"
 
 
 def _analysis_diagnostics(
@@ -3010,26 +1939,12 @@ def _inspect_dataset_sample(
     *,
     sample,
     config: VulSORConfig,
-    requested_scope: str,
-    tool_status: dict,
-    enable_cpg: bool,
 ) -> dict:
     """Inspect one dataset sample and return its payload entry."""
     try:
-        analysis, source_context = _analyze_dataset_sample(
+        analysis = _analyze_dataset_sample(
             sample=sample,
             clang_executable=config.tools.clang,
-            requested_scope=requested_scope,
-        )
-
-        cpg_facts = (
-            _analyze_cpg_for_sample(
-                sample=sample,
-                source_context=source_context,
-                joern_executable=config.tools.joern,
-            )
-            if enable_cpg
-            else _cpg_not_requested()
         )
     except Exception as exc:
         return {
@@ -3045,13 +1960,7 @@ def _inspect_dataset_sample(
             stage_reached=Stage.PROGRAM_ANALYSIS,
             program_facts=analysis.facts,
         ),
-        "analysis": _analysis_metadata(
-            analysis,
-            requested_scope=requested_scope,
-            source_context=source_context,
-            tool_status=tool_status,
-            cpg_facts=cpg_facts,
-        ),
+        "analysis": _analysis_metadata(analysis),
         "diagnostics": _analysis_diagnostics(analysis),
     }
 
@@ -3060,9 +1969,6 @@ def _inspect_dataset_samples(
     *,
     samples: list,
     config: VulSORConfig,
-    requested_scope: str,
-    tool_status: dict,
-    enable_cpg: bool,
     jobs: int,
 ) -> list[dict]:
     """Inspect dataset samples sequentially or concurrently."""
@@ -3073,17 +1979,11 @@ def _inspect_dataset_samples(
         return _inspect_dataset_samples_sequential(
             samples=samples,
             config=config,
-            requested_scope=requested_scope,
-            tool_status=tool_status,
-            enable_cpg=enable_cpg,
         )
 
     return _inspect_dataset_samples_parallel(
         samples=samples,
         config=config,
-        requested_scope=requested_scope,
-        tool_status=tool_status,
-        enable_cpg=enable_cpg,
         jobs=jobs,
     )
 
@@ -3092,9 +1992,6 @@ def _inspect_dataset_samples_sequential(
     *,
     samples: list,
     config: VulSORConfig,
-    requested_scope: str,
-    tool_status: dict,
-    enable_cpg: bool,
 ) -> list[dict]:
     """Inspect samples one by one with stage-level progress labels."""
     inspected = []
@@ -3116,23 +2013,10 @@ def _inspect_dataset_samples_sequential(
                 "program analysis",
             )
 
-            if enable_cpg:
-                _update_dataset_progress(
-                    progress,
-                    task_id,
-                    sample.sample_id,
-                    index,
-                    len(samples),
-                    "program analysis + Joern/CPG",
-                )
-
             inspected.append(
                 _inspect_dataset_sample(
                     sample=sample,
                     config=config,
-                    requested_scope=requested_scope,
-                    tool_status=tool_status,
-                    enable_cpg=enable_cpg,
                 )
             )
             progress.advance(task_id)
@@ -3153,9 +2037,6 @@ def _inspect_dataset_samples_parallel(
     *,
     samples: list,
     config: VulSORConfig,
-    requested_scope: str,
-    tool_status: dict,
-    enable_cpg: bool,
     jobs: int,
 ) -> list[dict]:
     """Inspect samples concurrently while preserving output order."""
@@ -3175,9 +2056,6 @@ def _inspect_dataset_samples_parallel(
                     _inspect_dataset_sample,
                     sample=sample,
                     config=config,
-                    requested_scope=requested_scope,
-                    tool_status=tool_status,
-                    enable_cpg=enable_cpg,
                 ): index
                 for index, sample in enumerate(samples)
             }
@@ -3188,18 +2066,13 @@ def _inspect_dataset_samples_parallel(
             ):
                 index = future_to_index[future]
                 sample = samples[index]
-                stage = "complete"
-
-                if enable_cpg:
-                    stage = "complete after Joern/CPG"
-
                 _update_dataset_progress(
                     progress,
                     task_id,
                     sample.sample_id,
                     completed,
                     len(samples),
-                    stage,
+                    "complete",
                 )
                 results[index] = future.result()
                 progress.advance(task_id)
@@ -3230,7 +2103,6 @@ def _handle_inspect(
     if args.file is None:
         samples = []
         limit = args.limit
-        tool_status = _program_analysis_tool_status(config)
 
         if (
             args.sample is None
@@ -3250,16 +2122,12 @@ def _handle_inspect(
                 offset=args.offset,
                 random_count=args.random,
                 random_seed=args.seed,
-                include_context=True,
             )
         )
 
         samples = _inspect_dataset_samples(
             samples=selected_samples,
             config=config,
-            requested_scope=args.analysis_scope,
-            tool_status=tool_status,
-            enable_cpg=args.cpg,
             jobs=args.jobs,
         )
 
@@ -3268,11 +2136,6 @@ def _handle_inspect(
             "split": args.split,
             "count": len(samples),
             "samples": samples,
-            "dataset_context_split": _dataset_context_split_coverage(
-                config,
-                args.dataset,
-                args.split,
-            ),
         }
         payload["brain_context"] = _write_brain_context_artifacts(
             payload,
@@ -3604,8 +2467,6 @@ def _handle_doctor(
     checks = {
         "clang": config.tools.clang,
         "clang++": config.tools.clang_cpp,
-        "java": config.tools.java,
-        "joern": config.tools.joern,
     }
 
     all_ok = True
@@ -3891,13 +2752,8 @@ def _interactive_inspect_dataset() -> int:
         ).strip() or "10"
         limit = _parse_positive_int(limit_text, "limit")
 
-    analysis_scope = _interactive_analysis_scope()
     output_format = _interactive_output_format(default="json")
     output_path = _interactive_optional_output_path()
-    enable_cpg = _interactive_yes_no(
-        "Run Joern/CPG facts",
-        default=False,
-    )
     jobs_text = console.input(
         "[bold]Parallel jobs [1]:[/bold] "
     ).strip() or "1"
@@ -3911,16 +2767,11 @@ def _interactive_inspect_dataset() -> int:
         dataset,
         "--split",
         split,
-        "--analysis-scope",
-        analysis_scope,
         "--jobs",
         str(jobs),
         "--format",
         output_format,
     ]
-
-    if enable_cpg:
-        argv.append("--cpg")
 
     if sample:
         argv.extend(["--sample", sample])
@@ -4303,16 +3154,6 @@ def _interactive_view_agent_outputs(
         console.print()
         console.print(f"[bold]{name}[/bold]")
         _render_json_output(path.read_text(encoding="utf-8"))
-
-
-def _interactive_analysis_scope() -> str:
-    """Prompt for dataset analysis scope."""
-    return _interactive_choice(
-        "Analysis scope",
-        ("auto", "function", "file"),
-        default="auto",
-        allow_custom=False,
-    )
 
 
 def _interactive_yes_no(
