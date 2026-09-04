@@ -19,6 +19,7 @@ from pydantic import Field, ValidationError, field_validator
 
 from vulsor.config import RepositoryContextConfig
 
+from .git_repository import RepositoryResolutionError, canonicalize_repository_url
 from .models import StrictModel
 
 
@@ -45,17 +46,27 @@ class CpgIdentity(StrictModel):
     @field_validator("repository_url")
     @classmethod
     def supported_repository_url(cls, value: str) -> str:
-        parsed = urlsplit(value)
-        if parsed.scheme not in _SUPPORTED_URL_SCHEMES:
-            raise ValueError("repository URL must use a supported scheme")
-        if parsed.scheme == "file":
-            if not parsed.path:
-                raise ValueError("file repository URL must include a path")
-        elif not parsed.netloc:
-            raise ValueError("network repository URL must include a host")
         if "\x00" in value:
             raise ValueError("repository URL must not contain NUL")
-        return value
+        try:
+            parsed = urlsplit(value)
+        except ValueError as exc:
+            raise ValueError("invalid repository URL") from exc
+        if parsed.scheme.lower() not in _SUPPORTED_URL_SCHEMES:
+            raise ValueError("repository URL must use a supported scheme")
+        if parsed.scheme.lower() == "file" and not parsed.path:
+            raise ValueError("file repository URL must include a path")
+        try:
+            return canonicalize_repository_url(value)
+        except (RepositoryResolutionError, ValueError) as exc:
+            raise ValueError(str(exc)) from exc
+
+    @field_validator("revision")
+    @classmethod
+    def normalize_full_revision(cls, value: str) -> str:
+        if not _FULL_SHA.fullmatch(value):
+            raise ValueError("revision must be a full 40-character hexadecimal SHA")
+        return value.lower()
 
     @field_validator("joern_version", "frontend")
     @classmethod
@@ -105,6 +116,10 @@ class CpgCacheError(RuntimeError):
     """Base class for CPG cache failures."""
 
 
+class CpgCacheCleanupError(CpgCacheError):
+    """A cache path could not be safely removed."""
+
+
 class CpgCacheLockTimeoutError(CpgCacheError):
     """A CPG cache lock remained held until the configured timeout."""
 
@@ -128,10 +143,7 @@ class CpgCacheLockTimeoutError(CpgCacheError):
         )
 
 
-# Short aliases keep the error discoverable for callers that use a concise name.
 CpgLockTimeoutError = CpgCacheLockTimeoutError
-
-
 CpgBuilder = Callable[[Path], None]
 
 
@@ -171,7 +183,12 @@ class CpgCache:
 
         self.config: RepositoryContextConfig = repository_config
         self.cache_root = Path(repository_config.cache_root).expanduser().resolve()
-        self.cache_root.mkdir(parents=True, exist_ok=True)
+        try:
+            self.cache_root.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise CpgCacheError(
+                f"could not create CPG cache root {self.cache_root}: {exc}"
+            ) from exc
         self.cache_dir = self.cache_root / "cpg"
         self._ensure_cache_directory()
 
@@ -181,12 +198,11 @@ class CpgCache:
 
         if not isinstance(identity, CpgIdentity):
             identity = CpgIdentity.model_validate(identity)
-        payload = identity.model_dump(mode="json")
         serialized = json.dumps(
-            payload,
+            identity.model_dump(mode="json"),
             sort_keys=True,
             separators=(",", ":"),
-            ensure_ascii=False,
+            ensure_ascii=True,
         ).encode("utf-8")
         return hashlib.sha256(serialized).hexdigest()
 
@@ -210,7 +226,8 @@ class CpgCache:
 
         current = self._validated_identity(identity)
         key = self.cache_key_for(current)
-        return self._read_ready(current, key)
+        with self._cache_lock(self.cache_dir / f".{key}.lock"):
+            return self._read_ready(current, key)
 
     def get_or_build(self, identity: CpgIdentity, builder: CpgBuilder) -> CpgArtifact:
         """Return a ready artifact, invoking ``builder`` exactly on a cache miss."""
@@ -219,12 +236,8 @@ class CpgCache:
         key = self.cache_key_for(current)
         entry_path = self.cache_dir / key
         lock_path = self.cache_dir / f".{key}.lock"
-
-        ready = self._read_ready(current, key)
-        if ready is not None:
-            return ready
-
         building_path: Path | None = None
+
         with self._cache_lock(lock_path):
             ready = self._read_ready(current, key)
             if ready is not None:
@@ -235,10 +248,7 @@ class CpgCache:
             self._create_building_directory(building_path)
             try:
                 builder(building_path)
-                self._assert_safe_existing_path(
-                    building_path,
-                    "temporary CPG build path",
-                )
+                self._validate_tree(building_path, "temporary CPG build path")
                 cpg_path = self._validate_build_output(building_path)
                 manifest = CpgManifest(
                     cache_key=key,
@@ -246,7 +256,7 @@ class CpgCache:
                     cpg_size_bytes=self._file_size(cpg_path),
                 )
                 self._write_manifest(building_path / "manifest.json", manifest)
-                self._assert_safe_existing_path(building_path, "building directory")
+                self._validate_tree(building_path, "temporary CPG build path")
                 building_path.replace(entry_path)
                 building_path = None
             finally:
@@ -273,26 +283,33 @@ class CpgCache:
         return self.cache_key_for(self._validated_identity(identity_or_key))
 
     def _ensure_cache_directory(self) -> None:
-        if os.path.lexists(self.cache_dir):
-            if self.cache_dir.is_symlink() or not self.cache_dir.is_dir():
-                raise CpgCacheError(
-                    f"CPG cache directory is not a real directory: {self.cache_dir}"
-                )
-            return
-        self.cache_dir.mkdir()
+        try:
+            self.cache_dir.mkdir(exist_ok=True)
+        except OSError as exc:
+            raise CpgCacheError(
+                f"could not create CPG cache directory {self.cache_dir}: {exc}"
+            ) from exc
+        try:
+            is_symlink = self.cache_dir.is_symlink()
+            is_directory = self.cache_dir.is_dir()
+        except OSError as exc:
+            raise CpgCacheError(
+                f"could not verify CPG cache directory {self.cache_dir}: {exc}"
+            ) from exc
+        if is_symlink or not is_directory:
+            raise CpgCacheError(
+                f"CPG cache directory is not a real directory: {self.cache_dir}"
+            )
 
     def _read_ready(self, identity: CpgIdentity, key: str) -> CpgArtifact | None:
         entry_path = self.cache_dir / key
         if not os.path.lexists(entry_path):
             return None
         if entry_path.is_symlink():
-            return None
+            raise CpgCacheError(f"refusing to read symlink cache entry: {entry_path}")
         if not entry_path.is_dir():
             return None
-        try:
-            self._assert_safe_existing_path(entry_path, "cache entry")
-        except CpgCacheError:
-            return None
+        self._validate_tree(entry_path, "cache entry")
 
         manifest_path = entry_path / "manifest.json"
         cpg_path = entry_path / "cpg.bin"
@@ -336,22 +353,6 @@ class CpgCache:
             cache_hit=True,
         )
 
-    def _remove_invalid_entry(self, entry_path: Path) -> None:
-        if not os.path.lexists(entry_path):
-            return
-        if entry_path.is_symlink():
-            raise CpgCacheError(f"refusing to use symlink cache entry: {entry_path}")
-        self._assert_safe_existing_path(entry_path, "cache entry")
-        try:
-            if entry_path.is_dir():
-                shutil.rmtree(entry_path)
-            else:
-                entry_path.unlink()
-        except OSError as exc:
-            raise CpgCacheError(
-                f"could not remove invalid CPG cache entry {entry_path}: {exc}"
-            ) from exc
-
     def _create_building_directory(self, building_path: Path) -> None:
         if os.path.lexists(building_path):
             raise CpgCacheError(
@@ -381,8 +382,11 @@ class CpgCache:
             indent=2,
             ensure_ascii=False,
         )
-        with path.open("x", encoding="utf-8") as manifest_file:
-            manifest_file.write(serialized + "\n")
+        try:
+            with path.open("x", encoding="utf-8") as manifest_file:
+                manifest_file.write(serialized + "\n")
+        except OSError as exc:
+            raise CpgCacheError(f"could not write CPG manifest {path}: {exc}") from exc
 
     @staticmethod
     def _is_regular_file(path: Path) -> bool:
@@ -399,14 +403,51 @@ class CpgCache:
             raise OSError(f"not a regular file: {path}")
         return info.st_size
 
+    def _validate_tree(self, root: Path, label: str) -> None:
+        if not os.path.lexists(root):
+            raise CpgCacheError(f"{label} does not exist: {root}")
+        if root.is_symlink():
+            raise CpgCacheError(f"{label} must not be a symlink: {root}")
+        if not root.is_dir():
+            raise CpgCacheError(f"{label} is not a directory: {root}")
+        self._assert_safe_existing_path(root, label)
+
+        traversal_errors: list[OSError] = []
+
+        def onerror(error: OSError) -> None:
+            traversal_errors.append(error)
+
+        for directory, directory_names, file_names in os.walk(
+            root,
+            topdown=True,
+            followlinks=False,
+            onerror=onerror,
+        ):
+            directory_path = Path(directory)
+            self._assert_safe_existing_path(directory_path, label)
+            for name in (*directory_names, *file_names):
+                child = directory_path / name
+                if child.is_symlink():
+                    raise CpgCacheError(f"{label} contains symlink: {child}")
+                self._assert_safe_existing_path(child, label)
+
+        if traversal_errors:
+            detail = "; ".join(str(error) for error in traversal_errors)
+            error = CpgCacheError(f"could not validate {label} {root}: {detail}")
+            raise error from traversal_errors[0]
+
     def _assert_safe_existing_path(self, path: Path, label: str) -> None:
-        if path.parent != self.cache_dir and path != self.cache_dir:
-            raise CpgCacheError(f"{label} escaped the deterministic cache directory")
+        try:
+            path.relative_to(self.cache_dir)
+        except ValueError as exc:
+            raise CpgCacheError(
+                f"{label} escaped the deterministic cache directory"
+            ) from exc
         if path != self.cache_dir and path.is_symlink():
             raise CpgCacheError(f"{label} must not be a symlink: {path}")
         try:
             resolved = path.resolve(strict=False)
-        except OSError as exc:
+        except (OSError, RuntimeError) as exc:
             raise CpgCacheError(f"could not resolve {label} {path}: {exc}") from exc
         try:
             resolved.relative_to(self.cache_dir)
@@ -415,27 +456,106 @@ class CpgCache:
                 f"{label} escaped the deterministic cache directory: {path}"
             ) from exc
 
-    def _remove_temporary_directory(self, building_path: Path) -> None:
-        if not os.path.lexists(building_path):
+    @staticmethod
+    def _make_writable(path: Path) -> None:
+        try:
+            info = os.lstat(path)
+        except FileNotFoundError:
             return
-        if building_path.is_symlink():
+        if stat.S_ISLNK(info.st_mode):
+            return
+        mode = stat.S_IMODE(info.st_mode) | stat.S_IWUSR
+        if stat.S_ISDIR(info.st_mode):
+            mode |= stat.S_IXUSR
+        os.chmod(path, mode)
+
+    @classmethod
+    def _make_tree_writable(cls, path: Path) -> list[OSError]:
+        failures: list[OSError] = []
+        try:
+            cls._make_writable(path)
+        except OSError as exc:
+            failures.append(exc)
+
+        def onerror(error: OSError) -> None:
+            failures.append(error)
+
+        for directory, directory_names, file_names in os.walk(
+            path,
+            topdown=True,
+            followlinks=False,
+            onerror=onerror,
+        ):
+            directory_path = Path(directory)
+            for name in (*directory_names, *file_names):
+                child = directory_path / name
+                if not child.is_symlink():
+                    try:
+                        cls._make_writable(child)
+                    except OSError as exc:
+                        failures.append(exc)
+        return failures
+
+    def _remove_tree(self, path: Path, label: str) -> None:
+        if not os.path.lexists(path):
+            return
+        if path.is_symlink():
             try:
-                building_path.unlink()
+                path.unlink()
             except OSError as exc:
-                raise CpgCacheError(
-                    f"could not clean temporary CPG path {building_path}: {exc}"
+                raise CpgCacheCleanupError(
+                    f"could not clean up {label} {path}: {exc}"
                 ) from exc
             return
-        self._assert_safe_existing_path(building_path, "temporary CPG build path")
+        self._assert_safe_existing_path(path, label)
+        failures = self._make_tree_writable(path)
+
+        def retry_remove(function, target: str, _exc_info) -> None:
+            target_path = Path(target)
+            try:
+                self._make_writable(target_path.parent)
+                self._make_writable(target_path)
+            except OSError as exc:
+                failures.append(exc)
+            try:
+                function(target)
+            except FileNotFoundError:
+                pass
+            except OSError as exc:
+                failures.append(exc)
+
         try:
-            if building_path.is_dir():
-                shutil.rmtree(building_path)
+            if path.is_dir():
+                shutil.rmtree(path, onerror=retry_remove)
             else:
-                building_path.unlink()
+                try:
+                    path.unlink()
+                except OSError:
+                    self._make_writable(path)
+                    path.unlink()
         except OSError as exc:
-            raise CpgCacheError(
-                f"could not clean temporary CPG path {building_path}: {exc}"
-            ) from exc
+            failures.append(exc)
+
+        if failures or os.path.lexists(path):
+            detail = "; ".join(str(failure) for failure in failures if str(failure))
+            error = CpgCacheCleanupError(
+                f"could not clean up {label} {path}"
+                + (f": {detail}" if detail else "")
+            )
+            if failures:
+                raise error from failures[0]
+            raise error
+
+    def _remove_invalid_entry(self, entry_path: Path) -> None:
+        if not os.path.lexists(entry_path):
+            return
+        if entry_path.is_symlink():
+            raise CpgCacheError(f"refusing to use symlink cache entry: {entry_path}")
+        self._assert_safe_existing_path(entry_path, "cache entry")
+        self._remove_tree(entry_path, "invalid CPG cache entry")
+
+    def _remove_temporary_directory(self, building_path: Path) -> None:
+        self._remove_tree(building_path, "temporary CPG build path")
 
     @contextmanager
     def _cache_lock(self, lock_path: Path) -> Iterator[None]:
@@ -457,18 +577,16 @@ class CpgCache:
         deadline = time.monotonic() + timeout
         while True:
             try:
-                flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY
-                descriptor = os.open(lock_path, flags, 0o600)
+                descriptor = os.open(
+                    lock_path,
+                    os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+                    0o600,
+                )
             except FileExistsError:
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
                     age, pid = self._lock_details(lock_path)
-                    raise CpgCacheLockTimeoutError(
-                        lock_path,
-                        timeout,
-                        age,
-                        pid,
-                    )
+                    raise CpgCacheLockTimeoutError(lock_path, timeout, age, pid)
                 time.sleep(min(0.05, remaining))
                 continue
             except OSError as exc:
@@ -521,6 +639,7 @@ __all__ = [
     "CpgArtifact",
     "CpgBuilder",
     "CpgCache",
+    "CpgCacheCleanupError",
     "CpgCacheError",
     "CpgCacheLockTimeoutError",
     "CpgIdentity",

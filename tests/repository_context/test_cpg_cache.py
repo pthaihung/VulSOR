@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import stat
 import time
 from pathlib import Path
 from typing import Literal, cast
@@ -12,6 +13,8 @@ from vulsor.config import RepositoryContextConfig
 from vulsor.repository_context.cpg_cache import (
     CpgArtifact,
     CpgCache,
+    CpgCacheCleanupError,
+    CpgCacheError,
     CpgCacheLockTimeoutError,
     CpgIdentity,
     CpgManifest,
@@ -36,6 +39,10 @@ def identity(**overrides: object) -> CpgIdentity:
     )
 
 
+def write_ready_cpg(directory: Path) -> None:
+    (directory / "cpg.bin").write_bytes(b"ready")
+
+
 def test_identity_requires_nonblank_fields_and_full_revision() -> None:
     with pytest.raises(ValidationError):
         CpgIdentity(
@@ -43,6 +50,35 @@ def test_identity_requires_nonblank_fields_and_full_revision() -> None:
             revision="abc123",
             joern_version="2.0.0",
         )
+
+
+def test_identity_canonicalizes_repository_url_and_revision(tmp_path: Path) -> None:
+    first = identity(
+        repository_url="HTTPS://EXAMPLE.test:443/acme/demo.git/",
+        revision="A" * 40,
+    )
+    second = identity(
+        repository_url="https://example.test/acme/demo.git",
+        revision="a" * 40,
+    )
+
+    assert first.repository_url == "https://example.test/acme/demo.git"
+    assert first.revision == "a" * 40
+    assert first == second
+    cache = CpgCache(cache_root=tmp_path)
+    assert cache.cache_key_for(first) == cache.cache_key_for(second)
+
+
+@pytest.mark.parametrize(
+    "repository_url",
+    (
+        "https:///acme/demo.git",
+        "https://example.test:not-a-port/acme/demo.git",
+    ),
+)
+def test_identity_rejects_malformed_repository_urls(repository_url: str) -> None:
+    with pytest.raises(ValidationError):
+        identity(repository_url=repository_url)
 
 
 @pytest.mark.parametrize(
@@ -64,13 +100,14 @@ def test_each_cpg_identity_change_changes_cache_key(
     assert cache.cache_key_for(identity()) != cache.cache_key_for(identity(**changed))
 
 
-def test_cache_key_is_sha256_of_sorted_json_identity(tmp_path: Path) -> None:
+def test_cache_key_is_sha256_of_sorted_ascii_json_identity(tmp_path: Path) -> None:
     cache = CpgCache(cache_root=tmp_path)
-    current = identity()
+    current = identity(joern_version="joern-β", frontend_args=("--define", "π=1"))
     serialized = json.dumps(
         current.model_dump(mode="json"),
         sort_keys=True,
         separators=(",", ":"),
+        ensure_ascii=True,
     ).encode("utf-8")
 
     assert cache.cache_key_for(current) == hashlib.sha256(serialized).hexdigest()
@@ -153,6 +190,81 @@ def test_two_calls_reuse_one_completed_entry(tmp_path: Path) -> None:
     assert second.cpg_path.read_bytes() == b"cpg bytes"
 
 
+def test_read_waits_for_per_key_lock_even_when_entry_is_ready(tmp_path: Path) -> None:
+    cache = CpgCache(
+        RepositoryContextConfig(cache_root=tmp_path, lock_timeout_seconds=1)
+    )
+    current = identity()
+    cache.get_or_build(current, write_ready_cpg)
+    lock_path = cache.lock_path_for(current)
+    lock_path.write_text(
+        f"pid={os.getpid()}\ncreated_at={time.time()}\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(CpgCacheLockTimeoutError):
+        cache.read(current)
+
+    assert lock_path.exists()
+
+
+def test_get_or_build_waits_for_per_key_lock_before_ready_fast_path(
+    tmp_path: Path,
+) -> None:
+    cache = CpgCache(
+        RepositoryContextConfig(cache_root=tmp_path, lock_timeout_seconds=1)
+    )
+    current = identity()
+    cache.get_or_build(current, write_ready_cpg)
+    lock_path = cache.lock_path_for(current)
+    lock_path.write_text(
+        f"pid={os.getpid()}\ncreated_at={time.time()}\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(CpgCacheLockTimeoutError):
+        cache.get_or_build(current, lambda _: pytest.fail("builder must not run"))
+
+    assert lock_path.exists()
+
+
+def _symlink_or_skip(link: Path, target: Path) -> None:
+    try:
+        link.symlink_to(target)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks are unavailable in this environment")
+
+
+def test_ready_entry_with_symlink_descendant_is_rejected(tmp_path: Path) -> None:
+    cache = CpgCache(cache_root=tmp_path)
+    current = identity()
+    cache.get_or_build(current, write_ready_cpg)
+    outside = tmp_path / "outside.txt"
+    outside.write_text("outside", encoding="utf-8")
+    _symlink_or_skip(cache.entry_path_for(current) / "escape", outside)
+
+    with pytest.raises(CpgCacheError, match="symlink"):
+        cache.read(current)
+
+
+def test_builder_symlink_descendant_is_rejected_and_not_promoted(
+    tmp_path: Path,
+) -> None:
+    cache = CpgCache(cache_root=tmp_path)
+    outside = tmp_path / "outside.txt"
+    outside.write_text("outside", encoding="utf-8")
+
+    def build(directory: Path) -> None:
+        (directory / "cpg.bin").write_bytes(b"ready")
+        _symlink_or_skip(directory / "escape", outside)
+
+    with pytest.raises(CpgCacheError, match="symlink"):
+        cache.get_or_build(identity(), build)
+
+    assert cache.read(identity()) is None
+    assert not list((tmp_path / "cpg").glob("*.building-*"))
+
+
 def test_builder_exception_cleans_temporary_and_leaves_no_ready_entry(
     tmp_path: Path,
 ) -> None:
@@ -170,6 +282,60 @@ def test_builder_exception_cleans_temporary_and_leaves_no_ready_entry(
     assert not cache.entry_path_for(current).exists()
     assert not list(tmp_path.glob("*.building-*"))
     assert not list(tmp_path.glob("cpg/*.building-*"))
+
+
+def test_builder_failure_cleans_read_only_temporary_files(tmp_path: Path) -> None:
+    cache = CpgCache(cache_root=tmp_path)
+    current = identity()
+
+    def build(building_dir: Path) -> None:
+        read_only = building_dir / "read-only.txt"
+        read_only.write_text("cleanup me", encoding="utf-8")
+        os.chmod(read_only, stat.S_IREAD)
+        raise RuntimeError("Joern failed")
+
+    with pytest.raises(RuntimeError, match="Joern failed"):
+        cache.get_or_build(current, build)
+
+    assert cache.read(current) is None
+    assert not list((tmp_path / "cpg").glob("*.building-*"))
+
+
+def test_invalid_read_only_cache_entry_is_replaced(tmp_path: Path) -> None:
+    cache = CpgCache(cache_root=tmp_path)
+    current = identity()
+    entry = cache.entry_path_for(current)
+    entry.mkdir(parents=True)
+    stale_cpg = entry / "cpg.bin"
+    stale_cpg.write_bytes(b"stale")
+    os.chmod(stale_cpg, stat.S_IREAD)
+
+    result = cache.get_or_build(current, write_ready_cpg)
+
+    assert result.cache_hit is False
+    assert result.cpg_path.read_bytes() == b"ready"
+    assert cache.read(current) is not None
+
+
+def test_cleanup_failures_are_typed(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    cache = CpgCache(cache_root=tmp_path)
+
+    def fail_rmtree(*_: object, **__: object) -> None:
+        raise PermissionError("read-only cache")
+
+    monkeypatch.setattr("vulsor.repository_context.cpg_cache.shutil.rmtree", fail_rmtree)
+
+    def build(building_dir: Path) -> None:
+        (building_dir / "cpg.bin").write_bytes(b"partial")
+        raise RuntimeError("builder failed")
+
+    with pytest.raises(CpgCacheCleanupError, match="temporary CPG"):
+        cache.get_or_build(identity(), build)
+
+    assert not cache.entry_path_for(identity()).exists()
 
 
 def test_build_output_must_be_nonempty_regular_cpg_file(tmp_path: Path) -> None:
