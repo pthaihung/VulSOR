@@ -328,6 +328,34 @@ def test_replaced_cache_directory_junction_is_rejected_before_lock_creation(
         _remove_junction(cache.cache_dir)
 
 
+def test_replaced_cache_root_junction_is_rejected_before_lock_or_build(
+    tmp_path: Path,
+) -> None:
+    cache_root = tmp_path / "cache-root"
+    cache = CpgCache(cache_root=cache_root)
+    outside = tmp_path / "outside"
+    outside_cpg = outside / "cpg"
+    outside_cpg.mkdir(parents=True)
+    cache.cache_dir.rmdir()
+    cache.cache_root.rmdir()
+    _junction_or_skip(cache.cache_root, outside)
+    calls = 0
+
+    def build(directory: Path) -> None:
+        nonlocal calls
+        calls += 1
+        (directory / "cpg.bin").write_bytes(b"outside")
+
+    try:
+        with pytest.raises(CpgCacheError, match="cache directory|junction|reparse"):
+            cache.get_or_build(identity(), build)
+        assert calls == 0
+        assert not list(outside_cpg.glob(".*.lock"))
+        assert not list(outside_cpg.glob("*.building-*"))
+    finally:
+        _remove_junction(cache.cache_root)
+
+
 def test_builder_exception_cleans_temporary_and_leaves_no_ready_entry(
     tmp_path: Path,
 ) -> None:

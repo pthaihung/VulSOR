@@ -327,16 +327,26 @@ class CpgCache:
 
     def _verify_cache_directory(self) -> None:
         try:
-            if not os.path.lexists(self.cache_dir):
-                raise CpgCacheError(
-                    f"CPG cache directory does not exist: {self.cache_dir}"
-                )
-            is_link_like = _is_link_like(self.cache_dir)
-            is_directory = self.cache_dir.is_dir()
-            if is_link_like or not is_directory:
-                raise CpgCacheError(
-                    f"CPG cache directory is not a real directory: {self.cache_dir}"
-                )
+            cache_paths = [
+                *reversed(self.cache_root.parents),
+                self.cache_root,
+                self.cache_dir,
+            ]
+            for path in cache_paths:
+                if path == self.cache_root:
+                    label = "CPG cache root"
+                elif path == self.cache_dir:
+                    label = "CPG cache directory"
+                else:
+                    label = "CPG cache path"
+                if not os.path.lexists(path):
+                    raise CpgCacheError(f"{label} does not exist: {path}")
+                if _is_link_like(path):
+                    raise CpgCacheError(
+                        f"{label} is a symlink, junction, or reparse point: {path}"
+                    )
+                if not path.is_dir():
+                    raise CpgCacheError(f"{label} is not a directory: {path}")
         except CpgCacheError:
             raise
         except (OSError, RuntimeError) as exc:
