@@ -327,7 +327,7 @@ def test_cached_revision_resolves_when_origin_is_unavailable(
     )
 
 
-def test_existing_mirror_materializes_revision_offline(
+def test_targeted_mirror_requires_origin_for_an_unfetched_revision(
     tmp_path: Path,
     two_commit_repository: tuple[Path, str, str],
 ) -> None:
@@ -342,12 +342,8 @@ def test_existing_mirror_materializes_revision_offline(
     resolver.resolve(repository_ref(repository, first_revision))
     repository.rename(tmp_path / "offline-source")
 
-    resolved = resolver.resolve(repository_ref(repository, second_revision))
-
-    assert resolved.resolved_revision == second_revision
-    assert (resolved.repository_root / "new.txt").read_text(encoding="utf-8") == (
-        "new revision\n"
-    )
+    with pytest.raises(RepositoryResolutionError, match="Could not read"):
+        resolver.resolve(repository_ref(repository, second_revision))
 
 
 def test_existing_mirror_is_fetched_before_resolving_new_commit(
@@ -389,6 +385,7 @@ def test_dangling_mirror_object_is_not_revision_available(
         )
     )
     resolved = resolver.resolve(repository_ref(repository, first_revision))
+    resolver.resolve(repository_ref(repository, second_revision))
     tree = run_git(
         "rev-parse",
         f"{second_revision}^{{tree}}",
@@ -752,6 +749,8 @@ def test_command_errors_redact_repository_credentials(
             timeout: int | float | None = None,
         ) -> CommandResult:
             actual_arguments.extend(arguments)
+            if arguments[1:3] == ("init", "--bare"):
+                return CommandResult(tuple(arguments), 0, "", "")
             return CommandResult(tuple(arguments), 128, "", f"cannot access {secret_url}")
 
     resolver = GitRepositoryResolver(
@@ -803,6 +802,8 @@ def test_timeout_errors_redact_repository_credentials(
             timeout: int | float | None = None,
         ) -> CommandResult:
             actual_arguments.extend(arguments)
+            if arguments[1:3] == ("init", "--bare"):
+                return CommandResult(tuple(arguments), 0, "", "")
             raise subprocess.TimeoutExpired(list(arguments), float(timeout or 0))
 
     resolver = GitRepositoryResolver(

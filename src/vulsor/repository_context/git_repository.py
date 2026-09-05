@@ -275,7 +275,7 @@ class GitRepositoryResolver:
                             mirror_root,
                         )
                         if not self._mirror_contains_revision(mirror_root, revision):
-                            self._refresh_mirror(mirror_root)
+                            self._fetch_revision(mirror_root, revision)
                             if not self._mirror_contains_revision(
                                 mirror_root,
                                 revision,
@@ -292,7 +292,7 @@ class GitRepositoryResolver:
 
                 self._ensure_mirror(canonical_url, mirror_root)
                 if not self._mirror_contains_revision(mirror_root, revision):
-                    self._refresh_mirror(mirror_root)
+                    self._fetch_revision(mirror_root, revision)
                     if not self._mirror_contains_revision(mirror_root, revision):
                         raise RepositoryRevisionNotFoundError(
                             f"requested Git revision is not present: {revision}"
@@ -356,11 +356,9 @@ class GitRepositoryResolver:
             tempfile.mkdtemp(prefix=f".{mirror_root.stem}.", dir=str(self.cache_root))
         )
         try:
+            self._run_git("init", "--bare", str(temporary_root))
             self._run_git(
-                "clone",
-                "--mirror",
-                canonical_url,
-                str(temporary_root),
+                "-C", str(temporary_root), "remote", "add", "origin", canonical_url
             )
             self._verify_mirror(temporary_root, canonical_url)
             temporary_root.replace(mirror_root)
@@ -404,14 +402,22 @@ class GitRepositoryResolver:
             return False
         return bool(result.stdout.strip())
 
-    def _refresh_mirror(self, mirror_root: Path) -> None:
-        self._run_git(
-            "-C",
-            str(mirror_root),
-            "fetch",
-            "--prune",
-            "origin",
-        )
+    def _fetch_revision(self, mirror_root: Path, revision: str) -> None:
+        try:
+            self._run_git(
+                "-C",
+                str(mirror_root),
+                "fetch",
+                "--depth=2",
+                "origin",
+                f"+{revision}:refs/vulsor/{revision}",
+            )
+        except RepositoryCommandError as exc:
+            if _looks_like_missing_revision(exc.stderr):
+                raise RepositoryRevisionNotFoundError(
+                    f"requested Git revision is not present: {revision}"
+                ) from None
+            raise
 
     def _verify_mirror(self, mirror_root: Path, canonical_url: str) -> None:
         result = self._run_git(
@@ -464,6 +470,14 @@ class GitRepositoryResolver:
                 "--no-hardlinks",
                 str(mirror_root),
                 str(temporary_root),
+            )
+            self._run_git(
+                "-C",
+                str(temporary_root),
+                "fetch",
+                "--depth=1",
+                "origin",
+                revision,
             )
             try:
                 self._run_git(
@@ -652,6 +666,7 @@ def _looks_like_missing_revision(stderr: str) -> bool:
             "bad object",
             "did not match any file",
             "invalid reference",
+            "not our ref",
         )
     )
 

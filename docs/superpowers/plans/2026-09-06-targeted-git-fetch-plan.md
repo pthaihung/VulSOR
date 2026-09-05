@@ -17,11 +17,11 @@
 
 - [ ] **Step 1: Write failing test**
 
-Add a fake command runner test that requests `"a" * 40` and asserts the first
+Add a command-recording resolver test that requests a full SHA and asserts the
 network fetch command is exactly:
 
 ```python
-("git", "-C", str(mirror_root), "fetch", "--depth=2", "origin", revision)
+("git", "-C", str(mirror_root), "fetch", "--depth=2", "origin", f"+{revision}:refs/vulsor/{revision}")
 ```
 
 The test must also assert that the command sequence does not contain
@@ -65,14 +65,15 @@ Add `_fetch_revision(mirror_root, revision)`:
 
 ```python
 self._run_git(
-    "-C", str(mirror_root), "fetch", "--depth=2", "origin", revision
+    "-C", str(mirror_root), "fetch", "--depth=2", "origin",
+    f"+{revision}:refs/vulsor/{revision}",
 )
 ```
 
 Call it whenever `_mirror_contains_revision` is false.  Replace the existing
-unbounded `_refresh_mirror` call in this path.  Preserve the final
-`_mirror_contains_revision` check and raise `RepositoryRevisionNotFoundError`
-when the SHA is still unavailable.
+unbounded `_refresh_mirror` call in this path.  The private ref makes the
+fetched SHA durable and discoverable by `_mirror_contains_revision`. Preserve
+the final check and raise `RepositoryRevisionNotFoundError` when unavailable.
 
 - [ ] **Step 3: Run focused tests**
 
