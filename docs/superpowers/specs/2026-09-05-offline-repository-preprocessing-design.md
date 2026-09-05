@@ -148,8 +148,10 @@ The tracked project config remains machine-neutral. A developer supplies those
 paths in an ignored local YAML config and starts commands with `JAVA_HOME` and
 `JAVACMD` set to the JDK 21 paths. Joern 4.0.592 supports `--script` and
 `--param`, but does not implement the adapter's current `joern --version`
-contract; preprocessing obtains and persists the compatible version using a
-version probe tailored to this release.
+contract. Preprocessing derives the compatible version without opening a REPL
+by parsing the installed `lib/io.joern.joern-cli-<version>.jar` filename next to
+the configured executable, and fails closed if exactly one version cannot be
+identified.
 
 ## Failure Semantics
 
