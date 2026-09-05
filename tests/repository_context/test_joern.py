@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -14,7 +15,22 @@ from vulsor.repository_context.joern import (
     JoernCommandError,
     JoernError,
 )
-from vulsor.repository_context.models import EvidenceRequest, RepositoryEvidence
+from vulsor.repository_context.models import EvidenceRequest
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows path casing")
+def test_windows_forward_slash_case_and_custom_executable_are_redacted(tmp_path):
+    from vulsor.repository_context.joern import _sanitize_text
+
+    sensitive = tmp_path / "Private" / "joern.exe"
+    emitted = sensitive.as_posix().swapcase()
+    assert emitted not in _sanitize_text(emitted, (sensitive,))
+    runner = FakeRunner(CommandResult((), 1, "", emitted))
+    current = JoernAdapter(runner=runner, joern_executable=sensitive)
+    with pytest.raises(JoernError) as caught:
+        current.version()
+    assert emitted not in str(caught.value)
+    assert str(sensitive) not in str(caught.value)
 
 
 @dataclass
@@ -99,18 +115,12 @@ def cpg_path(tmp_path: Path) -> Path:
 def evidence_payload(*, request_id: str = "req-1") -> dict[str, object]:
     return {
         "request_id": request_id,
-        "status": "partial",
+        "schema_version": 1,
         "resolved_revision": "a" * 40,
         "anchor_resolution": {"status": "exact", "candidate_count": 1},
-        "evidence": [],
+        "families": {"call": []},
         "limitations": [],
-        "budget_usage": {
-            "nodes": 0,
-            "flow_paths": 0,
-            "source_lines": 0,
-            "evidence_items": 0,
-            "truncated": False,
-        },
+        "truncated": False,
     }
 
 
@@ -212,9 +222,7 @@ def test_query_uses_request_file_and_cleans_transport_files(tmp_path: Path) -> N
     runner = FakeRunner(query)
     current = adapter(tmp_path, runner, evidence_script=evidence_script)
 
-    assert current.query(cpg, request()) == RepositoryEvidence.model_validate(
-        evidence_payload()
-    ).model_dump(mode="json")
+    assert current.query(cpg, request()) == evidence_payload()
     arguments = runner.calls[0][0]
     assert arguments[:3] == ("joern-test", "--script", str(evidence_script))
     assert arguments.count("--param") == 3

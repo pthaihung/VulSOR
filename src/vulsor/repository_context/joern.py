@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
+import sysconfig
 import tempfile
 from pathlib import Path
 from typing import Sequence, cast
-
-from pydantic import ValidationError
 
 from vulsor.config import (  # type: ignore[import-untyped]
     RepositoryContextConfig,
@@ -20,7 +20,7 @@ from vulsor.config import (  # type: ignore[import-untyped]
 )
 
 from .git_repository import CommandResult, CommandRunner, SubprocessCommandRunner
-from .models import EvidenceRequest, RepositoryEvidence
+from .models import EvidenceRequest
 
 
 _MAX_DIAGNOSTIC_CHARS = 4096
@@ -149,17 +149,12 @@ def _sanitize_text(value: object, paths: Sequence[Path] = ()) -> str:
     variants: set[str] = set()
     for path in paths:
         variants.update(_path_variants(Path(path)))
+    variants.update(variant.replace("\\", "/") for variant in tuple(variants))
     for variant in sorted(variants, key=len, reverse=True):
-        text = text.replace(variant, "<local-path>")
-        if "\\" in variant:
-            text = text.replace(variant.replace("\\", "/"), "<local-path>")
         if os.name == "nt":
-            lowered = text.casefold()
-            start = lowered.find(variant.casefold())
-            while start >= 0:
-                text = text[:start] + "<local-path>" + text[start + len(variant) :]
-                lowered = text.casefold()
-                start = lowered.find(variant.casefold(), start + len("<local-path>"))
+            text = re.sub(re.escape(variant), "<local-path>", text, flags=re.IGNORECASE)
+        else:
+            text = text.replace(variant, "<local-path>")
     return text
 
 
@@ -211,7 +206,10 @@ def _format_diagnostics(stdout: str, stderr: str) -> str:
 
 
 def _default_script(name: str) -> Path:
-    return Path(__file__).resolve().parents[3] / "scripts" / "joern" / name
+    checkout = Path(__file__).resolve().parents[3] / "scripts" / "joern" / name
+    if checkout.is_file():
+        return checkout
+    return Path(sysconfig.get_path("data")) / "share" / "vulsor" / "joern" / name
 
 
 def _choose_alias(
@@ -605,7 +603,12 @@ class JoernAdapter:
             self._finish_cleanup(cleanup_paths, primary)
 
     def _diagnostic_paths(self, paths: Sequence[Path]) -> tuple[Path, ...]:
-        return (*paths, Path(self.config.cache_root))
+        return (
+            *paths,
+            Path(self.config.cache_root),
+            Path(self.joern_executable),
+            Path(self.joern_parse_executable),
+        )
 
     @staticmethod
     def _temporary_file(
@@ -714,18 +717,14 @@ class JoernAdapter:
         payload: dict[str, object],
         request: EvidenceRequest,
     ) -> dict[str, object]:
+        from .evidence import validate_raw_result
+
         try:
-            evidence = RepositoryEvidence.model_validate(payload)
-        except ValidationError as exc:
+            return validate_raw_result(payload, request)
+        except ValueError:
             raise JoernSchemaError(
-                "Joern query output violates RepositoryEvidence schema: "
-                f"{_truncate(str(exc))}"
+                "Joern query output violates raw result schema"
             ) from None
-        if evidence.request_id != request.request_id:
-            raise JoernSchemaError(
-                "Joern query output request_id does not match the request"
-            )
-        return cast(dict[str, object], evidence.model_dump(mode="json"))
 
     @staticmethod
     def _validate_smoke_payload(payload: dict[str, object]) -> None:
