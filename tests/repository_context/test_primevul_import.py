@@ -92,3 +92,53 @@ def test_import_rejects_missing_file_info_without_guessing_path(tmp_path: Path) 
         "sample_id": "test_11",
         "reason": "locator_missing",
     }
+
+
+def test_import_uses_parent_revision_and_defers_source_span_validation(
+    tmp_path: Path,
+) -> None:
+    raw = tmp_path / "pairs.jsonl"
+    _write_json(
+        raw,
+        {
+            "idx": 12,
+            "target": 1,
+            "project": "demo",
+            "project_url": "https://example.test/demo.git",
+            "commit_id": "a" * 40,
+            "func_hash": 789,
+            "func": "int vulnerable(void) {}",
+        },
+    )
+    info = tmp_path / "file_info.json"
+    info.write_text(
+        json.dumps(
+            {
+                "789": {
+                    "project_file_path": "src/demo.c",
+                    "start_line": 40,
+                    "end_line": 50,
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    def resolve_parent(record) -> str:
+        assert record.revision == "a" * 40
+        return "b" * 40
+
+    output = tmp_path / "out"
+    result = import_primevul_test(
+        raw,
+        info,
+        output,
+        lambda code, suffix: "vulnerable",
+        resolve_parent_revision=resolve_parent,
+    )
+
+    assert result == ImportSummary(accepted=1, rejected=0)
+    index = json.loads((output / "index.jsonl").read_text(encoding="utf-8"))
+    assert index["repository"]["revision"] == "b" * 40
+    assert index["target"]["start_line"] is None
+    assert index["target"]["end_line"] is None

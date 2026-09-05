@@ -317,6 +317,29 @@ class GitRepositoryResolver:
             mirror_root=mirror_root,
         )
 
+    def resolve_parent_revision(self, ref: RepositoryRef) -> str:
+        """Resolve the immutable first parent of an indexed patch revision.
+
+        PrimeVul ``target == 1`` snippets represent the vulnerable source,
+        while their ``commit_id`` identifies the patch commit.  Resolving the
+        parent through the verified mirror keeps this conversion offline and
+        records a concrete SHA for later query-only execution.
+        """
+
+        resolved = self.resolve(ref)
+        result = self._run_git(
+            "-C",
+            str(resolved.mirror_root),
+            "rev-parse",
+            f"{resolved.resolved_revision}^",
+        )
+        parent = result.stdout.strip().lower()
+        if not _FULL_SHA.fullmatch(parent):
+            raise RepositoryResolutionError(
+                "Git did not resolve a full parent revision"
+            )
+        return parent
+
     def _ensure_mirror(self, canonical_url: str, mirror_root: Path) -> None:
         mirror_parent = mirror_root.parent
         mirror_parent.mkdir(parents=True, exist_ok=True)

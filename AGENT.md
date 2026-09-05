@@ -607,8 +607,8 @@ automatically.
 For the paired PrimeVul export, the offline order is:
 
 ```text
-repo-context import-primevul (Clang AST function name)
-  -> repo-context preprocess --all (Git revision + Joern CPG)
+repo-context import-primevul (Clang AST + resolve parent of patch commit)
+  -> repo-context preprocess --all (Joern CPG + source-span validation)
   -> repo-context query (prepared Joern CPG only)
 ```
 

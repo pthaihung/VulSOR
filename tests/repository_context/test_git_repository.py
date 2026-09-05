@@ -151,6 +151,26 @@ def test_resolve_materializes_requested_immutable_revisions(
     assert mirrors == [old.mirror_root]
 
 
+def test_resolve_parent_revision_returns_immutable_parent_sha(
+    tmp_path: Path,
+    two_commit_repository: tuple[Path, str, str],
+) -> None:
+    repository, parent_revision, patched_revision = two_commit_repository
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=tmp_path / "cache",
+            clone_timeout_seconds=30,
+            lock_timeout_seconds=5,
+        )
+    )
+
+    resolved_parent = resolver.resolve_parent_revision(
+        repository_ref(repository, patched_revision)
+    )
+
+    assert resolved_parent == parent_revision
+
+
 def test_materialized_checkout_is_read_only_and_reusable(
     two_commit_repository: tuple[Path, str, str],
     short_cache_root: Path,

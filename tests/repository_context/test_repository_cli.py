@@ -284,9 +284,10 @@ def test_status_uses_configured_repository_index_file(tmp_path, capsys) -> None:
 def test_import_primevul_command_writes_compact_output(tmp_path, monkeypatch, capsys) -> None:
     captured = {}
 
-    def fake_import(raw, info, output, extract):
+    def fake_import(raw, info, output, extract, *, resolve_parent_revision):
         captured.update(raw=raw, info=info, output=output)
         assert extract("int target(void) {}", ".c") == "target"
+        assert callable(resolve_parent_revision)
         return ImportSummary(accepted=1, rejected=0)
 
     monkeypatch.setattr("vulsor.repository_context.cli.import_primevul_test", fake_import)

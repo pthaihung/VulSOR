@@ -105,6 +105,9 @@ def _preprocess(config: VulSORConfig, index: RepositoryIndex, args: argparse.Nam
 def handle(args: argparse.Namespace, config: VulSORConfig) -> int:
     try:
         if args.repo_action == "import-primevul":
+            repositories = GitRepositoryResolver(
+                config.repository_context, git_executable=config.tools.git
+            )
             summary = import_primevul_test(
                 args.source,
                 args.file_info,
@@ -112,6 +115,7 @@ def handle(args: argparse.Namespace, config: VulSORConfig) -> int:
                 lambda code, suffix: extract_function_name(
                     code, suffix, clang_executable=config.tools.clang
                 ),
+                resolve_parent_revision=repositories.resolve_parent_revision,
             )
             print(json.dumps({"accepted": summary.accepted, "rejected": summary.rejected}))
             return 0

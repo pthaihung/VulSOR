@@ -400,8 +400,10 @@ vulsor repo-context import-primevul `
   --output-root data\primevul_withcontext
 ```
 
-Thứ tự offline là `import-primevul` (Clang AST) -> `preprocess --all` (Git +
-Joern) -> `query` (Joern query-only).
+Thứ tự offline là `import-primevul` (Clang AST + Git resolve commit cha cho
+`target=1`) -> `preprocess --all` (Joern CPG) -> `query` (Joern query-only).
+`file_info.json` chỉ định file; span cuối cùng được xác minh từ source ở
+revision vulnerable, không lấy từ span của commit vá.
 
 ```powershell
 vulsor repo-context index `

@@ -17,6 +17,7 @@ from .source_match import normalized_code_sha256
 
 
 FunctionExtractor = Callable[[str, str], str]
+ParentRevisionResolver = Callable[[RepositoryRef], str]
 
 
 @dataclass(frozen=True)
@@ -43,30 +44,37 @@ def _locator(info: Mapping[str, Any], func_hash: object) -> Mapping[str, Any] | 
     return value if isinstance(value, Mapping) else None
 
 
-def _record(raw: Mapping[str, Any], locator: Mapping[str, Any], extract: FunctionExtractor) -> RepositoryIndexRecord:
+def _record(
+    raw: Mapping[str, Any],
+    locator: Mapping[str, Any],
+    extract: FunctionExtractor,
+    resolve_parent_revision: ParentRevisionResolver,
+) -> RepositoryIndexRecord:
     code = raw.get("func")
     path = locator.get("project_file_path")
-    start_line, end_line = locator.get("start_line"), locator.get("end_line")
     if not isinstance(code, str) or not code.strip():
         raise ValueError("invalid_record")
     if not isinstance(path, str) or not path.strip():
         raise ValueError("locator_invalid")
-    if any(isinstance(value, bool) or not isinstance(value, int) for value in (start_line, end_line)):
-        raise ValueError("locator_invalid")
     suffix = Path(path).suffix
     name = extract(code, suffix)
+    repository = RepositoryRef(
+        repository_id=raw["project"],
+        repository_url=raw["project_url"],
+        revision=raw["commit_id"],
+    )
     return RepositoryIndexRecord(
         sample_id=_sample_id(raw) or "invalid",
         repository=RepositoryRef(
-            repository_id=raw["project"],
-            repository_url=raw["project_url"],
-            revision=raw["commit_id"],
+            repository_id=repository.repository_id,
+            repository_url=repository.repository_url,
+            revision=resolve_parent_revision(repository),
         ),
         target=TargetAnchor(
             file_path=path,
             function_name=name,
-            start_line=start_line,
-            end_line=end_line,
+            start_line=None,
+            end_line=None,
             normalized_code_sha256=normalized_code_sha256(code),
         ),
     )
@@ -91,10 +99,13 @@ def import_primevul_test(
     file_info_path: Path,
     output_root: Path,
     extract_function_name: FunctionExtractor,
+    *,
+    resolve_parent_revision: ParentRevisionResolver | None = None,
 ) -> ImportSummary:
     """Create test.jsonl, index.jsonl, and sanitized import rejects atomically."""
 
     raw_path, file_info_path, output_root = Path(raw_path), Path(file_info_path), Path(output_root)
+    resolve_parent_revision = resolve_parent_revision or (lambda ref: ref.revision)
     info = json.loads(file_info_path.read_text(encoding="utf-8"))
     if not isinstance(info, Mapping):
         raise ValueError("file_info must be a JSON object")
@@ -124,7 +135,9 @@ def import_primevul_test(
                 rejects.append(_reject(sample_id, "locator_missing"))
                 continue
             try:
-                record = _record(raw, locator, extract_function_name)
+                record = _record(
+                    raw, locator, extract_function_name, resolve_parent_revision
+                )
             except Exception as exc:
                 rejects.append(_reject(sample_id, _reason(exc)))
                 continue
@@ -145,4 +158,9 @@ def import_primevul_test(
     return ImportSummary(accepted=len(accepted), rejected=len(rejects))
 
 
-__all__ = ["FunctionExtractor", "ImportSummary", "import_primevul_test"]
+__all__ = [
+    "FunctionExtractor",
+    "ImportSummary",
+    "ParentRevisionResolver",
+    "import_primevul_test",
+]
