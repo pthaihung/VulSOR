@@ -6,7 +6,7 @@ from pathlib import Path
 
 import yaml
 
-from vulsor.config import VulSORConfig
+from vulsor.config import DatasetConfig, VulSORConfig
 from vulsor.datasets import iter_dataset_samples
 from .cpg_cache import CpgCache, CpgCacheError, read_ready_cpg
 from .git_repository import GitRepositoryResolver, RepositoryResolutionError
@@ -46,11 +46,20 @@ def add_parser(subparsers):
         command.set_defaults(handler=handle)
 
 
+def _repository_index_path(dataset: DatasetConfig, split: str) -> Path:
+    explicit = dataset.repository_index_files.get(split)
+    if explicit is not None:
+        return explicit
+    if dataset.repository_index_dir is None:
+        raise ValueError("Dataset repository index must be configured")
+    return dataset.repository_index_dir / f"{split}.jsonl"
+
+
 def _index(config: VulSORConfig, args: argparse.Namespace) -> RepositoryIndex:
     dataset = config.datasets.get(args.dataset)
-    if dataset is None or dataset.repository_index_dir is None:
-        raise ValueError("Dataset repository_index_dir must be configured")
-    return RepositoryIndex.load(dataset.repository_index_dir / f"{args.split}.jsonl")
+    if dataset is None:
+        raise ValueError("Dataset is not configured")
+    return RepositoryIndex.load(_repository_index_path(dataset, args.split))
 
 
 def _status(config: VulSORConfig, index: RepositoryIndex, args: argparse.Namespace) -> dict:

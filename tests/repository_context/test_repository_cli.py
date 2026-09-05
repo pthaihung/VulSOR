@@ -218,3 +218,63 @@ def test_query_missing_ready_context_does_not_construct_git_or_cache(
     assert main(["repo-context", "query", "--config", str(config_path), "--dataset", "primevul", "--split", "test", "--sample", "s1", "--request", str(request_path), "--output", str(output_path)]) == 0
     assert json.loads(output_path.read_text(encoding="utf-8"))["evidence"] == []
     assert json.loads(capsys.readouterr().out)["status"] == "not_found"
+
+
+def test_status_uses_configured_repository_index_file(tmp_path, capsys) -> None:
+    index_path = tmp_path / "index.jsonl"
+    write_repository_index(
+        [
+            RepositoryIndexRecord.model_validate(
+                {
+                    "sample_id": "s1",
+                    "repository": {
+                        "repository_id": "demo",
+                        "repository_url": "https://example.test/demo.git",
+                        "revision": "a" * 40,
+                    },
+                    "target": {
+                        "file_path": "demo.c",
+                        "function_name": "target",
+                        "normalized_code_sha256": normalized_code_sha256(
+                            "int target(void) {}"
+                        ),
+                    },
+                }
+            )
+        ],
+        index_path,
+    )
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "repository_context": {"cache_root": str(tmp_path / "cache")},
+                "datasets": {
+                    "primevul": {
+                        "root": str(tmp_path),
+                        "repository_index_files": {"test": str(index_path)},
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert (
+        main(
+            [
+                "repo-context",
+                "status",
+                "--config",
+                str(config_path),
+                "--dataset",
+                "primevul",
+                "--split",
+                "test",
+                "--sample",
+                "s1",
+            ]
+        )
+        == 0
+    )
+    assert json.loads(capsys.readouterr().out)["sample_id"] == "s1"

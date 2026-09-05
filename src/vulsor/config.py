@@ -43,6 +43,8 @@ class DatasetConfig(BaseModel):
 
     root: Path
     repository_index_dir: Path | None = None
+    input_files: dict[str, Path] = Field(default_factory=dict)
+    repository_index_files: dict[str, Path] = Field(default_factory=dict)
 
 
 class RepositoryContextConfig(BaseModel):

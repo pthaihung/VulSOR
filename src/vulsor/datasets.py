@@ -19,6 +19,12 @@ class DatasetSample:
     code: str
 
 
+def dataset_input_path(dataset: DatasetConfig, split: str) -> Path:
+    """Return a configured split file, or the legacy PrimeVul_clean path."""
+
+    return dataset.input_files.get(split, dataset.root / "inputs" / f"{split}.jsonl")
+
+
 def iter_dataset_samples(
     config: VulSORConfig,
     dataset_name: str,
@@ -38,7 +44,7 @@ def iter_dataset_samples(
             f"Dataset is not configured: {dataset_name}"
         )
 
-    input_file = dataset.root / "inputs" / f"{split}.jsonl"
+    input_file = dataset_input_path(dataset, split)
 
     if not input_file.is_file():
         raise FileNotFoundError(
