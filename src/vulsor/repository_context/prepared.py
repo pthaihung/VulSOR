@@ -8,6 +8,8 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from vulsor.config import RepositoryContextConfig
+
 from .index import _atomic_write_text
 from .models import PreparedRecord, UnresolvedPreparedRecord
 
@@ -37,6 +39,21 @@ def prepared_catalog_paths(
     split = _safe_component(split, "split")
     parent = root / "prepared" / dataset
     return parent / f"{split}.jsonl", parent / f"{split}.unresolved.jsonl"
+
+
+def configured_catalog_paths(
+    config: RepositoryContextConfig, dataset: str, split: str
+) -> tuple[Path, Path]:
+    """Return explicitly configured catalog paths or the legacy split paths."""
+
+    catalog_path, unavailable_path = config.catalog_path, config.unavailable_path
+    if (catalog_path is None) != (unavailable_path is None):
+        raise ValueError("catalog_path and unavailable_path must be configured together")
+    if catalog_path is None:
+        return prepared_catalog_paths(config.cache_root, dataset, split)
+    if "\x00" in str(catalog_path) or "\x00" in str(unavailable_path):
+        raise ValueError("catalog paths must not contain NUL bytes")
+    return Path(catalog_path), Path(unavailable_path)
 
 
 class PreparedCatalog:
@@ -162,6 +179,7 @@ def load_unresolved_catalog(path: Path) -> tuple[UnresolvedPreparedRecord, ...]:
 
 __all__ = [
     "PreparedCatalog",
+    "configured_catalog_paths",
     "load_unresolved_catalog",
     "prepared_catalog_paths",
     "write_prepared_catalog",

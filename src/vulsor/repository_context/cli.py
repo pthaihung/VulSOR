@@ -13,7 +13,7 @@ from .git_repository import GitRepositoryResolver, RepositoryResolutionError
 from .index import RepositoryIndex, _atomic_write_text
 from .joern import JoernAdapter, JoernError
 from .models import EvidenceRequest, UnresolvedPreparedRecord
-from .prepared import PreparedCatalog, load_unresolved_catalog, prepared_catalog_paths, write_prepared_catalog, write_unresolved_catalog
+from .prepared import PreparedCatalog, configured_catalog_paths, load_unresolved_catalog, write_prepared_catalog, write_unresolved_catalog
 from .primevul_index import PrimeVulFieldMap, normalize_primevul_jsonl
 from .service import RepositoryContextQueryService, RepositoryPreparationError, RepositoryPreprocessor
 
@@ -63,14 +63,14 @@ def _index(config: VulSORConfig, args: argparse.Namespace) -> RepositoryIndex:
 
 
 def _status(config: VulSORConfig, index: RepositoryIndex, args: argparse.Namespace) -> dict:
-    ready_path, unresolved_path = prepared_catalog_paths(config.repository_context.cache_root, args.dataset, args.split)
+    ready_path, unresolved_path = configured_catalog_paths(config.repository_context, args.dataset, args.split)
     prepared = PreparedCatalog.load(ready_path).get_or_none(args.sample)
     unresolved = {item.sample_id: item for item in load_unresolved_catalog(unresolved_path)}
     return {"sample_id": args.sample, "revision": index.get(args.sample).repository.revision, "prepared": prepared is not None, "unresolved_kind": unresolved.get(args.sample).kind if args.sample in unresolved else None, "cpg_ready": bool(prepared and read_ready_cpg(config.repository_context.cache_root, prepared))}
 
 
 def _preprocess(config: VulSORConfig, index: RepositoryIndex, args: argparse.Namespace) -> int:
-    ready_path, unresolved_path = prepared_catalog_paths(config.repository_context.cache_root, args.dataset, args.split)
+    ready_path, unresolved_path = configured_catalog_paths(config.repository_context, args.dataset, args.split)
     existing_ready = {item.sample_id: item for item in PreparedCatalog.load(ready_path).records()}
     existing_unresolved = {item.sample_id: item for item in load_unresolved_catalog(unresolved_path)}
     samples = iter_dataset_samples(config, args.dataset, args.split, sample_id=None if args.all else args.sample)
@@ -113,7 +113,7 @@ def handle(args: argparse.Namespace, config: VulSORConfig) -> int:
         if args.repo_action == "preprocess":
             return _preprocess(config, index, args)
         sample = next(iter_dataset_samples(config, args.dataset, args.split, sample_id=args.sample))
-        ready_path, _ = prepared_catalog_paths(config.repository_context.cache_root, args.dataset, args.split)
+        ready_path, _ = configured_catalog_paths(config.repository_context, args.dataset, args.split)
         request = EvidenceRequest.model_validate_json(args.request.read_text(encoding="utf-8"))
         result = RepositoryContextQueryService(index, PreparedCatalog.load(ready_path), config.repository_context.cache_root, JoernAdapter(config)).retrieve(request, sample.code, sample_id=sample.sample_id)
         args.output.parent.mkdir(parents=True, exist_ok=True)

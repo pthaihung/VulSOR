@@ -25,6 +25,7 @@ from vulsor.repository_context.git_repository import (
     RepositoryRevisionNotFoundError,
     SubprocessCommandRunner,
     canonicalize_repository_url,
+    revision_snapshot_path,
 )
 from vulsor.repository_context.models import RepositoryRef
 
@@ -82,6 +83,17 @@ def repository_ref(repository: Path, revision: str) -> RepositoryRef:
     )
 
 
+def test_compact_repository_paths_live_under_repos(tmp_path: Path) -> None:
+    cache_root = tmp_path / "context"
+    url = "https://example.test/demo.git"
+    resolver = GitRepositoryResolver(cache_root=cache_root)
+
+    assert resolver.mirror_path_for_url(url).parent == cache_root / "repos" / "mirrors"
+    assert revision_snapshot_path(cache_root, url, "a" * 40).parent.parent == (
+        cache_root / "repos" / "revisions"
+    )
+
+
 @pytest.fixture
 def short_cache_root(
     tmp_path: Path,
@@ -135,7 +147,7 @@ def test_resolve_materializes_requested_immutable_revisions(
         new_revision
     )
 
-    mirrors = list((tmp_path / "cache" / "mirrors").glob("*.git"))
+    mirrors = list((tmp_path / "cache" / "repos" / "mirrors").glob("*.git"))
     assert mirrors == [old.mirror_root]
 
 

@@ -50,6 +50,8 @@ class DatasetConfig(BaseModel):
 class RepositoryContextConfig(BaseModel):
     enabled: bool = False
     cache_root: Path = Path("workspace/repository_context")
+    catalog_path: Path | None = None
+    unavailable_path: Path | None = None
     clone_timeout_seconds: StrictInt = Field(default=600, ge=1)
     build_timeout_seconds: StrictInt = Field(default=1800, ge=1)
     query_timeout_seconds: StrictInt = Field(default=120, ge=1)

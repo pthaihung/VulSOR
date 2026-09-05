@@ -3,12 +3,14 @@ import json
 import pytest
 from pydantic import ValidationError
 
+from vulsor.config import RepositoryContextConfig
 from vulsor.repository_context.models import (
     PreparedRecord,
     UnresolvedPreparedRecord,
 )
 from vulsor.repository_context.prepared import (
     PreparedCatalog,
+    configured_catalog_paths,
     prepared_catalog_paths,
     write_prepared_catalog,
     write_unresolved_catalog,
@@ -108,6 +110,19 @@ def test_catalog_paths_are_safe_and_under_prepared_directory(tmp_path) -> None:
     assert unresolved_path == tmp_path / "prepared" / "primevul" / "test.unresolved.jsonl"
     with pytest.raises(ValueError, match="safe path component"):
         prepared_catalog_paths(tmp_path, "../outside", "test")
+
+
+def test_configured_catalog_paths_override_legacy_split_paths(tmp_path) -> None:
+    config = RepositoryContextConfig(
+        cache_root=tmp_path / "context",
+        catalog_path=tmp_path / "context" / "catalog.jsonl",
+        unavailable_path=tmp_path / "context" / "unavailable.jsonl",
+    )
+
+    assert configured_catalog_paths(config, "primevul", "test") == (
+        tmp_path / "context" / "catalog.jsonl",
+        tmp_path / "context" / "unavailable.jsonl",
+    )
 
 
 @pytest.mark.parametrize("kind", ("exception: details", "unknown", ""))

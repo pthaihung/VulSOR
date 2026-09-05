@@ -205,7 +205,7 @@ def revision_snapshot_path(
         raise ValueError("cache_root must not contain NUL bytes")
     if not isinstance(revision, str) or not _FULL_SHA.fullmatch(revision):
         raise ValueError("revision must be a full 40-character hexadecimal SHA")
-    return root / "revisions" / repository_url_digest(repository_url) / revision.lower()
+    return root / "repos" / "revisions" / repository_url_digest(repository_url) / revision.lower()
 
 
 class GitRepositoryResolver:
@@ -240,14 +240,14 @@ class GitRepositoryResolver:
     def mirror_path_for_url(self, repository_url: object) -> Path:
         """Return the SHA-256-addressed mirror path for a repository URL."""
 
-        return self.cache_root / "mirrors" / f"{repository_url_digest(repository_url)}.git"
+        return self.cache_root / "repos" / "mirrors" / f"{repository_url_digest(repository_url)}.git"
 
     def revision_path_for(self, ref: RepositoryRef) -> Path:
         """Return the SHA-addressed checkout path for a repository reference."""
 
         revision = _normalized_revision(ref)
         digest = repository_url_digest(ref.repository_url)
-        return self.cache_root / "revisions" / digest / revision
+        return self.cache_root / "repos" / "revisions" / digest / revision
 
     def resolve(self, ref: RepositoryRef) -> ResolvedRepository:
         """Resolve ``ref`` to a checkout whose detached HEAD is the requested SHA."""
