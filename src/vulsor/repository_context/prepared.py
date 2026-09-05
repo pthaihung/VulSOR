@@ -88,6 +88,9 @@ class PreparedCatalog:
     def get_or_none(self, sample_id: str) -> PreparedRecord | None:
         return self._records.get(sample_id)
 
+    def records(self) -> tuple[PreparedRecord, ...]:
+        return tuple(self._records.values())
+
     def __len__(self) -> int:
         return len(self._records)
 
@@ -127,8 +130,39 @@ def write_unresolved_catalog(
     _write_catalog(records, path)
 
 
+def load_unresolved_catalog(path: Path) -> tuple[UnresolvedPreparedRecord, ...]:
+    """Read controlled unresolved outcomes; a missing catalog means no outcomes."""
+
+    path = Path(path)
+    if not path.exists():
+        return ()
+    values: list[UnresolvedPreparedRecord] = []
+    seen: set[str] = set()
+    try:
+        with path.open("rb") as handle:
+            for line_number, raw_line in enumerate(handle, start=1):
+                if not raw_line.strip():
+                    continue
+                try:
+                    record = UnresolvedPreparedRecord.model_validate(
+                        json.loads(raw_line.decode("utf-8", errors="strict"))
+                    )
+                except (UnicodeDecodeError, json.JSONDecodeError, ValidationError) as exc:
+                    raise ValueError(
+                        f"invalid unresolved catalog record at {path}:{line_number}"
+                    ) from exc
+                if record.sample_id in seen:
+                    raise ValueError(f"duplicate sample_id: {record.sample_id}")
+                seen.add(record.sample_id)
+                values.append(record)
+    except OSError as exc:
+        raise ValueError(f"could not read unresolved catalog: {path}") from exc
+    return tuple(values)
+
+
 __all__ = [
     "PreparedCatalog",
+    "load_unresolved_catalog",
     "prepared_catalog_paths",
     "write_prepared_catalog",
     "write_unresolved_catalog",

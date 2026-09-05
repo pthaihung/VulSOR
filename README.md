@@ -395,8 +395,10 @@ Kiểm tra tool và chuẩn bị một CPG cho đúng revision:
 
 ```powershell
 vulsor doctor --config configs\primevul.yaml --repository-context
-vulsor repo-context prepare --config configs\primevul.yaml `
+vulsor repo-context preprocess --config configs\primevul.yaml `
   --dataset primevul --split test --sample test_000000
+vulsor repo-context preprocess --config configs\primevul.yaml `
+  --dataset primevul --split test --all
 vulsor repo-context status --config configs\primevul.yaml `
   --dataset primevul --split test --sample test_000000
 ```
@@ -441,6 +443,17 @@ vulsor repo-context query --config configs\primevul.yaml `
   --dataset primevul --split test --sample test_000000 `
   --request request.json --output evidence.json
 ```
+
+`preprocess` is the only offline phase permitted to resolve Git revisions,
+build CPGs with `joern-parse`, and smoke-check them. `query` reads only the
+READY catalog, snapshot, and prepared CPG, then runs the Joern query script.
+It never fetches, checks out, builds, or smoke-tests. If no READY context is
+available, it writes `status: not_found`, `evidence: []`, and limitation
+`repository_context_unavailable` (exit code 0).
+
+Joern 4 requires Java 21. Set `JAVA_HOME`/`JAVACMD` and expose `joern` plus
+`joern-parse` on PATH, or use a machine-local config. Do not commit local tool
+paths or credentials to shared configuration.
 
 `semantic_graph.json` là semantic overlay cục bộ của B2. `cpg.bin` là Joern
 CPG của toàn repository tại một revision xác định. Repository evidence hiện có

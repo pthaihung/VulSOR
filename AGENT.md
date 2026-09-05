@@ -587,11 +587,14 @@ future obligation-driven repository retrieval.
 
 ## 8. Repository Context Boundary
 
-Repository context is implemented as a standalone, disabled-by-default service.
-It normalizes a leakage-safe sample-to-repository index, resolves one exact Git
-revision, verifies the sample against its indexed source, caches one validated
-Joern CPG per revision identity, and returns bounded source-grounded call,
-argument, data-flow, control-dependence, declaration, and type evidence.
+Repository context is implemented as a standalone, disabled-by-default,
+two-phase service. Offline `repo-context preprocess` resolves one exact Git
+revision, verifies indexed source, and caches one smoke-validated Joern CPG.
+Runtime `repo-context query` reads only the READY catalog, immutable snapshot,
+and prepared CPG, then returns bounded source-grounded evidence. It must never
+invoke Git, build a CPG, or smoke-test at query time. Missing or invalid
+prepared context returns empty `not_found` evidence with
+`repository_context_unavailable`; it is not a fallback trigger.
 
 The service requires an explicit `EvidenceRequest` with an operation anchor and
 finite budget. It is available through `vulsor repo-context`; it is not exposed
