@@ -567,17 +567,20 @@ context is not silently inferred or loaded by B1.
 PrimeVul clean is used to avoid leakage. The B1 loader reads only the source
 inputs; labels and pair metadata stay outside the analysis artifact.
 
-Main directories:
+For the compact PrimeVul repository-context layout:
 
 ```text
-data/PrimeVul_clean/inputs/{train,valid,test}.jsonl
-data/PrimeVul_clean/labels/{train,valid,test}.jsonl
-data/PrimeVul_clean/paired/{train,valid,test}.jsonl
+data/primevul/primevul_test_pairs.jsonl
+data/primevul/file_info.json
+data/primevul_withcontext/test.jsonl
+data/primevul_withcontext/index.jsonl
+data/primevul_withcontext/context/{repos,cpg,catalog.jsonl,unavailable.jsonl}
 ```
 
-Each input record supplies `sample_id` and `code`. There is no operational
-context sidecar. B1 does not resolve a whole file, index same-file functions,
-or inject caller/callee hints into B2.
+The raw export remains immutable. Each normalized input record supplies only
+`sample_id` and `code`; the index has repository locator fields only. B1 does
+not resolve a whole file, index same-file functions, or inject caller/callee
+hints into B2.
 
 PrimeVul remains function-level. Any missing header, type, macro, or external
 symbol is represented as a local analysis limitation and remains available for
@@ -590,11 +593,16 @@ future obligation-driven repository retrieval.
 Repository context is implemented as a standalone, disabled-by-default,
 two-phase service. Offline `repo-context preprocess` resolves one exact Git
 revision, verifies indexed source, and caches one smoke-validated Joern CPG.
-Runtime `repo-context query` reads only the READY catalog, immutable snapshot,
+Runtime `repo-context query` reads only `context/catalog.jsonl`, an immutable snapshot,
 and prepared CPG, then returns bounded source-grounded evidence. It must never
 invoke Git, build a CPG, or smoke-test at query time. Missing or invalid
 prepared context returns empty `not_found` evidence with
 `repository_context_unavailable`; it is not a fallback trigger.
+
+`catalog.jsonl` replaces the old `ready.jsonl` filename, while successful JSON
+records retain `status: "ready"`. `unavailable.jsonl` contains only a sample ID
+and controlled failure kind. Legacy cache directories are not moved or deleted
+automatically.
 
 The service requires an explicit `EvidenceRequest` with an operation anchor and
 finite budget. It is available through `vulsor repo-context`; it is not exposed

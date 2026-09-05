@@ -330,17 +330,24 @@ Preview output tự động chỉ bật cho một sample để tránh dừng gi�
 
 ## Dataset Layout
 
-PrimeVul clean dataset mặc định:
+PrimeVul raw export và offline repository context được tách rõ:
 
 ```text
-data/PrimeVul_clean/
-  inputs/
-    train.jsonl
-    valid.jsonl
-    test.jsonl
+data/primevul/
+  primevul_test_pairs.jsonl
+  file_info.json
+data/primevul_withcontext/
+  test.jsonl
+  index.jsonl
+  context/
+    repos/
+    cpg/
+    catalog.jsonl
+    unavailable.jsonl
 ```
 
-`inputs/*.jsonl` chứa `sample_id` và `code`.
+Raw export không bị sửa. `test.jsonl` chỉ chứa `sample_id` và `code`; `index.jsonl`
+chỉ chứa locator repository an toàn cho runtime.
 
 ## Luồng B1 -> B2
 
@@ -387,8 +394,8 @@ Chuẩn hóa metadata thành repository index không chứa label/CVE/CWE:
 vulsor repo-context index `
   --source data\primevul-metadata.jsonl `
   --field-map primevul-fields.yaml `
-  --output data\PrimeVul_clean\repository_index\test.jsonl `
-  --rejects workspace\repository_context\test-rejects.jsonl
+  --output data\primevul_withcontext\index.jsonl `
+  --rejects data\primevul_withcontext\index-rejects.jsonl
 ```
 
 Kiểm tra tool và chuẩn bị một CPG cho đúng revision:
@@ -446,10 +453,16 @@ vulsor repo-context query --config configs\primevul.yaml `
 
 `preprocess` is the only offline phase permitted to resolve Git revisions,
 build CPGs with `joern-parse`, and smoke-check them. `query` reads only the
-READY catalog, snapshot, and prepared CPG, then runs the Joern query script.
+catalog, snapshot, and prepared CPG, then runs the Joern query script.
 It never fetches, checks out, builds, or smoke-tests. If no READY context is
 available, it writes `status: not_found`, `evidence: []`, and limitation
 `repository_context_unavailable` (exit code 0).
+
+`data/primevul_withcontext/context/catalog.jsonl` replaces the old catalog
+filename `ready.jsonl`; each successful record still has `status: "ready"`.
+`unavailable.jsonl` records controlled reasons for samples without usable
+repository context. Existing legacy cache directories are neither moved nor
+deleted automatically.
 
 Joern 4 requires Java 21. Set `JAVA_HOME`/`JAVACMD` and expose `joern` plus
 `joern-parse` on PATH, or use a machine-local config. Do not commit local tool
