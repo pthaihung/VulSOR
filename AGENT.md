@@ -587,10 +587,15 @@ future obligation-driven repository retrieval.
 
 ## 8. Repository Context Boundary
 
-Repository context is intentionally absent from the current implementation.
-The future paper-aligned design will preprocess one repository revision into a
-CPG, then retrieve bounded call, data-flow, control-dependence, declaration,
-and type evidence only after a concrete obligation requests it.
+Repository context is implemented as a standalone, disabled-by-default service.
+It normalizes a leakage-safe sample-to-repository index, resolves one exact Git
+revision, verifies the sample against its indexed source, caches one validated
+Joern CPG per revision identity, and returns bounded source-grounded call,
+argument, data-flow, control-dependence, declaration, and type evidence.
+
+The service requires an explicit `EvidenceRequest` with an operation anchor and
+finite budget. It is available through `vulsor repo-context`; it is not exposed
+to B1/B2 and is not automatically connected to B3/B4 yet.
 
 ## 9. Tool Integration
 
@@ -598,14 +603,20 @@ and type evidence only after a concrete obligation requests it.
 |---|---|---|
 | Clang | Integrated in production Python path | AST JSON, debug.DumpCFG |
 | clang++ | Checked by config/doctor | C/C++ toolchain availability |
+| Git | Optional repository-context tool | Exact revision resolution and read-only checkout |
+| Joern | Standalone repository-context adapter | Whole-repository CPG build and bounded queries |
 | Native probe | Experimental/debug | `native/`, not production pipeline |
 
-`vulsor doctor` checks PATH for:
+`vulsor doctor` normally checks PATH for:
 
 ```text
 clang
 clang++
 ```
+
+`vulsor doctor --repository-context` additionally checks `git`, `joern`, and
+`joern-parse`. The same checks apply when repository context is enabled in the
+project config.
 
 Native probe purpose:
 
@@ -634,11 +645,14 @@ Only move native helpers into production after interface and tests are clear.
 3. Data-flow is syntactic local reaching-definition only.
 4. Call graph is syntactic direct calls only.
 5. Function pointers, C++ virtual dispatch, macro-generated calls, and external
-   callees are unresolved local semantics and must remain uncertainty until a
-   future repository retriever supplies evidence.
-6. Evidence and verification are not implemented; `PipelineResult.evidence` is
-   empty.
-7. `AGENT.md` must be updated after important code changes.
+   callees may remain unresolved even with Joern evidence and must be reported
+   as limitations.
+6. Standalone repository evidence retrieval is implemented, but B3/B4 do not
+   create requests or consume its evidence yet. `PipelineResult.evidence`
+   remains empty until that integration exists.
+7. The Joern script has unit-level boundary coverage; its real runtime
+   integration must be run in an environment with `joern` and `joern-parse`.
+8. `AGENT.md` must be updated after important code changes.
 
 Short classification:
 
@@ -646,24 +660,24 @@ Short classification:
 CFG missing       -> local Clang/source limitation
 data-flow limited -> syntactic local analysis only
 call graph limited -> syntactic direct calls only
-repository facts  -> not implemented; reserved for obligation-driven retrieval
+repository facts  -> standalone bounded service; B3/B4 integration pending
 ```
 
 ## 11. Latest Test Status
 
-The retained test groups are:
+The test groups include:
 
 ```text
 tests/test_analysis.py
 tests/test_cli.py
+tests/repository_context/
 ```
 
-The removed repository-context test module is intentionally no longer part of
-the project. Run the suite with:
+Run the unit suite without the opt-in Joern runtime test with:
 
 ```powershell
 $env:PYTHONPATH = "src"
-python -m pytest -q
+python -m pytest -q -m "not joern"
 ```
 
 ## 12. Next Work
@@ -672,11 +686,10 @@ Priority:
 
 1. Strengthen B2 semantic agents with richer grounding and schema tests.
 2. Implement B3 obligation generation from the merged B2 views.
-3. Implement paper-aligned repository retrieval for B3/B4: repository revision
-   identity, one-time CPG preprocessing/cache, obligation-anchored queries for
-   call relations, call arguments, data-flow, control dependence, declaration,
-   and type information, plus bounded source-level evidence.
-4. Implement B4 grounding and obligation-specific evidence bundles.
+3. Connect the standalone repository-context service to B3/B4 after the final
+   obligation schema exists; construct only obligation-scoped requests.
+4. Implement B4 grounding and obligation-specific evidence bundles using
+   `RepositoryEvidence`, without injecting raw repository state into B1/B2.
 5. Implement B5 verification, B6 adjudication, and B8 evaluation.
 6. Map CFG blocks and edges to source locations where local analysis permits.
 

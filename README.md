@@ -225,17 +225,17 @@ brain_context/{dataset}/{split}/agents/{sample_id}/value.json
 brain_context/{dataset}/{split}/agents/{sample_id}/execution.json
 brain_context/{dataset}/{split}/agents/{sample_id}/operation.json
 brain_context/{dataset}/{split}/agents/{sample_id}/agent_semantics.json
-brain_context/{dataset}/{split}/agents/{sample_id}/semantic_cpg.json
+brain_context/{dataset}/{split}/agents/{sample_id}/semantic_graph.json
 ```
 
 Ví dụ:
 
 ```text
 brain_context/primevul/test/agents/test_000000/agent_semantics.json
-brain_context/primevul/test/agents/test_000000/semantic_cpg.json
+brain_context/primevul/test/agents/test_000000/semantic_graph.json
 ```
 
-Khi merge tạo `agent_semantics.json`, B2 tự sinh thêm `semantic_cpg.json` cho
+Khi merge tạo `agent_semantics.json`, B2 tự sinh thêm `semantic_graph.json` cho
 cùng sample. Đây là semantic property graph overlay từ B2, gồm `nodes`,
 `edges`, và `summary` để dễ query; nó không phải repository CPG.
 Nếu có output LLM hợp lệ trong `experiments/{dataset}/{split}/{agent}/{sample_id}.json`,
@@ -359,6 +359,97 @@ Sơ đồ B1 có sẵn tại:
 ```text
 workspace/b1_program_analysis_flow.svg
 ```
+
+## Repository Context Theo Revision
+
+Repository context là subsystem độc lập với B1/B2. Mỗi sample chỉ được ánh xạ
+đến repository khi có đủ URL, commit SHA 40 ký tự, file, function và source
+khớp duy nhất. Metadata thiếu hoặc sai schema được đưa vào rejects; source không
+khớp sẽ làm bước prepare thất bại. Hệ thống không tự đoán repository/revision.
+
+Tạo file ánh xạ field, ví dụ `primevul-fields.yaml`:
+
+```yaml
+sample_id: id
+repository_id: project
+repository_url: project_url
+revision: commit_id
+file_path: file_path
+function_name: func_name
+code: func
+start_line: start_line
+end_line: end_line
+```
+
+Chuẩn hóa metadata thành repository index không chứa label/CVE/CWE:
+
+```powershell
+vulsor repo-context index `
+  --source data\primevul-metadata.jsonl `
+  --field-map primevul-fields.yaml `
+  --output data\PrimeVul_clean\repository_index\test.jsonl `
+  --rejects workspace\repository_context\test-rejects.jsonl
+```
+
+Kiểm tra tool và chuẩn bị một CPG cho đúng revision:
+
+```powershell
+vulsor doctor --config configs\primevul.yaml --repository-context
+vulsor repo-context prepare --config configs\primevul.yaml `
+  --dataset primevul --split test --sample test_000000
+vulsor repo-context status --config configs\primevul.yaml `
+  --dataset primevul --split test --sample test_000000
+```
+
+Một request phải gắn với operation cụ thể và có budget hữu hạn:
+
+```json
+{
+  "request_id": "req-1",
+  "phase": "evaluate",
+  "obligation_ref": "obligation-1",
+  "repository_ref": {
+    "repository_id": "demo",
+    "repository_url": "https://example.test/demo.git",
+    "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "anchor": {
+    "file_path": "src/demo.c",
+    "function_name": "target",
+    "operation_kind": "call",
+    "operation_name": "consume",
+    "line": 9,
+    "argument_index": 1,
+    "entity": "value"
+  },
+  "questions": ["Giá trị nào được truyền vào consume?"],
+  "allowed_relations": ["call", "argument", "data_flow", "control_dependence"],
+  "budget": {
+    "max_call_depth": 2,
+    "max_flow_paths": 10,
+    "max_nodes": 150,
+    "max_source_lines": 200,
+    "max_evidence_items": 30
+  }
+}
+```
+
+Truy vấn và ghi evidence đã ánh xạ về source:
+
+```powershell
+vulsor repo-context query --config configs\primevul.yaml `
+  --dataset primevul --split test --sample test_000000 `
+  --request request.json --output evidence.json
+```
+
+`semantic_graph.json` là semantic overlay cục bộ của B2. `cpg.bin` là Joern
+CPG của toàn repository tại một revision xác định. Repository evidence hiện có
+CLI và Python service độc lập; chưa tự động nối vào B3/B4 cho đến khi obligation
+schema của các stage đó được hoàn thiện.
+
+Joern integration test là opt-in và cần cả `joern` lẫn `joern-parse` trong
+`PATH`. Cache lock không bị xóa tự động; nếu process bị dừng đột ngột, cần xác
+nhận không còn process sử dụng cache trước khi xử lý lock thủ công.
 
 ## Kiểm Tra Và Test
 
