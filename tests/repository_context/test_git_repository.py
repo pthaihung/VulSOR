@@ -171,6 +171,42 @@ def test_resolve_parent_revision_returns_immutable_parent_sha(
     assert resolved_parent == parent_revision
 
 
+def test_resolve_fetches_only_requested_revision_and_parent(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    two_commit_repository: tuple[Path, str, str],
+) -> None:
+    repository, _, revision = two_commit_repository
+    resolver = GitRepositoryResolver(
+        RepositoryContextConfig(
+            cache_root=tmp_path / "cache",
+            clone_timeout_seconds=30,
+            lock_timeout_seconds=5,
+        )
+    )
+    commands: list[tuple[str, ...]] = []
+    original_run_git = resolver._run_git
+
+    def record_command(*arguments: str):
+        commands.append(arguments)
+        return original_run_git(*arguments)
+
+    monkeypatch.setattr(resolver, "_run_git", record_command)
+    resolved = resolver.resolve(repository_ref(repository, revision))
+
+    assert resolved.resolved_revision == revision
+    mirror = resolver.mirror_path_for_url(repository.as_uri())
+    assert (
+        "-C",
+        str(mirror),
+        "fetch",
+        "--depth=2",
+        "origin",
+        f"+{revision}:refs/vulsor/{revision}",
+    ) in commands
+    assert not any(command[:2] == ("clone", "--mirror") for command in commands)
+
+
 def test_materialized_checkout_is_read_only_and_reusable(
     two_commit_repository: tuple[Path, str, str],
     short_cache_root: Path,
