@@ -10,7 +10,7 @@ from vulsor.agents.SemanticViews import list_of_dicts
 GRAPH_SCHEMA_VERSION = 1
 
 
-def build_semantic_cpg_overlay(
+def build_semantic_graph_overlay(
     semantic_payload: dict[str, Any],
 ) -> dict[str, Any]:
     """Convert agent_semantics.json payload into nodes and edges.
@@ -44,7 +44,7 @@ def build_semantic_cpg_overlay(
 
     return {
         "schema_version": GRAPH_SCHEMA_VERSION,
-        "artifact_kind": "semantic_cpg_overlay",
+        "artifact_kind": "semantic_graph_overlay",
         "sample_id": sample_id,
         "source_semantics": semantic_payload.get(
             "_meta",

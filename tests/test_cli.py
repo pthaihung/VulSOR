@@ -604,27 +604,28 @@ def test_all_semantic_agents_write_views_and_merge(
     merged = json.loads(
         (agent_dir / "agent_semantics.json").read_text(encoding="utf-8")
     )
-    semantic_cpg = json.loads(
-        (agent_dir / "semantic_cpg.json").read_text(encoding="utf-8")
+    semantic_graph = json.loads(
+        (agent_dir / "semantic_graph.json").read_text(encoding="utf-8")
     )
+    assert not (agent_dir / "semantic_cpg.json").exists()
     assert merged["status"] == "ok"
     assert merged["agent_semantics"]["state_view"]
     assert merged["agent_semantics"]["value_view"]
     assert merged["agent_semantics"]["execution_view"]
     assert merged["agent_semantics"]["operation_view"]
-    assert semantic_cpg["artifact_kind"] == "semantic_cpg_overlay"
-    assert semantic_cpg["sample_id"] == "sample_000000"
-    assert semantic_cpg["graph"]["summary"]["node_count"] > 0
-    assert semantic_cpg["graph"]["summary"]["edge_count"] > 0
+    assert semantic_graph["artifact_kind"] == "semantic_graph_overlay"
+    assert semantic_graph["sample_id"] == "sample_000000"
+    assert semantic_graph["graph"]["summary"]["node_count"] > 0
+    assert semantic_graph["graph"]["summary"]["edge_count"] > 0
     assert any(
         node["type"] == "Operation"
         and node["properties"].get("name") == "memcpy"
-        for node in semantic_cpg["graph"]["nodes"]
+        for node in semantic_graph["graph"]["nodes"]
     )
     assert any(
         edge["type"] == "SUPPORTED_BY"
         and edge["target"] == "fact:operation:memcpy:2:18"
-        for edge in semantic_cpg["graph"]["edges"]
+        for edge in semantic_graph["graph"]["edges"]
     )
 
     state = json.loads(
@@ -772,8 +773,8 @@ def test_all_semantic_agents_write_views_and_merge(
     merged = json.loads(
         (agent_dir / "agent_semantics.json").read_text(encoding="utf-8")
     )
-    semantic_cpg = json.loads(
-        (agent_dir / "semantic_cpg.json").read_text(encoding="utf-8")
+    semantic_graph = json.loads(
+        (agent_dir / "semantic_graph.json").read_text(encoding="utf-8")
     )
     assert merged["agent_semantics"]["llm_semantics"]["execution"][
         "observations"
@@ -781,12 +782,12 @@ def test_all_semantic_agents_write_views_and_merge(
     assert any(
         node["type"] == "SemanticObservation"
         and "memcpy executes" in node["properties"].get("claim", "")
-        for node in semantic_cpg["graph"]["nodes"]
+        for node in semantic_graph["graph"]["nodes"]
     )
     assert any(
         edge["type"] == "REFERS_TO"
         and edge["target"] == "operation:memcpy:2:18"
-        for edge in semantic_cpg["graph"]["edges"]
+        for edge in semantic_graph["graph"]["edges"]
     )
 
 

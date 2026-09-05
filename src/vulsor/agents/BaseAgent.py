@@ -18,7 +18,7 @@ from vulsor.agents.SemanticViews import (
     list_of_dicts,
     validate_semantic_view,
 )
-from vulsor.agents.SemanticGraph import build_semantic_cpg_overlay
+from vulsor.agents.SemanticOverlay import build_semantic_graph_overlay
 from vulsor.config import AgentLLMConfig
 
 
@@ -640,7 +640,7 @@ def merge_semantic_views(
     sample_id = str(artifact["sample_id"])
     agent_dir = brain_context_dir / dataset / split / "agents" / sample_id
     output_path = agent_dir / "agent_semantics.json"
-    graph_path = agent_dir / "semantic_cpg.json"
+    graph_path = agent_dir / "semantic_graph.json"
     input_paths = [agent_dir / f"{name}.json" for name in SEMANTIC_AGENTS]
     experiment_paths = [
         experiments_dir / dataset / split / name / f"{sample_id}.json"
@@ -655,7 +655,7 @@ def merge_semantic_views(
         cached = _read_json(output_path)
 
         if _cache_key_from_output(cached) == cache_key:
-            _write_semantic_cpg_overlay(
+            _write_semantic_graph_overlay(
                 graph_path,
                 cached,
                 semantic_path=output_path,
@@ -724,7 +724,7 @@ def merge_semantic_views(
     }
     agent_dir.mkdir(parents=True, exist_ok=True)
     _atomic_write_json(output_path, payload)
-    _write_semantic_cpg_overlay(
+    _write_semantic_graph_overlay(
         graph_path,
         payload,
         semantic_path=output_path,
@@ -740,7 +740,7 @@ def merge_semantic_views(
     )
 
 
-def _write_semantic_cpg_overlay(
+def _write_semantic_graph_overlay(
     graph_path: Path,
     semantic_payload: dict[str, Any],
     *,
@@ -756,7 +756,7 @@ def _write_semantic_cpg_overlay(
         ):
             return
 
-    graph_payload = build_semantic_cpg_overlay(semantic_payload)
+    graph_payload = build_semantic_graph_overlay(semantic_payload)
     graph_payload["source_semantics"] = str(semantic_path)
     graph_payload["_meta"]["source_semantics"] = str(semantic_path)
     graph_payload["_meta"]["source_hash"] = _file_hash(semantic_path)
