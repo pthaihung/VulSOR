@@ -23,7 +23,10 @@ def test_real_anchored_call_and_optional_graph_families(tmp_path):
     root.mkdir()
     fixture = Path(__file__).parents[1] / "fixtures/repository_context/demo.c"
     shutil.copyfile(fixture, root / "demo.c")
-    adapter = JoernAdapter()
+    adapter = JoernAdapter(
+        joern_executable=shutil.which("joern"),
+        joern_parse_executable=shutil.which("joern-parse"),
+    )
     cpg_path = tmp_path / "cpg.bin"
     adapter.build_cpg(root, cpg_path)
     assert adapter.smoke(cpg_path)["methodCount"] >= 2

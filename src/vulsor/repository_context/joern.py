@@ -439,19 +439,29 @@ class JoernAdapter:
         self.evidence_script = Path(selected_evidence_path)
 
     def version(self) -> str:
-        """Return the first nonblank line from ``joern --version``."""
+        """Read the installed Joern CLI version without starting its REPL."""
 
-        command = (self.joern_executable, "--version")
-        result = self._run(
-            command,
-            timeout=self.config.query_timeout_seconds,
-            paths=(Path(self.joern_executable),),
-        )
-        for line in _as_text(result.stdout).splitlines():
-            normalized = line.strip()
-            if normalized:
-                return normalized
-        raise JoernOutputError("Joern --version returned no nonblank output")
+        configured = Path(self.joern_executable)
+        launcher = configured if configured.is_absolute() else None
+        if launcher is None:
+            discovered = shutil.which(self.joern_executable)
+            launcher = Path(discovered) if discovered is not None else None
+        if launcher is None:
+            raise JoernOutputError("could not locate the Joern launcher")
+        try:
+            candidates = sorted(
+                (launcher.parent / "lib").glob("io.joern.joern-cli-*.jar")
+            )
+        except OSError as exc:
+            raise JoernOutputError("could not inspect the Joern installation") from exc
+        versions = []
+        for candidate in candidates:
+            match = re.fullmatch(r"io\.joern\.joern-cli-(.+)\.jar", candidate.name)
+            if match and match.group(1).strip():
+                versions.append(match.group(1))
+        if len(versions) != 1:
+            raise JoernOutputError("Joern installation must contain one CLI version JAR")
+        return versions[0]
 
     def build_cpg(self, source_root: Path, output_path: Path) -> None:
         """Build a C-language CPG into a validated nonempty regular file."""

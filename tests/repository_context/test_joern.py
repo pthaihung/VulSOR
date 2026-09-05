@@ -124,14 +124,17 @@ def evidence_payload(*, request_id: str = "req-1") -> dict[str, object]:
     }
 
 
-def test_version_uses_joern_version_and_normalizes_first_nonblank_line(
-    tmp_path: Path,
-) -> None:
-    runner = FakeRunner(CommandResult((), 0, "\n  Joern 2.0.0  \nother\n", "logs"))
-    current = adapter(tmp_path, runner)
+def test_version_reads_the_single_joern_cli_jar_next_to_launcher(tmp_path: Path) -> None:
+    launcher = tmp_path / "joern.bat"
+    launcher.write_text("@echo off", encoding="utf-8")
+    library = tmp_path / "lib"
+    library.mkdir()
+    (library / "io.joern.joern-cli-4.0.592.jar").write_bytes(b"jar")
+    runner = FakeRunner()
+    current = JoernAdapter(runner=runner, joern_executable=launcher)
 
-    assert current.version() == "Joern 2.0.0"
-    assert runner.calls == [(("joern-test", "--version"), None, 23)]
+    assert current.version() == "4.0.592"
+    assert runner.calls == []
 
 
 def test_build_cpg_uses_c_frontend_argument_list_and_requires_output(
@@ -348,12 +351,13 @@ def test_build_failure_preserves_existing_output_after_partial_temp_write(
     assert not list(tmp_path.glob(f".{output_path.name}.joern-*"))
 
 
-def test_timeout_is_typed(tmp_path: Path) -> None:
+def test_version_requires_a_discoverable_joern_installation(tmp_path: Path) -> None:
     runner = FakeRunner(subprocess.TimeoutExpired("joern-test", 23, output="partial"))
     current = adapter(tmp_path, runner)
 
-    with pytest.raises(JoernError, match="timed out"):
+    with pytest.raises(JoernError, match="locate"):
         current.version()
+    assert runner.calls == []
 
 
 def test_smoke_rejects_missing_output_and_cleans_it(tmp_path: Path) -> None:
