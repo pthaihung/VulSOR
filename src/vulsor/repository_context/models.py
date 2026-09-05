@@ -1,7 +1,7 @@
 """Typed contracts for repository-context evidence requests and results."""
 
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import (
     AnyUrl,
@@ -25,6 +25,7 @@ class StrictModel(BaseModel):
         "path",
         "evidence",
         "limitations",
+        "frontend_args",
         mode="before",
         check_fields=False,
     )
@@ -122,6 +123,57 @@ class RepositoryIndexRecord(StrictModel):
     sample_id: str = Field(min_length=1)
     repository: RepositoryRef
     target: TargetAnchor
+
+
+class PreparedSourceMatch(StrictModel):
+    """The unique location of a sampled function in its prepared snapshot."""
+
+    status: Literal["exact", "normalized"]
+    start_line: int = Field(ge=1)
+    end_line: int = Field(ge=1)
+
+    @model_validator(mode="after")
+    def ordered_line_range(self) -> "PreparedSourceMatch":
+        if self.start_line > self.end_line:
+            raise ValueError("start_line must be less than or equal to end_line")
+        return self
+
+
+class PreparedCpg(StrictModel):
+    """Identity of one smoke-validated, revision-level CPG artifact."""
+
+    cache_key: str = Field(pattern=r"^[0-9a-f]{64}$")
+    joern_version: str = Field(min_length=1)
+    frontend: str = Field(default="C", min_length=1)
+    frontend_args: tuple[str, ...] = ()
+
+
+class PreparedRecord(StrictModel):
+    """Whitelisted READY metadata consumed by the query-only runtime."""
+
+    sample_id: str = Field(min_length=1)
+    repository: RepositoryRef
+    target: TargetAnchor
+    source_match: PreparedSourceMatch
+    cpg: PreparedCpg
+    status: Literal["ready"] = "ready"
+
+
+class UnresolvedPreparedRecord(StrictModel):
+    """A controlled preprocessing outcome which intentionally omits details."""
+
+    sample_id: str = Field(min_length=1)
+    kind: Literal[
+        "repository_ref_missing",
+        "repository_unavailable",
+        "revision_mismatch",
+        "source_unavailable",
+        "source_mismatch",
+        "source_ambiguous",
+        "cpg_unavailable",
+        "joern_unavailable",
+    ]
+    status: Literal["unresolved"] = "unresolved"
 
 
 class SourceAnchor(StrictModel):
