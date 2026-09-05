@@ -1,4 +1,5 @@
 import json
+import shutil
 
 import pytest
 
@@ -37,3 +38,8 @@ def test_extract_function_name_rejects_ambiguous_main_file_functions() -> None:
 
     with pytest.raises(ClangFunctionError, match="ambiguous_function"):
         extract_function_name("int first(void) {} int second(void) {}", ".c", runner)
+
+
+@pytest.mark.skipif(shutil.which("clang") is None, reason="clang is required")
+def test_extract_function_name_accepts_real_clang_location() -> None:
+    assert extract_function_name("int target(void) { return 0; }", ".c") == "target"

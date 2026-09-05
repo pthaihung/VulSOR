@@ -92,7 +92,12 @@ def extract_function_name(
         name = node.get("name")
         location = node.get("loc")
         filename = location.get("file") if isinstance(location, dict) else None
-        if isinstance(name, str) and name and filename == source.name:
+        if (
+            isinstance(name, str)
+            and name
+            and isinstance(filename, str)
+            and filename.replace("\\", "/").rsplit("/", 1)[-1] == source.name
+        ):
             names.add(name)
     if not names:
         raise ClangFunctionError("function_not_found")
