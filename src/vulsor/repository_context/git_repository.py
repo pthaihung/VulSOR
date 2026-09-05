@@ -195,6 +195,19 @@ def repository_url_digest(repository_url: object) -> str:
     return hashlib.sha256(canonical_url.encode("utf-8")).hexdigest()
 
 
+def revision_snapshot_path(
+    cache_root: Path, repository_url: object, revision: str
+) -> Path:
+    """Return a prepared revision snapshot path without touching the filesystem."""
+
+    root = Path(cache_root)
+    if "\x00" in str(root):
+        raise ValueError("cache_root must not contain NUL bytes")
+    if not isinstance(revision, str) or not _FULL_SHA.fullmatch(revision):
+        raise ValueError("revision must be a full 40-character hexadecimal SHA")
+    return root / "revisions" / repository_url_digest(repository_url) / revision.lower()
+
+
 class GitRepositoryResolver:
     """Cache Git mirrors and materialize verified detached revisions."""
 
@@ -794,4 +807,5 @@ __all__ = [
     "SubprocessCommandRunner",
     "canonicalize_repository_url",
     "repository_url_digest",
+    "revision_snapshot_path",
 ]

@@ -21,6 +21,7 @@ from vulsor.config import RepositoryContextConfig
 
 from .git_repository import RepositoryResolutionError, canonicalize_repository_url
 from .models import StrictModel
+from .models import PreparedRecord
 
 
 _FULL_SHA = re.compile(r"^[0-9a-fA-F]{40}$")
@@ -115,6 +116,48 @@ class CpgArtifact:
 
 class CpgCacheError(RuntimeError):
     """Base class for CPG cache failures."""
+
+
+def read_ready_cpg(cache_root: Path, record: PreparedRecord) -> CpgArtifact | None:
+    """Read a READY artifact without locks, directory creation, or cache mutation."""
+
+    root = Path(cache_root)
+    cpg_root = root / "cpg"
+    try:
+        if any(_is_link_like(path) for path in (root, cpg_root)):
+            return None
+        if not cpg_root.is_dir():
+            return None
+        identity = CpgIdentity(
+            repository_url=str(record.repository.repository_url),
+            revision=record.repository.revision,
+            joern_version=record.cpg.joern_version,
+            frontend=record.cpg.frontend,
+            frontend_args=record.cpg.frontend_args,
+        )
+        expected_key = CpgCache.cache_key_for(identity)
+        if expected_key != record.cpg.cache_key:
+            return None
+        entry = cpg_root / expected_key
+        manifest_path = entry / "manifest.json"
+        cpg_path = entry / "cpg.bin"
+        if any(_is_link_like(path) for path in (entry, manifest_path, cpg_path)):
+            return None
+        if not entry.is_dir() or not manifest_path.is_file() or not cpg_path.is_file():
+            return None
+        manifest = CpgManifest.model_validate_json(
+            manifest_path.read_text(encoding="utf-8")
+        )
+        if (
+            manifest.cache_key != expected_key
+            or manifest.identity != identity
+            or manifest.cpg_size_bytes != cpg_path.stat().st_size
+            or manifest.cpg_size_bytes <= 0
+        ):
+            return None
+    except (OSError, ValueError, ValidationError):
+        return None
+    return CpgArtifact(expected_key, entry, cpg_path, cache_hit=True)
 
 
 class CpgCacheCleanupError(CpgCacheError):
@@ -822,4 +865,5 @@ __all__ = [
     "CpgIdentity",
     "CpgLockTimeoutError",
     "CpgManifest",
+    "read_ready_cpg",
 ]

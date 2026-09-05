@@ -18,6 +18,9 @@ from .models import (
     RepositoryEvidence,
     RepositoryIndexRecord,
     RepositoryRef,
+    PreparedCpg,
+    PreparedRecord,
+    PreparedSourceMatch,
     SourceAnchor,
     SourceLocation,
     StrictModel,
@@ -25,17 +28,17 @@ from .models import (
 )
 
 if TYPE_CHECKING:
-    from .service import PreparedRepository, RepositoryContextService
+    from .service import RepositoryContextQueryService, RepositoryPreprocessor
 
 
 def __getattr__(name: str) -> Any:
     """Load service types lazily so config can import model contracts safely."""
-    if name in {"PreparedRepository", "RepositoryContextService"}:
-        from .service import PreparedRepository, RepositoryContextService
+    if name in {"RepositoryContextQueryService", "RepositoryPreprocessor"}:
+        from .service import RepositoryContextQueryService, RepositoryPreprocessor
 
         return {
-            "PreparedRepository": PreparedRepository,
-            "RepositoryContextService": RepositoryContextService,
+            "RepositoryContextQueryService": RepositoryContextQueryService,
+            "RepositoryPreprocessor": RepositoryPreprocessor,
         }[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
@@ -53,8 +56,11 @@ __all__ = (
     "Limitation",
     "QueryFamily",
     "RelationFamily",
-    "PreparedRepository",
-    "RepositoryContextService",
+    "PreparedCpg",
+    "PreparedRecord",
+    "PreparedSourceMatch",
+    "RepositoryContextQueryService",
+    "RepositoryPreprocessor",
     "RepositoryEvidence",
     "RepositoryIndexRecord",
     "RepositoryRef",

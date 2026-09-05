@@ -1,192 +1,221 @@
-"""Prepare exact repository revisions and retrieve obligation-scoped context."""
+"""Separate offline repository preparation from query-only context retrieval."""
+
+from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
 
-from .cpg_cache import CpgArtifact, CpgCache, CpgCacheError, CpgIdentity
+from .cpg_cache import CpgCache, CpgCacheError, CpgIdentity, read_ready_cpg
 from .evidence import normalize_repository_evidence, source_path
 from .git_repository import (
     GitRepositoryResolver,
     RepositoryResolutionError,
     canonicalize_repository_url,
+    revision_snapshot_path,
 )
 from .index import RepositoryIndex, _validate_repository_relative_file_path
 from .joern import JoernAdapter, JoernError
-from .models import AnchorResolution, EvidenceRequest, Limitation, RepositoryEvidence
-from .source_match import (
-    SourceMatch,
-    SourceMatchStatus,
-    match_sample_to_file,
-    normalized_code_sha256,
+from .models import (
+    AnchorResolution,
+    EvidenceRequest,
+    Limitation,
+    PreparedCpg,
+    PreparedRecord,
+    PreparedSourceMatch,
+    RepositoryEvidence,
 )
+from .prepared import PreparedCatalog
+from .source_match import SourceMatchStatus, match_sample_to_file, normalized_code_sha256
 
 
 class RepositoryPreparationError(RuntimeError):
-    def __init__(self, kind: str, detail: str, status: str = "unavailable"):
-        self.kind, self.detail, self.status = kind, detail, status
+    """A controlled failure during the explicitly offline preparation phase."""
+
+    def __init__(self, kind: str, detail: str):
+        self.kind, self.detail = kind, detail
         super().__init__(detail)
 
 
-@dataclass(frozen=True)
-class PreparedRepository:
-    sample_id: str
-    repository_root: Path
-    resolved_revision: str
-    source_match: SourceMatch
-    cpg: CpgArtifact
+def _record_or_error(index: RepositoryIndex, sample_id: str):
+    try:
+        return index.get(sample_id)
+    except KeyError:
+        raise RepositoryPreparationError(
+            "repository_ref_missing", "No repository metadata exists for the sample"
+        ) from None
+
+
+def _validate_sample(record, sample_code: str, repository_root: Path):
+    try:
+        if normalized_code_sha256(sample_code) != record.target.normalized_code_sha256:
+            raise RepositoryPreparationError(
+                "source_mismatch", "Sample hash differs from repository index"
+            )
+        filename = _validate_repository_relative_file_path(record.target.file_path)
+        file_text = source_path(repository_root, filename).read_text(encoding="utf-8")
+    except RepositoryPreparationError:
+        raise
+    except (OSError, UnicodeError, ValueError):
+        raise RepositoryPreparationError(
+            "source_unavailable", "Indexed source cannot be read safely"
+        ) from None
+    match = match_sample_to_file(sample_code, file_text)
+    if match.status not in {SourceMatchStatus.EXACT, SourceMatchStatus.NORMALIZED}:
+        raise RepositoryPreparationError(
+            f"source_{match.status.value}",
+            "Sample does not have a unique match in the indexed revision",
+        )
+    if (
+        record.target.start_line is not None
+        and record.target.start_line != match.start_line
+    ) or (
+        record.target.end_line is not None and record.target.end_line != match.end_line
+    ):
+        raise RepositoryPreparationError(
+            "source_mismatch", "Indexed span differs from source match"
+        )
+    return match
 
 
 @dataclass
-class RepositoryContextService:
+class RepositoryPreprocessor:
+    """The only service allowed to resolve Git revisions and build CPGs."""
+
     index: RepositoryIndex
     repositories: GitRepositoryResolver
     cache: CpgCache
     joern: JoernAdapter
 
-    def _record(self, sample_id):
+    def preprocess_sample(self, sample_id: str, sample_code: str) -> PreparedRecord:
+        record = _record_or_error(self.index, sample_id)
         try:
-            return self.index.get(sample_id)
-        except KeyError:
+            resolved = self.repositories.resolve(record.repository)
+        except RepositoryResolutionError:
             raise RepositoryPreparationError(
-                "repository_ref_missing",
-                "No repository metadata exists for the selected sample",
-                "not_found",
+                "repository_unavailable", "Repository resolution failed"
             ) from None
-
-    def prepare_sample(self, sample_id: str, sample_code: str) -> PreparedRepository:
-        record = self._record(sample_id)
-        try:
-            digest = normalized_code_sha256(sample_code)
-        except ValueError:
-            raise RepositoryPreparationError(
-                "source_mismatch", "Sample code is empty"
-            ) from None
-        if digest != record.target.normalized_code_sha256:
-            raise RepositoryPreparationError(
-                "source_mismatch", "Sample hash differs from repository index"
-            )
-        resolved = self.repositories.resolve(record.repository)
         if resolved.resolved_revision.lower() != record.repository.revision.lower():
             raise RepositoryPreparationError(
                 "revision_mismatch", "Resolved revision differs from repository index"
             )
+        match = _validate_sample(record, sample_code, resolved.repository_root)
         try:
-            filename = _validate_repository_relative_file_path(record.target.file_path)
-            target_file = source_path(resolved.repository_root, filename)
-            content = target_file.read_text(encoding="utf-8")
-        except (OSError, UnicodeError, ValueError):
-            raise RepositoryPreparationError(
-                "source_unavailable", "Indexed source cannot be read safely"
-            ) from None
-        match = match_sample_to_file(sample_code, content)
-        if match.status not in {SourceMatchStatus.EXACT, SourceMatchStatus.NORMALIZED}:
-            raise RepositoryPreparationError(
-                "source_" + match.status.value,
-                "Sample does not have a unique match in the indexed revision",
+            version = self.joern.version()
+            identity = CpgIdentity(
+                repository_url=str(record.repository.repository_url),
+                revision=resolved.resolved_revision,
+                joern_version=version,
             )
-        if (
-            record.target.start_line is not None
-            and record.target.start_line != match.start_line
-        ) or (
-            record.target.end_line is not None
-            and record.target.end_line != match.end_line
-        ):
-            raise RepositoryPreparationError(
-                "source_mismatch", "Indexed span differs from source match"
-            )
-        identity = CpgIdentity(
-            repository_url=str(record.repository.repository_url),
-            revision=resolved.resolved_revision,
-            joern_version=self.joern.version(),
+
+            def build(directory: Path) -> None:
+                self.joern.build_cpg(resolved.repository_root, directory / "cpg.bin")
+                self.joern.smoke(directory / "cpg.bin")
+
+            artifact = self.cache.get_or_build(identity, build)
+            if artifact.cache_hit:
+                self.joern.smoke(artifact.cpg_path)
+        except CpgCacheError:
+            raise RepositoryPreparationError("cpg_unavailable", "CPG cache failed") from None
+        except JoernError:
+            raise RepositoryPreparationError("joern_unavailable", "Joern preprocessing failed") from None
+        assert match.start_line is not None and match.end_line is not None
+        return PreparedRecord(
+            sample_id=sample_id,
+            repository=record.repository,
+            target=record.target,
+            source_match=PreparedSourceMatch(
+                status=match.status.value,
+                start_line=match.start_line,
+                end_line=match.end_line,
+            ),
+            cpg=PreparedCpg(
+                cache_key=artifact.cache_key,
+                joern_version=identity.joern_version,
+                frontend=identity.frontend,
+                frontend_args=identity.frontend_args,
+            ),
         )
 
-        def build(directory: Path):
-            self.joern.build_cpg(resolved.repository_root, directory / "cpg.bin")
-            self.joern.smoke(directory / "cpg.bin")
 
-        artifact = self.cache.get_or_build(identity, build)
-        if artifact.cache_hit:
-            self.joern.smoke(artifact.cpg_path)
-        return PreparedRepository(
-            sample_id,
-            resolved.repository_root,
-            resolved.resolved_revision,
-            match,
-            artifact,
+@dataclass
+class RepositoryContextQueryService:
+    """Read-only runtime: it never resolves Git, builds a CPG, or smoke-tests."""
+
+    index: RepositoryIndex
+    catalog: PreparedCatalog
+    cache_root: Path
+    joern: JoernAdapter
+
+    def _not_found(self, request: EvidenceRequest) -> RepositoryEvidence:
+        return RepositoryEvidence(
+            request_id=request.request_id,
+            status="not_found",
+            resolved_revision=None,
+            anchor_resolution=AnchorResolution(status="not_found", candidate_count=0),
+            limitations=(
+                Limitation(
+                    kind="repository_context_unavailable",
+                    detail="Prepared repository context is unavailable for this sample",
+                ),
+            ),
         )
 
     def retrieve(
         self, request: EvidenceRequest, sample_code: str, *, sample_id: str
     ) -> RepositoryEvidence:
-        """Sample identity is explicit: request_id identifies a query, not a sample."""
-        revision = None
+        prepared = self.catalog.get_or_none(sample_id)
+        if prepared is None:
+            return self._not_found(request)
         try:
-            record = self._record(sample_id)
-            indexed, supplied = record.repository, request.repository_ref
+            indexed = self.index.get(sample_id)
+            if prepared.repository != indexed.repository or prepared.target != indexed.target:
+                return self._not_found(request)
+            supplied = request.repository_ref
             if (
-                indexed.repository_id != supplied.repository_id
-                or indexed.revision.lower() != supplied.revision.lower()
-                or canonicalize_repository_url(indexed.repository_url)
+                indexed.repository.repository_id != supplied.repository_id
+                or indexed.repository.revision.lower() != supplied.revision.lower()
+                or canonicalize_repository_url(indexed.repository.repository_url)
                 != canonicalize_repository_url(supplied.repository_url)
+                or request.anchor.file_path.replace("\\", "/") != indexed.target.file_path
+                or request.anchor.function_name != indexed.target.function_name
             ):
-                raise RepositoryPreparationError(
-                    "repository_ref_mismatch",
-                    "Request and index refer to different repositories or revisions",
-                )
-            if (
-                request.anchor.file_path.replace("\\", "/") != record.target.file_path
-                or request.anchor.function_name != record.target.function_name
-            ):
-                raise RepositoryPreparationError(
-                    "anchor_mismatch", "Request does not target the indexed function"
-                )
-            prepared = self.prepare_sample(sample_id, sample_code)
-            revision = prepared.resolved_revision
-            assert prepared.source_match.start_line is not None
-            assert prepared.source_match.end_line is not None
-            if (
-                not prepared.source_match.start_line
-                <= request.anchor.line
-                <= prepared.source_match.end_line
-            ):
-                raise RepositoryPreparationError(
-                    "anchor_mismatch",
-                    "Request operation is outside the sampled function",
-                )
-            raw = self.joern.query(prepared.cpg.cpg_path, request)
-            try:
-                return normalize_repository_evidence(
-                    raw, request, prepared.repository_root
-                )
-            except ValueError:
-                raise RepositoryPreparationError(
-                    "invalid_repository_evidence",
-                    "Graph results could not be validated or mapped safely",
-                ) from None
-        except RepositoryPreparationError as exc:
-            kind, detail, status = exc.kind, exc.detail, exc.status
-        except RepositoryResolutionError:
-            kind, detail, status = (
-                "repository_unavailable",
-                "Repository resolution failed",
-                "unavailable",
+                return self._not_found(request)
+            root = revision_snapshot_path(
+                self.cache_root, prepared.repository.repository_url, prepared.repository.revision
             )
-        except CpgCacheError:
-            kind, detail, status = (
-                "cpg_cache_unavailable",
-                "CPG cache could not be prepared",
-                "unavailable",
-            )
+            if root.is_symlink() or not root.is_dir():
+                return self._not_found(request)
+            match = _validate_sample(indexed, sample_code, root)
+            if (
+                match.status.value != prepared.source_match.status
+                or match.start_line != prepared.source_match.start_line
+                or match.end_line != prepared.source_match.end_line
+                or not prepared.source_match.start_line <= request.anchor.line <= prepared.source_match.end_line
+            ):
+                return self._not_found(request)
+            artifact = read_ready_cpg(self.cache_root, prepared)
+            if artifact is None:
+                return self._not_found(request)
+            raw = self.joern.query(artifact.cpg_path, request)
+            return normalize_repository_evidence(raw, request, root)
+        except RepositoryPreparationError:
+            return self._not_found(request)
+        except (OSError, UnicodeError, ValueError, KeyError):
+            return self._not_found(request)
         except JoernError:
-            kind, detail, status = (
-                "joern_unavailable",
-                "Joern failed to build, validate or query the CPG",
-                "unavailable",
+            return RepositoryEvidence(
+                request_id=request.request_id,
+                status="unavailable",
+                resolved_revision=prepared.repository.revision,
+                anchor_resolution=AnchorResolution(status="not_found", candidate_count=0),
+                limitations=(
+                    Limitation(kind="joern_unavailable", detail="Joern query failed"),
+                ),
             )
-        return RepositoryEvidence(
-            request_id=request.request_id,
-            status=status,
-            resolved_revision=revision,
-            anchor_resolution=AnchorResolution(status="not_found", candidate_count=0),
-            limitations=(Limitation(kind=kind, detail=detail),),
-        )
+
+
+__all__ = [
+    "RepositoryContextQueryService",
+    "RepositoryPreprocessor",
+    "RepositoryPreparationError",
+]
