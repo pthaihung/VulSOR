@@ -120,6 +120,9 @@ def build_parser() -> argparse.ArgumentParser:
     _add_doctor_parser(subparsers)
     _add_version_parser(subparsers)
 
+    from vulsor.repository_context.cli import add_parser
+    add_parser(subparsers)
+
     return parser
 
 
@@ -493,6 +496,8 @@ def _add_doctor_parser(
     _add_config_arg(sp)
 
     sp.set_defaults(handler=_handle_doctor)
+    sp.add_argument("--repository-context", action="store_true",
+                    help="Also check Git and Joern executables")
 
 
 def _add_version_parser(
@@ -2470,6 +2475,10 @@ def _handle_doctor(
     }
 
     all_ok = True
+
+    if getattr(args, "repository_context", False) or config.repository_context.enabled:
+        checks.update({"git": config.tools.git, "joern": config.tools.joern,
+                       "joern-parse": config.tools.joern_parse})
 
     for label, executable in checks.items():
         resolved = shutil.which(executable)
