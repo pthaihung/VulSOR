@@ -70,6 +70,28 @@ def test_real_anchored_call_and_optional_graph_families(tmp_path):
         )
 
 
+@pytest.mark.joern
+@pytest.mark.skipif(
+    os.environ.get("VULSOR_RUN_JOERN") != "1"
+    or not shutil.which("joern")
+    or not shutil.which("joern-parse"),
+    reason="opt-in integration requires VULSOR_RUN_JOERN=1 and local Joern",
+)
+def test_real_smoke_script_with_windows_batch_launcher(tmp_path):
+    root = tmp_path / "source"
+    root.mkdir()
+    fixture = Path(__file__).parents[1] / "fixtures/repository_context/demo.c"
+    shutil.copyfile(fixture, root / "demo.c")
+    adapter = JoernAdapter(
+        joern_executable=shutil.which("joern"),
+        joern_parse_executable=shutil.which("joern-parse"),
+    )
+    cpg_path = tmp_path / "cpg.bin"
+    adapter.build_cpg(root, cpg_path)
+
+    assert adapter.smoke(cpg_path)["methodCount"] >= 2
+
+
 def test_script_has_request_transport_and_anchored_queries():
     from vulsor.repository_context.joern import _default_script
 

@@ -2,11 +2,12 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 import ujson.*
 
-@main def exec(cpgFile: String, outFile: String): Unit =
+@main def exec(cpgFile: String, outFile: String): Unit = {
   importCpg(cpgFile)
-  val result = Obj(
-    "methodCount" -> cpg.method.size,
-    "callCount" -> cpg.call.size,
-    "fileCount" -> cpg.file.size,
+  val result = ujson.Obj(
+    "methodCount" -> cpg.method.l.size,
+    "callCount" -> cpg.call.l.size,
+    "fileCount" -> cpg.file.l.size
   )
-  Files.writeString(Paths.get(outFile), result.render(), StandardCharsets.UTF_8)
+  Files.writeString(Paths.get(outFile), ujson.write(result), StandardCharsets.UTF_8)
+}

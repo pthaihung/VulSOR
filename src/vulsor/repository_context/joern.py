@@ -518,9 +518,12 @@ class JoernAdapter:
         _validate_regular_file(cpg_path, "CPG input", nonempty=True)
         script_path = self._validated_script(self.smoke_script, "smoke script")
         output_path: Path | None = None
+        script_workspace: Path | None = None
         primary: BaseException | None = None
         try:
             output_path = self._temporary_file(".joern-smoke-")
+            if self._uses_direct_java_for_scripts():
+                script_workspace = self._temporary_directory(".joern-workspace-")
             command = self._script_command(
                 script_path,
                 (f"cpgFile={os.fspath(cpg_path)}", f"outFile={os.fspath(output_path)}"),
@@ -529,6 +532,7 @@ class JoernAdapter:
                 command,
                 timeout=self.config.query_timeout_seconds,
                 paths=(cpg_path, script_path, output_path),
+                cwd=script_workspace,
             )
             payload = self._read_json_object(
                 output_path,
@@ -542,6 +546,8 @@ class JoernAdapter:
         finally:
             if output_path is not None:
                 self._finish_cleanup(((output_path, "smoke output"),), primary)
+            if script_workspace is not None:
+                self._cleanup_temporary_directory(script_workspace, primary)
 
     def query(
         self,
@@ -568,10 +574,13 @@ class JoernAdapter:
 
         output_path: Path | None = None
         request_path: Path | None = None
+        script_workspace: Path | None = None
         primary: BaseException | None = None
         try:
             output_path = self._temporary_file(".joern-query-")
             request_path = self._temporary_file(".joern-request-")
+            if self._uses_direct_java_for_scripts():
+                script_workspace = self._temporary_directory(".joern-workspace-")
             request_path.write_text(request_model.model_dump_json(), encoding="utf-8")
 
             command = self._script_command(
@@ -586,6 +595,7 @@ class JoernAdapter:
                 command,
                 timeout=self.config.query_timeout_seconds,
                 paths=(cpg_path, script_path, request_path, output_path),
+                cwd=script_workspace,
             )
             payload = self._read_json_object(
                 output_path,
@@ -611,6 +621,8 @@ class JoernAdapter:
             if output_path is not None:
                 cleanup_paths.append((output_path, "query output"))
             self._finish_cleanup(cleanup_paths, primary)
+            if script_workspace is not None:
+                self._cleanup_temporary_directory(script_workspace, primary)
 
     def _diagnostic_paths(self, paths: Sequence[Path]) -> tuple[Path, ...]:
         return (
@@ -659,6 +671,31 @@ class JoernAdapter:
                 f"{_diagnostic(exc, self._diagnostic_paths((path,)))}"
             ) from None
 
+    @staticmethod
+    def _temporary_directory(prefix: str) -> Path:
+        try:
+            return Path(tempfile.mkdtemp(prefix=prefix))
+        except OSError as exc:
+            raise JoernError(f"could not create temporary Joern workspace: {exc}") from None
+
+    def _cleanup_temporary_directory(
+        self, path: Path, primary: BaseException | None
+    ) -> None:
+        try:
+            shutil.rmtree(path)
+        except FileNotFoundError:
+            return
+        except OSError as exc:
+            cleanup_error = JoernCleanupError(
+                "could not clean Joern script workspace: "
+                f"{_diagnostic(exc, self._diagnostic_paths((path,)))}"
+            )
+            if primary is None:
+                raise cleanup_error
+            add_note = getattr(primary, "add_note", None)
+            if callable(add_note):
+                add_note(str(cleanup_error))
+
     def _finish_cleanup(
         self,
         paths: Sequence[tuple[Path, str]],
@@ -695,10 +732,50 @@ class JoernAdapter:
         script_path: Path,
         parameters: Sequence[str],
     ) -> tuple[str, ...]:
-        command: list[str] = [self.joern_executable, "--script", os.fspath(script_path)]
+        launcher = self._launcher_path()
+        if self._uses_direct_java_for_scripts():
+            assert launcher is not None
+            installation_root = launcher.parent
+            java_executable = os.environ.get("JAVACMD")
+            if not java_executable:
+                java_home = os.environ.get("JAVA_HOME")
+                java_executable = (
+                    os.fspath(Path(java_home) / "bin" / "java.exe")
+                    if java_home
+                    else "java"
+                )
+            command: list[str] = [
+                java_executable,
+                "-XX:+UseG1GC",
+                "-XX:CompressedClassSpaceSize=128m",
+                "-Dlog4j.configurationFile="
+                + os.fspath(installation_root / "conf" / "log4j2.xml"),
+                "-cp",
+                os.fspath(installation_root / "lib" / "*"),
+                "io.joern.joerncli.console.ReplBridge",
+                "--script",
+                os.fspath(script_path),
+            ]
+        else:
+            command = [self.joern_executable, "--script", os.fspath(script_path)]
         for parameter in parameters:
             command.extend(("--param", parameter))
         return tuple(command)
+
+    def _uses_direct_java_for_scripts(self) -> bool:
+        launcher = self._launcher_path()
+        return (
+            os.name == "nt"
+            and launcher is not None
+            and launcher.suffix.casefold() in {".bat", ".cmd"}
+        )
+
+    def _launcher_path(self) -> Path | None:
+        configured = Path(self.joern_executable)
+        if configured.is_absolute():
+            return configured
+        discovered = shutil.which(self.joern_executable)
+        return Path(discovered) if discovered is not None else None
 
     @staticmethod
     def _read_json_object(
@@ -764,11 +841,12 @@ class JoernAdapter:
         *,
         timeout: float | None,
         paths: Sequence[Path],
+        cwd: Path | None = None,
     ) -> CommandResult:
         diagnostic_paths = self._diagnostic_paths(paths)
         _validate_batch_arguments(command)
         try:
-            result = self._runner.run(command, timeout=timeout)
+            result = self._runner.run(command, cwd=cwd, timeout=timeout)
         except subprocess.TimeoutExpired as exc:
             output = getattr(exc, "stdout", None)
             if output is None:

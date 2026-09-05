@@ -137,6 +137,62 @@ def test_version_reads_the_single_joern_cli_jar_next_to_launcher(tmp_path: Path)
     assert runner.calls == []
 
 
+@pytest.mark.skipif(os.name != "nt", reason="Windows batch launcher behavior")
+def test_windows_batch_launcher_uses_java_for_script_parameters(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    launcher = tmp_path / "joern.bat"
+    launcher.write_text("@echo off", encoding="utf-8")
+    (tmp_path / "lib").mkdir()
+    (tmp_path / "conf").mkdir()
+    (tmp_path / "conf" / "log4j2.xml").write_text("<Configuration/>", encoding="utf-8")
+    script = tmp_path / "smoke.sc"
+    script.write_text("// script", encoding="utf-8")
+    monkeypatch.setenv("JAVACMD", "java-custom")
+    current = JoernAdapter(
+        runner=FakeRunner(), joern_executable=launcher, smoke_script=script
+    )
+
+    command = current._script_command(script, ("cpgFile=x", "outFile=y"))
+
+    assert command[:7] == (
+        "java-custom",
+        "-XX:+UseG1GC",
+        "-XX:CompressedClassSpaceSize=128m",
+        f"-Dlog4j.configurationFile={tmp_path / 'conf' / 'log4j2.xml'}",
+        "-cp",
+        str(tmp_path / "lib" / "*"),
+        "io.joern.joerncli.console.ReplBridge",
+    )
+    assert command[-4:] == ("--param", "cpgFile=x", "--param", "outFile=y")
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows batch launcher behavior")
+def test_windows_direct_script_execution_uses_an_isolated_working_directory(
+    tmp_path: Path
+) -> None:
+    launcher = tmp_path / "joern.bat"
+    launcher.write_text("@echo off", encoding="utf-8")
+    script = tmp_path / "smoke.sc"
+    script.write_text("// script", encoding="utf-8")
+    cpg = cpg_path(tmp_path)
+
+    def smoke(arguments: tuple[str, ...]) -> CommandResult:
+        Path(arguments[-1].split("=", 1)[1]).write_text(
+            json.dumps({"methodCount": 1, "callCount": 0, "fileCount": 1}),
+            encoding="utf-8",
+        )
+        return CommandResult(arguments, 0, "", "")
+
+    runner = FakeRunner(smoke)
+    current = JoernAdapter(runner=runner, joern_executable=launcher, smoke_script=script)
+
+    current.smoke(cpg)
+
+    assert runner.calls[0][1] is not None
+    assert runner.calls[0][1] != Path.cwd()
+
+
 def test_build_cpg_uses_c_frontend_argument_list_and_requires_output(
     tmp_path: Path,
 ) -> None:
@@ -307,7 +363,7 @@ def test_command_diagnostics_redact_source_and_cache_parent_paths(
     assert str(cache_root) not in message
 
 
-def test_batch_launcher_rejects_metacharacter_paths_before_running(
+def test_windows_batch_launcher_runs_scripts_without_cmd_metacharacter_parsing(
     tmp_path: Path,
 ) -> None:
     cpg = tmp_path / "cpg&input.bin"
@@ -323,10 +379,11 @@ def test_batch_launcher_rejects_metacharacter_paths_before_running(
         smoke_script=smoke_script,
     )
 
-    with pytest.raises(JoernError, match="batch|metacharacter"):
+    with pytest.raises(JoernError, match="output"):
         current.smoke(cpg)
 
-    assert runner.calls == []
+    assert runner.calls
+    assert runner.calls[0][0][0] != str(current.joern_executable)
 
 
 def test_build_failure_preserves_existing_output_after_partial_temp_write(
