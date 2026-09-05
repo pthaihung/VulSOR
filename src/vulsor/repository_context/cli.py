@@ -9,12 +9,14 @@ import yaml
 from vulsor.config import DatasetConfig, VulSORConfig
 from vulsor.datasets import iter_dataset_samples
 from .cpg_cache import CpgCache, CpgCacheError, read_ready_cpg
+from .clang_function import extract_function_name
 from .git_repository import GitRepositoryResolver, RepositoryResolutionError
 from .index import RepositoryIndex, _atomic_write_text
 from .joern import JoernAdapter, JoernError
 from .models import EvidenceRequest, UnresolvedPreparedRecord
 from .prepared import PreparedCatalog, configured_catalog_paths, load_unresolved_catalog, write_prepared_catalog, write_unresolved_catalog
 from .primevul_index import PrimeVulFieldMap, normalize_primevul_jsonl
+from .primevul_import import import_primevul_test
 from .service import RepositoryContextQueryService, RepositoryPreparationError, RepositoryPreprocessor
 
 
@@ -26,6 +28,12 @@ def add_parser(subparsers):
     for flag in ("source", "field-map", "output", "rejects"):
         index.add_argument("--" + flag, required=True, type=Path)
     index.set_defaults(handler=handle)
+    importer = actions.add_parser("import-primevul")
+    importer.add_argument("--config", type=Path)
+    importer.add_argument("--source", required=True, type=Path)
+    importer.add_argument("--file-info", required=True, type=Path)
+    importer.add_argument("--output-root", required=True, type=Path)
+    importer.set_defaults(handler=handle)
     preprocess = actions.add_parser("preprocess")
     preprocess.add_argument("--config", type=Path)
     preprocess.add_argument("--dataset", required=True)
@@ -96,6 +104,17 @@ def _preprocess(config: VulSORConfig, index: RepositoryIndex, args: argparse.Nam
 
 def handle(args: argparse.Namespace, config: VulSORConfig) -> int:
     try:
+        if args.repo_action == "import-primevul":
+            summary = import_primevul_test(
+                args.source,
+                args.file_info,
+                args.output_root,
+                lambda code, suffix: extract_function_name(
+                    code, suffix, clang_executable=config.tools.clang
+                ),
+            )
+            print(json.dumps({"accepted": summary.accepted, "rejected": summary.rejected}))
+            return 0
         if args.repo_action == "query" and args.output.resolve() == args.request.resolve():
             raise ValueError("Request and evidence output paths must differ")
         if args.repo_action == "index":

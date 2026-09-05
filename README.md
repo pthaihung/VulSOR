@@ -390,6 +390,19 @@ end_line: end_line
 
 Chuẩn hóa metadata thành repository index không chứa label/CVE/CWE:
 
+Với paired PrimeVul export, dùng Clang AST để tạo compact input/index trước:
+
+```powershell
+vulsor repo-context import-primevul `
+  --config configs\primevul.yaml `
+  --source data\primevul\primevul_test_pairs.jsonl `
+  --file-info data\primevul\file_info.json `
+  --output-root data\primevul_withcontext
+```
+
+Thứ tự offline là `import-primevul` (Clang AST) -> `preprocess --all` (Git +
+Joern) -> `query` (Joern query-only).
+
 ```powershell
 vulsor repo-context index `
   --source data\primevul-metadata.jsonl `

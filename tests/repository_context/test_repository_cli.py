@@ -5,6 +5,7 @@ import pytest
 from vulsor.cli import build_parser, main
 from vulsor.datasets import DatasetSample
 from vulsor.repository_context.models import RepositoryIndexRecord
+from vulsor.repository_context.primevul_import import ImportSummary
 from vulsor.repository_context.index import write_repository_index
 from vulsor.repository_context.source_match import normalized_code_sha256
 
@@ -278,3 +279,28 @@ def test_status_uses_configured_repository_index_file(tmp_path, capsys) -> None:
         == 0
     )
     assert json.loads(capsys.readouterr().out)["sample_id"] == "s1"
+
+
+def test_import_primevul_command_writes_compact_output(tmp_path, monkeypatch, capsys) -> None:
+    captured = {}
+
+    def fake_import(raw, info, output, extract):
+        captured.update(raw=raw, info=info, output=output)
+        assert extract("int target(void) {}", ".c") == "target"
+        return ImportSummary(accepted=1, rejected=0)
+
+    monkeypatch.setattr("vulsor.repository_context.cli.import_primevul_test", fake_import)
+    monkeypatch.setattr(
+        "vulsor.repository_context.cli.extract_function_name",
+        lambda code, suffix, **kwargs: "target",
+    )
+    config = tmp_path / "config.json"
+    config.write_text(json.dumps({"tools": {"clang": "clang-test"}}), encoding="utf-8")
+    raw, info, output = tmp_path / "raw.jsonl", tmp_path / "info.json", tmp_path / "out"
+
+    assert main([
+        "repo-context", "import-primevul", "--config", str(config),
+        "--source", str(raw), "--file-info", str(info), "--output-root", str(output),
+    ]) == 0
+    assert captured == {"raw": raw, "info": info, "output": output}
+    assert json.loads(capsys.readouterr().out) == {"accepted": 1, "rejected": 0}

@@ -604,6 +604,14 @@ records retain `status: "ready"`. `unavailable.jsonl` contains only a sample ID
 and controlled failure kind. Legacy cache directories are not moved or deleted
 automatically.
 
+For the paired PrimeVul export, the offline order is:
+
+```text
+repo-context import-primevul (Clang AST function name)
+  -> repo-context preprocess --all (Git revision + Joern CPG)
+  -> repo-context query (prepared Joern CPG only)
+```
+
 The service requires an explicit `EvidenceRequest` with an operation anchor and
 finite budget. It is available through `vulsor repo-context`; it is not exposed
 to B1/B2 and is not automatically connected to B3/B4 yet.
