@@ -29,9 +29,10 @@ It may only:
 - invoke `joern --script repository_evidence.sc` against the existing CPG;
 - normalize the resulting bounded evidence.
 
-If a required artifact is missing, invalid, or not READY, the result is
-`RepositoryEvidence(status="unavailable")` with the controlled limitation
-`preprocess_required`. The runtime does not attempt recovery.
+If a required artifact is missing, invalid, or not READY, the result is an
+empty `RepositoryEvidence(status="not_found", evidence=())` with the controlled
+limitation `repository_context_unavailable`. The runtime does not attempt
+recovery. Missing context is an expected coverage outcome, not a query error.
 
 ## Prepared Artifact Layout
 
@@ -152,9 +153,12 @@ version probe tailored to this release.
 
 ## Failure Semantics
 
-- no prepared record: `preprocess_required`;
-- record is unresolved: `preprocess_required` with its controlled failure kind;
-- snapshot, manifest, or CPG missing/corrupt: `preprocess_required`;
+- no prepared record: empty `not_found` evidence with
+  `repository_context_unavailable`;
+- record is unresolved: empty `not_found` evidence with
+  `repository_context_unavailable`;
+- snapshot, manifest, or CPG missing/corrupt: empty `not_found` evidence with
+  `repository_context_unavailable`;
 - request/index/record mismatch: `not_found` or `unavailable`, without query;
 - Joern query failure: `unavailable`, without any fallback preprocessing;
 - source mapping or budget limitation: existing `partial` behavior.
@@ -168,7 +172,8 @@ Tests must prove all of the following:
 2. a second sample at the same identity reuses the CPG;
 3. query with READY artifacts invokes only `joern.query`;
 4. query with no record, unresolved record, absent snapshot, or absent CPG
-   never instantiates/calls Git resolution, CPG build, smoke, or `joern-parse`;
+   returns empty `not_found` evidence and never instantiates/calls Git
+   resolution, CPG build, smoke, or `joern-parse`;
 5. split preprocessing publishes READY and unresolved outputs without leaking
    protected raw metadata;
 6. `status` is still side-effect-free;
