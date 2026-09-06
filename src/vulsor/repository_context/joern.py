@@ -383,6 +383,7 @@ class JoernAdapter:
         evidence_script_path: str | Path | None = None,
         query_script: str | Path | None = None,
         query_script_path: str | Path | None = None,
+        function_context_script: str | Path | None = None,
     ) -> None:
         if isinstance(config, VulSORConfig):
             repository_config = config.repository_context
@@ -437,6 +438,11 @@ class JoernAdapter:
             else selected_smoke
         )
         self.evidence_script = Path(selected_evidence_path)
+        self.function_context_script = Path(
+            _default_script("function_context.sc")
+            if function_context_script is None
+            else function_context_script
+        )
 
     def version(self) -> str:
         """Read the installed Joern CLI version without starting its REPL."""
@@ -620,6 +626,79 @@ class JoernAdapter:
                 cleanup_paths.append((request_path, "request file"))
             if output_path is not None:
                 cleanup_paths.append((output_path, "query output"))
+            self._finish_cleanup(cleanup_paths, primary)
+            if script_workspace is not None:
+                self._cleanup_temporary_directory(script_workspace, primary)
+
+    def extract_function_context(
+        self,
+        cpg_path: Path,
+        *,
+        file_path: str,
+        function_name: str,
+        max_items: int = 120,
+    ) -> dict[str, object]:
+        """Extract fixed, function-anchored context during offline preparation."""
+
+        cpg_path = Path(cpg_path)
+        _validate_regular_file(cpg_path, "CPG input", nonempty=True)
+        if not file_path.strip() or not function_name.strip():
+            raise JoernError("function context file path and function name must not be blank")
+        if isinstance(max_items, bool) or not isinstance(max_items, int) or not 1 <= max_items <= 1000:
+            raise JoernError("function context max_items must be between 1 and 1000")
+        script_path = self._validated_script(
+            self.function_context_script, "function context script"
+        )
+        output_path: Path | None = None
+        request_path: Path | None = None
+        script_workspace: Path | None = None
+        primary: BaseException | None = None
+        try:
+            output_path = self._temporary_file(".joern-function-context-")
+            request_path = self._temporary_file(".joern-function-context-request-")
+            if self._uses_direct_java_for_scripts():
+                script_workspace = self._temporary_directory(".joern-workspace-")
+            request_path.write_text(
+                json.dumps(
+                    {
+                        "file_path": file_path,
+                        "function_name": function_name,
+                        "max_items": max_items,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            command = self._script_command(
+                script_path,
+                (
+                    f"cpgFile={os.fspath(cpg_path)}",
+                    f"requestFile={os.fspath(request_path)}",
+                    f"outFile={os.fspath(output_path)}",
+                ),
+            )
+            self._run(
+                command,
+                timeout=self.config.query_timeout_seconds,
+                paths=(cpg_path, script_path, request_path, output_path),
+                cwd=script_workspace,
+            )
+            payload = self._read_json_object(
+                output_path,
+                self._diagnostic_paths((cpg_path, script_path, request_path, output_path)),
+            )
+            return self._validate_function_context_payload(payload)
+        except (OSError, TypeError, ValueError) as exc:
+            primary = JoernError(f"could not write function context request: {_truncate(str(exc))}")
+            raise primary from None
+        except BaseException as exc:
+            primary = exc
+            raise
+        finally:
+            cleanup_paths: list[tuple[Path, str]] = []
+            if request_path is not None:
+                cleanup_paths.append((request_path, "function context request file"))
+            if output_path is not None:
+                cleanup_paths.append((output_path, "function context output"))
             self._finish_cleanup(cleanup_paths, primary)
             if script_workspace is not None:
                 self._cleanup_temporary_directory(script_workspace, primary)
@@ -812,6 +891,24 @@ class JoernAdapter:
             raise JoernSchemaError(
                 "Joern query output violates raw result schema"
             ) from None
+
+    @staticmethod
+    def _validate_function_context_payload(payload: dict[str, object]) -> dict[str, object]:
+        status = payload.get("anchor_status")
+        if status not in {"exact", "not_found", "ambiguous"}:
+            raise JoernSchemaError("function context output has an invalid anchor_status")
+        for field in (
+            "calls",
+            "data_dependencies",
+            "control_dependencies",
+            "declarations_types",
+            "limitations",
+        ):
+            if not isinstance(payload.get(field), list):
+                raise JoernSchemaError(f"function context output field {field} must be an array")
+        if not isinstance(payload.get("truncated"), bool):
+            raise JoernSchemaError("function context output field truncated must be a boolean")
+        return payload
 
     @staticmethod
     def _validate_smoke_payload(payload: dict[str, object]) -> None:

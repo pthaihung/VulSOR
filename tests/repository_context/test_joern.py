@@ -291,6 +291,63 @@ def test_query_uses_request_file_and_cleans_transport_files(tmp_path: Path) -> N
     assert all(not path.exists() for path in observed_request_files)
 
 
+def test_function_context_uses_explicit_transport_and_validates_payload(
+    tmp_path: Path,
+) -> None:
+    cpg = cpg_path(tmp_path)
+    script = tmp_path / "function_context.sc"
+    script.write_text("// fake function context script", encoding="utf-8")
+    observed: list[Path] = []
+
+    def extraction(arguments: tuple[str, ...]) -> CommandResult:
+        params = {
+            arguments[index + 1].split("=", 1)[0]: Path(
+                arguments[index + 1].split("=", 1)[1]
+            )
+            for index, value in enumerate(arguments[:-1])
+            if value == "--param"
+        }
+        request = json.loads(params["requestFile"].read_text(encoding="utf-8"))
+        assert request == {
+            "file_path": "magick/property.c",
+            "function_name": "GetEXIFProperty",
+            "max_items": 120,
+        }
+        observed.append(params["requestFile"])
+        params["outFile"].write_text(
+            json.dumps(
+                {
+                    "anchor_status": "exact",
+                    "calls": [],
+                    "data_dependencies": [],
+                    "control_dependencies": [],
+                    "declarations_types": [],
+                    "limitations": [],
+                    "truncated": False,
+                }
+            ),
+            encoding="utf-8",
+        )
+        return CommandResult(arguments, 0, "", "")
+
+    current = JoernAdapter(
+        config=RepositoryContextConfig(cache_root=tmp_path / "cache"),
+        runner=FakeRunner(extraction),
+        joern_executable="joern-test",
+        joern_parse_executable="joern-parse-test",
+        function_context_script=script,
+    )
+
+    payload = current.extract_function_context(
+        cpg,
+        file_path="magick/property.c",
+        function_name="GetEXIFProperty",
+    )
+
+    assert payload["anchor_status"] == "exact"
+    assert all(not path.exists() for path in observed)
+
+
 @pytest.mark.parametrize("operation", ["smoke", "query"])
 def test_nonzero_exit_is_typed_sanitized_and_truncated(
     tmp_path: Path,
