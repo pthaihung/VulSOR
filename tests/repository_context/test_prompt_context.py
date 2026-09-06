@@ -67,21 +67,18 @@ def test_renderer_emits_all_paper_sections_and_preserves_limitations() -> None:
     assert "[DATA DEPENDENCIES]\n- No mapped evidence found." in record.context
 
 
-def test_renderer_deduplicates_and_truncates_at_item_boundaries() -> None:
+def test_renderer_rejects_context_that_exceeds_the_character_safety_cap() -> None:
     call = raw_context()["calls"]
     distinct_calls = [
         {**call[0], "code": f"helper_{index}(image)", "callee": f"helper_{index}", "line": 100 + index}
         for index in range(8)
     ]
-    record = render_prompt_context(
-        "test_194963",
-        raw_context(calls=[distinct_calls[0], distinct_calls[0], *distinct_calls[1:]], limitations=[]),
-        max_characters=420,
-    )
-
-    assert record.context.count("helper_0(image)") == 1
-    assert "context_truncated" in record.limitations
-    assert len(record.context) <= 420
+    with pytest.raises(PromptContextError, match="context exceeds"):
+        render_prompt_context(
+            "test_194963",
+            raw_context(calls=[distinct_calls[0], distinct_calls[0], *distinct_calls[1:]], limitations=[]),
+            max_characters=420,
+        )
 
 
 def test_renderer_rejects_non_exact_anchor() -> None:
@@ -144,21 +141,19 @@ def test_renderer_does_not_reduce_selected_unanchored_data_to_eight_items() -> N
     assert "x15 = source15" in record.context
 
 
-def test_renderer_limits_total_context_to_two_thousand_estimated_tokens() -> None:
+def test_renderer_rejects_context_that_exceeds_two_thousand_estimated_tokens() -> None:
     long_fact = " ".join("dependency" for _ in range(200))
     data = [
         {"code": f"x{index} = {long_fact}", "file": "demo.c", "line": index + 1}
         for index in range(16)
     ]
 
-    record = render_prompt_context(
-        "s1",
-        raw_context(data_dependencies=data),
-        max_characters=100_000,
-    )
-
-    assert estimate_context_tokens(record.context) <= 2_000
-    assert "context_truncated" in record.limitations
+    with pytest.raises(PromptContextError, match="context exceeds"):
+        render_prompt_context(
+            "s1",
+            raw_context(data_dependencies=data),
+            max_characters=100_000,
+        )
 
 
 def test_renderer_rejects_a_token_limit_above_the_hard_cap() -> None:

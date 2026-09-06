@@ -127,41 +127,18 @@ def _render_with_budget(
         raise PromptContextError("max_characters must be positive")
     if max_tokens < 1:
         raise PromptContextError("max_tokens must be positive")
-    selected = [[] for _ in sections]
-    candidates = [
-        (section_index, line)
-        for section_index, (_, lines) in enumerate(sections)
-        for line in lines
-    ]
-
-    def compose() -> str:
-        return "\n\n".join(
-            "\n".join((heading, *(selected[index] or ["- No mapped evidence found."])))
-            for index, (heading, _) in enumerate(sections)
+    text = "\n\n".join(
+        "\n".join((heading, *(lines or ["- No mapped evidence found."])))
+        for heading, lines in sections
+    )
+    estimated_tokens = estimate_context_tokens(text)
+    if len(text) > max_characters or estimated_tokens > max_tokens:
+        raise PromptContextError(
+            "context exceeds the accepted budget "
+            f"(characters={len(text)}/{max_characters}, "
+            f"estimated_tokens={estimated_tokens}/{max_tokens})"
         )
-
-    text = compose()
-    if len(text) > max_characters or estimate_context_tokens(text) > max_tokens:
-        raise PromptContextError("context budget is too small for the section headers")
-    truncated = False
-    for section_index, line in candidates:
-        selected[section_index].append(line)
-        candidate = compose()
-        if (
-            len(candidate) > max_characters
-            or estimate_context_tokens(candidate) > max_tokens
-        ):
-            selected[section_index].pop()
-            truncated = True
-            continue
-        text = candidate
-    if any(len(lines) > 1 for _, lines in sections) and any(
-        line not in selected[index]
-        for index, (_, lines) in enumerate(sections)
-        for line in lines[1:]
-    ):
-        truncated = True
-    return text, truncated
+    return text, False
 
 
 def _limited(lines: list[str], limit: int) -> tuple[list[str], bool]:
