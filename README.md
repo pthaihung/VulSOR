@@ -405,6 +405,28 @@ Thứ tự offline là `import-primevul` (Clang AST + Git resolve commit cha cho
 `file_info.json` chỉ định file; span cuối cùng được xác minh từ source ở
 revision vulnerable, không lấy từ span của commit vá.
 
+### Context prompt-ready cho một sample
+
+Luồng mới để thử context theo paper không dùng Joern ở runtime. `build-context`
+chỉ xử lý đúng một sample trong pha offline: resolve revision, dựng/tái sử dụng
+CPG, trích xuất call/data/control/declaration-type, rồi ghi một record JSONL có
+bốn section cố định. Sau đó `show-context` chỉ đọc JSONL; không khởi tạo Git,
+Joern hoặc CPG.
+
+```powershell
+vulsor repo-context build-context --config local-primevul.yaml `
+  --dataset primevul --split test --sample test_194963 `
+  --output data\primevul_withcontext\context.jsonl
+
+vulsor repo-context show-context --sample test_194963 `
+  --input data\primevul_withcontext\context.jsonl
+```
+
+Mỗi dòng `context.jsonl` có dạng `sample_id`, `context`, `limitations`.
+`context` luôn gồm `[CALL RELATIONS]`, `[DATA DEPENDENCIES]`, `[CONTROL
+DEPENDENCIES]`, `[DECLARATIONS AND TYPES]`. Quan hệ không map được phải nằm
+trong `limitations`, không được suy diễn thành evidence.
+
 ```powershell
 vulsor repo-context index `
   --source data\primevul-metadata.jsonl `
