@@ -94,6 +94,42 @@ def test_import_rejects_missing_file_info_without_guessing_path(tmp_path: Path) 
     }
 
 
+def test_import_matches_primevul_scientific_notation_hash_and_utf8_bom(
+    tmp_path: Path,
+) -> None:
+    raw = tmp_path / "pairs.jsonl"
+    raw.write_text(
+        json.dumps(
+            {
+                "idx": 13,
+                "target": 1,
+                "project": "demo",
+                "project_url": "https://example.test/demo.git",
+                "commit_id": "a" * 40,
+                "func_hash": 2.9209630815670494e38,
+                "func": "int target(void) {}",
+            }
+        )
+        + "\n",
+        encoding="utf-8-sig",
+    )
+    info = tmp_path / "file_info.json"
+    info.write_text(
+        json.dumps(
+            {
+                "292096308156704952246887123009503225331": {
+                    "project_file_path": "src/demo.c",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = import_primevul_test(raw, info, tmp_path / "out", lambda *_: "target")
+
+    assert result == ImportSummary(accepted=1, rejected=0)
+
+
 def test_import_uses_parent_revision_and_defers_source_span_validation(
     tmp_path: Path,
 ) -> None:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -37,10 +38,38 @@ def _reject(sample_id: str | None, reason: str) -> dict[str, str | None]:
     return {"sample_id": sample_id, "reason": reason}
 
 
-def _locator(info: Mapping[str, Any], func_hash: object) -> Mapping[str, Any] | None:
-    if isinstance(func_hash, bool) or not isinstance(func_hash, int):
+def _float_locators(info: Mapping[str, Any]) -> dict[float, Mapping[str, Any] | None]:
+    """Index integer file-info hashes represented as lossy JSON floats."""
+
+    locators: dict[float, Mapping[str, Any] | None] = {}
+    for key, value in info.items():
+        if not isinstance(key, str) or not key.isdecimal() or not isinstance(value, Mapping):
+            continue
+        try:
+            floating_hash = float(key)
+        except OverflowError:
+            continue
+        existing = locators.get(floating_hash)
+        if existing is None and floating_hash not in locators:
+            locators[floating_hash] = value
+        elif existing != value:
+            locators[floating_hash] = None
+    return locators
+
+
+def _locator(
+    info: Mapping[str, Any],
+    float_locators: Mapping[float, Mapping[str, Any] | None],
+    func_hash: object,
+) -> Mapping[str, Any] | None:
+    if isinstance(func_hash, bool):
         return None
-    value = info.get(str(func_hash))
+    if isinstance(func_hash, int):
+        value = info.get(str(func_hash))
+    elif isinstance(func_hash, float) and math.isfinite(func_hash):
+        value = float_locators.get(func_hash)
+    else:
+        return None
     return value if isinstance(value, Mapping) else None
 
 
@@ -109,10 +138,11 @@ def import_primevul_test(
     info = json.loads(file_info_path.read_text(encoding="utf-8"))
     if not isinstance(info, Mapping):
         raise ValueError("file_info must be a JSON object")
+    float_locators = _float_locators(info)
 
     accepted: dict[str, tuple[str, RepositoryIndexRecord]] = {}
     rejects: list[dict[str, str | None]] = []
-    with raw_path.open("r", encoding="utf-8") as handle:
+    with raw_path.open("r", encoding="utf-8-sig") as handle:
         for raw_line in handle:
             if not raw_line.strip():
                 continue
@@ -130,7 +160,7 @@ def import_primevul_test(
             if sample_id in accepted:
                 rejects.append(_reject(sample_id, "duplicate_sample_id"))
                 continue
-            locator = _locator(info, raw.get("func_hash"))
+            locator = _locator(info, float_locators, raw.get("func_hash"))
             if locator is None:
                 rejects.append(_reject(sample_id, "locator_missing"))
                 continue
