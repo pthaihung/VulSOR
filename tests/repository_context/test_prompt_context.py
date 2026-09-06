@@ -83,6 +83,45 @@ def test_renderer_rejects_non_exact_anchor() -> None:
         render_prompt_context("test_194963", raw_context(anchor_status="not_found"))
 
 
+def test_renderer_bounds_context_around_two_risk_anchors() -> None:
+    anchors = [
+        {"code": f"*(double *)p{index}", "file": "demo.c", "line": 40 + index}
+        for index in range(3)
+    ]
+    calls = [
+        {"code": f"read_{index}(p)", "callee": f"read_{index}", "file": "demo.c", "line": 80 + index}
+        for index in range(13)
+    ]
+    record = render_prompt_context(
+        "s1",
+        raw_context(
+            anchors=anchors,
+            data_dependencies=[
+                {"anchor_line": 40, "code": "p0 = buffer", "file": "demo.c", "line": 20}
+            ],
+            control_dependencies=[
+                {"anchor_line": 40, "code": "size >= 8", "file": "demo.c", "line": 30}
+            ],
+            local_contracts=[
+                {"code": "p0 = buffer;\n" * 16, "file": "macro.h", "line": 5}
+            ],
+            calls=calls,
+            limitations=[],
+        ),
+        max_characters=8_000,
+    )
+
+    assert "[RISK ANCHORS]" in record.context
+    assert "[DECLARATIONS, TYPES AND LOCAL CONTRACTS]" in record.context
+    assert "*(double *)p0" in record.context
+    assert "*(double *)p1" in record.context
+    assert "*(double *)p2" not in record.context
+    assert "read_11(p)" in record.context
+    assert "read_12(p)" not in record.context
+    assert record.context.count("p0 = buffer;") == 15
+    assert "context_truncated" in record.limitations
+
+
 def test_renderer_orders_items_by_source_location_before_text() -> None:
     record = render_prompt_context(
         "s1",
