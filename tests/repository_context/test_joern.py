@@ -14,6 +14,7 @@ from vulsor.repository_context.joern import (
     JoernCleanupError,
     JoernCommandError,
     JoernError,
+    JoernSchemaError,
 )
 from vulsor.repository_context.models import EvidenceRequest
 
@@ -312,16 +313,19 @@ def test_function_context_uses_explicit_transport_and_validates_payload(
             "file_path": "magick/property.c",
             "function_name": "GetEXIFProperty",
             "max_items": 120,
+            "source_root": str(tmp_path),
         }
         observed.append(params["requestFile"])
         params["outFile"].write_text(
             json.dumps(
                 {
                     "anchor_status": "exact",
+                    "anchors": [],
                     "calls": [],
                     "data_dependencies": [],
                     "control_dependencies": [],
                     "declarations_types": [],
+                    "local_contracts": [],
                     "limitations": [],
                     "truncated": False,
                 }
@@ -342,10 +346,26 @@ def test_function_context_uses_explicit_transport_and_validates_payload(
         cpg,
         file_path="magick/property.c",
         function_name="GetEXIFProperty",
+        source_root=tmp_path,
     )
 
     assert payload["anchor_status"] == "exact"
     assert all(not path.exists() for path in observed)
+
+
+def test_function_context_requires_source_grounded_anchors_and_contracts() -> None:
+    payload = {
+        "anchor_status": "exact",
+        "calls": [],
+        "data_dependencies": [],
+        "control_dependencies": [],
+        "declarations_types": [],
+        "limitations": [],
+        "truncated": False,
+    }
+
+    with pytest.raises(JoernSchemaError, match="anchors"):
+        JoernAdapter._validate_function_context_payload(payload)
 
 
 @pytest.mark.parametrize("operation", ["smoke", "query"])

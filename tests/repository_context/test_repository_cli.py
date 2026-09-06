@@ -210,8 +210,26 @@ def test_context_cli_actions_have_separate_offline_and_read_only_arguments() -> 
     )
 
     assert build.repo_action == "build-context"
-    assert build.max_items == 120
+    assert build.max_characters == 8_000
+    assert not hasattr(build, "max_items")
     assert show.repo_action == "show-context"
+
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            [
+                "repo-context", "build-context", "--dataset", "primevul",
+                "--split", "test", "--sample", "test_194963", "--output", "context.jsonl",
+                "--max-items", "10",
+            ]
+        )
+    with pytest.raises(SystemExit):
+        parser.parse_args(
+            [
+                "repo-context", "build-context", "--dataset", "primevul",
+                "--split", "test", "--sample", "test_194963", "--output", "context.jsonl",
+                "--max-characters", "8001",
+            ]
+        )
 
 
 def test_query_missing_ready_context_does_not_construct_git_or_cache(

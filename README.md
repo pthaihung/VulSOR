@@ -407,6 +407,12 @@ revision vulnerable, không lấy từ span của commit vá.
 
 ### Context prompt-ready cho một sample
 
+`data/primevul_withcontext/context.jsonl` is the durable selected-evidence
+store. Each record is capped at 8,000 characters (a conservative 2,000-token
+budget) and contains at most two risk anchors. Checked-out repositories, CPGs,
+Joern workspaces, and raw extraction JSON are offline temporary artifacts and
+are never required by `show-context` or the runtime.
+
 Luồng mới để thử context theo paper không dùng Joern ở runtime. `build-context`
 chỉ xử lý đúng một sample trong pha offline: resolve revision, dựng/tái sử dụng
 CPG, trích xuất call/data/control/declaration-type, rồi ghi một record JSONL có

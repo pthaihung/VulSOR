@@ -1,4 +1,5 @@
 from pathlib import Path
+import inspect
 from types import SimpleNamespace
 
 import pytest
@@ -9,6 +10,7 @@ from vulsor.repository_context.models import EvidenceRequest, RepositoryIndexRec
 from vulsor.repository_context.prepared import PreparedCatalog
 from vulsor.repository_context.service import (
     RepositoryContextQueryService,
+    RepositoryPreparationError,
     RepositoryPreprocessor,
 )
 from vulsor.repository_context.source_match import normalized_code_sha256
@@ -127,9 +129,10 @@ def test_preprocessor_builds_prompt_context_from_ready_cpg(tmp_path: Path) -> No
         def smoke(self, _):
             return None
 
-        def extract_function_context(self, path, *, file_path, function_name, max_items):
+        def extract_function_context(self, path, *, file_path, function_name, max_items, source_root):
             assert path.name == "cpg.bin"
             assert (file_path, function_name, max_items) == ("demo.c", "target", 120)
+            assert source_root == root
             return {
                 "anchor_status": "exact",
                 "calls": [],
@@ -152,3 +155,18 @@ def test_preprocessor_builds_prompt_context_from_ready_cpg(tmp_path: Path) -> No
     assert record.sample_id == "s1"
     assert "[CALL RELATIONS]" in record.context
     assert record.limitations == ("calls: no mapped evidence was found",)
+
+
+def test_prompt_context_uses_the_eight_thousand_character_default() -> None:
+    parameter = inspect.signature(RepositoryPreprocessor.build_prompt_context).parameters[
+        "max_characters"
+    ]
+
+    assert parameter.default == 8_000
+
+
+def test_prompt_context_rejects_a_character_limit_above_the_hard_cap() -> None:
+    service = RepositoryPreprocessor(index(), None, None, None)
+
+    with pytest.raises(RepositoryPreparationError, match="max_characters"):
+        service.build_prompt_context("s1", CODE, max_characters=8_001)

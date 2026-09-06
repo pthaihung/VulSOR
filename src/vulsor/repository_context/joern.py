@@ -637,6 +637,7 @@ class JoernAdapter:
         file_path: str,
         function_name: str,
         max_items: int = 120,
+        source_root: Path | None = None,
     ) -> dict[str, object]:
         """Extract fixed, function-anchored context during offline preparation."""
 
@@ -646,6 +647,9 @@ class JoernAdapter:
             raise JoernError("function context file path and function name must not be blank")
         if isinstance(max_items, bool) or not isinstance(max_items, int) or not 1 <= max_items <= 1000:
             raise JoernError("function context max_items must be between 1 and 1000")
+        if source_root is not None:
+            source_root = Path(source_root)
+            _validate_directory(source_root, "function context source root")
         script_path = self._validated_script(
             self.function_context_script, "function context script"
         )
@@ -658,14 +662,15 @@ class JoernAdapter:
             request_path = self._temporary_file(".joern-function-context-request-")
             if self._uses_direct_java_for_scripts():
                 script_workspace = self._temporary_directory(".joern-workspace-")
+            request_payload: dict[str, object] = {
+                "file_path": file_path,
+                "function_name": function_name,
+                "max_items": max_items,
+            }
+            if source_root is not None:
+                request_payload["source_root"] = os.fspath(source_root)
             request_path.write_text(
-                json.dumps(
-                    {
-                        "file_path": file_path,
-                        "function_name": function_name,
-                        "max_items": max_items,
-                    }
-                ),
+                json.dumps(request_payload),
                 encoding="utf-8",
             )
             command = self._script_command(
@@ -679,12 +684,22 @@ class JoernAdapter:
             self._run(
                 command,
                 timeout=self.config.query_timeout_seconds,
-                paths=(cpg_path, script_path, request_path, output_path),
+                paths=tuple(
+                    path
+                    for path in (cpg_path, script_path, request_path, output_path, source_root)
+                    if path is not None
+                ),
                 cwd=script_workspace,
             )
             payload = self._read_json_object(
                 output_path,
-                self._diagnostic_paths((cpg_path, script_path, request_path, output_path)),
+                self._diagnostic_paths(
+                    tuple(
+                        path
+                        for path in (cpg_path, script_path, request_path, output_path, source_root)
+                        if path is not None
+                    )
+                ),
             )
             return self._validate_function_context_payload(payload)
         except (OSError, TypeError, ValueError) as exc:
@@ -898,14 +913,33 @@ class JoernAdapter:
         if status not in {"exact", "not_found", "ambiguous"}:
             raise JoernSchemaError("function context output has an invalid anchor_status")
         for field in (
+            "anchors",
             "calls",
             "data_dependencies",
             "control_dependencies",
             "declarations_types",
+            "local_contracts",
             "limitations",
         ):
             if not isinstance(payload.get(field), list):
                 raise JoernSchemaError(f"function context output field {field} must be an array")
+        for field in ("anchors", "local_contracts"):
+            for item in cast(list[object], payload[field]):
+                if not isinstance(item, dict):
+                    raise JoernSchemaError(f"function context output field {field} must contain objects")
+                code, file_path, line = item.get("code"), item.get("file"), item.get("line")
+                if (
+                    not isinstance(code, str)
+                    or not code.strip()
+                    or not isinstance(file_path, str)
+                    or not file_path.strip()
+                    or isinstance(line, bool)
+                    or not isinstance(line, int)
+                    or line < 1
+                ):
+                    raise JoernSchemaError(
+                        f"function context output field {field} requires source-grounded items"
+                    )
         if not isinstance(payload.get("truncated"), bool):
             raise JoernSchemaError("function context output field truncated must be a boolean")
         return payload

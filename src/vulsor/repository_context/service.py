@@ -25,7 +25,12 @@ from .models import (
     RepositoryEvidence,
 )
 from .prepared import PreparedCatalog
-from .prompt_context import PromptContextError, PromptContextRecord, render_prompt_context
+from .prompt_context import (
+    DEFAULT_MAX_CONTEXT_CHARACTERS,
+    PromptContextError,
+    PromptContextRecord,
+    render_prompt_context,
+)
 from .source_match import SourceMatchStatus, match_sample_to_file, normalized_code_sha256
 
 
@@ -143,10 +148,19 @@ class RepositoryPreprocessor:
         sample_code: str,
         *,
         max_items: int = 120,
-        max_characters: int = 24_000,
+        max_characters: int = DEFAULT_MAX_CONTEXT_CHARACTERS,
     ) -> PromptContextRecord:
         """Build fixed prompt context while Git and Joern are still offline-only."""
 
+        if (
+            isinstance(max_characters, bool)
+            or not isinstance(max_characters, int)
+            or not 1 <= max_characters <= DEFAULT_MAX_CONTEXT_CHARACTERS
+        ):
+            raise RepositoryPreparationError(
+                "context_unavailable",
+                f"max_characters must be between 1 and {DEFAULT_MAX_CONTEXT_CHARACTERS}",
+            )
         prepared = self.preprocess_sample(sample_id, sample_code)
         artifact = read_ready_cpg(self.cache.cache_root, prepared)
         if artifact is None:
@@ -154,11 +168,17 @@ class RepositoryPreprocessor:
                 "cpg_unavailable", "Prepared CPG could not be read"
             )
         try:
+            resolved = self.repositories.resolve(prepared.repository)
+            if resolved.resolved_revision.lower() != prepared.repository.revision.lower():
+                raise RepositoryPreparationError(
+                    "revision_mismatch", "Resolved revision differs from repository index"
+                )
             raw = self.joern.extract_function_context(
                 artifact.cpg_path,
                 file_path=prepared.target.file_path,
                 function_name=prepared.target.function_name,
                 max_items=max_items,
+                source_root=resolved.repository_root,
             )
             return render_prompt_context(
                 sample_id, raw, max_characters=max_characters
@@ -166,6 +186,10 @@ class RepositoryPreprocessor:
         except PromptContextError:
             raise RepositoryPreparationError(
                 "context_unavailable", "Function context could not be rendered"
+            ) from None
+        except RepositoryResolutionError:
+            raise RepositoryPreparationError(
+                "repository_unavailable", "Repository resolution failed"
             ) from None
         except JoernError:
             raise RepositoryPreparationError(
