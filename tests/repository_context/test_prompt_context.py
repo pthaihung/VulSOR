@@ -50,11 +50,11 @@ def test_renderer_emits_all_paper_sections_and_preserves_limitations() -> None:
     assert record.context.count("[CALL RELATIONS]") == 1
     assert record.context.count("[DATA DEPENDENCIES]") == 1
     assert record.context.count("[CONTROL DEPENDENCIES]") == 1
-    assert record.context.count("[DECLARATIONS AND TYPES]") == 1
-    assert record.context.index("[CALL RELATIONS]") < record.context.index(
-        "[DATA DEPENDENCIES]"
-    ) < record.context.index("[CONTROL DEPENDENCIES]") < record.context.index(
-        "[DECLARATIONS AND TYPES]"
+    assert record.context.count("[DECLARATIONS, TYPES AND CONTRACTS]") == 1
+    assert record.context.index("[DATA DEPENDENCIES]") < record.context.index(
+        "[CONTROL DEPENDENCIES]"
+    ) < record.context.index("[DECLARATIONS, TYPES AND CONTRACTS]") < record.context.index(
+        "[CALL RELATIONS]"
     )
     assert 'GetImageProfile(image, "exif") (magick/property.c:101)' in record.context
     assert "const Image *image (magick/property.c:1)" in record.context
@@ -123,6 +123,19 @@ def test_renderer_uses_anchors_internally_but_emits_only_relation_sections() -> 
     assert "read_12(p)" not in record.context
     assert record.context.count("p0 = buffer;") == 15
     assert "context_truncated" in record.limitations
+
+
+def test_renderer_does_not_reduce_selected_unanchored_data_to_eight_items() -> None:
+    data = [
+        {"code": f"x{index} = source{index}", "file": "demo.c", "line": index + 1}
+        for index in range(16)
+    ]
+
+    record = render_prompt_context(
+        "s1", raw_context(data_dependencies=data, anchors=[], local_contracts=[])
+    )
+
+    assert "x15 = source15" in record.context
 
 
 def test_renderer_orders_items_by_source_location_before_text() -> None:

@@ -909,21 +909,21 @@ class JoernAdapter:
 
     @staticmethod
     def _validate_function_context_payload(payload: dict[str, object]) -> dict[str, object]:
-        status = payload.get("anchor_status")
+        status = payload.get("target_status")
         if status not in {"exact", "not_found", "ambiguous"}:
-            raise JoernSchemaError("function context output has an invalid anchor_status")
-        for field in (
-            "anchors",
-            "calls",
-            "data_dependencies",
-            "control_dependencies",
-            "declarations_types",
-            "local_contracts",
-            "limitations",
-        ):
+            raise JoernSchemaError("function context output has an invalid target_status")
+        candidate_fields = (
+            "seeds",
+            "data_candidates",
+            "control_candidates",
+            "declaration_candidates",
+            "contract_candidates",
+            "call_candidates",
+        )
+        for field in (*candidate_fields, "limitations"):
             if not isinstance(payload.get(field), list):
                 raise JoernSchemaError(f"function context output field {field} must be an array")
-        for field in ("anchors", "local_contracts"):
+        for field in candidate_fields:
             for item in cast(list[object], payload[field]):
                 if not isinstance(item, dict):
                     raise JoernSchemaError(f"function context output field {field} must contain objects")
@@ -940,6 +940,25 @@ class JoernAdapter:
                     raise JoernSchemaError(
                         f"function context output field {field} requires source-grounded items"
                     )
+                provenance = item.get("provenance")
+                if not isinstance(provenance, str) or not provenance.strip():
+                    raise JoernSchemaError(
+                        f"function context output field {field} requires provenance"
+                    )
+                for relation_field in ("defines", "uses"):
+                    names = item.get(relation_field)
+                    if (
+                        not isinstance(names, list)
+                        or any(
+                            not isinstance(name, str) or not name.strip()
+                            for name in names
+                        )
+                    ):
+                        raise JoernSchemaError(
+                            f"function context output field {field} requires a {relation_field} array"
+                        )
+        if any(not isinstance(item, str) for item in cast(list[object], payload["limitations"])):
+            raise JoernSchemaError("function context limitations must contain strings")
         if not isinstance(payload.get("truncated"), bool):
             raise JoernSchemaError("function context output field truncated must be a boolean")
         return payload

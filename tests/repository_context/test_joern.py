@@ -319,13 +319,13 @@ def test_function_context_uses_explicit_transport_and_validates_payload(
         params["outFile"].write_text(
             json.dumps(
                 {
-                    "anchor_status": "exact",
-                    "anchors": [],
-                    "calls": [],
-                    "data_dependencies": [],
-                    "control_dependencies": [],
-                    "declarations_types": [],
-                    "local_contracts": [],
+                    "target_status": "exact",
+                    "seeds": [],
+                    "data_candidates": [],
+                    "control_candidates": [],
+                    "declaration_candidates": [],
+                    "contract_candidates": [],
+                    "call_candidates": [],
                     "limitations": [],
                     "truncated": False,
                 }
@@ -349,22 +349,44 @@ def test_function_context_uses_explicit_transport_and_validates_payload(
         source_root=tmp_path,
     )
 
-    assert payload["anchor_status"] == "exact"
+    assert payload["target_status"] == "exact"
     assert all(not path.exists() for path in observed)
 
 
-def test_function_context_requires_source_grounded_anchors_and_contracts() -> None:
+def test_function_context_requires_candidate_arrays() -> None:
     payload = {
-        "anchor_status": "exact",
-        "calls": [],
-        "data_dependencies": [],
-        "control_dependencies": [],
-        "declarations_types": [],
+        "target_status": "exact",
         "limitations": [],
         "truncated": False,
     }
 
-    with pytest.raises(JoernSchemaError, match="anchors"):
+    with pytest.raises(JoernSchemaError, match="seeds"):
+        JoernAdapter._validate_function_context_payload(payload)
+
+
+def test_function_context_requires_source_grounded_candidate_metadata() -> None:
+    payload = {
+        "target_status": "exact",
+        "seeds": [
+            {
+                "code": "*p",
+                "file": "demo.c",
+                "line": 4,
+                "provenance": "cpg_ast",
+                "defines": [],
+                "uses": "p",
+            }
+        ],
+        "data_candidates": [],
+        "control_candidates": [],
+        "declaration_candidates": [],
+        "contract_candidates": [],
+        "call_candidates": [],
+        "limitations": [],
+        "truncated": False,
+    }
+
+    with pytest.raises(JoernSchemaError, match="uses"):
         JoernAdapter._validate_function_context_payload(payload)
 
 

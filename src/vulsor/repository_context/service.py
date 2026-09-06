@@ -31,6 +31,7 @@ from .prompt_context import (
     PromptContextRecord,
     render_prompt_context,
 )
+from .relation_selection import RelationSelectionError, select_repository_relations
 from .source_match import SourceMatchStatus, match_sample_to_file, normalized_code_sha256
 
 
@@ -173,17 +174,18 @@ class RepositoryPreprocessor:
                 raise RepositoryPreparationError(
                     "revision_mismatch", "Resolved revision differs from repository index"
                 )
-            raw = self.joern.extract_function_context(
+            candidates = self.joern.extract_function_context(
                 artifact.cpg_path,
                 file_path=prepared.target.file_path,
                 function_name=prepared.target.function_name,
                 max_items=max_items,
                 source_root=resolved.repository_root,
             )
+            selected = select_repository_relations(candidates)
             return render_prompt_context(
-                sample_id, raw, max_characters=max_characters
+                sample_id, selected, max_characters=max_characters
             )
-        except PromptContextError:
+        except (PromptContextError, RelationSelectionError):
             raise RepositoryPreparationError(
                 "context_unavailable", "Function context could not be rendered"
             ) from None

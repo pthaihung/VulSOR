@@ -134,12 +134,37 @@ def test_preprocessor_builds_prompt_context_from_ready_cpg(tmp_path: Path) -> No
             assert (file_path, function_name, max_items) == ("demo.c", "target", 120)
             assert source_root == root
             return {
-                "anchor_status": "exact",
-                "calls": [],
-                "data_dependencies": [],
-                "control_dependencies": [],
-                "declarations_types": [],
-                "limitations": ["calls: no mapped evidence was found"],
+                "target_status": "exact",
+                "seeds": [{
+                    "code": "consume(x)", "file": "demo.c", "line": 2,
+                    "priority": 80, "entities": ["x"], "defines": [],
+                    "uses": ["x"], "provenance": "sensitive_call",
+                }],
+                "data_candidates": [{
+                    "code": "int x", "file": "demo.c", "line": 1,
+                    "kind": "parameter", "defines": ["x"], "uses": [],
+                    "provenance": "parameter",
+                }],
+                "control_candidates": [],
+                "declaration_candidates": [{
+                    "code": "int x", "file": "demo.c", "line": 1,
+                    "name": "x", "type": "int", "defines": ["x"],
+                    "uses": [], "provenance": "declaration",
+                }],
+                "contract_candidates": [],
+                "call_candidates": [
+                    {
+                        "code": "consume(x)", "file": "demo.c", "line": 2,
+                        "callee": "consume", "defines": [], "uses": ["x"],
+                        "sensitive": True, "provenance": "target_call",
+                    },
+                    {
+                        "code": "unrelated(y)", "file": "demo.c", "line": 3,
+                        "callee": "unrelated", "defines": [], "uses": ["y"],
+                        "sensitive": False, "provenance": "target_call",
+                    },
+                ],
+                "limitations": [],
                 "truncated": False,
             }
 
@@ -153,8 +178,11 @@ def test_preprocessor_builds_prompt_context_from_ready_cpg(tmp_path: Path) -> No
     record = service.build_prompt_context("s1", CODE)
 
     assert record.sample_id == "s1"
+    assert "consume(x)" in record.context
+    assert "unrelated(y)" not in record.context
+    assert "int x" in record.context
     assert "[CALL RELATIONS]" in record.context
-    assert record.limitations == ("calls: no mapped evidence was found",)
+    assert record.limitations == ()
 
 
 def test_prompt_context_uses_the_eight_thousand_character_default() -> None:

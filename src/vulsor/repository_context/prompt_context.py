@@ -13,14 +13,13 @@ from .index import _atomic_write_text
 
 
 _SECTIONS = (
-    ("calls", "[CALL RELATIONS]"),
     ("data_dependencies", "[DATA DEPENDENCIES]"),
     ("control_dependencies", "[CONTROL DEPENDENCIES]"),
-    ("declarations_types", "[DECLARATIONS AND TYPES]"),
+    ("declarations_types", "[DECLARATIONS, TYPES AND CONTRACTS]"),
+    ("calls", "[CALL RELATIONS]"),
 )
-MAX_ANCHORS = 2
-MAX_DATA_FACTS_PER_ANCHOR = 8
-MAX_CONTROL_FACTS_PER_ANCHOR = 10
+MAX_RENDERED_DATA_FACTS = 16
+MAX_RENDERED_CONTROL_FACTS = 20
 MAX_DECLARATION_FACTS = 12
 MAX_CALL_FACTS = 12
 MAX_LOCAL_CONTRACT_LINES = 15
@@ -157,45 +156,6 @@ def _limited(lines: list[str], limit: int) -> tuple[list[str], bool]:
     return lines[:limit], len(lines) > limit
 
 
-def _anchor_lines(items: list[Mapping[str, object]]) -> set[int]:
-    return {
-        line
-        for item in items
-        if isinstance((line := item.get("line")), int) and line >= 1
-    }
-
-
-def _anchor_family_lines(
-    family: str,
-    items: list[Mapping[str, object]],
-    retained_anchor_lines: set[int],
-    per_anchor_limit: int,
-) -> tuple[list[str], bool]:
-    grouped: dict[int, list[Mapping[str, object]]] = {
-        line: [] for line in retained_anchor_lines
-    }
-    unanchored: list[Mapping[str, object]] = []
-    for item in items:
-        anchor_line = item.get("anchor_line")
-        if isinstance(anchor_line, int) and anchor_line in grouped:
-            grouped[anchor_line].append(item)
-        elif anchor_line is None:
-            unanchored.append(item)
-    selected: list[str] = []
-    truncated = False
-    for line in sorted(grouped):
-        values = _unique_sorted(family, grouped[line])
-        kept, cut = _limited(values, per_anchor_limit)
-        selected.extend(kept)
-        truncated = truncated or cut
-    if unanchored:
-        values = _unique_sorted(family, unanchored)
-        kept, cut = _limited(values, per_anchor_limit)
-        selected.extend(kept)
-        truncated = truncated or cut
-    return selected, truncated
-
-
 def _contract_lines(items: list[Mapping[str, object]]) -> tuple[list[str], bool]:
     lines: list[str] = []
     for item in sorted(
@@ -213,55 +173,6 @@ def _contract_lines(items: list[Mapping[str, object]]) -> tuple[list[str], bool]
             if source_line.strip():
                 lines.append(f"- {source_line.strip()} ({location})")
     return _limited(lines, MAX_LOCAL_CONTRACT_LINES)
-
-
-def _render_anchor_context(
-    raw: Mapping[str, object], max_characters: int
-) -> tuple[str, bool]:
-    anchor_items = _as_items(raw, "anchors")
-    for item in anchor_items:
-        if not isinstance(item.get("code"), str) or not item["code"].strip():
-            raise PromptContextError("risk anchors require source code")
-        if not isinstance(item.get("file"), str) or not item["file"].strip():
-            raise PromptContextError("risk anchors require a source file")
-        if not isinstance(item.get("line"), int) or item["line"] < 1:
-            raise PromptContextError("risk anchors require a positive source line")
-    anchors, truncated = _limited(_unique_sorted("anchors", anchor_items), MAX_ANCHORS)
-    retained_lines = _anchor_lines(
-        [item for item in anchor_items if _item_text("anchors", item) in anchors]
-    )
-    data, data_cut = _anchor_family_lines(
-        "data_dependencies",
-        _as_items(raw, "data_dependencies"),
-        retained_lines,
-        MAX_DATA_FACTS_PER_ANCHOR,
-    )
-    controls, control_cut = _anchor_family_lines(
-        "control_dependencies",
-        _as_items(raw, "control_dependencies"),
-        retained_lines,
-        MAX_CONTROL_FACTS_PER_ANCHOR,
-    )
-    declarations, declaration_cut = _limited(
-        _unique_sorted("declarations_types", _as_items(raw, "declarations_types")),
-        MAX_DECLARATION_FACTS,
-    )
-    contracts, contract_cut = _contract_lines(_as_items(raw, "local_contracts"))
-    calls, call_cut = _limited(
-        _unique_sorted("calls", _as_items(raw, "calls")), MAX_CALL_FACTS
-    )
-    declaration_lines = [*declarations, *contracts]
-    sections = [
-        ("[DATA DEPENDENCIES]", data or ["- No mapped evidence found."]),
-        ("[CONTROL DEPENDENCIES]", controls or ["- No mapped evidence found."]),
-        (
-            "[DECLARATIONS, TYPES AND CONTRACTS]",
-            declaration_lines or ["- No mapped evidence found."],
-        ),
-        ("[CALL RELATIONS]", calls or ["- No mapped evidence found."]),
-    ]
-    context, character_cut = _render_with_budget(sections, max_characters)
-    return context, truncated or data_cut or control_cut or declaration_cut or contract_cut or call_cut or character_cut
 
 
 def render_prompt_context(
@@ -284,14 +195,23 @@ def render_prompt_context(
     limitations = tuple(
         str(item) for item in limitations_value if isinstance(item, str) and item.strip()
     )
-    if "anchors" in raw or "local_contracts" in raw:
-        context, truncated = _render_anchor_context(raw, max_characters)
-    else:
-        sections: list[tuple[str, list[str]]] = []
-        for family, heading in _SECTIONS:
-            lines = _unique_sorted(family, _as_items(raw, family))
-            sections.append((heading, lines or ["- No mapped evidence found."]))
-        context, truncated = _render_with_budget(sections, max_characters)
+    sections: list[tuple[str, list[str]]] = []
+    for family, heading in _SECTIONS:
+        lines = _unique_sorted(family, _as_items(raw, family))
+        if family == "declarations_types":
+            contracts, _ = _contract_lines(_as_items(raw, "local_contracts"))
+            lines.extend(contracts)
+        limit = {
+            "data_dependencies": MAX_RENDERED_DATA_FACTS,
+            "control_dependencies": MAX_RENDERED_CONTROL_FACTS,
+            "declarations_types": MAX_DECLARATION_FACTS + MAX_LOCAL_CONTRACT_LINES,
+            "calls": MAX_CALL_FACTS,
+        }[family]
+        lines, family_truncated = _limited(lines, limit)
+        if family_truncated:
+            limitations = tuple(dict.fromkeys((*limitations, "context_truncated")))
+        sections.append((heading, lines or ["- No mapped evidence found."]))
+    context, truncated = _render_with_budget(sections, max_characters)
     if bool(raw.get("truncated")) or truncated:
         limitations = tuple(dict.fromkeys((*limitations, "context_truncated")))
     return PromptContextRecord(
