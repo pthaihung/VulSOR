@@ -77,8 +77,11 @@ import ujson.*
   if (candidates.size > 1) { empty("ambiguous"); return }
   val method = candidates.head
   val file = method.filename.replace('\\', '/')
+  // CPG represents arithmetic, casts, indexing, and other syntax as CALL nodes.
+  // Prompt context should prioritize source-level API/function calls instead.
+  val concreteCalls = method.call.filter(call => !call.name.startsWith("<operator"))
 
-  val calls = bounded(method.call.map { call =>
+  val calls = bounded(concreteCalls.map { call =>
     Obj(
       "code" -> Str(call.code),
       "callee" -> Str(call.name),
@@ -93,7 +96,7 @@ import ujson.*
   if (declarations.value.isEmpty) limitations.value += Str("declarations_types: no mapped evidence was found")
 
   val controls = try {
-    bounded(method.call.flatMap { call =>
+    bounded(concreteCalls.flatMap { call =>
       call.controlledBy.map { condition =>
         Obj(
           "code" -> Str(call.code),
@@ -113,7 +116,7 @@ import ujson.*
   val dataDependencies = try {
     if (!cpg.metaData.headOption.exists(_.overlays.contains("ossdataflow"))) run.ossdataflow
     val sources = method.parameter ++ method.local
-    bounded(method.call.reachableByFlows(sources).map { path =>
+    bounded(concreteCalls.reachableByFlows(sources).map { path =>
       val nodes = path.elements.toList
       val rendered = nodes.map(node => node.code).mkString(" -> ")
       val first = nodes.headOption

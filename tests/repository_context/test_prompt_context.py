@@ -83,6 +83,20 @@ def test_renderer_rejects_non_exact_anchor() -> None:
         render_prompt_context("test_194963", raw_context(anchor_status="not_found"))
 
 
+def test_renderer_orders_items_by_source_location_before_text() -> None:
+    record = render_prompt_context(
+        "s1",
+        raw_context(
+            calls=[
+                {"code": "zeta()", "file": "demo.c", "line": 3},
+                {"code": "alpha()", "file": "demo.c", "line": 8},
+            ]
+        ),
+    )
+
+    assert record.context.index("zeta()") < record.context.index("alpha()")
+
+
 def test_jsonl_upsert_replaces_selected_record_and_preserves_others(tmp_path) -> None:
     path = tmp_path / "context.jsonl"
     other = PromptContextRecord(sample_id="other", context="other context")

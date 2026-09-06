@@ -90,8 +90,21 @@ def _item_text(family: str, item: Mapping[str, object]) -> str:
 
 
 def _unique_sorted(family: str, items: list[Mapping[str, object]]) -> list[str]:
-    rendered = {_item_text(family, item) for item in items}
-    return sorted(rendered, key=lambda value: value.casefold())
+    rendered = {_item_text(family, item): item for item in items}
+
+    def sort_key(value: str) -> tuple[str, int, str]:
+        item = rendered[value]
+        file_path = item.get("file")
+        line = item.get("line")
+        return (
+            file_path.replace("\\", "/").casefold()
+            if isinstance(file_path, str)
+            else "~",
+            line if isinstance(line, int) and line >= 1 else 2**31 - 1,
+            value.casefold(),
+        )
+
+    return sorted(rendered, key=sort_key)
 
 
 def _render_with_budget(
