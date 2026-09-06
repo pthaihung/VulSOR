@@ -110,3 +110,45 @@ def test_preprocessor_builds_smokes_and_returns_ready(tmp_path: Path) -> None:
 
     assert record.status == "ready"
     assert calls == ["version", "build", "smoke"]
+
+
+def test_preprocessor_builds_prompt_context_from_ready_cpg(tmp_path: Path) -> None:
+    root = tmp_path / "repository"
+    root.mkdir()
+    (root / "demo.c").write_text(CODE, encoding="utf-8")
+
+    class Joern:
+        def version(self):
+            return "test-version"
+
+        def build_cpg(self, _, output):
+            output.write_bytes(b"cpg")
+
+        def smoke(self, _):
+            return None
+
+        def extract_function_context(self, path, *, file_path, function_name, max_items):
+            assert path.name == "cpg.bin"
+            assert (file_path, function_name, max_items) == ("demo.c", "target", 120)
+            return {
+                "anchor_status": "exact",
+                "calls": [],
+                "data_dependencies": [],
+                "control_dependencies": [],
+                "declarations_types": [],
+                "limitations": ["calls: no mapped evidence was found"],
+                "truncated": False,
+            }
+
+    service = RepositoryPreprocessor(
+        index(),
+        SimpleNamespace(resolve=lambda _: SimpleNamespace(repository_root=root, resolved_revision="a" * 40)),
+        CpgCache(cache_root=tmp_path / "cache"),
+        Joern(),
+    )
+
+    record = service.build_prompt_context("s1", CODE)
+
+    assert record.sample_id == "s1"
+    assert "[CALL RELATIONS]" in record.context
+    assert record.limitations == ("calls: no mapped evidence was found",)

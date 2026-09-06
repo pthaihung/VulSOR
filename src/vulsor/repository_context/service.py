@@ -25,6 +25,7 @@ from .models import (
     RepositoryEvidence,
 )
 from .prepared import PreparedCatalog
+from .prompt_context import PromptContextError, PromptContextRecord, render_prompt_context
 from .source_match import SourceMatchStatus, match_sample_to_file, normalized_code_sha256
 
 
@@ -135,6 +136,41 @@ class RepositoryPreprocessor:
                 frontend_args=identity.frontend_args,
             ),
         )
+
+    def build_prompt_context(
+        self,
+        sample_id: str,
+        sample_code: str,
+        *,
+        max_items: int = 120,
+        max_characters: int = 24_000,
+    ) -> PromptContextRecord:
+        """Build fixed prompt context while Git and Joern are still offline-only."""
+
+        prepared = self.preprocess_sample(sample_id, sample_code)
+        artifact = read_ready_cpg(self.cache.cache_root, prepared)
+        if artifact is None:
+            raise RepositoryPreparationError(
+                "cpg_unavailable", "Prepared CPG could not be read"
+            )
+        try:
+            raw = self.joern.extract_function_context(
+                artifact.cpg_path,
+                file_path=prepared.target.file_path,
+                function_name=prepared.target.function_name,
+                max_items=max_items,
+            )
+            return render_prompt_context(
+                sample_id, raw, max_characters=max_characters
+            )
+        except PromptContextError:
+            raise RepositoryPreparationError(
+                "context_unavailable", "Function context could not be rendered"
+            ) from None
+        except JoernError:
+            raise RepositoryPreparationError(
+                "joern_unavailable", "Joern context extraction failed"
+            ) from None
 
 
 @dataclass

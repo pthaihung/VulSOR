@@ -182,6 +182,38 @@ def test_preprocess_requires_exactly_one_of_sample_or_all() -> None:
         )
 
 
+def test_context_cli_actions_have_separate_offline_and_read_only_arguments() -> None:
+    parser = build_parser()
+    build = parser.parse_args(
+        [
+            "repo-context",
+            "build-context",
+            "--dataset",
+            "primevul",
+            "--split",
+            "test",
+            "--sample",
+            "test_194963",
+            "--output",
+            "context.jsonl",
+        ]
+    )
+    show = parser.parse_args(
+        [
+            "repo-context",
+            "show-context",
+            "--sample",
+            "test_194963",
+            "--input",
+            "context.jsonl",
+        ]
+    )
+
+    assert build.repo_action == "build-context"
+    assert build.max_items == 120
+    assert show.repo_action == "show-context"
+
+
 def test_query_missing_ready_context_does_not_construct_git_or_cache(
     monkeypatch, tmp_path, capsys
 ) -> None:

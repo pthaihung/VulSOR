@@ -17,6 +17,7 @@ from .models import EvidenceRequest, UnresolvedPreparedRecord
 from .prepared import PreparedCatalog, configured_catalog_paths, load_unresolved_catalog, write_prepared_catalog, write_unresolved_catalog
 from .primevul_index import PrimeVulFieldMap, normalize_primevul_jsonl
 from .primevul_import import import_primevul_test
+from .prompt_context import load_prompt_context, upsert_prompt_context
 from .service import RepositoryContextQueryService, RepositoryPreparationError, RepositoryPreprocessor
 
 
@@ -42,6 +43,19 @@ def add_parser(subparsers):
     selection.add_argument("--sample")
     selection.add_argument("--all", action="store_true")
     preprocess.set_defaults(handler=handle)
+    build_context = actions.add_parser("build-context")
+    build_context.add_argument("--config", type=Path)
+    build_context.add_argument("--dataset", required=True)
+    build_context.add_argument("--split", required=True, choices=("train", "valid", "test"))
+    build_context.add_argument("--sample", required=True)
+    build_context.add_argument("--output", required=True, type=Path)
+    build_context.add_argument("--max-items", type=int, default=120)
+    build_context.add_argument("--max-characters", type=int, default=24_000)
+    build_context.set_defaults(handler=handle)
+    show_context = actions.add_parser("show-context")
+    show_context.add_argument("--sample", required=True)
+    show_context.add_argument("--input", required=True, type=Path)
+    show_context.set_defaults(handler=handle)
     for action in ("query", "status"):
         command = actions.add_parser(action)
         command.add_argument("--config", type=Path)
@@ -102,8 +116,36 @@ def _preprocess(config: VulSORConfig, index: RepositoryIndex, args: argparse.Nam
     return 0
 
 
+def _build_context(config: VulSORConfig, index: RepositoryIndex, args: argparse.Namespace) -> int:
+    sample = next(
+        iter_dataset_samples(config, args.dataset, args.split, sample_id=args.sample)
+    )
+    service = RepositoryPreprocessor(
+        index,
+        GitRepositoryResolver(config.repository_context, git_executable=config.tools.git),
+        CpgCache(config.repository_context),
+        JoernAdapter(config),
+    )
+    record = service.build_prompt_context(
+        sample.sample_id,
+        sample.code,
+        max_items=args.max_items,
+        max_characters=args.max_characters,
+    )
+    upsert_prompt_context(args.output, record)
+    print(json.dumps({"sample_id": record.sample_id, "status": "built", "limitations": len(record.limitations)}))
+    return 0
+
+
 def handle(args: argparse.Namespace, config: VulSORConfig) -> int:
     try:
+        if args.repo_action == "show-context":
+            record = load_prompt_context(args.input, args.sample)
+            if record is None:
+                print(json.dumps({"sample_id": args.sample, "context": "", "limitations": ["repository_context_unavailable"]}))
+            else:
+                print(record.model_dump_json())
+            return 0
         if args.repo_action == "import-primevul":
             repositories = GitRepositoryResolver(
                 config.repository_context, git_executable=config.tools.git
@@ -135,6 +177,8 @@ def handle(args: argparse.Namespace, config: VulSORConfig) -> int:
             return 0
         if args.repo_action == "preprocess":
             return _preprocess(config, index, args)
+        if args.repo_action == "build-context":
+            return _build_context(config, index, args)
         sample = next(iter_dataset_samples(config, args.dataset, args.split, sample_id=args.sample))
         ready_path, _ = configured_catalog_paths(config.repository_context, args.dataset, args.split)
         request = EvidenceRequest.model_validate_json(args.request.read_text(encoding="utf-8"))
