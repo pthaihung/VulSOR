@@ -429,8 +429,9 @@ vulsor repo-context show-context --sample test_194963 `
 ```
 
 Mỗi dòng `context.jsonl` có dạng `sample_id`, `context`, `limitations`.
-`context` luôn gồm `[CALL RELATIONS]`, `[DATA DEPENDENCIES]`, `[CONTROL
-DEPENDENCIES]`, `[DECLARATIONS AND TYPES]`. Quan hệ không map được phải nằm
+`context` luôn gồm `[DATA DEPENDENCIES]`, `[CONTROL DEPENDENCIES]`,
+`[DECLARATIONS, TYPES AND CONTRACTS]`, `[CALL RELATIONS]`. Anchor chỉ được dùng
+nội bộ để chọn evidence và không được ghi thành section gửi cho LLM. Quan hệ không map được phải nằm
 trong `limitations`, không được suy diễn thành evidence.
 
 ```powershell

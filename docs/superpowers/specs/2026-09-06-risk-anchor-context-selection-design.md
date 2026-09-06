@@ -53,13 +53,13 @@ The JSONL record remains:
 }
 ```
 
-The rendered context has five fixed sections in order:
+Anchors remain internal extraction metadata and are not rendered for the LLM.
+The rendered context has four fixed sections in order:
 
-1. `[RISK ANCHORS]`
-2. `[DATA DEPENDENCIES]`
-3. `[CONTROL DEPENDENCIES]`
-4. `[DECLARATIONS, TYPES AND LOCAL CONTRACTS]`
-5. `[CALL RELATIONS]`
+1. `[DATA DEPENDENCIES]`
+2. `[CONTROL DEPENDENCIES]`
+3. `[DECLARATIONS, TYPES AND CONTRACTS]`
+4. `[CALL RELATIONS]`
 
 An empty section is explicit. A relation never becomes evidence merely because
 the renderer needs to fill a section.

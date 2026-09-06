@@ -18,13 +18,6 @@ _SECTIONS = (
     ("control_dependencies", "[CONTROL DEPENDENCIES]"),
     ("declarations_types", "[DECLARATIONS AND TYPES]"),
 )
-_ANCHOR_SECTIONS = (
-    ("anchors", "[RISK ANCHORS]"),
-    ("data_dependencies", "[DATA DEPENDENCIES]"),
-    ("control_dependencies", "[CONTROL DEPENDENCIES]"),
-    ("declarations_types", "[DECLARATIONS, TYPES AND LOCAL CONTRACTS]"),
-    ("calls", "[CALL RELATIONS]"),
-)
 MAX_ANCHORS = 2
 MAX_DATA_FACTS_PER_ANCHOR = 8
 MAX_CONTROL_FACTS_PER_ANCHOR = 10
@@ -259,11 +252,10 @@ def _render_anchor_context(
     )
     declaration_lines = [*declarations, *contracts]
     sections = [
-        ("[RISK ANCHORS]", anchors or ["- No mapped evidence found."]),
         ("[DATA DEPENDENCIES]", data or ["- No mapped evidence found."]),
         ("[CONTROL DEPENDENCIES]", controls or ["- No mapped evidence found."]),
         (
-            "[DECLARATIONS, TYPES AND LOCAL CONTRACTS]",
+            "[DECLARATIONS, TYPES AND CONTRACTS]",
             declaration_lines or ["- No mapped evidence found."],
         ),
         ("[CALL RELATIONS]", calls or ["- No mapped evidence found."]),

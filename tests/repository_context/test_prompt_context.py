@@ -83,7 +83,7 @@ def test_renderer_rejects_non_exact_anchor() -> None:
         render_prompt_context("test_194963", raw_context(anchor_status="not_found"))
 
 
-def test_renderer_bounds_context_around_two_risk_anchors() -> None:
+def test_renderer_uses_anchors_internally_but_emits_only_relation_sections() -> None:
     anchors = [
         {"code": f"*(double *)p{index}", "file": "demo.c", "line": 40 + index}
         for index in range(3)
@@ -111,11 +111,14 @@ def test_renderer_bounds_context_around_two_risk_anchors() -> None:
         max_characters=8_000,
     )
 
-    assert "[RISK ANCHORS]" in record.context
-    assert "[DECLARATIONS, TYPES AND LOCAL CONTRACTS]" in record.context
-    assert "*(double *)p0" in record.context
-    assert "*(double *)p1" in record.context
-    assert "*(double *)p2" not in record.context
+    headings = [line for line in record.context.splitlines() if line.startswith("[")]
+    assert headings == [
+        "[DATA DEPENDENCIES]",
+        "[CONTROL DEPENDENCIES]",
+        "[DECLARATIONS, TYPES AND CONTRACTS]",
+        "[CALL RELATIONS]",
+    ]
+    assert "[RISK ANCHORS]" not in record.context
     assert "read_11(p)" in record.context
     assert "read_12(p)" not in record.context
     assert record.context.count("p0 = buffer;") == 15

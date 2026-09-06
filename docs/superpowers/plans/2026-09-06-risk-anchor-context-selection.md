@@ -34,13 +34,13 @@ Add a fixture with these fields:
 }
 ```
 
-Assert the headings are exactly `[RISK ANCHORS]`, `[DATA DEPENDENCIES]`, `[CONTROL DEPENDENCIES]`, `[DECLARATIONS, TYPES AND LOCAL CONTRACTS]`, `[CALL RELATIONS]`. Add cases for three anchors, 13 calls, and a 16-line local contract; verify the renderer retains 2 anchors, 12 calls, 15 contract lines, source order, and `context_truncated`.
+Assert the rendered headings are exactly `[DATA DEPENDENCIES]`, `[CONTROL DEPENDENCIES]`, `[DECLARATIONS, TYPES AND CONTRACTS]`, `[CALL RELATIONS]`. Anchors remain internal metadata used to retain facts for at most two source locations. Add cases for three anchors, 13 calls, and a 16-line local contract; verify the renderer uses 2 anchors internally, retains 12 calls and 15 contract lines, preserves source order, and records `context_truncated`.
 
 - [ ] **Step 2: Verify RED**
 
 Run: `pytest tests/repository_context/test_prompt_context.py -q -k anchor`
 
-Expected: failure because `anchors` and `local_contracts` are not rendered.
+Expected: failure because relation sections do not yet use internal anchors and render local contracts.
 
 - [ ] **Step 3: Implement fixed budgets and rendering**
 
