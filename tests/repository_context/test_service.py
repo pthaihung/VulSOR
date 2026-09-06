@@ -185,7 +185,7 @@ def test_preprocessor_builds_prompt_context_from_ready_cpg(tmp_path: Path) -> No
     assert record.limitations == ()
 
 
-def test_prompt_context_uses_the_eight_thousand_character_default() -> None:
+def test_prompt_context_uses_the_eight_thousand_character_safety_cap() -> None:
     parameter = inspect.signature(RepositoryPreprocessor.build_prompt_context).parameters[
         "max_characters"
     ]

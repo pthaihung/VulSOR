@@ -24,6 +24,7 @@ MAX_DECLARATION_FACTS = 12
 MAX_CALL_FACTS = 12
 MAX_LOCAL_CONTRACT_LINES = 15
 DEFAULT_MAX_CONTEXT_CHARACTERS = 8_000
+DEFAULT_MAX_CONTEXT_TOKENS = 2_000
 
 
 class PromptContextError(RuntimeError):
@@ -113,32 +114,43 @@ def _unique_sorted(family: str, items: list[Mapping[str, object]]) -> list[str]:
     return sorted(rendered, key=sort_key)
 
 
+def estimate_context_tokens(text: str) -> int:
+    """Conservatively estimate prompt tokens without a model-specific tokenizer."""
+
+    return (len(text.encode("utf-8")) + 2) // 3
+
+
 def _render_with_budget(
-    sections: list[tuple[str, list[str]]], max_characters: int
+    sections: list[tuple[str, list[str]]], max_characters: int, max_tokens: int
 ) -> tuple[str, bool]:
     if max_characters < 1:
         raise PromptContextError("max_characters must be positive")
-    selected = [list(lines[:1]) if lines else ["- No mapped evidence found."] for _, lines in sections]
+    if max_tokens < 1:
+        raise PromptContextError("max_tokens must be positive")
+    selected = [[] for _ in sections]
     candidates = [
         (section_index, line)
         for section_index, (_, lines) in enumerate(sections)
-        for line in lines[1:]
+        for line in lines
     ]
 
     def compose() -> str:
         return "\n\n".join(
-            "\n".join((heading, *selected[index]))
+            "\n".join((heading, *(selected[index] or ["- No mapped evidence found."])))
             for index, (heading, _) in enumerate(sections)
         )
 
     text = compose()
-    if len(text) > max_characters:
-        raise PromptContextError("max_characters is too small for the section headers")
+    if len(text) > max_characters or estimate_context_tokens(text) > max_tokens:
+        raise PromptContextError("context budget is too small for the section headers")
     truncated = False
     for section_index, line in candidates:
         selected[section_index].append(line)
         candidate = compose()
-        if len(candidate) > max_characters:
+        if (
+            len(candidate) > max_characters
+            or estimate_context_tokens(candidate) > max_tokens
+        ):
             selected[section_index].pop()
             truncated = True
             continue
@@ -180,11 +192,20 @@ def render_prompt_context(
     raw: Mapping[str, object],
     *,
     max_characters: int = DEFAULT_MAX_CONTEXT_CHARACTERS,
+    max_tokens: int = DEFAULT_MAX_CONTEXT_TOKENS,
 ) -> PromptContextRecord:
     """Render source-grounded Joern evidence into fixed prompt sections."""
 
     if not sample_id.strip():
         raise PromptContextError("sample_id must not be blank")
+    if (
+        isinstance(max_tokens, bool)
+        or not isinstance(max_tokens, int)
+        or not 1 <= max_tokens <= DEFAULT_MAX_CONTEXT_TOKENS
+    ):
+        raise PromptContextError(
+            f"max_tokens must be between 1 and {DEFAULT_MAX_CONTEXT_TOKENS}"
+        )
     if raw.get("anchor_status") != "exact":
         raise PromptContextError("an exact target-function anchor is required")
     limitations_value = raw.get("limitations", ())
@@ -211,7 +232,7 @@ def render_prompt_context(
         if family_truncated:
             limitations = tuple(dict.fromkeys((*limitations, "context_truncated")))
         sections.append((heading, lines or ["- No mapped evidence found."]))
-    context, truncated = _render_with_budget(sections, max_characters)
+    context, truncated = _render_with_budget(sections, max_characters, max_tokens)
     if bool(raw.get("truncated")) or truncated:
         limitations = tuple(dict.fromkeys((*limitations, "context_truncated")))
     return PromptContextRecord(
@@ -255,6 +276,8 @@ def upsert_prompt_context(path: Path, record: PromptContextRecord) -> None:
 __all__ = [
     "PromptContextError",
     "PromptContextRecord",
+    "DEFAULT_MAX_CONTEXT_TOKENS",
+    "estimate_context_tokens",
     "load_prompt_context",
     "render_prompt_context",
     "upsert_prompt_context",

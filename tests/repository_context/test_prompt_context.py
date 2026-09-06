@@ -3,12 +3,18 @@ import json
 import pytest
 
 from vulsor.repository_context.prompt_context import (
+    DEFAULT_MAX_CONTEXT_TOKENS,
     PromptContextError,
     PromptContextRecord,
     load_prompt_context,
+    estimate_context_tokens,
     render_prompt_context,
     upsert_prompt_context,
 )
+
+
+def test_context_token_budget_defaults_to_two_thousand_tokens() -> None:
+    assert DEFAULT_MAX_CONTEXT_TOKENS == 2_000
 
 
 def raw_context(**overrides: object) -> dict[str, object]:
@@ -136,6 +142,28 @@ def test_renderer_does_not_reduce_selected_unanchored_data_to_eight_items() -> N
     )
 
     assert "x15 = source15" in record.context
+
+
+def test_renderer_limits_total_context_to_two_thousand_estimated_tokens() -> None:
+    long_fact = " ".join("dependency" for _ in range(200))
+    data = [
+        {"code": f"x{index} = {long_fact}", "file": "demo.c", "line": index + 1}
+        for index in range(16)
+    ]
+
+    record = render_prompt_context(
+        "s1",
+        raw_context(data_dependencies=data),
+        max_characters=100_000,
+    )
+
+    assert estimate_context_tokens(record.context) <= 2_000
+    assert "context_truncated" in record.limitations
+
+
+def test_renderer_rejects_a_token_limit_above_the_hard_cap() -> None:
+    with pytest.raises(PromptContextError, match="max_tokens"):
+        render_prompt_context("s1", raw_context(), max_tokens=2_001)
 
 
 def test_renderer_orders_items_by_source_location_before_text() -> None:
