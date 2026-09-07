@@ -6,6 +6,7 @@ from src.agents.SimpleYaml import load_yaml
 from src.agents.Pipeline import (
     STAGE_FILES,
     STAGE_LABELS,
+    add_line_numbers,
     build_input_context_record,
     build_pipeline_diagnostics,
     filter_evidence_for_obligation,
@@ -14,6 +15,11 @@ from src.agents.Pipeline import (
 
 
 PROJECT_ROOT = Path(__file__).parents[1]
+
+
+def test_target_function_preparation_is_unchanged() -> None:
+    source = "int f(int x) {\n  return x + 1;\n}"
+    assert add_line_numbers(source) == ("1: int f(int x) {\n2:   return x + 1;\n3: }")
 
 
 def test_old_repository_context_configuration_is_removed() -> None:

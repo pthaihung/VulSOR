@@ -171,7 +171,7 @@ def choose_stage(console: Console) -> int:
         title="Target stage",
         options=[
             ("1", "suggestion", "Build semantic model from source code."),
-            ("2", "suggestion", "Build CPG evidence from Stage 1 output."),
+            ("2", "suggestion", "Load optional input context."),
             ("3", "suggestion", "Build obligations from Stage 1 and Stage 2."),
             ("4", "default", "Adjudicate obligations and produce final verdict."),
         ],
