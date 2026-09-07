@@ -103,8 +103,12 @@ class PrimeVulFileSourceResolver:
             return self._from_local(local)
 
         owner, repository = parse_github_repository(repository_url)
-        parent = self._unique_github_parent(owner, repository, fix_revision)
         project_path = _safe_repository_path(locator.get("project_file_path"), "project_file_path")
+        cached_source = self._find_cached(owner, repository, project_path, locator.get("file_hash"))
+        if cached_source is not None:
+            parent = cached_source.parent.name
+            return ResolvedFileSource(cached_source, parent, self._sha256(cached_source.read_bytes()))
+        parent = self._unique_github_parent(owner, repository, fix_revision)
         cached = self._cache_path(owner, repository, parent, project_path, locator.get("file_hash"))
         if cached.is_file():
             return ResolvedFileSource(cached, parent, self._sha256(cached.read_bytes()))
@@ -155,6 +159,20 @@ class PrimeVulFileSourceResolver:
             raise FileSourceResolutionError("unsafe file_hash")
         suffix = project_path.suffix if project_path.suffix else ".source"
         return self.cache_root / owner / repository / parent / f"{safe_hash}{suffix}"
+
+    def _find_cached(
+        self, owner: str, repository: str, project_path: PurePosixPath, file_hash: object
+    ) -> Path | None:
+        if isinstance(file_hash, bool) or not isinstance(file_hash, (str, int)):
+            return None
+        safe_hash = str(file_hash).strip()
+        if not safe_hash or any(char in safe_hash for char in "\\/"):
+            return None
+        root = self.cache_root / owner / repository
+        if not root.is_dir():
+            return None
+        matches = list(root.glob(f"*/{safe_hash}{project_path.suffix or '.source'}"))
+        return matches[0] if len(matches) == 1 and matches[0].is_file() and matches[0].stat().st_size > 0 else None
 
     @staticmethod
     def _from_local(path: Path) -> ResolvedFileSource:

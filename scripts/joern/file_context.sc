@@ -62,13 +62,33 @@ import ujson.*
     sourceItem(a, "defines" -> Arr.from(a.argument.headOption.toList.flatMap(ids).map(Str(_))),
       "uses" -> Arr.from(a.argument.drop(1).flatMap(ids).map(Str(_))), "provenance" -> Str("syntactic_assignment"))
   }.toList
+  val dataFlow = try {
+    if (!cpg.metaData.headOption.exists(_.overlays.contains("ossdataflow"))) run.ossdataflow
+    val sources = method.call.filterNot(_.name.startsWith("<operator"))
+    val sinks: Iterator[CfgNode] = calls.map(x => x: CfgNode)
+    sinks.reachableByFlows(sources).take(80).flatMap { path =>
+      path.elements.toList.collect { case n: AstNode => n }.sliding(2).flatMap {
+        case List(from, to) if line(from) > 0 && line(to) > 0 && code(from).nonEmpty && code(to).nonEmpty =>
+          Some(item("code" -> Str(code(from) + " -> " + code(to)), "file" -> Str(file(to)),
+            "line" -> Num(line(to).toDouble), "from_line" -> Num(line(from).toDouble),
+            "defines" -> Arr.from(ids(to).map(Str(_))), "uses" -> Arr.from(ids(from).map(Str(_))),
+            "provenance" -> Str("joern_reaching_def")))
+        case _ => None
+      }
+    }.toList
+  } catch { case NonFatal(_) => Nil }
   val controls = method.ast.isControlStructure.flatMap { c =>
     val condition = try c.condition.code.headOption.getOrElse(code(c)) catch { case NonFatal(_) => code(c) }
     if (condition.nonEmpty) sourceItem(c, "condition" -> Str(condition), "provenance" -> Str("cpg_control")) else None
   }.toList
   val types = declarations.flatMap(v => List(v("type").str)).filter(_.nonEmpty).distinct.sorted.map(t => item("name" -> Str(t), "provenance" -> Str("cpg_type")))
+  val controlledCalls = calls.flatMap { call =>
+    try call.controlledBy.flatMap { guard =>
+      sourceItem(guard, "controlled_line" -> Num(line(call).toDouble), "provenance" -> Str("joern_control_dependence"))
+    }.toList catch { case NonFatal(_) => Nil }
+  }.toList
   write("exact", method.name, Map(
     "imports" -> imports, "callee_funcs" -> callees, "call_relations" -> callRelations,
-    "call_site_arguments" -> arguments, "data_flow" -> assignments, "control_dependencies" -> controls,
+    "call_site_arguments" -> arguments, "data_flow" -> (dataFlow ++ assignments), "control_dependencies" -> (controls ++ controlledCalls),
     "declarations" -> declarations, "types" -> types))
 }
