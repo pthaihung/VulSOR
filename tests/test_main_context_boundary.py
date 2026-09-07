@@ -1,4 +1,7 @@
 import json
+from pathlib import Path
+
+from src.agents.SimpleYaml import load_yaml
 
 from src.agents.Pipeline import (
     STAGE_FILES,
@@ -8,6 +11,32 @@ from src.agents.Pipeline import (
     filter_evidence_for_obligation,
     stage_summary,
 )
+
+
+PROJECT_ROOT = Path(__file__).parents[1]
+
+
+def test_old_repository_context_configuration_is_removed() -> None:
+    agents = load_yaml(PROJECT_ROOT / "config/agents.yml")
+    datasets = load_yaml(PROJECT_ROOT / "config/datasets.yml")
+    reasoner = load_yaml(PROJECT_ROOT / "src/agents/prompts/Obligation_Reasoner.yml")
+
+    assert "cpg_evidence_retrieval" not in agents["agents"]
+    assert not (PROJECT_ROOT / "src/agents/prompts/CPG_Evidence_Retrieval.yml").exists()
+
+    for dataset in datasets["datasets"].values():
+        for split in dataset.get("splits", {}).values():
+            assert "context_file" not in split
+            assert "pretty_context_file" not in split
+
+    reasoner_text = (PROJECT_ROOT / "src/agents/prompts/Obligation_Reasoner.yml").read_text(
+        encoding="utf-8"
+    ).lower()
+    assert "input_context_json" in reasoner["inputs"]
+    assert "cpg_evidence_json" not in reasoner_text
+    assert "cpg_evidence" not in reasoner_text
+    assert "repository" not in reasoner_text
+    assert "cpg" not in reasoner_text
 
 
 def test_stage_2_is_a_neutral_input_context_boundary() -> None:
