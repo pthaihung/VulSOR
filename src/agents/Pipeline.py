@@ -204,7 +204,7 @@ class VulSORPipeline:
     ) -> dict[str, Any]:
         sample_id = sample["sample_id"]
         semantic_model_record = self._read_required_stage(sample_id, 1)
-        cpg_evidence_record = self._read_required_stage(sample_id, 2)
+        input_context_record = self._read_required_stage(sample_id, 2)
         merged_semantic_model = semantic_model_record["output"]["semantic_model"]
         operation_inventory = merged_semantic_model["operation_agent"]
         emit_progress(
@@ -220,7 +220,7 @@ class VulSORPipeline:
             {
                 "merged_semantic_model_json": merged_semantic_model,
                 "operation_inventory_json": operation_inventory,
-                "cpg_evidence_json": cpg_evidence_record["output"],
+                "input_context_json": input_context_record["output"],
             },
             progress_callback=progress_callback,
             progress_context={"sample_id": sample_id, "stage": 3},
@@ -248,7 +248,7 @@ class VulSORPipeline:
     ) -> dict[str, Any]:
         sample_id = sample["sample_id"]
         semantic_model_record = self._read_required_stage(sample_id, 1)
-        cpg_evidence_record = self._read_required_stage(sample_id, 2)
+        input_context_record = self._read_required_stage(sample_id, 2)
         rules_record = self._read_required_stage(sample_id, 3)
         merged_semantic_model = semantic_model_record["output"]["semantic_model"]
         operation_inventory = merged_semantic_model["operation_agent"]
@@ -261,7 +261,7 @@ class VulSORPipeline:
             evidence = filter_evidence_for_obligation(
                 merged_semantic_model,
                 obligation,
-                cpg_evidence_record["output"],
+                input_context_record["output"],
             )
             obligation_id = obligation.get("id", f"o_{obligation_index}")
             emit_progress(
@@ -331,7 +331,7 @@ class VulSORPipeline:
             correct = int(final_verdict["violation"]) == int(ground_truth["target"])
         diagnostics = build_pipeline_diagnostics(
             semantic_model_record,
-            cpg_evidence_record,
+            input_context_record,
             rules_record,
             adjudications,
             adjudicator_errors,
@@ -697,7 +697,7 @@ def aggregate_final_verdict(adjudications: list[dict[str, Any]]) -> dict[str, An
 
 def build_pipeline_diagnostics(
     semantic_model_record: dict[str, Any],
-    cpg_evidence_record: dict[str, Any],
+    input_context_record: dict[str, Any],
     rules_record: dict[str, Any],
     adjudications: list[dict[str, Any]],
     adjudicator_errors: list[dict[str, Any]],
@@ -715,25 +715,7 @@ def build_pipeline_diagnostics(
     for agent_key, gate in semantic_model_record.get("output", {}).get("agent_quality_gates", {}).items():
         _collect_gate_attempt_errors(diagnostics, "Stage 1", agent_key, gate)
 
-    cpg_output = cpg_evidence_record.get("output", {})
-    diagnostics["stage_status"]["Stage 2"] = cpg_evidence_record.get("quality_gate", {}).get("status", "unknown")
-    if cpg_output.get("required") and cpg_output.get("status") != "built":
-        diagnostics["missing_information"].append(
-            {
-                "stage": "Stage 2",
-                "kind": "cpg_evidence",
-                "message": "CPG evidence is required but was not built.",
-                "required_operations": cpg_output.get("required_operations", []),
-            }
-        )
-    for limitation in cpg_output.get("limitations", []):
-        diagnostics["warnings"].append(
-            {
-                "stage": "Stage 2",
-                "kind": "limitation",
-                "message": limitation,
-            }
-        )
+    diagnostics["stage_status"]["Stage 2"] = input_context_record.get("quality_gate", {}).get("status", "unknown")
 
     diagnostics["stage_status"]["Stage 3"] = rules_record.get("quality_gate", {}).get("status", "unknown")
     _collect_gate_attempt_errors(diagnostics, "Stage 3", "obligation_reasoner", rules_record.get("quality_gate", {}))
@@ -811,14 +793,14 @@ def find_operation(operation_inventory: dict[str, Any], operation_id: str | None
 def filter_evidence_for_obligation(
     semantic_model: dict[str, Any],
     obligation: dict[str, Any],
-    cpg_evidence: dict[str, Any] | None = None,
+    input_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     evidence_refs = set(obligation.get("evidence_refs", []))
     operation_id = obligation.get("operation_id")
     if not evidence_refs and not operation_id:
         return {
             "semantic_evidence": semantic_model,
-            "cpg_evidence": cpg_evidence or {},
+            "input_context": input_context or {},
         }
 
     filtered: dict[str, Any] = {}
@@ -832,7 +814,7 @@ def filter_evidence_for_obligation(
         filtered[agent_key] = records
     return {
         "semantic_evidence": filtered,
-        "cpg_evidence": cpg_evidence or {},
+        "input_context": input_context or {},
     }
 
 
