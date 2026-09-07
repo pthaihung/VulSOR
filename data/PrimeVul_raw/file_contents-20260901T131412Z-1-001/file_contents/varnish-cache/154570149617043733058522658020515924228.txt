@@ -1,0 +1,1091 @@
+/*-
+ * Copyright (c) 2006 Verdens Gang AS
+ * Copyright (c) 2006-2017 Varnish Software AS
+ * All rights reserved.
+ *
+ * Author: Poul-Henning Kamp <phk@phk.freebsd.dk>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ *
+ * This file contains the request-handling state engine, which is intended to
+ * (over time) be(ome) protocol agnostic.
+ * We already use this now with ESI:includes, which are for all relevant
+ * purposes a different "protocol"
+ *
+ * A special complication is the fact that we can suspend processing of
+ * a request when hash-lookup finds a busy objhdr.
+ *
+ */
+
+#include "config.h"
+
+#include "cache_varnishd.h"
+#include "cache_filter.h"
+#include "cache_objhead.h"
+#include "cache_transport.h"
+
+#include "hash/hash_slinger.h"
+#include "http1/cache_http1.h"
+#include "storage/storage.h"
+#include "common/heritage.h"
+#include "vcl.h"
+#include "vsha256.h"
+#include "vtim.h"
+
+/*--------------------------------------------------------------------
+ * Handle "Expect:" and "Connection:" on incoming request
+ */
+
+static enum req_fsm_nxt
+cnt_transport(struct worker *wrk, struct req *req)
+{
+	const char *p;
+
+	CHECK_OBJ_NOTNULL(wrk, WORKER_MAGIC);
+	CHECK_OBJ_NOTNULL(req, REQ_MAGIC);
+	CHECK_OBJ_NOTNULL(req->http, HTTP_MAGIC);
+	CHECK_OBJ_NOTNULL(req->transport, TRANSPORT_MAGIC);
+	assert(req->req_body_status != REQ_BODY_INIT);
+
+	if (http_GetHdr(req->http, H_Expect, &p)) {
+		if (strcasecmp(p, "100-continue")) {
+			req->doclose = SC_RX_JUNK;
+			(void)req->transport->minimal_response(req, 417);
+			wrk->stats->client_req_417++;
+			return (REQ_FSM_DONE);
+		}
+		if (req->http->protover >= 11 &&
+		    req->htc->pipeline_b == NULL)	// XXX: HTTP1 vs 2 ?
+			req->want100cont = 1;
+		http_Unset(req->http, H_Expect);
+	}
+
+	AZ(req->err_code);
+
+	req->doclose = http_DoConnection(req->http);
+	if (req->doclose == SC_RX_BAD) {
+		(void)req->transport->minimal_response(req, 400);
+		return (REQ_FSM_DONE);
+	}
+
+	if (req->req_body_status < REQ_BODY_TAKEN) {
+		AN(req->transport->req_body != NULL);
+		VFP_Setup(req->vfc, wrk);
+		req->vfc->resp = req->http;		// XXX
+		req->transport->req_body(req);
+	}
+
+	req->ws_req = WS_Snapshot(req->ws);
+	HTTP_Clone(req->http0, req->http);	// For ESI & restart
+	req->req_step = R_STP_RECV;
+	return (REQ_FSM_MORE);
+}
+
+/*--------------------------------------------------------------------
+ * Deliver an object to client
+ */
+
+static enum req_fsm_nxt
+cnt_deliver(struct worker *wrk, struct req *req)
+{
+
+	CHECK_OBJ_NOTNULL(wrk, WORKER_MAGIC);
+	CHECK_OBJ_NOTNULL(req, REQ_MAGIC);
+	CHECK_OBJ_NOTNULL(req->objcore, OBJCORE_MAGIC);
+	CHECK_OBJ_NOTNULL(req->objcore->objhead, OBJHEAD_MAGIC);
+	AZ(req->stale_oc);
+	AN(req->vcl);
+
+	assert(req->objcore->refcnt > 0);
+
+	ObjTouch(req->wrk, req->objcore, req->t_prev);
+
+	HTTP_Setup(req->resp, req->ws, req->vsl, SLT_RespMethod);
+	if (HTTP_Decode(req->resp,
+	    ObjGetAttr(req->wrk, req->objcore, OA_HEADERS, NULL))) {
+		(void)HSH_DerefObjCore(wrk, &req->objcore, HSH_RUSH_POLICY);
+		req->err_code = 500;
+		req->req_step = R_STP_SYNTH;
+		return (REQ_FSM_MORE);
+	}
+	http_ForceField(req->resp, HTTP_HDR_PROTO, "HTTP/1.1");
+
+	if (req->is_hit)
+		http_PrintfHeader(req->resp,
+		    "X-Varnish: %u %u", VXID(req->vsl->wid),
+		    ObjGetXID(wrk, req->objcore));
+	else
+		http_PrintfHeader(req->resp,
+		    "X-Varnish: %u", VXID(req->vsl->wid));
+
+	/*
+	 * We base Age calculation upon the last timestamp taken during
+	 * client request processing. This gives some inaccuracy, but
+	 * since Age is only full second resolution that shouldn't
+	 * matter. (Last request timestamp could be a Start timestamp
+	 * taken before the object entered into cache leading to negative
+	 * age. Truncate to zero in that case).
+	 */
+	http_PrintfHeader(req->resp, "Age: %.0f",
+	    floor(fmax(0., req->t_prev - req->objcore->t_origin)));
+
+	http_SetHeader(req->resp, "Via: 1.1 varnish (Varnish/6.3)");
+
+	if (cache_param->http_gzip_support &&
+	    ObjCheckFlag(req->wrk, req->objcore, OF_GZIPED) &&
+	    !RFC2616_Req_Gzip(req->http))
+		RFC2616_Weaken_Etag(req->resp);
+
+	VCL_deliver_method(req->vcl, wrk, req, NULL, NULL);
+	VSLb_ts_req(req, "Process", W_TIM_real(wrk));
+
+	assert(req->restarts <= cache_param->max_restarts);
+
+	if (wrk->handling != VCL_RET_DELIVER) {
+		HSH_Cancel(wrk, req->objcore, NULL);
+		(void)HSH_DerefObjCore(wrk, &req->objcore, HSH_RUSH_POLICY);
+		http_Teardown(req->resp);
+
+		switch (wrk->handling) {
+		case VCL_RET_RESTART:
+			req->req_step = R_STP_RESTART;
+			break;
+		case VCL_RET_FAIL:
+			req->req_step = R_STP_VCLFAIL;
+			break;
+		case VCL_RET_SYNTH:
+			req->req_step = R_STP_SYNTH;
+			break;
+		default:
+			WRONG("Illegal return from vcl_deliver{}");
+		}
+
+		return (REQ_FSM_MORE);
+	}
+
+	assert(wrk->handling == VCL_RET_DELIVER);
+
+	if (IS_TOPREQ(req) && RFC2616_Do_Cond(req))
+		http_PutResponse(req->resp, "HTTP/1.1", 304, NULL);
+
+	req->req_step = R_STP_TRANSMIT;
+	return (REQ_FSM_MORE);
+}
+
+/*--------------------------------------------------------------------
+ * VCL failed, die horribly
+ */
+
+static enum req_fsm_nxt
+cnt_vclfail(const struct worker *wrk, struct req *req)
+{
+
+	CHECK_OBJ_NOTNULL(wrk, WORKER_MAGIC);
+	CHECK_OBJ_NOTNULL(req, REQ_MAGIC);
+
+	AZ(req->objcore);
+	AZ(req->stale_oc);
+
+	Req_Rollback(req);
+
+	req->err_code = 503;
+	req->err_reason = "VCL failed";
+	req->req_step = R_STP_SYNTH;
+	req->doclose = SC_VCL_FAILURE;
+	return (REQ_FSM_MORE);
+}
+
+/*--------------------------------------------------------------------
+ * Emit a synthetic response
+ */
+
+static enum req_fsm_nxt
+cnt_synth(struct worker *wrk, struct req *req)
+{
+	struct http *h;
+	double now;
+	struct vsb *synth_body;
+	ssize_t sz, szl;
+	uint8_t *ptr;
+
+	CHECK_OBJ_NOTNULL(wrk, WORKER_MAGIC);
+	CHECK_OBJ_NOTNULL(req, REQ_MAGIC);
+
+	AZ(req->objcore);
+	AZ(req->stale_oc);
+
+	wrk->stats->s_synth++;
+
+	now = W_TIM_real(wrk);
+	VSLb_ts_req(req, "Process", now);
+
+	if (req->err_code < 100)
+		req->err_code = 501;
+
+	HTTP_Setup(req->resp, req->ws, req->vsl, SLT_RespMethod);
+	h = req->resp;
+	http_TimeHeader(h, "Date: ", now);
+	http_SetHeader(h, "Server: Varnish");
+	http_PrintfHeader(req->resp, "X-Varnish: %u", VXID(req->vsl->wid));
+	http_PutResponse(h, "HTTP/1.1", req->err_code, req->err_reason);
+
+	/*
+	 * For late 100-continue, we suggest to VCL to close the connection to
+	 * neither send a 100-continue nor drain-read the request. But VCL has
+	 * the option to veto by removing Connection: close
+	 */
+	if (req->want100cont) {
+		http_SetHeader(h, "Connection: close");
+	}
+
+	synth_body = VSB_new_auto();
+	AN(synth_body);
+
+	VCL_synth_method(req->vcl, wrk, req, NULL, synth_body);
+
+	AZ(VSB_finish(synth_body));
+
+	if (wrk->handling == VCL_RET_FAIL) {
+		VSB_destroy(&synth_body);
+		req->doclose = SC_VCL_FAILURE;
+		VSLb_ts_req(req, "Resp", W_TIM_real(wrk));
+		http_Teardown(req->resp);
+		return (REQ_FSM_DONE);
+	}
+
+	if (wrk->handling == VCL_RET_RESTART &&
+	    req->restarts > cache_param->max_restarts)
+		wrk->handling = VCL_RET_DELIVER;
+
+	if (wrk->handling == VCL_RET_RESTART) {
+		/*
+		 * XXX: Should we reset req->doclose = SC_VCL_FAILURE
+		 * XXX: If so, to what ?
+		 */
+		HTTP_Setup(h, req->ws, req->vsl, SLT_RespMethod);
+		VSB_destroy(&synth_body);
+		req->req_step = R_STP_RESTART;
+		return (REQ_FSM_MORE);
+	}
+	assert(wrk->handling == VCL_RET_DELIVER);
+
+	http_Unset(h, H_Content_Length);
+	http_PrintfHeader(req->resp, "Content-Length: %zd",
+	    VSB_len(synth_body));
+
+	if (!req->doclose && http_HdrIs(req->resp, H_Connection, "close"))
+		req->doclose = SC_RESP_CLOSE;
+
+	/* Discard any lingering request body before delivery */
+	(void)VRB_Ignore(req);
+
+	req->objcore = HSH_Private(wrk);
+	CHECK_OBJ_NOTNULL(req->objcore, OBJCORE_MAGIC);
+	szl = -1;
+	if (STV_NewObject(wrk, req->objcore, stv_transient, 1024)) {
+		szl = VSB_len(synth_body);
+		assert(szl >= 0);
+		sz = szl;
+		if (sz > 0 &&
+		    ObjGetSpace(wrk, req->objcore, &sz, &ptr) && sz >= szl) {
+			memcpy(ptr, VSB_data(synth_body), szl);
+			ObjExtend(wrk, req->objcore, szl);
+		} else if (sz > 0) {
+			szl = -1;
+		}
+	}
+
+	if (szl >= 0)
+		AZ(ObjSetU64(wrk, req->objcore, OA_LEN, szl));
+	HSH_DerefBoc(wrk, req->objcore);
+	VSB_destroy(&synth_body);
+
+	if (szl < 0) {
+		VSLb(req->vsl, SLT_Error, "Could not get storage");
+		req->doclose = SC_OVERLOAD;
+		VSLb_ts_req(req, "Resp", W_TIM_real(wrk));
+		(void)HSH_DerefObjCore(wrk, &req->objcore, 1);
+		http_Teardown(req->resp);
+		return (REQ_FSM_DONE);
+	}
+
+	req->req_step = R_STP_TRANSMIT;
+	return (REQ_FSM_MORE);
+}
+
+/*--------------------------------------------------------------------
+ * The mechanics of sending a response (from deliver or synth)
+ */
+
+static enum req_fsm_nxt
+cnt_transmit(struct worker *wrk, struct req *req)
+{
+	struct boc *boc;
+	uint16_t status;
+	int sendbody, head;
+	intmax_t clval;
+
+	CHECK_OBJ_NOTNULL(wrk, WORKER_MAGIC);
+	CHECK_OBJ_NOTNULL(req, REQ_MAGIC);
+	CHECK_OBJ_NOTNULL(req->transport, TRANSPORT_MAGIC);
+	CHECK_OBJ_NOTNULL(req->objcore, OBJCORE_MAGIC);
+	AZ(req->stale_oc);
+	AZ(req->res_mode);
+
+	/* Grab a ref to the bo if there is one (=streaming) */
+	boc = HSH_RefBoc(req->objcore);
+	if (boc && boc->state < BOS_STREAM)
+		ObjWaitState(req->objcore, BOS_STREAM);
+	clval = http_GetContentLength(req->resp);
+	/* RFC 7230, 3.3.3 */
+	status = http_GetStatus(req->resp);
+	head = !strcmp(req->http0->hd[HTTP_HDR_METHOD].b, "HEAD");
+
+	if (boc != NULL)
+		req->resp_len = clval;
+	else
+		req->resp_len = ObjGetLen(req->wrk, req->objcore);
+
+	if (head || status < 200 || status == 204 || status == 304) {
+		// rfc7230,l,1748,1752
+		sendbody = 0;
+	} else {
+		sendbody = 1;
+	}
+
+	if (req->filter_list == NULL)
+		req->filter_list = resp_Get_Filter_List(req);
+	if (req->filter_list == NULL ||
+	    VCL_StackVDP(req, req->vcl, req->filter_list)) {
+		VSLb(req->vsl, SLT_Error, "Failure to push processors");
+		req->doclose = SC_OVERLOAD;
+	} else {
+		if (cache_param->http_range_support && status == 200)
+			http_ForceHeader(req->resp, H_Accept_Ranges, "bytes");
+
+		if (status < 200 || status == 204) {
+			// rfc7230,l,1691,1695
+			http_Unset(req->resp, H_Content_Length);
+		} else if (status == 304) {
+			// rfc7230,l,1675,1677
+			http_Unset(req->resp, H_Content_Length);
+		} else if (clval >= 0 && clval == req->resp_len) {
+			/* Reuse C-L header */
+		} else if (head && req->objcore->flags & OC_F_HFM) {
+			/*
+			 * Don't touch C-L header (debatable)
+			 *
+			 * The only way to do it correctly would be to GET
+			 * to the backend, and discard the body once the
+			 * filters have had a chance to chew on it, but that
+			 * would negate the "pass for huge objects" use case.
+			 */
+		} else {
+			http_Unset(req->resp, H_Content_Length);
+			if (req->resp_len >= 0)
+				http_PrintfHeader(req->resp,
+				    "Content-Length: %jd", req->resp_len);
+		}
+		if (req->resp_len == 0)
+			sendbody = 0;
+	}
+	req->transport->deliver(req, boc, sendbody);
+
+	VSLb_ts_req(req, "Resp", W_TIM_real(wrk));
+
+	HSH_Cancel(wrk, req->objcore, boc);
+
+	if (boc != NULL)
+		HSH_DerefBoc(wrk, req->objcore);
+
+	(void)HSH_DerefObjCore(wrk, &req->objcore, HSH_RUSH_POLICY);
+	http_Teardown(req->resp);
+
+	req->filter_list = NULL;
+	req->res_mode = 0;
+	return (REQ_FSM_DONE);
+}
+
+/*--------------------------------------------------------------------
+ * Initiated a fetch (pass/miss) which we intend to deliver
+ */
+
+static enum req_fsm_nxt
+cnt_fetch(struct worker *wrk, struct req *req)
+{
+
+	CHECK_OBJ_NOTNULL(wrk, WORKER_MAGIC);
+	CHECK_OBJ_NOTNULL(req, REQ_MAGIC);
+	CHECK_OBJ_NOTNULL(req->objcore, OBJCORE_MAGIC);
+	AZ(req->stale_oc);
+
+	wrk->stats->s_fetch++;
+	(void)VRB_Ignore(req);
+
+	if (req->objcore->flags & OC_F_FAILED) {
+		req->err_code = 503;
+		req->req_step = R_STP_SYNTH;
+		(void)HSH_DerefObjCore(wrk, &req->objcore, 1);
+		AZ(req->objcore);
+		return (REQ_FSM_MORE);
+	}
+
+	req->req_step = R_STP_DELIVER;
+	return (REQ_FSM_MORE);
+}
+
+/*--------------------------------------------------------------------
+ * Attempt to lookup objhdr from hash.  We disembark and reenter
+ * this state if we get suspended on a busy objhdr.
+ */
+
+static enum req_fsm_nxt
+cnt_lookup(struct worker *wrk, struct req *req)
+{
+	struct objcore *oc, *busy;
+	enum lookup_e lr;
+	int had_objhead = 0;
+
+	CHECK_OBJ_NOTNULL(wrk, WORKER_MAGIC);
+	CHECK_OBJ_NOTNULL(req, REQ_MAGIC);
+	AZ(req->objcore);
+	AZ(req->stale_oc);
+
+	AN(req->vcl);
+
+	VRY_Prep(req);
+
+	AZ(req->objcore);
+	if (req->hash_objhead)
+		had_objhead = 1;
+	lr = HSH_Lookup(req, &oc, &busy);
+	if (lr == HSH_BUSY) {
+		/*
+		 * We lost the session to a busy object, disembark the
+		 * worker thread.   We return to STP_LOOKUP when the busy
+		 * object has been unbusied, and still have the objhead
+		 * around to restart the lookup with.
+		 */
+		return (REQ_FSM_DISEMBARK);
+	}
+	if (had_objhead)
+		VSLb_ts_req(req, "Waitinglist", W_TIM_real(wrk));
+
+	if (req->vcf != NULL) {
+		(void)req->vcf->func(req, NULL, NULL, 2);
+		req->vcf = NULL;
+	}
+
+	if (busy == NULL) {
+		VRY_Finish(req, DISCARD);
+	} else {
+		AN(busy->flags & OC_F_BUSY);
+		VRY_Finish(req, KEEP);
+	}
+
+	AZ(req->objcore);
+	if (lr == HSH_MISS || lr == HSH_HITMISS) {
+		AN(busy);
+		AN(busy->flags & OC_F_BUSY);
+		req->objcore = busy;
+		req->stale_oc = oc;
+		req->req_step = R_STP_MISS;
+		if (lr == HSH_HITMISS)
+			req->is_hitmiss = 1;
+		return (REQ_FSM_MORE);
+	}
+	if (lr == HSH_HITPASS) {
+		AZ(busy);
+		AZ(oc);
+		req->req_step = R_STP_PASS;
+		req->is_hitpass = 1;
+		return (REQ_FSM_MORE);
+	}
+
+	assert(lr == HSH_HIT || lr == HSH_GRACE);
+
+	CHECK_OBJ_NOTNULL(oc, OBJCORE_MAGIC);
+	AZ(oc->flags & OC_F_BUSY);
+	req->objcore = oc;
+	AZ(oc->flags & OC_F_HFM);
+
+	VSLb(req->vsl, SLT_Hit, "%u %.6f %.6f %.6f",
+	    ObjGetXID(wrk, req->objcore),
+	    EXP_Dttl(req, req->objcore),
+	    req->objcore->grace,
+	    req->objcore->keep);
+
+	VCL_hit_method(req->vcl, wrk, req, NULL, NULL);
+
+	switch (wrk->handling) {
+	case VCL_RET_DELIVER:
+		if (busy != NULL) {
+			AZ(oc->flags & OC_F_HFM);
+			CHECK_OBJ_NOTNULL(busy->boc, BOC_MAGIC);
+			// XXX: shouldn't we go to miss?
+			VBF_Fetch(wrk, req, busy, oc, VBF_BACKGROUND);
+		} else {
+			(void)VRB_Ignore(req);// XXX: handle err
+		}
+		wrk->stats->cache_hit++;
+		req->is_hit = 1;
+		if (lr == HSH_GRACE)
+			wrk->stats->cache_hit_grace++;
+		req->req_step = R_STP_DELIVER;
+		return (REQ_FSM_MORE);
+	case VCL_RET_RESTART:
+		req->req_step = R_STP_RESTART;
+		break;
+	case VCL_RET_FAIL:
+		req->req_step = R_STP_VCLFAIL;
+		break;
+	case VCL_RET_SYNTH:
+		req->req_step = R_STP_SYNTH;
+		break;
+	case VCL_RET_PASS:
+		wrk->stats->cache_hit++;
+		req->is_hit = 1;
+		req->req_step = R_STP_PASS;
+		break;
+	default:
+		WRONG("Illegal return from vcl_hit{}");
+	}
+
+	/* Drop our object, we won't need it */
+	(void)HSH_DerefObjCore(wrk, &req->objcore, HSH_RUSH_POLICY);
+
+	if (busy != NULL) {
+		(void)HSH_DerefObjCore(wrk, &busy, 0);
+		VRY_Clear(req);
+	}
+
+	return (REQ_FSM_MORE);
+}
+
+/*--------------------------------------------------------------------
+ * Cache miss.
+ */
+
+static enum req_fsm_nxt
+cnt_miss(struct worker *wrk, struct req *req)
+{
+
+	CHECK_OBJ_NOTNULL(wrk, WORKER_MAGIC);
+	CHECK_OBJ_NOTNULL(req, REQ_MAGIC);
+	AN(req->vcl);
+	CHECK_OBJ_NOTNULL(req->objcore, OBJCORE_MAGIC);
+	CHECK_OBJ_ORNULL(req->stale_oc, OBJCORE_MAGIC);
+
+	VCL_miss_method(req->vcl, wrk, req, NULL, NULL);
+	switch (wrk->handling) {
+	case VCL_RET_FETCH:
+		wrk->stats->cache_miss++;
+		VBF_Fetch(wrk, req, req->objcore, req->stale_oc, VBF_NORMAL);
+		if (req->stale_oc != NULL)
+			(void)HSH_DerefObjCore(wrk, &req->stale_oc, 0);
+		req->req_step = R_STP_FETCH;
+		return (REQ_FSM_MORE);
+	case VCL_RET_FAIL:
+		req->req_step = R_STP_VCLFAIL;
+		break;
+	case VCL_RET_SYNTH:
+		req->req_step = R_STP_SYNTH;
+		break;
+	case VCL_RET_RESTART:
+		req->req_step = R_STP_RESTART;
+		break;
+	case VCL_RET_PASS:
+		req->req_step = R_STP_PASS;
+		break;
+	default:
+		WRONG("Illegal return from vcl_miss{}");
+	}
+	VRY_Clear(req);
+	if (req->stale_oc != NULL)
+		(void)HSH_DerefObjCore(wrk, &req->stale_oc, 0);
+	AZ(HSH_DerefObjCore(wrk, &req->objcore, 1));
+	return (REQ_FSM_MORE);
+}
+
+/*--------------------------------------------------------------------
+ * Pass processing
+ */
+
+static enum req_fsm_nxt
+cnt_pass(struct worker *wrk, struct req *req)
+{
+
+	CHECK_OBJ_NOTNULL(wrk, WORKER_MAGIC);
+	CHECK_OBJ_NOTNULL(req, REQ_MAGIC);
+	AN(req->vcl);
+	AZ(req->objcore);
+	AZ(req->stale_oc);
+
+	VCL_pass_method(req->vcl, wrk, req, NULL, NULL);
+	switch (wrk->handling) {
+	case VCL_RET_FAIL:
+		req->req_step = R_STP_VCLFAIL;
+		break;
+	case VCL_RET_SYNTH:
+		req->req_step = R_STP_SYNTH;
+		break;
+	case VCL_RET_RESTART:
+		req->req_step = R_STP_RESTART;
+		break;
+	case VCL_RET_FETCH:
+		wrk->stats->s_pass++;
+		req->objcore = HSH_Private(wrk);
+		CHECK_OBJ_NOTNULL(req->objcore, OBJCORE_MAGIC);
+		VBF_Fetch(wrk, req, req->objcore, NULL, VBF_PASS);
+		req->req_step = R_STP_FETCH;
+		break;
+	default:
+		WRONG("Illegal return from cnt_pass{}");
+	}
+	return (REQ_FSM_MORE);
+}
+
+/*--------------------------------------------------------------------
+ * Pipe mode
+ */
+
+static enum req_fsm_nxt
+cnt_pipe(struct worker *wrk, struct req *req)
+{
+	struct busyobj *bo;
+	enum req_fsm_nxt nxt;
+
+	CHECK_OBJ_NOTNULL(wrk, WORKER_MAGIC);
+	CHECK_OBJ_NOTNULL(req, REQ_MAGIC);
+	AZ(req->objcore);
+	AZ(req->stale_oc);
+	AN(req->vcl);
+
+	wrk->stats->s_pipe++;
+	bo = VBO_GetBusyObj(wrk, req);
+	CHECK_OBJ_NOTNULL(bo, BUSYOBJ_MAGIC);
+	VSLb(bo->vsl, SLT_Begin, "bereq %u pipe", VXID(req->vsl->wid));
+	VSLb(req->vsl, SLT_Link, "bereq %u pipe", VXID(bo->vsl->wid));
+	THR_SetBusyobj(bo);
+	bo->sp = req->sp;
+	SES_Ref(bo->sp);
+
+	HTTP_Setup(bo->bereq, bo->ws, bo->vsl, SLT_BereqMethod);
+	http_FilterReq(bo->bereq, req->http, 0);	// XXX: 0 ?
+	http_PrintfHeader(bo->bereq, "X-Varnish: %u", VXID(req->vsl->wid));
+	http_ForceHeader(bo->bereq, H_Connection, "close");
+
+	if (req->want100cont) {
+		http_SetHeader(bo->bereq, "Expect: 100-continue");
+		req->want100cont = 0;
+	}
+
+	VCL_pipe_method(req->vcl, wrk, req, bo, NULL);
+
+	switch (wrk->handling) {
+	case VCL_RET_SYNTH:
+		req->req_step = R_STP_SYNTH;
+		nxt = REQ_FSM_MORE;
+		break;
+	case VCL_RET_PIPE:
+		if (V1P_Enter() == 0) {
+			AZ(bo->req);
+			bo->req = req;
+			bo->wrk = wrk;
+			SES_Close(req->sp, VDI_Http1Pipe(req, bo));
+			nxt = REQ_FSM_DONE;
+			V1P_Leave();
+			break;
+		}
+		wrk->stats->pipe_limited++;
+		/* fall through */
+	case VCL_RET_FAIL:
+		req->req_step = R_STP_VCLFAIL;
+		nxt = REQ_FSM_MORE;
+		break;
+	default:
+		WRONG("Illegal return from vcl_pipe{}");
+	}
+	http_Teardown(bo->bereq);
+	SES_Rel(bo->sp);
+	VBO_ReleaseBusyObj(wrk, &bo);
+	THR_SetBusyobj(NULL);
+	return (nxt);
+}
+
+/*--------------------------------------------------------------------
+ * Handle restart events
+ */
+
+static enum req_fsm_nxt
+cnt_restart(struct worker *wrk, struct req *req)
+{
+
+	CHECK_OBJ_NOTNULL(wrk, WORKER_MAGIC);
+	CHECK_OBJ_NOTNULL(req, REQ_MAGIC);
+	AZ(req->objcore);
+	AZ(req->stale_oc);
+
+	if (++req->restarts > cache_param->max_restarts) {
+		VSLb(req->vsl, SLT_VCL_Error, "Too many restarts");
+		req->err_code = 503;
+		req->req_step = R_STP_SYNTH;
+	} else {
+		// XXX: ReqEnd + ReqAcct ?
+		VSLb_ts_req(req, "Restart", W_TIM_real(wrk));
+		VSL_ChgId(req->vsl, "req", "restart",
+		    VXID_Get(wrk, VSL_CLIENTMARKER));
+		VSLb_ts_req(req, "Start", req->t_prev);
+		req->err_code = 0;
+		req->req_step = R_STP_RECV;
+	}
+	return (REQ_FSM_MORE);
+}
+
+/*
+ * prepare the request for vcl_recv, either initially or after a reset
+ * e.g. due to vcl switching
+ *
+ * TODO
+ * - make restarts == 0 bit re-usable for rollback
+ * - remove duplicatation with Req_Cleanup()
+ */
+
+static void
+cnt_recv_prep(struct req *req, const char *ci)
+{
+	const char *xff;
+
+	if (req->restarts == 0) {
+		/*
+		 * This really should be done earlier, but we want to capture
+		 * it in the VSL log.
+		 */
+		http_CollectHdr(req->http, H_X_Forwarded_For);
+		if (http_GetHdr(req->http, H_X_Forwarded_For, &xff)) {
+			http_Unset(req->http, H_X_Forwarded_For);
+			http_PrintfHeader(req->http, "X-Forwarded-For: %s, %s",
+			    xff, ci);
+		} else {
+			http_PrintfHeader(req->http, "X-Forwarded-For: %s", ci);
+		}
+		http_CollectHdr(req->http, H_Cache_Control);
+
+		/* By default we use the first backend */
+		req->director_hint = VCL_DefaultDirector(req->vcl);
+
+		req->d_ttl = -1;
+		req->d_grace = -1;
+		req->disable_esi = 0;
+		req->hash_always_miss = 0;
+		req->hash_ignore_busy = 0;
+		req->client_identity = NULL;
+		req->storage = NULL;
+	}
+
+	req->vdc->retval = 0;
+	req->is_hit = 0;
+	req->is_hitmiss = 0;
+	req->is_hitpass = 0;
+}
+
+/*--------------------------------------------------------------------
+ * We have a complete request, set everything up and start it.
+ * We can come here both with a request from the client and with
+ * a interior request during ESI delivery.
+ */
+
+static enum req_fsm_nxt
+cnt_recv(struct worker *wrk, struct req *req)
+{
+	unsigned recv_handling;
+	struct VSHA256Context sha256ctx;
+	const char *ci, *cp, *endpname;
+
+	CHECK_OBJ_NOTNULL(wrk, WORKER_MAGIC);
+	CHECK_OBJ_NOTNULL(req, REQ_MAGIC);
+	AN(req->vcl);
+	AZ(req->objcore);
+	AZ(req->stale_oc);
+	AZ(req->err_code);
+
+	AZ(isnan(req->t_first));
+	AZ(isnan(req->t_prev));
+	AZ(isnan(req->t_req));
+
+	ci = SES_Get_String_Attr(req->sp, SA_CLIENT_IP);
+	cp = SES_Get_String_Attr(req->sp, SA_CLIENT_PORT);
+	CHECK_OBJ_NOTNULL(req->sp->listen_sock, LISTEN_SOCK_MAGIC);
+	endpname = req->sp->listen_sock->name;
+	AN(endpname);
+	VSLb(req->vsl, SLT_ReqStart, "%s %s %s", ci, cp, endpname);
+
+	http_VSL_log(req->http);
+
+	cnt_recv_prep(req, ci);
+
+	if (req->req_body_status == REQ_BODY_FAIL) {
+		req->doclose = SC_OVERLOAD;
+		return (REQ_FSM_DONE);
+	}
+
+	VCL_recv_method(req->vcl, wrk, req, NULL, NULL);
+	if (wrk->handling == VCL_RET_VCL && req->restarts == 0) {
+		Req_Rollback(req);
+		cnt_recv_prep(req, ci);
+		VCL_recv_method(req->vcl, wrk, req, NULL, NULL);
+	}
+
+	if (req->want100cont && !req->late100cont) {
+		req->want100cont = 0;
+		if (req->transport->minimal_response(req, 100)) {
+			req->doclose = SC_REM_CLOSE;
+			return (REQ_FSM_DONE);
+		}
+	}
+
+	/* Attempts to cache req.body may fail */
+	if (req->req_body_status == REQ_BODY_FAIL) {
+		req->doclose = SC_RX_BODY;
+		return (REQ_FSM_DONE);
+	}
+
+	recv_handling = wrk->handling;
+
+	/* We wash the A-E header here for the sake of VRY */
+	if (cache_param->http_gzip_support &&
+	     (recv_handling != VCL_RET_PIPE) &&
+	     (recv_handling != VCL_RET_PASS)) {
+		if (RFC2616_Req_Gzip(req->http)) {
+			http_ForceHeader(req->http, H_Accept_Encoding, "gzip");
+		} else {
+			http_Unset(req->http, H_Accept_Encoding);
+		}
+	}
+
+	VSHA256_Init(&sha256ctx);
+	VCL_hash_method(req->vcl, wrk, req, NULL, &sha256ctx);
+	if (wrk->handling == VCL_RET_FAIL)
+		recv_handling = wrk->handling;
+	else
+		assert(wrk->handling == VCL_RET_LOOKUP);
+	VSHA256_Final(req->digest, &sha256ctx);
+
+	switch (recv_handling) {
+	case VCL_RET_VCL:
+		VSLb(req->vsl, SLT_VCL_Error,
+		    "Illegal return(vcl): %s",
+		    req->restarts ? "Not after restarts" :
+		    "Only from active VCL");
+		req->err_code = 503;
+		req->req_step = R_STP_SYNTH;
+		break;
+	case VCL_RET_PURGE:
+		req->req_step = R_STP_PURGE;
+		break;
+	case VCL_RET_HASH:
+		req->req_step = R_STP_LOOKUP;
+		break;
+	case VCL_RET_PIPE:
+		if (!IS_TOPREQ(req)) {
+			VSLb(req->vsl, SLT_VCL_Error,
+			    "vcl_recv{} returns pipe for ESI included object."
+			    "  Doing pass.");
+			req->req_step = R_STP_PASS;
+		} else if (req->http0->protover > 11) {
+			VSLb(req->vsl, SLT_VCL_Error,
+			    "vcl_recv{} returns pipe for HTTP/2 request."
+			    "  Doing pass.");
+			req->req_step = R_STP_PASS;
+		} else {
+			req->req_step = R_STP_PIPE;
+		}
+		break;
+	case VCL_RET_PASS:
+		req->req_step = R_STP_PASS;
+		break;
+	case VCL_RET_SYNTH:
+		req->req_step = R_STP_SYNTH;
+		break;
+	case VCL_RET_RESTART:
+		req->req_step = R_STP_RESTART;
+		break;
+	case VCL_RET_FAIL:
+		req->req_step = R_STP_VCLFAIL;
+		break;
+	default:
+		WRONG("Illegal return from vcl_recv{}");
+	}
+	return (REQ_FSM_MORE);
+}
+
+/*--------------------------------------------------------------------
+ * Find the objhead, purge it.
+ *
+ * In VCL, a restart is necessary to get a new object
+ */
+
+static enum req_fsm_nxt
+cnt_purge(struct worker *wrk, struct req *req)
+{
+	struct objcore *oc, *boc;
+	enum lookup_e lr;
+
+	CHECK_OBJ_NOTNULL(wrk, WORKER_MAGIC);
+	CHECK_OBJ_NOTNULL(req, REQ_MAGIC);
+	AZ(req->objcore);
+	AZ(req->stale_oc);
+
+	AN(req->vcl);
+
+	VRY_Prep(req);
+
+	AZ(req->objcore);
+	req->hash_always_miss = 1;
+	lr = HSH_Lookup(req, &oc, &boc);
+	assert (lr == HSH_MISS);
+	AZ(oc);
+	CHECK_OBJ_NOTNULL(boc, OBJCORE_MAGIC);
+	VRY_Finish(req, DISCARD);
+
+	(void)HSH_Purge(wrk, boc->objhead, req->t_req, 0, 0, 0);
+
+	AZ(HSH_DerefObjCore(wrk, &boc, 1));
+
+	VCL_purge_method(req->vcl, wrk, req, NULL, NULL);
+	switch (wrk->handling) {
+	case VCL_RET_RESTART:
+		req->req_step = R_STP_RESTART;
+		break;
+	case VCL_RET_FAIL:
+		req->req_step = R_STP_VCLFAIL;
+		break;
+	case VCL_RET_SYNTH:
+		req->req_step = R_STP_SYNTH;
+		break;
+	default:
+		WRONG("Illegal return from vcl_purge{}");
+	}
+	return (REQ_FSM_MORE);
+}
+
+/*--------------------------------------------------------------------
+ * Central state engine dispatcher.
+ *
+ * Kick the session around until it has had enough.
+ *
+ */
+
+static void
+cnt_diag(struct req *req, const char *state)
+{
+
+	CHECK_OBJ_NOTNULL(req, REQ_MAGIC);
+
+	VSLb(req->vsl,  SLT_Debug, "vxid %u STP_%s sp %p vcl %p",
+	    req->vsl->wid, state, req->sp, req->vcl);
+	VSL_Flush(req->vsl, 0);
+}
+
+void
+CNT_Embark(struct worker *wrk, struct req *req)
+{
+
+	CHECK_OBJ_NOTNULL(wrk, WORKER_MAGIC);
+	CHECK_OBJ_NOTNULL(req, REQ_MAGIC);
+	CHECK_OBJ_NOTNULL(req->topreq, REQ_MAGIC);
+
+	/* wrk can have changed for restarts */
+	req->vfc->wrk = req->wrk = wrk;
+	wrk->vsl = req->vsl;
+	if (req->req_step == R_STP_TRANSPORT && req->vcl == NULL) {
+		VCL_Refresh(&wrk->vcl);
+		req->vcl = wrk->vcl;
+		wrk->vcl = NULL;
+		VSLb(req->vsl, SLT_VCL_use, "%s", VCL_Name(req->vcl));
+	}
+
+	AZ(req->vcl0);
+	AN(req->vcl);
+}
+
+enum req_fsm_nxt
+CNT_Request(struct req *req)
+{
+	struct worker *wrk;
+	enum req_fsm_nxt nxt;
+
+	CHECK_OBJ_NOTNULL(req, REQ_MAGIC);
+	assert(IS_TOPREQ(req) || req->vcl0 == NULL);
+
+	wrk = req->wrk;
+	CHECK_OBJ_NOTNULL(wrk, WORKER_MAGIC);
+
+	CHECK_OBJ_NOTNULL(req->transport, TRANSPORT_MAGIC);
+	AN(req->transport->deliver);
+	AN(req->transport->minimal_response);
+
+	/*
+	 * Possible entrance states
+	 */
+	assert(
+	    req->req_step == R_STP_LOOKUP ||
+	    req->req_step == R_STP_TRANSPORT);
+
+	AN(req->vsl->wid & VSL_CLIENTMARKER);
+	AN(req->vcl);
+	CHECK_OBJ(req->privs, VRT_PRIVS_MAGIC);
+
+	for (nxt = REQ_FSM_MORE; nxt == REQ_FSM_MORE; ) {
+		/*
+		 * This is a good place to be paranoid about the various
+		 * pointers still pointing to the things we expect.
+		 */
+		CHECK_OBJ_NOTNULL(wrk, WORKER_MAGIC);
+		CHECK_OBJ_ORNULL(wrk->nobjhead, OBJHEAD_MAGIC);
+		CHECK_OBJ_NOTNULL(req, REQ_MAGIC);
+
+		switch (req->req_step) {
+#define REQ_STEP(l,u,arg) \
+		    case R_STP_##u: \
+			if (DO_DEBUG(DBG_REQ_STATE)) \
+				cnt_diag(req, #u); \
+			nxt = cnt_##l arg; \
+			break;
+#include "tbl/steps.h"
+		default:
+			WRONG("State engine misfire");
+		}
+		CHECK_OBJ_ORNULL(wrk->nobjhead, OBJHEAD_MAGIC);
+	}
+	wrk->vsl = NULL;
+	if (nxt == REQ_FSM_DONE) {
+		if (IS_TOPREQ(req) && req->vcl0 != NULL)
+			VCL_Rel(&req->vcl0);
+		VCL_TaskLeave(req->vcl, req->privs);
+		AN(req->vsl->wid);
+		VRB_Free(req);
+		req->wrk = NULL;
+	}
+	assert(nxt == REQ_FSM_DISEMBARK || req->ws->r == NULL);
+	return (nxt);
+}
