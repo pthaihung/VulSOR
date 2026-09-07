@@ -49,14 +49,16 @@ class FileCpgCache:
         self.joern = joern
 
     def get_or_build(self, source: ResolvedFileSource) -> FileCpgArtifact:
-        source_bytes = source.source_path.read_bytes()
+        source_path = source.source_path.resolve()
+        cache_root = self.cache_root.resolve()
+        source_bytes = source_path.read_bytes()
         actual_digest = hashlib.sha256(source_bytes).hexdigest()
         if actual_digest != source.source_sha256:
             raise FileContextError("source digest changed before CPG construction")
-        suffix = source.source_path.suffix or ".c"
-        stage_dir = self.cache_root / "sources" / actual_digest
+        suffix = source_path.suffix or ".c"
+        stage_dir = cache_root / "sources" / actual_digest
         staged_source = stage_dir / f"target{suffix}"
-        cpg_path = self.cache_root / "cpg" / f"{actual_digest}.bin"
+        cpg_path = cache_root / "cpg" / f"{actual_digest}.bin"
         self._write_if_missing(staged_source, source_bytes)
         if cpg_path.is_file() and cpg_path.stat().st_size > 0:
             return FileCpgArtifact(cpg_path, staged_source, actual_digest, True)

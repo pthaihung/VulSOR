@@ -226,6 +226,13 @@ def _validated_executable(value: str | Path, label: str) -> str:
     executable = os.fspath(value)
     if not executable or not executable.strip() or "\x00" in executable:
         raise ValueError(f"{label} must be a non-blank path without NUL")
+    # Windows CreateProcess does not search PATHEXT for a bare batch name,
+    # although PowerShell and shutil.which do. Store the resolved launcher so
+    # configured `joern`/`joern-parse` names work in subprocesses too.
+    if os.name == "nt" and not Path(executable).suffix:
+        discovered = shutil.which(executable)
+        if discovered and Path(discovered).suffix.lower() in {".bat", ".cmd"}:
+            return discovered
     return executable
 
 
@@ -384,6 +391,7 @@ class JoernAdapter:
         query_script: str | Path | None = None,
         query_script_path: str | Path | None = None,
         function_context_script: str | Path | None = None,
+        file_context_script: str | Path | None = None,
     ) -> None:
         if isinstance(config, VulSORConfig):
             repository_config = config.repository_context
@@ -442,6 +450,11 @@ class JoernAdapter:
             _default_script("function_context.sc")
             if function_context_script is None
             else function_context_script
+        )
+        self.file_context_script = Path(
+            _default_script("file_context.sc")
+            if file_context_script is None
+            else file_context_script
         )
 
     def version(self) -> str:
@@ -717,6 +730,83 @@ class JoernAdapter:
             self._finish_cleanup(cleanup_paths, primary)
             if script_workspace is not None:
                 self._cleanup_temporary_directory(script_workspace, primary)
+
+    def extract_file_context(
+        self,
+        cpg_path: Path,
+        *,
+        source_file: Path,
+        start_line: int,
+        end_line: int,
+    ) -> dict[str, object]:
+        """Run the file-scoped extractor for one exact source span."""
+        cpg_path, source_file = Path(cpg_path), Path(source_file)
+        _validate_regular_file(cpg_path, "CPG input", nonempty=True)
+        _validate_regular_file(source_file, "file context source", nonempty=True)
+        if (
+            isinstance(start_line, bool)
+            or isinstance(end_line, bool)
+            or not isinstance(start_line, int)
+            or not isinstance(end_line, int)
+            or start_line < 1
+            or end_line < start_line
+        ):
+            raise JoernError("file context source range must be positive and ordered")
+        script_path = self._validated_script(self.file_context_script, "file context script")
+        output_path: Path | None = None
+        workspace: Path | None = None
+        primary: BaseException | None = None
+        try:
+            output_path = self._temporary_file(".joern-file-context-")
+            if self._uses_direct_java_for_scripts():
+                workspace = self._temporary_directory(".joern-file-workspace-")
+            command = self._script_command(
+                script_path,
+                (
+                    f"cpgFile={os.fspath(cpg_path)}",
+                    f"sourceFile={os.fspath(source_file)}",
+                    f"startLine={start_line}",
+                    f"endLine={end_line}",
+                    f"outFile={os.fspath(output_path)}",
+                ),
+            )
+            self._run(
+                command,
+                timeout=self.config.query_timeout_seconds,
+                paths=(cpg_path, source_file, script_path, output_path),
+                cwd=workspace,
+            )
+            payload = self._read_json_object(output_path, self._diagnostic_paths((cpg_path, source_file, script_path, output_path)))
+            return self._validate_file_context_payload(payload)
+        except (OSError, TypeError, ValueError) as exc:
+            primary = JoernError(f"could not prepare file context request: {_truncate(str(exc))}")
+            raise primary from None
+        except BaseException as exc:
+            primary = exc
+            raise
+        finally:
+            if output_path is not None:
+                self._finish_cleanup(((output_path, "file context output"),), primary)
+            if workspace is not None:
+                self._cleanup_temporary_directory(workspace, primary)
+
+    @staticmethod
+    def _validate_file_context_payload(payload: dict[str, object]) -> dict[str, object]:
+        families = (
+            "imports", "callee_funcs", "call_relations", "call_site_arguments",
+            "data_flow", "control_dependencies", "declarations", "types",
+        )
+        if payload.get("target_status") not in {"exact", "not_found", "ambiguous"}:
+            raise JoernSchemaError("file context output has an invalid target_status")
+        for family in families:
+            if not isinstance(payload.get(family), list):
+                raise JoernSchemaError(f"file context output field {family} must be an array")
+        if payload.get("target_status") == "exact":
+            for family in families:
+                for item in cast(list[object], payload[family]):
+                    if not isinstance(item, dict) or not isinstance(item.get("code", ""), str) and family != "types":
+                        raise JoernSchemaError(f"file context family {family} has an invalid item")
+        return payload
 
     def _diagnostic_paths(self, paths: Sequence[Path]) -> tuple[Path, ...]:
         return (

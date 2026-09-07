@@ -146,7 +146,11 @@ class PrimeVulFileSourceResolver:
         project_path: PurePosixPath,
         file_hash: object,
     ) -> Path:
-        safe_hash = _required_string(file_hash, "file_hash")
+        if isinstance(file_hash, bool) or not isinstance(file_hash, (str, int)):
+            raise FileSourceResolutionError("missing file_hash")
+        safe_hash = str(file_hash).strip()
+        if not safe_hash:
+            raise FileSourceResolutionError("missing file_hash")
         if any(char in safe_hash for char in "\\/") or safe_hash in {".", ".."}:
             raise FileSourceResolutionError("unsafe file_hash")
         suffix = project_path.suffix if project_path.suffix else ".source"

@@ -17,6 +17,9 @@ from .models import EvidenceRequest, UnresolvedPreparedRecord
 from .prepared import PreparedCatalog, configured_catalog_paths, load_unresolved_catalog, write_prepared_catalog, write_unresolved_catalog
 from .primevul_index import PrimeVulFieldMap, normalize_primevul_jsonl
 from .primevul_import import import_primevul_test
+from .file_context_service import FileContextService
+from .file_cpg import FileCpgCache
+from .primevul_file_source import PrimeVulFileSourceResolver
 from .prompt_context import DEFAULT_MAX_CONTEXT_CHARACTERS, load_prompt_context, upsert_prompt_context
 from .service import RepositoryContextQueryService, RepositoryPreparationError, RepositoryPreprocessor
 
@@ -34,6 +37,17 @@ def _context_character_limit(value: str) -> int:
 
 
 def add_parser(subparsers):
+    file_context = subparsers.add_parser("file-context", help="Build offline file-level PrimeVul context")
+    file_actions = file_context.add_subparsers(dest="file_action", required=True)
+    build = file_actions.add_parser("build")
+    build.add_argument("--config", type=Path)
+    build.add_argument("--pairs", required=True, type=Path)
+    build.add_argument("--file-info", required=True, type=Path)
+    build.add_argument("--dataset-root", required=True, type=Path)
+    build.add_argument("--output", required=True, type=Path)
+    build.add_argument("--report", type=Path)
+    build.add_argument("--limit", type=int)
+    build.set_defaults(handler=handle)
     parser = subparsers.add_parser("repo-context", help="Preprocess and query repository context")
     actions = parser.add_subparsers(dest="repo_action", required=True)
     index = actions.add_parser("index")
@@ -153,6 +167,21 @@ def _build_context(config: VulSORConfig, index: RepositoryIndex, args: argparse.
 
 def handle(args: argparse.Namespace, config: VulSORConfig) -> int:
     try:
+        if getattr(args, "command", None) == "file-context":
+            if args.limit is not None and args.limit < 1:
+                raise ValueError("limit must be >= 1")
+            if args.pairs.resolve() == args.output.resolve():
+                raise ValueError("pairs and output paths must differ")
+            report = args.report or args.dataset_root / "context" / "file-context-report.json"
+            joern = JoernAdapter(config)
+            service = FileContextService(
+                PrimeVulFileSourceResolver(args.dataset_root / "context" / "files"),
+                FileCpgCache(args.dataset_root / "context" / "file-cpg", joern),
+                joern,
+                dataset_root=args.dataset_root,
+            )
+            print(json.dumps(service.build_jsonl(args.pairs, args.file_info, args.output, limit=args.limit, report=report)))
+            return 0
         if args.repo_action == "show-context":
             record = load_prompt_context(args.input, args.sample)
             if record is None:
