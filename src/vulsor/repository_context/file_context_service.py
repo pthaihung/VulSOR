@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import os
 import tempfile
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -21,6 +21,9 @@ class FileContextResult:
     record: dict[str, Any]
     status: str
     reason: str | None = None
+
+
+ProgressCallback = Callable[[int, int, FileContextResult], None]
 
 
 class PrimeVulLocatorIndex:
@@ -72,9 +75,36 @@ class FileContextService:
         except (KeyError, FileSourceResolutionError, FileContextError, JoernError, OSError, ValueError):
             return FileContextResult(record, "unavailable", "context_extraction_failed")
 
-    def build_jsonl(self, pairs: Path, file_info: Path, output: Path, *, limit: int | None = None, report: Path | None = None) -> dict[str, int]:
+    @staticmethod
+    def _target_count(pairs: Path, limit: int | None) -> int:
+        if limit is not None and limit <= 0:
+            return 0
+        total = 0
+        with Path(pairs).open("r", encoding="utf-8-sig") as source:
+            for line in source:
+                if not line.strip():
+                    continue
+                raw = json.loads(line)
+                if not isinstance(raw, Mapping) or raw.get("target") != 1:
+                    continue
+                total += 1
+                if limit is not None and total >= limit:
+                    break
+        return total
+
+    def build_jsonl(
+        self,
+        pairs: Path,
+        file_info: Path,
+        output: Path,
+        *,
+        limit: int | None = None,
+        report: Path | None = None,
+        progress: ProgressCallback | None = None,
+    ) -> dict[str, int]:
         locators = PrimeVulLocatorIndex.load(file_info)
         counts = {"total": 0, "built": 0, "unavailable": 0, "failed": 0, "oversized": 0}
+        total_targets = self._target_count(pairs, limit)
         output.parent.mkdir(parents=True, exist_ok=True)
         fd, temp_name = tempfile.mkstemp(dir=output.parent, prefix=f".{output.name}.")
         try:
@@ -88,6 +118,8 @@ class FileContextService:
                     result = self.process(raw, locators)
                     counts[result.status] += 1
                     target.write(json.dumps(result.record, ensure_ascii=False, separators=(",", ":")) + "\n")
+                    if progress is not None:
+                        progress(counts["total"], total_targets, result)
             os.replace(temp_name, output)
         except Exception:
             Path(temp_name).unlink(missing_ok=True)

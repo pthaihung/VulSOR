@@ -804,8 +804,22 @@ class JoernAdapter:
         if payload.get("target_status") == "exact":
             for family in families:
                 for item in cast(list[object], payload[family]):
-                    if not isinstance(item, dict) or not isinstance(item.get("code", ""), str) and family != "types":
+                    if not isinstance(item, dict):
                         raise JoernSchemaError(f"file context family {family} has an invalid item")
+                    if family == "types":
+                        continue
+                    has_code = isinstance(item.get("code"), str) and bool(item["code"].strip())
+                    has_callee_contract = (
+                        family == "callee_funcs"
+                        and any(
+                            isinstance(item.get(key), str) and bool(item[key].strip())
+                            for key in ("name", "signature")
+                        )
+                    )
+                    if not has_code and not has_callee_contract:
+                        raise JoernSchemaError(
+                            f"file context family {family} has an invalid item"
+                        )
         return payload
 
     def _diagnostic_paths(self, paths: Sequence[Path]) -> tuple[Path, ...]:

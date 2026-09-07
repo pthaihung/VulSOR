@@ -111,3 +111,33 @@ def test_script_has_request_transport_and_anchored_queries():
         assert required in script
     assert script.index("candidates.size > 1") < script.index("candidates.head")
     assert 'nameExact("target")' not in script
+
+
+def test_file_context_script_uses_argument_fallback_and_variable_flow_sinks():
+    script = (Path(__file__).parents[2] / "scripts/joern/file_context.sc").read_text(
+        encoding="utf-8"
+    )
+    assert "def argumentItem" in script
+    assert "line(call)" in script
+    assert "method.parameter" in script
+    assert "calls.iterator.flatMap(_.argument)" in script
+    assert "val calls = method.call.filterNot(_.name.startsWith(\"<operator\"))" in script
+    assert ".filter(c => !sourceFallback || inSelectedRange(c)).toList" in script
+    assert '"condition" -> Str(controlCondition(guard))' in script
+
+
+def test_file_context_script_preserves_macro_calls_and_callee_source():
+    script = (Path(__file__).parents[2] / "scripts/joern/file_context.sc").read_text(
+        encoding="utf-8"
+    )
+    assert "source_call_fallback" in script
+    assert "def sameSourceFile" in script
+    assert '"code" -> Str(code(m))' in script
+    assert '!code(m).trim.startsWith("#define")' in script
+    assert '"from_method"' in script
+    assert "source_declaration_fallback" in script
+    assert 'filterNot(m => m.name == "<global>" || m.name == "<module>")' in script
+    assert 'name == methodNameForContext' in script
+    assert "sourceFallback" in script
+    assert "inSelectedRange" in script
+    assert "declarationNodes = (method.parameter ++ method.local).filter(n => !sourceFallback || inSelectedRange(n)).toList" in script

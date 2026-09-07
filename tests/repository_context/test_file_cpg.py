@@ -20,6 +20,34 @@ def test_select_target_requires_exactly_one_method_containing_span() -> None:
         validate_file_context_payload(payload)
 
 
+def test_validate_file_context_payload_allows_callee_metadata_without_body():
+    payload = {
+        "target_status": "exact",
+        "imports": [],
+        "callee_funcs": [
+            {
+                "name": "helper",
+                "signature": "void helper(int)",
+                "file": "target.c",
+                "line": 20,
+                "start_line": 20,
+                "end_line": 24,
+                "provenance": "cpg_same_file_callee",
+            }
+        ],
+        "call_relations": [],
+        "call_site_arguments": [],
+        "data_flow": [],
+        "control_dependencies": [],
+        "declarations": [],
+        "types": [],
+    }
+
+    validated = validate_file_context_payload(payload)
+
+    assert validated["callee_funcs"][0]["name"] == "helper"
+
+
 def test_file_cpg_cache_is_keyed_by_source_digest(tmp_path: Path) -> None:
     source = tmp_path / "target.c"
     content = b"int target(void) {}\n"

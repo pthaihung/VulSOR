@@ -18,7 +18,7 @@ from .prepared import PreparedCatalog, configured_catalog_paths, load_unresolved
 from .primevul_index import PrimeVulFieldMap, normalize_primevul_jsonl
 from .primevul_import import import_primevul_test
 from .prebuilt_context import PrebuiltContextStore
-from .file_context_service import FileContextService
+from .file_context_service import FileContextResult, FileContextService
 from .file_cpg import FileCpgCache
 from .primevul_file_source import PrimeVulFileSourceResolver
 from .prompt_context import DEFAULT_MAX_CONTEXT_CHARACTERS, load_prompt_context, upsert_prompt_context
@@ -48,6 +48,7 @@ def add_parser(subparsers):
     build.add_argument("--output", required=True, type=Path)
     build.add_argument("--report", type=Path)
     build.add_argument("--limit", type=int)
+    build.add_argument("--progress", action="store_true")
     build.set_defaults(handler=handle)
     parser = subparsers.add_parser("repo-context", help="Preprocess and query repository context")
     actions = parser.add_subparsers(dest="repo_action", required=True)
@@ -166,6 +167,22 @@ def _build_context(config: VulSORConfig, index: RepositoryIndex, args: argparse.
     return 0
 
 
+def _file_context_progress(current: int, total: int, result: FileContextResult) -> None:
+    sample = result.record.get("idx", result.record.get("func_hash", "?"))
+    detail = f" reason={result.reason}" if result.reason else ""
+    ratio = current / total if total > 0 else 1.0
+    percent = min(100, max(0, int(ratio * 100)))
+    width = 24
+    filled = int(width * percent / 100)
+    bar = "#" * filled + "." * (width - filled)
+    line = f"[{bar}] {percent}% {current}/{total} {result.status} sample={sample}{detail}"
+    print(
+        "\r" + line.ljust(120),
+        end="\n" if current >= total else "",
+        flush=True,
+    )
+
+
 def handle(args: argparse.Namespace, config: VulSORConfig) -> int:
     try:
         if getattr(args, "command", None) == "file-context":
@@ -181,7 +198,8 @@ def handle(args: argparse.Namespace, config: VulSORConfig) -> int:
                 joern,
                 dataset_root=args.dataset_root,
             )
-            print(json.dumps(service.build_jsonl(args.pairs, args.file_info, args.output, limit=args.limit, report=report)))
+            progress = _file_context_progress if args.progress else None
+            print(json.dumps(service.build_jsonl(args.pairs, args.file_info, args.output, limit=args.limit, report=report, progress=progress)))
             return 0
         if args.repo_action == "show-context":
             record = load_prompt_context(args.input, args.sample)

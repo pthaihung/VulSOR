@@ -4,6 +4,8 @@ from dataclasses import fields
 import pytest
 from vulsor.cli import build_parser, main
 from vulsor.datasets import DatasetSample
+from vulsor.repository_context.cli import _file_context_progress
+from vulsor.repository_context.file_context_service import FileContextResult
 from vulsor.repository_context.models import RepositoryIndexRecord
 from vulsor.repository_context.primevul_import import ImportSummary
 from vulsor.repository_context.index import write_repository_index
@@ -230,6 +232,45 @@ def test_context_cli_actions_have_separate_offline_and_read_only_arguments() -> 
                 "--max-characters", "8001",
             ]
         )
+
+
+def test_file_context_build_accepts_progress_flag() -> None:
+    parser = build_parser()
+    parsed = parser.parse_args(
+        [
+            "file-context",
+            "build",
+            "--pairs",
+            "pairs.jsonl",
+            "--file-info",
+            "file_info.json",
+            "--dataset-root",
+            "dataset",
+            "--output",
+            "context.jsonl",
+            "--progress",
+        ]
+    )
+
+    assert parsed.progress is True
+
+
+def test_file_context_progress_renders_a_single_progress_bar(capsys) -> None:
+    _file_context_progress(1, 4, FileContextResult({"idx": 42}, "built"))
+
+    output = capsys.readouterr().out
+    assert "[######..................] 25% 1/4 built sample=42" in output
+
+
+def test_file_context_progress_clears_trailing_terminal_text(capsys) -> None:
+    _file_context_progress(
+        1,
+        4,
+        FileContextResult({"idx": 42}, "unavailable", "context_extraction_failed"),
+    )
+
+    output = capsys.readouterr().out.replace("\r", "")
+    assert len(output) >= 120
 
 
 def test_query_missing_ready_context_does_not_construct_git_or_cache(

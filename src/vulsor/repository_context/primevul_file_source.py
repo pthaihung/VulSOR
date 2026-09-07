@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import tempfile
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -15,6 +16,8 @@ from urllib.request import Request, urlopen
 
 
 HttpGet = Callable[[str], bytes]
+
+_GITHUB_COMMIT_LINK = re.compile(r"/commit/([0-9a-f]{40})", re.IGNORECASE)
 
 
 class FileSourceResolutionError(RuntimeError):
@@ -29,7 +32,8 @@ class ResolvedFileSource:
 
 
 def _http_get(url: str) -> bytes:
-    request = Request(url, headers={"Accept": "application/vnd.github+json"})
+    accept = "text/html" if url.startswith("https://github.com/") else "application/vnd.github+json"
+    request = Request(url, headers={"Accept": accept, "User-Agent": "VulSOR/1.0"})
     with urlopen(request, timeout=30) as response:  # noqa: S310 - URL is validated below
         return response.read()
 
@@ -133,7 +137,12 @@ class PrimeVulFileSourceResolver:
         try:
             payload = json.loads(self.http_get(url).decode("utf-8"))
         except Exception as exc:
-            raise FileSourceResolutionError("commit parent lookup failed") from exc
+            try:
+                parent = self._parent_from_commit_page(owner, repository, revision)
+            except Exception as page_exc:
+                raise FileSourceResolutionError("commit parent lookup failed") from page_exc
+            self._parents[cache_key] = parent
+            return parent
         parents = payload.get("parents") if isinstance(payload, Mapping) else None
         if not isinstance(parents, list) or len(parents) != 1:
             raise FileSourceResolutionError("fix commit must have exactly one parent")
@@ -141,6 +150,21 @@ class PrimeVulFileSourceResolver:
         parent_revision = _required_string(parent, "parent revision")
         self._parents[cache_key] = parent_revision
         return parent_revision
+
+    def _parent_from_commit_page(self, owner: str, repository: str, revision: str) -> str:
+        page_url = (
+            f"https://github.com/{quote(owner, safe='')}/{quote(repository, safe='')}"
+            f"/commit/{quote(revision, safe='')}"
+        )
+        html = self.http_get(page_url).decode("utf-8", errors="replace")
+        candidates: list[str] = []
+        for match in _GITHUB_COMMIT_LINK.finditer(html):
+            candidate = match.group(1).lower()
+            if candidate != revision.lower() and candidate not in candidates:
+                candidates.append(candidate)
+        if len(candidates) != 1:
+            raise FileSourceResolutionError("commit page does not identify exactly one parent")
+        return candidates[0]
 
     def _cache_path(
         self,
