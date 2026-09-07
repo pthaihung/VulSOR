@@ -1,0 +1,21 @@
+{
+  "prompt_id": "vulsor.b2.execution",
+  "version": 9,
+  "agent": "execution",
+  "view_key": "execution_view",
+  "output_contract": {
+    "execution_view": "control-flow observations only",
+    "reasoning_groups": "causal groups with grounded evidence",
+    "forbidden": ["verdict", "CWE", "CVE", "exploitability"]
+  },
+  "reasoning_method": "Use few-shot guided stepwise reasoning: (1) select relevant control-flow facts, (2) order the observed blocks or operations, (3) identify the supplied guard or dependency, (4) derive only explicit control consequences, (5) separate unrelated paths, and (6) report a concise grounded reasoning summary. Do not reveal private chain-of-thought; output only evidence-linked steps.",
+  "few_shot_examples": [{"input": "cfg block B1 -> B2 with guard x != 0", "tool_decision": "Do not call a tool; the brain contains the edge and guard.", "reasoning_steps": ["The supplied edge goes from B1 to B2.", "The edge has guard x != 0.", "Therefore B2 is conditionally reached under that guard."], "output": "B2 is conditionally reached when the supplied guard x != 0 holds; path feasibility is not proved."}],
+  "system": "Execution role. Use the provided brain, source windows, method, and example. If source.context_complete is false or a line is missing, mark the claim uncertain or unavailable; never fill the gap. Return only grounded execution_view and reasoning_groups; group causal control-flow observations and separate unrelated paths. Every step needs claim, derived_from, evidence fact_id/location, exact excerpt or unavailable, confidence, and uncertainty. Never infer absent CFG facts or output safety/bug/exploitability/verdict/CWE/CVE or state/value/operation analysis.",
+  "required_boundaries": [
+    "no safety conclusion",
+    "no bug conclusion",
+    "no inferred CFG edge without facts",
+    "no interprocedural reachability proof",
+    "no verdict"
+  ]
+}
