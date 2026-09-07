@@ -16,7 +16,7 @@ from .tools.LineLocatorTool import LineLocatorTool
 
 STAGE_DIRS = {
     "semantic_model": "Stage 1",
-    "cpg_evidence": "Stage 2",
+    "input_context": "Stage 2",
     "obligation_reasoner": "Stage 3",
     "obligation_adjudicator": "Stage 4",
 }
@@ -24,7 +24,7 @@ STAGE_DIRS = {
 
 STAGE_FILES = {
     1: ("semantic_model", "semantic_model"),
-    2: ("cpg_evidence", "cpg_evidence"),
+    2: ("input_context", "input_context"),
     3: ("obligation_reasoner", "rules"),
     4: ("obligation_adjudicator", "obligation_adjudicator"),
 }
@@ -32,7 +32,7 @@ STAGE_FILES = {
 
 STAGE_LABELS = {
     1: "Stage 1 - semantic model",
-    2: "Stage 2 - CPG evidence",
+    2: "Stage 2 - input context",
     3: "Stage 3 - obligations",
     4: "Stage 4 - adjudication",
 }
@@ -193,11 +193,9 @@ class VulSORPipeline:
 
     def run_stage_2(self, sample: dict[str, Any]) -> dict[str, Any]:
         sample_id = sample["sample_id"]
-        semantic_model_record = self._read_required_stage(sample_id, 1)
-        merged_semantic_model = semantic_model_record["output"]["semantic_model"]
-        cpg_evidence_record = build_cpg_evidence_record(sample_id, merged_semantic_model)
-        self._write_stage_json("cpg_evidence", sample_id, "cpg_evidence", cpg_evidence_record)
-        return read_json_file(self._stage_file("cpg_evidence", sample_id, "cpg_evidence"))
+        input_context_record = build_input_context_record(sample_id)
+        self._write_stage_json("input_context", sample_id, "input_context", input_context_record)
+        return read_json_file(self._stage_file("input_context", sample_id, "input_context"))
 
     def run_stage_3(
         self,
@@ -612,7 +610,7 @@ def stage_summary(stage: int, record: dict[str, Any] | None) -> str:
         return f"agents={agent_count}"
     if stage == 2:
         output = record.get("output", {})
-        return f"required={output.get('required')}, status={output.get('status', 'unknown')}"
+        return f"status={output.get('status', 'unknown')}"
     if stage == 3:
         obligations = record.get("output", {}).get("rules", [])
         return f"obligations={len(obligations)}"
@@ -650,26 +648,11 @@ def build_semantic_model_record(sample_id: str, semantic_outputs: dict[str, dict
     }
 
 
-def build_cpg_evidence_record(sample_id: str, semantic_model: dict[str, Any]) -> dict[str, Any]:
-    required_operations = []
-    for operation in semantic_model.get("operation_agent", {}).get("operations", []):
-        if operation.get("unresolved") or operation.get("kind") == "project_specific":
-            required_operations.append(operation)
-
-    required = bool(required_operations)
+def build_input_context_record(sample_id: str) -> dict[str, Any]:
     return {
         "sample_id": sample_id,
-        "stage": "cpg_evidence",
-        "output": {
-            "required": required,
-            "status": "not_built" if required else "skipped",
-            "reason": "project_specific_or_unresolved_operations" if required else "code_only_semantic_model_is_sufficient",
-            "required_operations": required_operations,
-            "repository_evidence": [],
-            "limitations": [
-                "CPG builder/query integration is not configured yet."
-            ] if required else [],
-        },
+        "stage": "input_context",
+        "output": {"status": "not_provided", "context": {}},
         "quality_gate": {
             "status": "passed",
         },
