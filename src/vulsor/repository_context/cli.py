@@ -17,6 +17,7 @@ from .models import EvidenceRequest, UnresolvedPreparedRecord
 from .prepared import PreparedCatalog, configured_catalog_paths, load_unresolved_catalog, write_prepared_catalog, write_unresolved_catalog
 from .primevul_index import PrimeVulFieldMap, normalize_primevul_jsonl
 from .primevul_import import import_primevul_test
+from .prebuilt_context import PrebuiltContextStore
 from .file_context_service import FileContextService
 from .file_cpg import FileCpgCache
 from .primevul_file_source import PrimeVulFileSourceResolver

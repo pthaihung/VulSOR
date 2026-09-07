@@ -259,6 +259,13 @@ def _add_inspect_parser(
         ),
     )
 
+    sp.add_argument(
+        "--prebuilt-context",
+        type=Path,
+        default=None,
+        help="Enriched PrimeVul JSONL produced by file-context build.",
+    )
+
     _add_output_args(sp)
 
     sp.set_defaults(handler=_handle_inspect)
@@ -2135,6 +2142,11 @@ def _handle_inspect(
             config=config,
             jobs=args.jobs,
         )
+
+        if args.prebuilt_context is not None:
+            context_store = PrebuiltContextStore.load(args.prebuilt_context)
+            for sample in samples:
+                sample["repository_context"] = context_store.get(str(sample["sample_id"]))
 
         payload = {
             "dataset": args.dataset,

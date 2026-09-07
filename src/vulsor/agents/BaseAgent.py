@@ -858,6 +858,7 @@ def _llm_payload(
             "data/{dataset}_clean/inputs/{split}.jsonl",
         ],
         "brain": _compact_brain(brain_view or {}),
+        "repository_context": sample.get("repository_context") or {},
         "brain_contract": (
             "This is the filtered context produced by the same agent in phase 1. "
             "Reason only from this brain and the supplied source."
