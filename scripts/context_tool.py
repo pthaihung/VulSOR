@@ -21,7 +21,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if "--progress" not in arguments:
         arguments.append("--progress")
 
-    from vulsor.cli import main as cli_main
+    from agents.repo_context.cli import main as cli_main
 
     return cli_main(["file-context", "build", *arguments])
 

@@ -10,7 +10,7 @@ def test_context_tool_delegates_to_file_context_build(monkeypatch) -> None:
         captured.append(list(argv))
         return 7
 
-    monkeypatch.setattr("vulsor.cli.main", fake_cli_main)
+    monkeypatch.setattr("agents.repo_context.cli.main", fake_cli_main)
 
     result = context_tool.main(
         [
@@ -52,7 +52,7 @@ def test_context_tool_accepts_build_without_requiring_pythonpath(monkeypatch) ->
         captured.append(list(argv))
         return 0
 
-    monkeypatch.setattr("vulsor.cli.main", fake_cli_main)
+    monkeypatch.setattr("agents.repo_context.cli.main", fake_cli_main)
 
     assert context_tool.main(["build", "--help"]) == 0
     assert captured == [["file-context", "build", "--help", "--progress"]]
