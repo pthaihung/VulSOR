@@ -43,6 +43,25 @@ def test_context_cli_has_no_repository_query_symbols() -> None:
         assert legacy_name not in source
 
 
+def test_file_context_budget_has_no_legacy_prompt_context_dependency() -> None:
+    file_prompt_context_source = (
+        SOURCE_ROOT
+        / "agents"
+        / "input_context"
+        / "file_prompt_context.py"
+    ).read_text(encoding="utf-8")
+    from agents.input_context.file_prompt_context import (
+        MAX_FILE_CONTEXT_TOKENS,
+        estimate_context_tokens,
+        validate_complete_context,
+    )
+
+    assert "prompt_context" not in file_prompt_context_source
+    assert MAX_FILE_CONTEXT_TOKENS == 2000
+    assert estimate_context_tokens("abcd") == 2
+    assert validate_complete_context({"data_flow": [{"code": "x = y"}]})
+
+
 def test_main_loads_config_and_dispatches(monkeypatch) -> None:
     loaded_paths: list[Path | None] = []
     dispatched: list[tuple[argparse.Namespace, object]] = []
