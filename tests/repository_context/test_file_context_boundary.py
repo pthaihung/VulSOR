@@ -62,6 +62,16 @@ def test_file_context_budget_has_no_legacy_prompt_context_dependency() -> None:
     assert validate_complete_context({"data_flow": [{"code": "x = y"}]})
 
 
+def test_joern_adapter_exposes_only_file_context_operations() -> None:
+    from agents.repo_context.joern import JoernAdapter
+
+    assert hasattr(JoernAdapter, "build_cpg")
+    assert hasattr(JoernAdapter, "extract_file_context")
+    assert not hasattr(JoernAdapter, "query")
+    assert not hasattr(JoernAdapter, "extract_function_context")
+    assert not hasattr(JoernAdapter, "smoke")
+
+
 def test_main_loads_config_and_dispatches(monkeypatch) -> None:
     loaded_paths: list[Path | None] = []
     dispatched: list[tuple[argparse.Namespace, object]] = []
