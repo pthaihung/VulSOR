@@ -1,10 +1,8 @@
-from pathlib import Path
+from tests.context_tool_module import context_tool
 
 
 def test_file_context_script_uses_argument_fallback_and_variable_flow_sinks() -> None:
-    script = (Path(__file__).parents[2] / "scripts" / "joern" / "file_context.sc").read_text(
-        encoding="utf-8"
-    )
+    script = context_tool._FILE_CONTEXT_SC
     for required in (
         "def argumentItem",
         "line(call)",
@@ -18,9 +16,7 @@ def test_file_context_script_uses_argument_fallback_and_variable_flow_sinks() ->
 
 
 def test_file_context_script_preserves_macro_calls_and_callee_source() -> None:
-    script = (Path(__file__).parents[2] / "scripts" / "joern" / "file_context.sc").read_text(
-        encoding="utf-8"
-    )
+    script = context_tool._FILE_CONTEXT_SC
     for required in (
         "source_call_fallback",
         "def sameSourceFile",

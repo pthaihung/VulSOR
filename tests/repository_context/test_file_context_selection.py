@@ -1,8 +1,8 @@
-from agents.repo_context.file_context_selection import (
+from tests.context_tool_module import (
     SAFE_CONTEXT_TOKENS,
     select_file_context,
 )
-from agents.input_context.file_prompt_context import estimate_context_tokens
+from tests.context_tool_module import estimate_context_tokens
 
 
 def test_selection_keeps_transitive_variables_and_related_guard() -> None:

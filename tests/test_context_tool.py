@@ -1,58 +1,33 @@
-from pathlib import Path
-
-from scripts import context_tool
+from tests.context_tool_module import context_tool
 
 
-def test_context_tool_delegates_to_file_context_build(monkeypatch) -> None:
-    captured: list[list[str]] = []
+def test_context_tool_dispatches_build_to_file_context_service(monkeypatch, tmp_path) -> None:
+    dispatched: list[tuple[object, object]] = []
 
-    def fake_cli_main(argv):
-        captured.append(list(argv))
+    def fake_load_config(path):
+        return "config"
+
+    def fake_handle(args, config):
+        dispatched.append((args, config))
         return 7
 
-    monkeypatch.setattr("agents.repo_context.cli.main", fake_cli_main)
+    monkeypatch.setattr(context_tool, "load_config", fake_load_config)
+    monkeypatch.setattr(context_tool, "handle_file_context", fake_handle)
 
     result = context_tool.main(
         [
             "build",
             "--pairs",
-            "pairs.jsonl",
+            str(tmp_path / "pairs.jsonl"),
             "--file-info",
-            "file_info.json",
+            str(tmp_path / "file_info.json"),
             "--dataset-root",
-            "dataset",
+            str(tmp_path / "dataset"),
             "--output",
-            "context.jsonl",
+            str(tmp_path / "context.jsonl"),
         ]
     )
 
     assert result == 7
-    assert captured == [
-        [
-            "file-context",
-            "build",
-            "--pairs",
-            "pairs.jsonl",
-            "--file-info",
-            "file_info.json",
-            "--dataset-root",
-            "dataset",
-            "--output",
-            "context.jsonl",
-            "--progress",
-        ]
-    ]
-    assert str(Path(__file__).parents[1] / "src") in context_tool.sys.path
-
-
-def test_context_tool_accepts_build_without_requiring_pythonpath(monkeypatch) -> None:
-    captured: list[list[str]] = []
-
-    def fake_cli_main(argv):
-        captured.append(list(argv))
-        return 0
-
-    monkeypatch.setattr("agents.repo_context.cli.main", fake_cli_main)
-
-    assert context_tool.main(["build", "--help"]) == 0
-    assert captured == [["file-context", "build", "--help", "--progress"]]
+    assert len(dispatched) == 1
+    assert dispatched[0][1] == "config"

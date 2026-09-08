@@ -5,8 +5,8 @@ from typing import Callable, Sequence
 
 import pytest
 
-from agents.repo_context.config import FileContextConfig, VulSORConfig
-from agents.repo_context.joern import (
+from tests.context_tool_module import FileContextConfig, VulSORConfig
+from tests.context_tool_module import (
     CommandResult,
     JoernAdapter,
     JoernCommandError,

@@ -330,24 +330,20 @@ Preview output tự động chỉ bật cho một sample để tránh dừng gi�
 
 ## Dataset Layout
 
-PrimeVul raw export và offline repository context được tách rõ:
+PrimeVul input và kết quả context dùng chung một thư mục dataset:
 
 ```text
 data/primevul/
   primevul_test_pairs.jsonl
   file_info.json
-data/primevul_withcontext/
-  test.jsonl
-  index.jsonl
+  primevul_withcontext.jsonl
   context/
-    repos/
-    cpg/
-    catalog.jsonl
-    unavailable.jsonl
+    files/
+    file-cpg/
 ```
 
-Raw export không bị sửa. `test.jsonl` chỉ chứa `sample_id` và `code`; `index.jsonl`
-chỉ chứa locator repository an toàn cho runtime.
+Raw input không bị sửa. Các thư mục `context/files` và `context/file-cpg` là cache
+offline do công cụ tạo ra.
 
 ## Luồng B1 -> B2
 
@@ -389,8 +385,7 @@ primevul_test_pairs.jsonl + file_info.json
 Chạy thử:
 
 ```powershell
-python scripts/context_tool.py build `
-  --config config\primevul.yaml `
+python context_tool\context_tool.py build `
   --pairs data\primevul\primevul_test_pairs.jsonl `
   --file-info data\primevul\file_info.json `
   --dataset-root data\primevul `

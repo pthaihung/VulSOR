@@ -5,12 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from agents.repo_context.file_cpg import (
+from tests.context_tool_module import (
     FileContextError,
     FileCpgCache,
     validate_file_context_payload,
 )
-from agents.repo_context.primevul_file_source import ResolvedFileSource
+from tests.context_tool_module import ResolvedFileSource
 
 
 def test_select_target_requires_exactly_one_method_containing_span() -> None:

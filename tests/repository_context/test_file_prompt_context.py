@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from agents.input_context.file_prompt_context import (
+from tests.context_tool_module import (
     FileContextBudgetError,
     make_sparse_context,
     validate_complete_context,

@@ -1,6 +1,6 @@
 import json
 
-from agents.repo_context.file_context_service import (
+from tests.context_tool_module import (
     FileContextResult,
     FileContextService,
 )

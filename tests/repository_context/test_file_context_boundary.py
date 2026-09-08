@@ -1,38 +1,24 @@
 import argparse
 import json
-import sys
 from pathlib import Path
 
 
-SOURCE_ROOT = Path(__file__).resolve().parents[2] / "src"
-PROJECT_ROOT = SOURCE_ROOT.parent
-if str(SOURCE_ROOT) not in sys.path:
-    sys.path.insert(0, str(SOURCE_ROOT))
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+SOURCE_ROOT = PROJECT_ROOT / "src"
 
-from agents.repo_context import cli
-from agents.repo_context.cli import build_parser
+from tests.context_tool_module import context_tool as cli
+
+build_parser = cli.build_parser
 
 
 def test_context_cli_exposes_only_file_context_build() -> None:
     parser = build_parser()
-    command_action = next(
-        action
-        for action in parser._actions
-        if isinstance(action, argparse._SubParsersAction)
-    )
-    assert set(command_action.choices) == {"file-context"}
-
-    file_parser = command_action.choices["file-context"]
-    file_action = next(
-        action
-        for action in file_parser._actions
-        if isinstance(action, argparse._SubParsersAction)
-    )
-    assert set(file_action.choices) == {"build"}
+    command_action = next(action for action in parser._actions if action.dest == "command")
+    assert set(command_action.choices) == {"build"}
 
 
 def test_context_cli_has_no_repository_query_symbols() -> None:
-    source = Path("src/agents/repo_context/cli.py").read_text(encoding="utf-8")
+    source = Path("context_tool/context_tool.py").read_text(encoding="utf-8")
     for legacy_name in (
         "RepositoryPreprocessor",
         "RepositoryContextQueryService",
@@ -45,13 +31,8 @@ def test_context_cli_has_no_repository_query_symbols() -> None:
 
 
 def test_file_context_budget_has_no_legacy_prompt_context_dependency() -> None:
-    file_prompt_context_source = (
-        SOURCE_ROOT
-        / "agents"
-        / "input_context"
-        / "file_prompt_context.py"
-    ).read_text(encoding="utf-8")
-    from agents.input_context.file_prompt_context import (
+    file_prompt_context_source = Path("context_tool/context_tool.py").read_text(encoding="utf-8")
+    from tests.context_tool_module import (
         MAX_FILE_CONTEXT_TOKENS,
         estimate_context_tokens,
         validate_complete_context,
@@ -64,7 +45,7 @@ def test_file_context_budget_has_no_legacy_prompt_context_dependency() -> None:
 
 
 def test_joern_adapter_exposes_only_file_context_operations() -> None:
-    from agents.repo_context.joern import JoernAdapter
+    from tests.context_tool_module import JoernAdapter
 
     assert hasattr(JoernAdapter, "build_cpg")
     assert hasattr(JoernAdapter, "extract_file_context")
@@ -75,9 +56,8 @@ def test_joern_adapter_exposes_only_file_context_operations() -> None:
 
 def test_legacy_repository_context_surface_is_absent() -> None:
     roots = (
-        PROJECT_ROOT / "src" / "agents",
-        PROJECT_ROOT / "scripts",
-        PROJECT_ROOT / "config",
+        PROJECT_ROOT / "src",
+        PROJECT_ROOT / "context_tool",
         PROJECT_ROOT / "README.md",
         PROJECT_ROOT / "AGENT.md",
     )
@@ -116,7 +96,6 @@ def test_main_loads_config_and_dispatches(monkeypatch) -> None:
 
     result = cli.main(
         [
-            "file-context",
             "build",
             "--config",
             "config.yml",

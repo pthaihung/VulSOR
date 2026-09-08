@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-import agents.repo_context.primevul_file_source as primevul_file_source
-from agents.repo_context.primevul_file_source import (
+from tests.context_tool_module import context_tool as primevul_file_source
+from tests.context_tool_module import (
     FileSourceResolutionError,
     PrimeVulFileSourceResolver,
     github_raw_url,

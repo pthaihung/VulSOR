@@ -600,8 +600,7 @@ repositories or build CPGs.
 The only supported context command is:
 
 ```text
-python scripts/context_tool.py build
-  --config config/primevul.yaml
+python context_tool/context_tool.py build
   --pairs data/primevul/primevul_test_pairs.jsonl
   --file-info data/primevul/file_info.json
   --dataset-root data/primevul
@@ -610,7 +609,8 @@ python scripts/context_tool.py build
 
 The output contains data-flow, control dependencies, declarations/types and
 call relations. Missing source metadata produces an empty unavailable context;
-an oversized context is rejected before publication.
+an oversized context is rejected before publication. The complete implementation
+and embedded Joern transport query live in `context_tool/context_tool.py`.
 
 ## 9. Tool Integration
 
