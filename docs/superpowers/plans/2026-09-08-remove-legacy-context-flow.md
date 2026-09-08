@@ -36,6 +36,7 @@ Delete after imports are removed:
 - `src/agents/repo_context/models.py`
 - `src/agents/repo_context/primevul_import.py`
 - `src/agents/repo_context/primevul_index.py`
+- `src/agents/repo_context/source_match.py`
 - `src/agents/repo_context/prepared.py`
 - `src/agents/repo_context/relation_selection.py`
 - `src/agents/repo_context/service.py`
@@ -54,7 +55,7 @@ Delete after imports are removed:
 - `native/rav_probe.cpp`
 - `native/rav_traversal_probe.cpp`
 
-Delete tests whose only subject is removed code: `tests/repository_context/test_clang_function.py`, `test_cpg_cache.py`, `test_evidence.py`, `test_git_repository.py`, `test_index.py`, `test_models.py`, `test_prebuilt_context.py`, `test_prepared.py`, `test_primevul_import.py`, `test_prompt_context.py`, `test_relation_selection.py`, `test_service.py`, and `test_verify_samples.py`. Keep and update the file-context tests, `tests/test_context_tool.py`, and the main pipeline boundary tests.
+Delete tests whose only subject is removed code: `tests/repository_context/test_clang_function.py`, `test_cpg_cache.py`, `test_evidence.py`, `test_git_repository.py`, `test_index.py`, `test_models.py`, `test_prebuilt_context.py`, `test_prepared.py`, `test_primevul_import.py`, `test_prompt_context.py`, `test_relation_selection.py`, `test_service.py`, `test_source_match.py`, and `test_verify_samples.py`. Keep and update the file-context tests, `tests/test_context_tool.py`, and the main pipeline boundary tests.
 
 ### Task 1: Lock the Supported CLI and Dependency Boundary
 
@@ -62,10 +63,11 @@ Delete tests whose only subject is removed code: `tests/repository_context/test_
 - Modify: `tests/test_context_tool.py`
 - Create: `tests/repository_context/test_file_context_boundary.py`
 - Modify: `src/agents/repo_context/cli.py`
+- Modify: `scripts/context_tool.py`
 
 - [ ] **Step 1: Add failing CLI-surface tests**
 
-Add a parser factory test and a supported-path smoke test:
+Add a parser factory test and a supported-path smoke test. Bootstrap the repository `src` directory from the test file location before importing `agents.repo_context.cli`, so collection works with or without an externally set `PYTHONPATH`:
 
 ```python
 from pathlib import Path
@@ -97,7 +99,7 @@ Add a source-level boundary assertion to the same test module:
 
 ```python
 def test_context_cli_has_no_repository_query_symbols() -> None:
-    source = Path("src/agents/repo_context/cli.py").read_text(encoding="utf-8")
+    source = (SOURCE_ROOT / "agents" / "repo_context" / "cli.py").read_text(encoding="utf-8")
     for legacy_name in (
         "RepositoryPreprocessor",
         "RepositoryContextQueryService",
@@ -152,7 +154,7 @@ def main(argv: list[str] | None = None) -> int:
     return args.handler(args, config)
 ```
 
-`handle_file_context(args, config)` must retain the current flow: validate a positive limit, reject identical input/output paths, create `JoernAdapter(config)`, `FileContextService(PrimeVulFileSourceResolver(...), FileCpgCache(...), joern, ...)`, attach `_file_context_progress` only when requested, and call `service.build_jsonl(...)`.
+`handle_file_context(args, config)` must retain the current flow: validate a positive limit, reject identical input/output paths, create `JoernAdapter(config)`, `FileContextService(PrimeVulFileSourceResolver(...), FileCpgCache(...), joern, ...)`, attach `_file_context_progress` only when requested, and call `service.build_jsonl(...)`. Keep `scripts/context_tool.py` as the wrapper that imports `agents.repo_context.cli.main`, accepts the `build` shorthand, and injects `--progress` when absent. Add boundary tests for `main()` config loading/handler dispatch and for invalid limit/path collision before Joern or service construction.
 
 - [ ] **Step 4: Run the boundary tests**
 
@@ -166,7 +168,7 @@ Expected: all tests pass and `python scripts/context_tool.py --help` shows only 
 - [ ] **Step 5: Commit**
 
 ```powershell
-git add src/agents/repo_context/cli.py tests/repository_context/test_file_context_boundary.py tests/test_context_tool.py
+git add src/agents/repo_context/cli.py scripts/context_tool.py tests/repository_context/test_file_context_boundary.py tests/test_context_tool.py
 git commit -m "refactor: restrict context CLI to offline file builder"
 ```
 
@@ -226,6 +228,7 @@ git add `
   src/agents/input_context/__init__.py `
   src/agents/input_context/prompt_context.py `
   src/agents/input_context/prebuilt_context.py `
+  src/agents/repo_context/__init__.py `
   src/agents/repo_context/file_context_selection.py `
   tests/repository_context/test_file_context_boundary.py
 git commit -m "refactor: remove legacy prompt context records"
@@ -401,6 +404,7 @@ git add README.md AGENT.md .gitignore `
   src/agents/repo_context/prepared.py `
   src/agents/repo_context/relation_selection.py `
   src/agents/repo_context/service.py `
+  src/agents/repo_context/source_match.py `
   src/agents/input_context/prompt_context.py `
   src/agents/input_context/prebuilt_context.py `
   scripts/verify_repository_context_samples.py `
@@ -409,6 +413,7 @@ git add README.md AGENT.md .gitignore `
   scripts/joern/function_context.sc `
   scripts/joern/repository_evidence.sc `
   src/agents/repo_context/file_context_service.py `
+  src/agents/repo_context/file_cpg.py `
   src/agents/repo_context/primevul_file_source.py `
   native/CMakeLists.txt `
   native/clang_analysis.cpp `
@@ -429,6 +434,7 @@ git add README.md AGENT.md .gitignore `
   tests/repository_context/test_prompt_context.py `
   tests/repository_context/test_relation_selection.py `
   tests/repository_context/test_service.py `
+  tests/repository_context/test_source_match.py `
   tests/repository_context/test_verify_samples.py
 git commit -m "refactor: remove repository-wide context services"
 ```
