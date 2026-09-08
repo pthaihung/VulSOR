@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-import vulsor.repository_context.primevul_file_source as primevul_file_source
-from vulsor.repository_context.primevul_file_source import (
+import agents.repo_context.primevul_file_source as primevul_file_source
+from agents.repo_context.primevul_file_source import (
     FileSourceResolutionError,
     PrimeVulFileSourceResolver,
     github_raw_url,

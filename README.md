@@ -367,159 +367,41 @@ Sơ đồ B1 có sẵn tại:
 workspace/b1_program_analysis_flow.svg
 ```
 
-## Repository Context Theo Revision
+## Offline File Context
 
-Repository context là subsystem độc lập với B1/B2. Mỗi sample chỉ được ánh xạ
-đến repository khi có đủ URL, commit SHA 40 ký tự, file, function và source
-khớp duy nhất. Metadata thiếu hoặc sai schema được đưa vào rejects; source không
-khớp sẽ làm bước prepare thất bại. Hệ thống không tự đoán repository/revision.
+Context repo được xây dựng trước khi chạy pipeline. Mỗi record PrimeVul được
+tra `func_hash` trong `file_info.json` để lấy file nguồn và span của target;
+chỉ file đó được đưa vào Joern. Extractor tạo các nhóm quan hệ cần cho LLM:
+data-flow, control dependencies, declarations/types/contracts và call
+relations, sau đó chọn lọc, loại trùng và giới hạn toàn bộ context ở 2.000
+token. Context vượt ngân sách bị đánh dấu `oversized` và không ghi record dở.
 
-Tạo file ánh xạ field, ví dụ `primevul-fields.yaml`:
+Luồng chạy:
 
-```yaml
-sample_id: id
-repository_id: project
-repository_url: project_url
-revision: commit_id
-file_path: file_path
-function_name: func_name
-code: func
-start_line: start_line
-end_line: end_line
+```text
+primevul_test_pairs.jsonl + file_info.json
+  -> resolve func_hash -> source file + line span
+  -> Joern parse một file -> extract source-level relations
+  -> sparse selection -> validate 2,000-token budget
+  -> JSONL output
 ```
 
-Chuẩn hóa metadata thành repository index không chứa label/CVE/CWE:
-
-Với paired PrimeVul export, dùng Clang AST để tạo compact input/index trước:
+Chạy thử:
 
 ```powershell
-vulsor repo-context import-primevul `
-  --config configs\primevul.yaml `
-  --source data\primevul\primevul_test_pairs.jsonl `
+python scripts/context_tool.py build `
+  --config config\primevul.yaml `
+  --pairs data\primevul\primevul_test_pairs.jsonl `
   --file-info data\primevul\file_info.json `
-  --output-root data\primevul_withcontext
+  --dataset-root data\primevul `
+  --output data\primevul\primevul_withcontext.jsonl `
+  --limit 2 `
+  --progress
 ```
 
-Thứ tự offline là `import-primevul` (Clang AST + Git resolve commit cha cho
-`target=1`) -> `preprocess --all` (Joern CPG) -> `query` (Joern query-only).
-`file_info.json` chỉ định file; span cuối cùng được xác minh từ source ở
-revision vulnerable, không lấy từ span của commit vá.
-
-### Context prompt-ready cho một sample
-
-`data/primevul_withcontext/context.jsonl` is the durable selected-evidence
-store. Each record is capped at 8,000 characters (a conservative 2,000-token
-budget) and contains at most two risk anchors. Checked-out repositories, CPGs,
-Joern workspaces, and raw extraction JSON are offline temporary artifacts and
-are never required by `show-context` or the runtime.
-
-Luồng mới để thử context theo paper không dùng Joern ở runtime. `build-context`
-chỉ xử lý đúng một sample trong pha offline: resolve revision, dựng/tái sử dụng
-CPG, trích xuất call/data/control/declaration-type, rồi ghi một record JSONL có
-bốn section cố định. Sau đó `show-context` chỉ đọc JSONL; không khởi tạo Git,
-Joern hoặc CPG.
-
-```powershell
-vulsor repo-context build-context --config local-primevul.yaml `
-  --dataset primevul --split test --sample test_194963 `
-  --output data\primevul_withcontext\context.jsonl
-
-vulsor repo-context show-context --sample test_194963 `
-  --input data\primevul_withcontext\context.jsonl
-```
-
-Mỗi dòng `context.jsonl` có dạng `sample_id`, `context`, `limitations`.
-`context` luôn gồm `[DATA DEPENDENCIES]`, `[CONTROL DEPENDENCIES]`,
-`[DECLARATIONS, TYPES AND CONTRACTS]`, `[CALL RELATIONS]`. Anchor chỉ được dùng
-nội bộ để chọn evidence và không được ghi thành section gửi cho LLM. Quan hệ không map được phải nằm
-trong `limitations`, không được suy diễn thành evidence.
-
-```powershell
-vulsor repo-context index `
-  --source data\primevul-metadata.jsonl `
-  --field-map primevul-fields.yaml `
-  --output data\primevul_withcontext\index.jsonl `
-  --rejects data\primevul_withcontext\index-rejects.jsonl
-```
-
-Kiểm tra tool và chuẩn bị một CPG cho đúng revision:
-
-```powershell
-vulsor doctor --config configs\primevul.yaml --repository-context
-vulsor repo-context preprocess --config configs\primevul.yaml `
-  --dataset primevul --split test --sample test_000000
-vulsor repo-context preprocess --config configs\primevul.yaml `
-  --dataset primevul --split test --all
-vulsor repo-context status --config configs\primevul.yaml `
-  --dataset primevul --split test --sample test_000000
-```
-
-Một request phải gắn với operation cụ thể và có budget hữu hạn:
-
-```json
-{
-  "request_id": "req-1",
-  "phase": "evaluate",
-  "obligation_ref": "obligation-1",
-  "repository_ref": {
-    "repository_id": "demo",
-    "repository_url": "https://example.test/demo.git",
-    "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-  },
-  "anchor": {
-    "file_path": "src/demo.c",
-    "function_name": "target",
-    "operation_kind": "call",
-    "operation_name": "consume",
-    "line": 9,
-    "argument_index": 1,
-    "entity": "value"
-  },
-  "questions": ["Giá trị nào được truyền vào consume?"],
-  "allowed_relations": ["call", "argument", "data_flow", "control_dependence"],
-  "budget": {
-    "max_call_depth": 2,
-    "max_flow_paths": 10,
-    "max_nodes": 150,
-    "max_source_lines": 200,
-    "max_evidence_items": 30
-  }
-}
-```
-
-Truy vấn và ghi evidence đã ánh xạ về source:
-
-```powershell
-vulsor repo-context query --config configs\primevul.yaml `
-  --dataset primevul --split test --sample test_000000 `
-  --request request.json --output evidence.json
-```
-
-`preprocess` is the only offline phase permitted to resolve Git revisions,
-build CPGs with `joern-parse`, and smoke-check them. `query` reads only the
-catalog, snapshot, and prepared CPG, then runs the Joern query script.
-It never fetches, checks out, builds, or smoke-tests. If no READY context is
-available, it writes `status: not_found`, `evidence: []`, and limitation
-`repository_context_unavailable` (exit code 0).
-
-`data/primevul_withcontext/context/catalog.jsonl` replaces the old catalog
-filename `ready.jsonl`; each successful record still has `status: "ready"`.
-`unavailable.jsonl` records controlled reasons for samples without usable
-repository context. Existing legacy cache directories are neither moved nor
-deleted automatically.
-
-Joern 4 requires Java 21. Set `JAVA_HOME`/`JAVACMD` and expose `joern` plus
-`joern-parse` on PATH, or use a machine-local config. Do not commit local tool
-paths or credentials to shared configuration.
-
-`semantic_graph.json` là semantic overlay cục bộ của B2. `cpg.bin` là Joern
-CPG của toàn repository tại một revision xác định. Repository evidence hiện có
-CLI và Python service độc lập; chưa tự động nối vào B3/B4 cho đến khi obligation
-schema của các stage đó được hoàn thiện.
-
-Joern integration test là opt-in và cần cả `joern` lẫn `joern-parse` trong
-`PATH`. Cache lock không bị xóa tự động; nếu process bị dừng đột ngột, cần xác
-nhận không còn process sử dụng cache trước khi xử lý lock thủ công.
+Java 21, `joern` và `joern-parse` phải có trên `PATH`. File output là artifact
+offline; pipeline chính chỉ đọc context đã tạo, không clone repository và
+không tạo CPG lúc runtime.
 
 ## Kiểm Tra Và Test
 

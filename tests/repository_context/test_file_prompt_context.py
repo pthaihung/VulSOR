@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from vulsor.repository_context.file_prompt_context import (
+from agents.input_context.file_prompt_context import (
     FileContextBudgetError,
     make_sparse_context,
     validate_complete_context,

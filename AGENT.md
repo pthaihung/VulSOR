@@ -588,43 +588,36 @@ future obligation-driven repository retrieval.
 
 ---
 
-## 8. Repository Context Boundary
+## 8. Offline File Context Boundary
 
-Repository context is implemented as a standalone, disabled-by-default,
-two-phase service. Offline `repo-context preprocess` resolves one exact Git
-revision, verifies indexed source, and caches one smoke-validated Joern CPG.
-Runtime `repo-context query` reads only `context/catalog.jsonl`, an immutable snapshot,
-and prepared CPG, then returns bounded source-grounded evidence. It must never
-invoke Git, build a CPG, or smoke-test at query time. Missing or invalid
-prepared context returns empty `not_found` evidence with
-`repository_context_unavailable`; it is not a fallback trigger.
+The context component is an offline file-level builder. It reads a PrimeVul
+pair file and `file_info.json`, resolves each `func_hash` to one source file and
+line span, builds a one-file Joern CPG, extracts source-level relations, and
+publishes sparse JSONL only after validating the complete 2,000-token budget.
+The runtime pipeline consumes the published context and does not fetch source
+repositories or build CPGs.
 
-`catalog.jsonl` replaces the old `ready.jsonl` filename, while successful JSON
-records retain `status: "ready"`. `unavailable.jsonl` contains only a sample ID
-and controlled failure kind. Legacy cache directories are not moved or deleted
-automatically.
-
-For the paired PrimeVul export, the offline order is:
+The only supported context command is:
 
 ```text
-repo-context import-primevul (Clang AST + resolve parent of patch commit)
-  -> repo-context preprocess --all (Joern CPG + source-span validation)
-  -> repo-context query (prepared Joern CPG only)
+python scripts/context_tool.py build
+  --config config/primevul.yaml
+  --pairs data/primevul/primevul_test_pairs.jsonl
+  --file-info data/primevul/file_info.json
+  --dataset-root data/primevul
+  --output data/primevul/primevul_withcontext.jsonl
 ```
 
-The service requires an explicit `EvidenceRequest` with an operation anchor and
-finite budget. It is available through `vulsor repo-context`; it is not exposed
-to B1/B2 and is not automatically connected to B3/B4 yet.
+The output contains data-flow, control dependencies, declarations/types and
+call relations. Missing source metadata produces an empty unavailable context;
+an oversized context is rejected before publication.
 
 ## 9. Tool Integration
 
 | Tool | Status | Notes |
 |---|---|---|
-| Clang | Integrated in production Python path | AST JSON, debug.DumpCFG |
-| clang++ | Checked by config/doctor | C/C++ toolchain availability |
-| Git | Optional repository-context tool | Exact revision resolution and read-only checkout |
-| Joern | Standalone repository-context adapter | Whole-repository CPG build and bounded queries |
-| Native probe | Experimental/debug | `native/`, not production pipeline |
+| Clang | Integrated in the main analysis path | AST JSON, debug.DumpCFG |
+| Joern | Offline file-context adapter | One-file CPG and source-level relations |
 
 `vulsor doctor` normally checks PATH for:
 
@@ -633,27 +626,8 @@ clang
 clang++
 ```
 
-`vulsor doctor --repository-context` additionally checks `git`, `joern`, and
-`joern-parse`. The same checks apply when repository context is enabled in the
-project config.
-
-Native probe purpose:
-
-```text
-debug Clang frontend
-debug RecursiveASTVisitor traversal
-debug CFG/RAV integration
-diagnose crash/toolchain issues before production integration
-```
-
-Native probe rules:
-
-```text
-Do not modify production CMake casually.
-Do not conclude a crash is a RAV bug without stack/evidence.
-Do not treat native debug output as vulnerability evidence.
-Only move native helpers into production after interface and tests are clear.
-```
+The offline context command additionally requires `joern` and `joern-parse` on
+`PATH`. Machine-local tool paths stay outside shared configuration.
 
 ## 10. Known Technical Limits
 
@@ -666,12 +640,9 @@ Only move native helpers into production after interface and tests are clear.
 5. Function pointers, C++ virtual dispatch, macro-generated calls, and external
    callees may remain unresolved even with Joern evidence and must be reported
    as limitations.
-6. Standalone repository evidence retrieval is implemented, but B3/B4 do not
-   create requests or consume its evidence yet. `PipelineResult.evidence`
-   remains empty until that integration exists.
-7. The Joern script has unit-level boundary coverage; its real runtime
+6. The file-level Joern script has unit-level boundary coverage; its real runtime
    integration must be run in an environment with `joern` and `joern-parse`.
-8. `AGENT.md` must be updated after important code changes.
+7. `AGENT.md` must be updated after important code changes.
 
 Short classification:
 
@@ -679,7 +650,7 @@ Short classification:
 CFG missing       -> local Clang/source limitation
 data-flow limited -> syntactic local analysis only
 call graph limited -> syntactic direct calls only
-repository facts  -> standalone bounded service; B3/B4 integration pending
+file context     -> offline sparse artifact; runtime query is not supported
 ```
 
 ## 11. Latest Test Status
@@ -687,8 +658,6 @@ repository facts  -> standalone bounded service; B3/B4 integration pending
 The test groups include:
 
 ```text
-tests/test_analysis.py
-tests/test_cli.py
 tests/repository_context/
 ```
 
@@ -705,12 +674,9 @@ Priority:
 
 1. Strengthen B2 semantic agents with richer grounding and schema tests.
 2. Implement B3 obligation generation from the merged B2 views.
-3. Connect the standalone repository-context service to B3/B4 after the final
-   obligation schema exists; construct only obligation-scoped requests.
-4. Implement B4 grounding and obligation-specific evidence bundles using
-   `RepositoryEvidence`, without injecting raw repository state into B1/B2.
-5. Implement B5 verification, B6 adjudication, and B8 evaluation.
-6. Map CFG blocks and edges to source locations where local analysis permits.
+3. Add B4 grounding and bounded model-input assembly.
+4. Implement B5 verification, B6 adjudication, and B8 evaluation.
+5. Map CFG blocks and edges to source locations where local analysis permits.
 
 Avoid for now:
 

@@ -1,6 +1,6 @@
 import json
 
-from vulsor.repository_context.file_context_service import (
+from agents.repo_context.file_context_service import (
     FileContextResult,
     FileContextService,
 )

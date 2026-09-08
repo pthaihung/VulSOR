@@ -5,12 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from vulsor.repository_context.file_cpg import (
+from agents.repo_context.file_cpg import (
     FileContextError,
     FileCpgCache,
     validate_file_context_payload,
 )
-from vulsor.repository_context.primevul_file_source import ResolvedFileSource
+from agents.repo_context.primevul_file_source import ResolvedFileSource
 
 
 def test_select_target_requires_exactly_one_method_containing_span() -> None:

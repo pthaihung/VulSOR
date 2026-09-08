@@ -5,6 +5,7 @@ from pathlib import Path
 
 
 SOURCE_ROOT = Path(__file__).resolve().parents[2] / "src"
+PROJECT_ROOT = SOURCE_ROOT.parent
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
@@ -70,6 +71,31 @@ def test_joern_adapter_exposes_only_file_context_operations() -> None:
     assert not hasattr(JoernAdapter, "query")
     assert not hasattr(JoernAdapter, "extract_function_context")
     assert not hasattr(JoernAdapter, "smoke")
+
+
+def test_legacy_repository_context_surface_is_absent() -> None:
+    roots = (
+        PROJECT_ROOT / "src" / "agents",
+        PROJECT_ROOT / "scripts",
+        PROJECT_ROOT / "config",
+        PROJECT_ROOT / "README.md",
+        PROJECT_ROOT / "AGENT.md",
+    )
+    forbidden = (
+        "RepositoryPreprocessor",
+        "RepositoryContextQueryService",
+        "GitRepositoryResolver",
+        "PreparedCatalog",
+        "repo-context",
+        "repository_evidence.sc",
+        "import-primevul",
+    )
+    for root in roots:
+        files = [root] if root.is_file() else root.rglob("*")
+        for path in files:
+            if path.is_file() and path.suffix in {".py", ".yml", ".yaml", ".md", ".sc"}:
+                source = path.read_text(encoding="utf-8")
+                assert not any(name in source for name in forbidden), path
 
 
 def test_main_loads_config_and_dispatches(monkeypatch) -> None:
