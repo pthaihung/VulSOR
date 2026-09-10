@@ -1,13 +1,16 @@
 provider:
-  name: openrouter
-  base_url: https://openrouter.ai/api/v1
+  name: deepseek
+  base_url: https://api.deepseek.com
   api_key:
     source: keyboard
-    prompt: "Enter OpenRouter API key: "
-    env_fallback: OPENROUTER_API_KEY
+    prompt: "Enter DeepSeek API key: "
+    env_fallback: DEEPSEEK_API_KEY
   default_headers:
     http_referer: null
     x_title: VulB
+  cache:
+    enabled: true
+    dir: .cache/llm
 
 agents:
   operation_agent:
@@ -15,8 +18,8 @@ agents:
     enabled: true
     prompt_file: src/agents/prompts/SemanticAgent/Operation_Agent.yml
     llm:
-      provider: openrouter
-      model: qwen/qwen3-coder-plus
+      provider: deepseek
+      model: deepseek-v4-flash
       temperature: 0.0
       max_tokens: 8192
       timeout_seconds: 120
@@ -25,15 +28,15 @@ agents:
         enabled: false
         effort: low
     quality_gates:
-      max_retries: 2
+      max_retries: 0
 
   state_agent:
     name: StateAgent
     enabled: true
     prompt_file: src/agents/prompts/SemanticAgent/State_Agent.yml
     llm:
-      provider: openrouter
-      model: qwen/qwen3-coder-plus
+      provider: deepseek
+      model: deepseek-v4-flash
       temperature: 0.0
       max_tokens: 8192
       timeout_seconds: 120
@@ -42,15 +45,15 @@ agents:
         enabled: false
         effort: low
     quality_gates:
-      max_retries: 2
+      max_retries: 1
 
   value_agent:
     name: ValueAgent
     enabled: true
     prompt_file: src/agents/prompts/SemanticAgent/Value_Agent.yml
     llm:
-      provider: openrouter
-      model: qwen/qwen3-coder-plus
+      provider: deepseek
+      model: deepseek-v4-flash
       temperature: 0.0
       max_tokens: 8192
       timeout_seconds: 120
@@ -59,15 +62,15 @@ agents:
         enabled: false
         effort: low
     quality_gates:
-      max_retries: 2
+      max_retries: 1
 
   execution_agent:
     name: ExecutionAgent
     enabled: true
     prompt_file: src/agents/prompts/SemanticAgent/Execution_Agent.yml
     llm:
-      provider: openrouter
-      model: qwen/qwen3-coder-plus
+      provider: deepseek
+      model: deepseek-v4-flash
       temperature: 0.0
       max_tokens: 8192
       timeout_seconds: 180
@@ -76,32 +79,15 @@ agents:
         enabled: false
         effort: low
     quality_gates:
-      max_retries: 2
-
-  cpg_evidence_retrieval:
-    name: CPGEvidenceRetrieval
-    enabled: true
-    prompt_file: src/agents/prompts/CPG_Evidence_Retrieval.yml
-    llm:
-      provider: openrouter
-      model: qwen/qwen3-coder-plus
-      temperature: 0.0
-      max_tokens: 8192
-      timeout_seconds: 180
-      response_format: json
-      reasoning:
-        enabled: false
-        effort: low
-    quality_gates:
-      max_retries: 2
+      max_retries: 1
 
   obligation_reasoner:
     name: ObligationReasoner
     enabled: true
     prompt_file: src/agents/prompts/Obligation_Reasoner.yml
     llm:
-      provider: openrouter
-      model: qwen/qwen3-coder-plus
+      provider: deepseek
+      model: deepseek-v4-flash
       temperature: 0.0
       max_tokens: 8192
       timeout_seconds: 180
@@ -110,21 +96,21 @@ agents:
         enabled: false
         effort: low
     quality_gates:
-      max_retries: 2
+      max_retries: 1
 
   obligation_adjudicator:
     name: ObligationAdjudicator
     enabled: true
     prompt_file: src/agents/prompts/Obligation_Adjudicator.yml
     llm:
-      provider: openrouter
-      model: qwen/qwen3-coder-plus
+      provider: deepseek
+      model: deepseek-v4-flash
       temperature: 0.0
-      max_tokens: 4096
+      max_tokens: 1024
       timeout_seconds: 120
       response_format: json
       reasoning:
         enabled: false
         effort: low
     quality_gates:
-      max_retries: 2
+      max_retries: 1

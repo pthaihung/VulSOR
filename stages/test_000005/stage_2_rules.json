@@ -1,0 +1,214 @@
+{
+  "sample_id": "test_000005",
+  "stage": "rules",
+  "agent_key": "obligation_reasoner",
+  "output": {
+    "rules": [
+      {
+        "id": "obligation_1",
+        "cluster_id": "cluster_1",
+        "operation_id": "op_1",
+        "coverage_category": "null-deref",
+        "safety_requirement": "frame_info_[\"\"] must be non-null before root_frame_info_ is assigned from it",
+        "applicable_condition": "always",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[0]",
+          "value_agent.records[0]",
+          "state_agent.records[0]"
+        ],
+        "note": "Indexing frame_info_ with empty key and taking .get() may yield null; no null check is linked."
+      },
+      {
+        "id": "obligation_2",
+        "cluster_id": "cluster_2",
+        "operation_id": "op_2",
+        "coverage_category": "integer-overflow",
+        "safety_requirement": "gview_.num_nodes() must be representable as the size argument to pending_ids_.resize without overflow",
+        "applicable_condition": "always",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[1]",
+          "value_agent.records[1]",
+          "state_agent.records[1]"
+        ],
+        "note": "Resize length comes from gview_.num_nodes(); no bound or overflow guard is linked."
+      },
+      {
+        "id": "obligation_3",
+        "cluster_id": "cluster_3",
+        "operation_id": "op_3",
+        "coverage_category": "out-of-bounds",
+        "safety_requirement": "id must be within the valid index range of cf_info.frame_names before cf_info.frame_names[id] is accessed",
+        "applicable_condition": "always",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[2]",
+          "value_agent.records[2]",
+          "value_agent.records[3]",
+          "state_agent.records[2]"
+        ],
+        "note": "id is derived from n->id() and used directly as an index into frame_names with no linked bound check."
+      },
+      {
+        "id": "obligation_4",
+        "cluster_id": "cluster_4",
+        "operation_id": "op_4",
+        "coverage_category": "null-deref",
+        "safety_requirement": "gview_.node(id) must return a non-null NodeItem before item is dereferenced",
+        "applicable_condition": "always",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[3]",
+          "state_agent.records[3]"
+        ],
+        "note": "item is aliased from gview_.node(id); no null check is linked before later dereference."
+      },
+      {
+        "id": "obligation_5",
+        "cluster_id": "cluster_5",
+        "operation_id": "op_5",
+        "coverage_category": "unchecked-api-failure",
+        "safety_requirement": "params_.create_kernel must be checked for failure before item->kernel is used as a valid kernel",
+        "applicable_condition": "always",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[4]",
+          "state_agent.records[4]",
+          "state_agent.records[5]",
+          "state_agent.records[6]"
+        ],
+        "note": "create_kernel result is stored in Status s and cleanup occurs on !s.ok(), but the success path use of item->kernel is not guarded by a linked check."
+      },
+      {
+        "id": "obligation_6",
+        "cluster_id": "cluster_6",
+        "operation_id": "op_6",
+        "coverage_category": "double-free",
+        "safety_requirement": "item->kernel must not be deleted more than once on the !s.ok() path",
+        "applicable_condition": "!s.ok()",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[5]",
+          "state_agent.records[5]",
+          "state_agent.records[6]"
+        ],
+        "note": "delete_kernel is called and item->kernel is set to nullptr on the same failure path; no linked evidence of a second delete."
+      },
+      {
+        "id": "obligation_7",
+        "cluster_id": "cluster_7",
+        "operation_id": "op_7",
+        "coverage_category": "null-deref",
+        "safety_requirement": "item->kernel must be non-null before item->kernel->const_tensor() is called",
+        "applicable_condition": "always",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[6]",
+          "state_agent.records[4]",
+          "state_agent.records[5]",
+          "state_agent.records[6]"
+        ],
+        "note": "item->kernel is allocated by create_kernel and may be nulled on failure; no linked null check before const_tensor()."
+      },
+      {
+        "id": "obligation_8",
+        "cluster_id": "cluster_8",
+        "operation_id": "op_8",
+        "coverage_category": "null-deref",
+        "safety_requirement": "frame_info_[frame_name].get() must be non-null before the resulting pointer is used",
+        "applicable_condition": "item->is_enter",
+        "link_confidence": "strong",
+        "evidence_refs": [
+          "operation_agent.operations[7]",
+          "execution_agent.records[12]"
+        ],
+        "note": "The enter branch indexes frame_info_ by frame_name and calls get(); no linked null check on the result."
+      },
+      {
+        "id": "obligation_9",
+        "cluster_id": "cluster_9",
+        "operation_id": "op_9",
+        "coverage_category": "integer-overflow",
+        "safety_requirement": "id + 1 must not overflow the size type used by enter_frame_info_.resize",
+        "applicable_condition": "enter_frame_info_.size() <= id",
+        "link_confidence": "strong",
+        "evidence_refs": [
+          "operation_agent.operations[8]",
+          "execution_agent.records[14]",
+          "state_agent.records[11]"
+        ],
+        "note": "Resize argument is id + 1 under a size comparison; no linked overflow guard."
+      },
+      {
+        "id": "obligation_10",
+        "cluster_id": "cluster_10",
+        "operation_id": "op_10",
+        "coverage_category": "out-of-bounds",
+        "safety_requirement": "id must be within the valid index range of pending_ids_ before pending_ids_[id] is assigned",
+        "applicable_condition": "always",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[9]",
+          "state_agent.records[13]"
+        ],
+        "note": "pending_ids_ is sized from gview_.num_nodes() at line 14, but no linked bound check guards pending_ids_[id]."
+      },
+      {
+        "id": "obligation_11",
+        "cluster_id": "cluster_11",
+        "operation_id": "op_11",
+        "coverage_category": "unchecked-api-failure",
+        "safety_requirement": "new bool[n->num_outputs()] must not be used if allocation fails or if n->num_outputs() is zero",
+        "applicable_condition": "always",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[10]",
+          "state_agent.records[14]",
+          "value_agent.records[13]"
+        ],
+        "note": "Array allocation length comes from n->num_outputs(); no linked zero-length or allocation-failure guard."
+      },
+      {
+        "id": "obligation_12",
+        "cluster_id": "cluster_12",
+        "operation_id": "op_12",
+        "coverage_category": "out-of-bounds",
+        "safety_requirement": "e->src_output() must be within the valid index range of outputs_required before outputs_required[e->src_output()] is assigned",
+        "applicable_condition": "always",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[11]",
+          "execution_agent.records[16]",
+          "state_agent.records[15]"
+        ],
+        "note": "outputs_required is sized by n->num_outputs(), but no linked bound check guards e->src_output()."
+      }
+    ]
+  },
+  "quality_gate": {
+    "status": "passed",
+    "attempts": [
+      {
+        "attempt": 1,
+        "errors": [],
+        "token_usage": {
+          "input_tokens": 5368,
+          "output_tokens": 1606,
+          "total_tokens": 6974
+        },
+        "max_tokens": 8192
+      }
+    ],
+    "token_usage": {
+      "input_tokens": 5368,
+      "output_tokens": 1606,
+      "total_tokens": 6974
+    }
+  },
+  "token_usage": {
+    "input_tokens": 5368,
+    "output_tokens": 1606,
+    "total_tokens": 6974
+  }
+}

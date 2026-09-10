@@ -1,0 +1,418 @@
+{
+  "sample_id": "test_000005",
+  "agent_key": "obligation_adjudicator",
+  "ground_truth": {
+    "sample_id": "test_000005",
+    "pair_id": "test_000002",
+    "target": 0,
+    "label": "benign",
+    "cve": "CVE-2022-23578",
+    "cwe": [
+      "CWE-401"
+    ]
+  },
+  "output": {
+    "adjudications": [
+      {
+        "rule": {
+          "id": "obligation_1",
+          "cluster_id": "cluster_1",
+          "operation_id": "op_1",
+          "coverage_category": "null-deref",
+          "safety_requirement": "frame_info_[\"\"] must be non-null before root_frame_info_ is assigned from it",
+          "applicable_condition": "always",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[0]",
+            "value_agent.records[0]",
+            "state_agent.records[0]"
+          ],
+          "note": "Indexing frame_info_ with empty key and taking .get() may yield null; no null check is linked."
+        },
+        "output": {
+          "obligation_id": "obligation_1",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[0]",
+            "value_agent.records[0]",
+            "state_agent.records[0]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_2",
+          "cluster_id": "cluster_2",
+          "operation_id": "op_2",
+          "coverage_category": "integer-overflow",
+          "safety_requirement": "gview_.num_nodes() must be representable as the size argument to pending_ids_.resize without overflow",
+          "applicable_condition": "always",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[1]",
+            "value_agent.records[1]",
+            "state_agent.records[1]"
+          ],
+          "note": "Resize length comes from gview_.num_nodes(); no bound or overflow guard is linked."
+        },
+        "output": {
+          "obligation_id": "obligation_2",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[1]",
+            "value_agent.records[1]",
+            "state_agent.records[1]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_3",
+          "cluster_id": "cluster_3",
+          "operation_id": "op_3",
+          "coverage_category": "out-of-bounds",
+          "safety_requirement": "id must be within the valid index range of cf_info.frame_names before cf_info.frame_names[id] is accessed",
+          "applicable_condition": "always",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[2]",
+            "value_agent.records[2]",
+            "value_agent.records[3]",
+            "state_agent.records[2]"
+          ],
+          "note": "id is derived from n->id() and used directly as an index into frame_names with no linked bound check."
+        },
+        "output": {
+          "obligation_id": "obligation_3",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[2]",
+            "value_agent.records[2]",
+            "value_agent.records[3]",
+            "state_agent.records[2]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_4",
+          "cluster_id": "cluster_4",
+          "operation_id": "op_4",
+          "coverage_category": "null-deref",
+          "safety_requirement": "gview_.node(id) must return a non-null NodeItem before item is dereferenced",
+          "applicable_condition": "always",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[3]",
+            "state_agent.records[3]"
+          ],
+          "note": "item is aliased from gview_.node(id); no null check is linked before later dereference."
+        },
+        "output": {
+          "obligation_id": "obligation_4",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[3]",
+            "state_agent.records[3]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_5",
+          "cluster_id": "cluster_5",
+          "operation_id": "op_5",
+          "coverage_category": "unchecked-api-failure",
+          "safety_requirement": "params_.create_kernel must be checked for failure before item->kernel is used as a valid kernel",
+          "applicable_condition": "always",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[4]",
+            "state_agent.records[4]",
+            "state_agent.records[5]",
+            "state_agent.records[6]"
+          ],
+          "note": "create_kernel result is stored in Status s and cleanup occurs on !s.ok(), but the success path use of item->kernel is not guarded by a linked check."
+        },
+        "output": {
+          "obligation_id": "obligation_5",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[4]",
+            "state_agent.records[4]",
+            "state_agent.records[5]",
+            "state_agent.records[6]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_6",
+          "cluster_id": "cluster_6",
+          "operation_id": "op_6",
+          "coverage_category": "double-free",
+          "safety_requirement": "item->kernel must not be deleted more than once on the !s.ok() path",
+          "applicable_condition": "!s.ok()",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[5]",
+            "state_agent.records[5]",
+            "state_agent.records[6]"
+          ],
+          "note": "delete_kernel is called and item->kernel is set to nullptr on the same failure path; no linked evidence of a second delete."
+        },
+        "output": {
+          "obligation_id": "obligation_6",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[5]",
+            "state_agent.records[5]",
+            "state_agent.records[6]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_7",
+          "cluster_id": "cluster_7",
+          "operation_id": "op_7",
+          "coverage_category": "null-deref",
+          "safety_requirement": "item->kernel must be non-null before item->kernel->const_tensor() is called",
+          "applicable_condition": "always",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[6]",
+            "state_agent.records[4]",
+            "state_agent.records[5]",
+            "state_agent.records[6]"
+          ],
+          "note": "item->kernel is allocated by create_kernel and may be nulled on failure; no linked null check before const_tensor()."
+        },
+        "output": {
+          "obligation_id": "obligation_7",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[6]",
+            "state_agent.records[4]",
+            "state_agent.records[5]",
+            "state_agent.records[6]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_8",
+          "cluster_id": "cluster_8",
+          "operation_id": "op_8",
+          "coverage_category": "null-deref",
+          "safety_requirement": "frame_info_[frame_name].get() must be non-null before the resulting pointer is used",
+          "applicable_condition": "item->is_enter",
+          "link_confidence": "strong",
+          "evidence_refs": [
+            "operation_agent.operations[7]",
+            "execution_agent.records[12]"
+          ],
+          "note": "The enter branch indexes frame_info_ by frame_name and calls get(); no linked null check on the result."
+        },
+        "output": {
+          "obligation_id": "obligation_8",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[7]",
+            "execution_agent.records[12]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_9",
+          "cluster_id": "cluster_9",
+          "operation_id": "op_9",
+          "coverage_category": "integer-overflow",
+          "safety_requirement": "id + 1 must not overflow the size type used by enter_frame_info_.resize",
+          "applicable_condition": "enter_frame_info_.size() <= id",
+          "link_confidence": "strong",
+          "evidence_refs": [
+            "operation_agent.operations[8]",
+            "execution_agent.records[14]",
+            "state_agent.records[11]"
+          ],
+          "note": "Resize argument is id + 1 under a size comparison; no linked overflow guard."
+        },
+        "output": {
+          "obligation_id": "obligation_9",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[8]",
+            "execution_agent.records[14]",
+            "state_agent.records[11]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_10",
+          "cluster_id": "cluster_10",
+          "operation_id": "op_10",
+          "coverage_category": "out-of-bounds",
+          "safety_requirement": "id must be within the valid index range of pending_ids_ before pending_ids_[id] is assigned",
+          "applicable_condition": "always",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[9]",
+            "state_agent.records[13]"
+          ],
+          "note": "pending_ids_ is sized from gview_.num_nodes() at line 14, but no linked bound check guards pending_ids_[id]."
+        },
+        "output": {
+          "obligation_id": "obligation_10",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[9]",
+            "state_agent.records[13]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_11",
+          "cluster_id": "cluster_11",
+          "operation_id": "op_11",
+          "coverage_category": "unchecked-api-failure",
+          "safety_requirement": "new bool[n->num_outputs()] must not be used if allocation fails or if n->num_outputs() is zero",
+          "applicable_condition": "always",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[10]",
+            "state_agent.records[14]",
+            "value_agent.records[13]"
+          ],
+          "note": "Array allocation length comes from n->num_outputs(); no linked zero-length or allocation-failure guard."
+        },
+        "output": {
+          "obligation_id": "obligation_11",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[10]",
+            "state_agent.records[14]",
+            "value_agent.records[13]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_12",
+          "cluster_id": "cluster_12",
+          "operation_id": "op_12",
+          "coverage_category": "out-of-bounds",
+          "safety_requirement": "e->src_output() must be within the valid index range of outputs_required before outputs_required[e->src_output()] is assigned",
+          "applicable_condition": "always",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[11]",
+            "execution_agent.records[16]",
+            "state_agent.records[15]"
+          ],
+          "note": "outputs_required is sized by n->num_outputs(), but no linked bound check guards e->src_output()."
+        },
+        "output": {
+          "obligation_id": "obligation_12",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[11]",
+            "execution_agent.records[16]",
+            "state_agent.records[15]"
+          ]
+        }
+      }
+    ],
+    "violation": 0,
+    "binary_prediction": 0,
+    "best_effort_binary_prediction": 0,
+    "label": "Benign",
+    "verdict_confidence": "normal",
+    "evidence_status": "adequate",
+    "input_quality": {
+      "status": "adequate",
+      "function_name": "Initialize",
+      "reasons": [],
+      "operation_count": 12,
+      "concrete_operation_count": 12,
+      "unresolved_operation_count": 0,
+      "semantic_record_count": 56
+    },
+    "ground_truth": {
+      "sample_id": "test_000005",
+      "pair_id": "test_000002",
+      "target": 0,
+      "label": "benign",
+      "cve": "CVE-2022-23578",
+      "cwe": [
+        "CWE-401"
+      ]
+    },
+    "correct": true,
+    "best_effort_correct": true,
+    "evaluation_diagnostics": {
+      "diagnostic_label": "correct",
+      "failure_stage": "none",
+      "reason": "Binary prediction matches ground truth with adequate evidence status.",
+      "ground_truth_used_only_for_evaluation": true
+    },
+    "aggregation_rule": "Vulnerable iff at least one obligation has violation=1. Otherwise Benign. Missing or ambiguous evidence is ignored for the binary label and tracked only in diagnostics.",
+    "violated_obligation_ids": []
+  },
+  "quality_gate": {
+    "status": "passed",
+    "adjudication_count": 12,
+    "adjudicator": {
+      "status": "passed",
+      "attempts": [
+        {
+          "attempt": 1,
+          "errors": [],
+          "token_usage": {
+            "input_tokens": 4769,
+            "output_tokens": 586,
+            "total_tokens": 5355
+          },
+          "max_tokens": 1024
+        }
+      ],
+      "token_usage": {
+        "input_tokens": 4769,
+        "output_tokens": 586,
+        "total_tokens": 5355
+      }
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4769,
+    "output_tokens": 586,
+    "total_tokens": 5355
+  },
+  "pipeline_diagnostics": {
+    "errors": [],
+    "warnings": [],
+    "missing_information": [],
+    "conflicts": [],
+    "stage_status": {
+      "Stage 1": "passed",
+      "Stage 2": "passed",
+      "Stage 3": "passed"
+    },
+    "input_quality": {
+      "status": "adequate",
+      "function_name": "Initialize",
+      "reasons": [],
+      "operation_count": 12,
+      "concrete_operation_count": 12,
+      "unresolved_operation_count": 0,
+      "semantic_record_count": 56
+    },
+    "evidence_status": {
+      "status": "adequate",
+      "reasons": []
+    }
+  }
+}

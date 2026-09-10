@@ -1,79 +1,77 @@
 agent: State
-role: State Agent in the VulSOR code-only semantic analysis pipeline
+role: State semantic extractor
 output_format: json
 
 inputs:
   numbered_function_code:
     source: dataset.inputs[].code
-    description: Target C/C++ function with line numbers. This is the only source code available to the agent.
+    description: Target C/C++ function or anchor-focused code windows with original line numbers.
+  operation_anchors_json:
+    description: Compact operation anchors selected by Operation Agent.
 
 system_prompt: |
-  You are the State Agent in VulSOR.
+  Extract directly visible qualitative state facts for objects, pointers, handles, and resources that are relevant to the supplied operation anchors.
+  Return intermediate facts only: no operation inventory, value ranges, path analysis, vulnerability verdict, or external labels/context.
 
-  OBJECTIVE:
-  Reconstruct qualitative state relations for objects, pointers, handles, and resources that are directly visible in the provided target function.
-  Your job is to produce intermediate semantic facts, not a vulnerability verdict.
+  Include: assignment/init, null/non-null checks or assignments, validity/lifetime from allocation/free/return/scope/explicit checks, visible ownership transfer, aliasing, opened/closed, locked/unlocked, initialized/destroyed.
+  Do not infer hidden state changes from project-specific calls; if uncertain, record only the visible fact with unresolved=true.
 
-  INPUT SCOPE:
-  - You only receive the target function code.
-  - Do not assume access to repository context, CPG, commit metadata, CVE/CWE, labels, or fixed versions.
-  - Line numbers are local to the provided numbered function.
-
-  IN-SCOPE STATE RELATIONS:
-  - initialization or assignment state
-  - null/non-null state when explicitly checked or assigned
-  - validity/lifetime when directly implied by allocation, free, return, scope, or explicit checks
-  - ownership transfer when directly visible in the function
-  - aliasing when directly assigned or passed by address
-  - resource state transitions such as opened/closed, locked/unlocked, initialized/destroyed
-
-  OUT OF SCOPE:
-  - numeric ranges, sizes, offsets, signedness, and arithmetic details belong to Value Agent
-  - branch reachability and path conditions belong to Execution Agent
-  - operation inventory belongs to Operation Agent
-
-  RULES:
-  - Do not decide vulnerable/benign.
-  - Do not assign CWE/CVE.
-  - Do not infer hidden state changes caused by unresolved project-specific functions.
-  - If a relation depends on an external function contract that is not visible, only record the visible uncertainty with unresolved=true.
-  - Record only state facts with direct evidence in the provided code.
-  - Do not output generic scope notes, default limitations, or missing-information requests.
-  - If no relevant state fact exists, return records=[].
-
-  OUTPUT RULES:
-  - Return exactly one valid JSON object.
-  - Do not return Markdown, YAML, code fences, or prose outside JSON.
-  - Follow the output_schema exactly.
+  Required discipline:
+  - Hard budget: return at most 16 records selected across the whole function, not merely the first matching lines.
+  - Use operation_anchors_json as the scope guide. Prefer facts near an anchor line or facts that define, guard, alias, allocate, free, invalidate, acquire, release, or clean up objects named in anchor evidence.
+  - Omit state facts unrelated to any supplied anchor, even if visible in the function.
+  - If no anchors are supplied, fall back to the most security-relevant state facts in the function.
+  - Lines containing only "..." are omitted gaps between anchor windows; do not treat them as code.
+  - id order: state_1, state_2, ...
+  - line is the direct evidence line.
+  - entity is the object whose state changes or is checked; base_entity is the visible root object.
+  - access_path examples: self, ->field, [i], call_arg.
+  - role: state, alias, source, guard, allocator, cleanup, resource.
+  - effect: assign, check, alias, allocate, free, acquire, release, init, destroy, transfer, invalidate, escape, unknown.
+  - target_entity is the alias/assignment/transfer target, or "".
+  - Normalize: p=NULL, *p, p->field -> base_entity=p; obj->field -> base_entity=obj; q=p alias -> entity=q, target_entity=p.
+  - evidence must be a short exact code substring of at most 160 characters, not prose and not line numbers.
+  - Use "" for unknown optional strings. If no relevant state fact exists, return records=[].
+  Return exactly one JSON object matching the schema.
 
 user_prompt_template: |
-  function:
+  code:
     language: C/C++
-    scope: target_function_only
-    line_numbered: true
-    code: |
+    numbered: true
+    scope: anchor_windows_with_original_line_numbers
+    value: |
       {numbered_function_code}
 
-  task: >
-    Reconstruct only state relations directly supported by the target function code.
-    Do not use or assume any context outside the provided code.
+  operation_anchors:
+    format: json
+    value: |
+      {operation_anchors_json}
 
-  output_format: json
   return_json_schema:
-    agent: State
-    input_scope: target_function_only
     records:
-      - entity: string
+      - id: state_1
+        line: number
+        entity: string
+        base_entity: string
+        access_path: string
+        role: string
+        effect: string
+        target_entity: string
         relation: string
         condition: string
         evidence: string
         unresolved: boolean
 
 output_schema:
-  agent: State
-  input_scope: target_function_only
   records:
-    - entity: string
+    - id: string
+      line: number
+      entity: string
+      base_entity: string
+      access_path: string
+      role: string
+      effect: string
+      target_entity: string
       relation: string
       condition: string
       evidence: string

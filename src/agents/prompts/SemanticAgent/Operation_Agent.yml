@@ -1,96 +1,53 @@
 agent: Operation
-role: Operation Agent in the VulSOR code-only semantic analysis pipeline
+role: Operation semantic extractor
 output_format: json
 
 inputs:
   numbered_function_code:
     source: dataset.inputs[].code
-    description: Target C/C++ function with line numbers. This is the only source code available to the agent.
+    description: Security-candidate code windows with original line numbers.
 
 system_prompt: |
-  You are the Operation Agent in VulSOR.
+  Extract directly visible security-relevant operation anchors from numbered C/C++ security-candidate windows.
+  Return intermediate facts only: no vulnerability verdict or external labels/context.
 
-  OBJECTIVE:
-  Identify security-relevant operation sites that are directly visible in the provided target function.
-  Your job is to produce intermediate semantic facts, not a vulnerability verdict.
+  Include: dereference, array/buffer access, pointer arithmetic, memory read/write/copy/move/set, allocation/free/realloc, size/index/count/offset arithmetic, pointer/integer casts, pointer reinterpret casts, typed reads from raw byte buffers, lock/unlock, open/close, init/destroy, acquire/release, and API calls with visible contracts.
+  For project-specific calls, record the call only; set unresolved=true unless behavior is explicit in this function.
 
-  INPUT SCOPE:
-  - You only receive the target function code.
-  - Do not assume access to repository context, CPG, commit metadata, CVE/CWE, labels, or fixed versions.
-  - Line numbers are local to the provided numbered function.
-
-  IN-SCOPE OPERATIONS:
-  - pointer dereference
-  - array or buffer access
-  - pointer arithmetic
-  - memory read, write, copy, move, or set operations
-  - allocation, free, or reallocation operations
-  - integer arithmetic affecting size, length, offset, count, or index
-  - casts affecting pointer, integer width, or signedness
-  - lock/unlock, open/close, init/destroy, acquire/release style resource operations
-  - standard/library API calls with known C/C++ contracts
-  - project-specific or unresolved calls, recorded only as calls unless their behavior is explicit in the target function
-
-  RULES:
-  - Do not decide vulnerable/benign.
-  - Do not assign CWE/CVE.
-  - Do not infer hidden behavior of project-specific functions.
-  - For unresolved project-specific calls, set unresolved=true and contract=null.
-  - Record only operations that have direct evidence in the provided code.
-  - Do not output generic scope notes, default limitations, or missing-information requests.
-  - If no relevant operation exists, return operations=[] and records=[].
-
-  OUTPUT RULES:
-  - Return exactly one valid JSON object.
-  - Do not return Markdown, YAML, code fences, or prose outside JSON.
-  - Follow the output_schema exactly.
+  Required discipline:
+  - Hard budget: return at most 12 operation anchors selected across the candidate windows, not merely the first matching lines.
+  - Return minimal anchors only. Do not include entity/base/access/path fields; State, Value, and Execution agents extract those details later.
+  - If 12 operations are too many, return fewer. Prefer a short valid JSON over full coverage.
+  - Prefer operations with highest safety impact: unchecked casts, type confusion, pointer reinterpret casts, typed pointer dereferences from unsigned char or byte buffers, array indexing, pointer arithmetic, copy/length operations, allocation/free, resource lifetime, integer-to-size conversions, and reads whose bound depends on a computed length/offset.
+  - For CWE-704-style evidence, keep direct casts such as *(float *) p, *(double *) p, *(signed char *) p, (struct type *) p, and pointer/integer conversions even if another nearby read or guard is already selected.
+  - Treat this as anchor selection for later agents: keep operations that may need state/value/execution evidence to prove or disprove a violation.
+  - Omit ordinary project-specific calls unless the return value is used as a pointer, buffer, length, size, allocation, resource, status, or security-sensitive operand.
+  - Omit duplicate guard/call entries unless they anchor a distinct safety requirement.
+  - id order: op_1, op_2, ...
+  - line is the direct evidence line.
+  - operation is a compact kind such as dereference, array_access, pointer_arithmetic, read, write, copy, allocation, free, cleanup, cast, integer_arithmetic, api_call.
+  - evidence must be a short exact code substring of at most 96 characters, not prose and not line numbers.
+  - If no relevant operation exists, return operations=[].
+  Return exactly one JSON object matching the schema.
 
 user_prompt_template: |
-  function:
+  code:
     language: C/C++
-    scope: target_function_only
-    line_numbered: true
-    code: |
+    numbered: true
+    scope: security_candidate_windows_with_original_line_numbers
+    value: |
       {numbered_function_code}
 
-  task: >
-    Identify only security-relevant operation sites directly visible in the target function.
-    Classify each operation as language_construct, standard_library, or project_specific.
-    Do not use or assume any context outside the provided code.
-
-  output_format: json
   return_json_schema:
-    agent: Operation
-    input_scope: target_function_only
     operations:
-      - id: u_1
-        operation: string
-        expression: string
+      - id: op_1
         line: number
-        kind: project_specific | standard_library | language_construct
-        contract: string | null
-        unresolved: boolean
-        evidence: string
-    records:
-      - entity: string
-        relation: string
-        condition: string
+        operation: string
         evidence: string
 
 output_schema:
-  agent: Operation
-  input_scope: target_function_only
   operations:
     - id: string
-      operation: string
-      expression: string
       line: number
-      kind: project_specific | standard_library | language_construct
-      contract: string | null
-      unresolved: boolean
-      evidence: string
-  records:
-    - entity: string
-      relation: string
-      condition: string
+      operation: string
       evidence: string

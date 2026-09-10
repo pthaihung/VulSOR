@@ -25,7 +25,7 @@ class PromptAgent:
         if not template:
             raise ValueError(f"{self.name} prompt file does not define a prompt template.")
         safe_variables = {
-            key: json.dumps(value, ensure_ascii=False, indent=2) if isinstance(value, (dict, list)) else str(value)
+            key: json.dumps(value, ensure_ascii=False, separators=(",", ":")) if isinstance(value, (dict, list)) else str(value)
             for key, value in variables.items()
         }
         return _render_template(template, safe_variables)
@@ -122,15 +122,20 @@ class PromptAgent:
             messages = []
             if system_prompt:
                 messages.append(LLMMessage(role="system", content=system_prompt))
+            retry_prompt = (
+                build_length_retry_user_prompt(user_prompt, self.prompt.get("output_schema", {}))
+                if _is_empty_length_error(errors)
+                else build_retry_user_prompt(
+                    original_user_prompt=user_prompt,
+                    invalid_output=parsed,
+                    errors=errors,
+                    schema=self.prompt.get("output_schema", {}),
+                )
+            )
             messages.append(
                 LLMMessage(
                     role="user",
-                    content=build_retry_user_prompt(
-                        original_user_prompt=user_prompt,
-                        invalid_output=parsed,
-                        errors=errors,
-                        schema=self.prompt.get("output_schema", {}),
-                    ),
+                    content=retry_prompt,
                 )
             )
 
@@ -333,9 +338,38 @@ def _should_retry_without_reasoning(errors: list[str]) -> bool:
 
 
 def _retry_token_multiplier(errors: list[str]) -> int:
-    if any(_looks_like_truncated_json(error) for error in errors):
-        return 2
     return 1
+
+
+def _is_empty_length_error(errors: list[str]) -> bool:
+    return any(
+        "LLM response message content is empty" in error
+        and "finish_reason=length" in error
+        for error in errors
+    )
+
+
+def build_length_retry_user_prompt(original_user_prompt: str, schema: Any, limit: int = 8000) -> str:
+    return "\n".join(
+        [
+            "The previous answer exceeded the output limit and returned no final JSON.",
+            "Retry with a much smaller valid JSON object.",
+            "Return only the most important records. If uncertain, return an empty array for the top-level collection.",
+            "Do not include Markdown, prose, explanations, or extra fields.",
+            "",
+            "required_schema:",
+            json.dumps(schema, ensure_ascii=False, separators=(",", ":")),
+            "",
+            "original_task_compact:",
+            _truncate_text(original_user_prompt, limit),
+        ]
+    )
+
+
+def _truncate_text(value: str, limit: int) -> str:
+    if len(value) <= limit:
+        return value
+    return value[:limit] + "\n...[truncated]"
 
 
 def _looks_like_truncated_json(error: str) -> bool:

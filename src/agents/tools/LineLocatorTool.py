@@ -33,6 +33,10 @@ class LineLocatorTool:
         if exact_matches:
             return [match.to_dict() for match in exact_matches]
 
+        normalized_exact_matches = self._normalized_exact_matches(query)
+        if normalized_exact_matches:
+            return [match.to_dict() for match in normalized_exact_matches]
+
         identifier = extract_identifier(query)
         if identifier and identifier != query:
             identifier_matches = self._exact_matches(identifier)
@@ -55,6 +59,16 @@ class LineLocatorTool:
         for line_no, line in enumerate(self.lines, start=1):
             if lowered_query in line.lower():
                 matches.append(LineMatch(line=line_no, text=line, match_type="exact", score=1.0))
+        return matches
+
+    def _normalized_exact_matches(self, query: str) -> list[LineMatch]:
+        matches = []
+        normalized_query = normalize_code_text(query)
+        if not normalized_query:
+            return []
+        for line_no, line in enumerate(self.lines, start=1):
+            if normalized_query in normalize_code_text(line):
+                matches.append(LineMatch(line=line_no, text=line, match_type="normalized_exact", score=0.95))
         return matches
 
     def _token_matches(self, query: str) -> list[LineMatch]:
@@ -100,6 +114,10 @@ def normalize_query(value: str) -> str:
     return value
 
 
+def normalize_code_text(value: str) -> str:
+    return re.sub(r"\s+", "", str(value)).lower()
+
+
 def extract_identifier(value: str) -> str:
     call_match = re.search(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\(", value)
     if call_match:
@@ -123,4 +141,3 @@ CONTROL_KEYWORDS = {
     "while",
     "sizeof",
 }
-

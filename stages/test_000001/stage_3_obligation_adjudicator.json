@@ -1,0 +1,434 @@
+{
+  "sample_id": "test_000001",
+  "agent_key": "obligation_adjudicator",
+  "ground_truth": {
+    "sample_id": "test_000001",
+    "pair_id": "test_000000",
+    "target": 0,
+    "label": "benign",
+    "cve": "CVE-2022-32547",
+    "cwe": [
+      "CWE-704"
+    ]
+  },
+  "output": {
+    "adjudications": [
+      {
+        "rule": {
+          "id": "obligation_1",
+          "cluster_id": "cluster_1",
+          "operation_id": "op_1",
+          "coverage_category": "out-of-bounds",
+          "safety_requirement": "must ensure that buffer+length and MaxTextExtent-length describe a valid writable range before FormatLocaleString writes to it",
+          "applicable_condition": "when FormatLocaleString is called with buffer+length and MaxTextExtent-length inside the component loop",
+          "link_confidence": "strong",
+          "evidence_refs": [
+            "operation_agent.operations[0]",
+            "execution_agent.records[0]",
+            "value_agent.records[0]",
+            "value_agent.records[1]"
+          ],
+          "note": "Loop and arithmetic facts link the write offset and remaining size to the buffer."
+        },
+        "output": {
+          "obligation_id": "obligation_1",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[0]",
+            "execution_agent.records[0]",
+            "value_agent.records[0]",
+            "value_agent.records[1]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_2",
+          "cluster_id": "cluster_2",
+          "operation_id": "op_2",
+          "coverage_category": "out-of-bounds",
+          "safety_requirement": "must ensure p1+size remains within the allocated buffer before advancing p1",
+          "applicable_condition": "when p1+=size is executed after the length >= MaxTextExtent-1 guard",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[1]",
+            "execution_agent.records[1]",
+            "value_agent.records[2]",
+            "value_agent.records[3]"
+          ],
+          "note": "The guard concerns length, while the pointer advance uses size."
+        },
+        "output": {
+          "obligation_id": "obligation_2",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[1]",
+            "execution_agent.records[1]",
+            "value_agent.records[2]",
+            "value_agent.records[3]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_3",
+          "cluster_id": "cluster_3",
+          "operation_id": "op_3",
+          "coverage_category": "out-of-bounds",
+          "safety_requirement": "must ensure length-2 is a valid index into buffer before writing buffer[length-2]",
+          "applicable_condition": "when length > 1 and buffer[length-2] is assigned",
+          "link_confidence": "strong",
+          "evidence_refs": [
+            "operation_agent.operations[2]",
+            "execution_agent.records[2]",
+            "value_agent.records[3]"
+          ],
+          "note": "The length > 1 guard is linked to the indexed write."
+        },
+        "output": {
+          "obligation_id": "obligation_3",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[2]",
+            "execution_agent.records[2]",
+            "value_agent.records[3]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_4",
+          "cluster_id": "cluster_4",
+          "operation_id": "op_4",
+          "coverage_category": "unchecked-api-failure",
+          "safety_requirement": "must ensure ReadPropertyByte has enough remaining EXIF data before reading and advancing exif",
+          "applicable_condition": "when the while length != 0 loop calls ReadPropertyByte(&exif,&length)",
+          "link_confidence": "strong",
+          "evidence_refs": [
+            "operation_agent.operations[3]",
+            "execution_agent.records[5]",
+            "execution_agent.records[6]",
+            "state_agent.records[3]"
+          ],
+          "note": "The loop condition and continue guard are linked to the read operation."
+        },
+        "output": {
+          "obligation_id": "obligation_4",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[3]",
+            "execution_agent.records[5]",
+            "execution_agent.records[6]",
+            "state_agent.records[3]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_5",
+          "cluster_id": "cluster_5",
+          "operation_id": "op_5",
+          "coverage_category": "out-of-bounds",
+          "safety_requirement": "must ensure exif+4 is within the EXIF data before ReadPropertySignedLong reads from it",
+          "applicable_condition": "when ReadPropertySignedLong(endian,exif+4) is evaluated",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[4]",
+            "state_agent.records[4]",
+            "value_agent.records[8]",
+            "execution_agent.records[10]"
+          ],
+          "note": "The later offset guard does not guard the read at exif+4."
+        },
+        "output": {
+          "obligation_id": "obligation_5",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[4]",
+            "state_agent.records[4]",
+            "value_agent.records[8]",
+            "execution_agent.records[10]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_6",
+          "cluster_id": "cluster_6",
+          "operation_id": "op_6",
+          "coverage_category": "out-of-bounds",
+          "safety_requirement": "must ensure directory points to enough EXIF data before ReadPropertyUnsignedShort reads from it",
+          "applicable_condition": "when ReadPropertyUnsignedShort(endian,directory) is evaluated",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[5]",
+            "state_agent.records[5]",
+            "state_agent.records[6]"
+          ],
+          "note": "directory is derived from exif+offset, but no bound check is linked to this read."
+        },
+        "output": {
+          "obligation_id": "obligation_6",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[5]",
+            "state_agent.records[5]",
+            "state_agent.records[6]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_7",
+          "cluster_id": "cluster_7",
+          "operation_id": "op_7",
+          "coverage_category": "out-of-bounds",
+          "safety_requirement": "must ensure directory+(12*entry)+2 remains within the EXIF data before q is formed and used",
+          "applicable_condition": "when entry < number_entries and q is assigned from directory+(12*entry)+2",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[6]",
+            "execution_agent.records[13]",
+            "state_agent.records[7]",
+            "state_agent.records[8]"
+          ],
+          "note": "The loop bound and splay-tree check are linked, but no EXIF-size bound is shown."
+        },
+        "output": {
+          "obligation_id": "obligation_7",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[6]",
+            "execution_agent.records[13]",
+            "state_agent.records[7]",
+            "state_agent.records[8]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_8",
+          "cluster_id": "cluster_8",
+          "operation_id": "op_8",
+          "coverage_category": "integer-overflow",
+          "safety_requirement": "must ensure components*tag_bytes[format] does not overflow size_t before number_bytes is used for allocation or copying",
+          "applicable_condition": "when number_bytes=(size_t) components*tag_bytes[format] is computed",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[7]",
+            "state_agent.records[10]",
+            "state_agent.records[4]",
+            "state_agent.records[5]"
+          ],
+          "note": "The multiplication result feeds later allocation and copy operations."
+        },
+        "output": {
+          "obligation_id": "obligation_8",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[7]",
+            "state_agent.records[10]",
+            "state_agent.records[4]",
+            "state_agent.records[5]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_9",
+          "cluster_id": "cluster_9",
+          "operation_id": "op_9",
+          "coverage_category": "out-of-bounds",
+          "safety_requirement": "must ensure exif+dir_offset remains within the EXIF data before p is formed and dereferenced",
+          "applicable_condition": "when p=(unsigned char *)(exif+dir_offset) is evaluated",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[8]",
+            "state_agent.records[11]",
+            "state_agent.records[4]",
+            "state_agent.records[5]"
+          ],
+          "note": "dir_offset is derived from EXIF data without a linked bound check."
+        },
+        "output": {
+          "obligation_id": "obligation_9",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[8]",
+            "state_agent.records[11]",
+            "state_agent.records[4]",
+            "state_agent.records[5]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_10",
+          "cluster_id": "cluster_10",
+          "operation_id": "op_10",
+          "coverage_category": "unchecked-api-failure",
+          "safety_requirement": "must ensure the result of AcquireQuantumMemory((size_t)number_bytes+1UL,...) is checked for null before value is used",
+          "applicable_condition": "when value is assigned from AcquireQuantumMemory",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[9]",
+            "state_agent.records[13]",
+            "state_agent.records[10]"
+          ],
+          "note": "The allocation result is linked to number_bytes and later use."
+        },
+        "output": {
+          "obligation_id": "obligation_10",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[9]",
+            "state_agent.records[13]",
+            "state_agent.records[10]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_11",
+          "cluster_id": "cluster_11",
+          "operation_id": "op_11",
+          "coverage_category": "out-of-bounds",
+          "safety_requirement": "must ensure p1 points to at least one readable byte before dereferencing *(signed char *)p1",
+          "applicable_condition": "when (double)(*(signed char *)p1) is evaluated",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[10]",
+            "state_agent.records[7]",
+            "state_agent.records[8]",
+            "state_agent.records[11]"
+          ],
+          "note": "p1 is linked to q and p, but no bound check for this dereference is shown."
+        },
+        "output": {
+          "obligation_id": "obligation_11",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[10]",
+            "state_agent.records[7]",
+            "state_agent.records[8]",
+            "state_agent.records[11]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_12",
+          "cluster_id": "cluster_12",
+          "operation_id": "op_12",
+          "coverage_category": "out-of-bounds",
+          "safety_requirement": "must ensure p points to enough EXIF data before ReadPropertySignedLong(endian,p) reads from it",
+          "applicable_condition": "when offset=(ssize_t)ReadPropertySignedLong(endian,p) is evaluated",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[11]",
+            "state_agent.records[15]",
+            "state_agent.records[14]"
+          ],
+          "note": "The linked cleanup fact does not guard the read from p."
+        },
+        "output": {
+          "obligation_id": "obligation_12",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[11]",
+            "state_agent.records[15]",
+            "state_agent.records[14]"
+          ]
+        }
+      }
+    ],
+    "violation": 0,
+    "binary_prediction": 0,
+    "best_effort_binary_prediction": 0,
+    "label": "Benign",
+    "verdict_confidence": "normal",
+    "evidence_status": "adequate",
+    "input_quality": {
+      "status": "adequate",
+      "function_name": "GetEXIFProperty",
+      "reasons": [],
+      "operation_count": 12,
+      "concrete_operation_count": 12,
+      "unresolved_operation_count": 0,
+      "semantic_record_count": 56
+    },
+    "ground_truth": {
+      "sample_id": "test_000001",
+      "pair_id": "test_000000",
+      "target": 0,
+      "label": "benign",
+      "cve": "CVE-2022-32547",
+      "cwe": [
+        "CWE-704"
+      ]
+    },
+    "correct": true,
+    "best_effort_correct": true,
+    "evaluation_diagnostics": {
+      "diagnostic_label": "correct",
+      "failure_stage": "none",
+      "reason": "Binary prediction matches ground truth with adequate evidence status.",
+      "ground_truth_used_only_for_evaluation": true
+    },
+    "aggregation_rule": "Vulnerable iff at least one obligation has violation=1. Otherwise Benign. Missing or ambiguous evidence is ignored for the binary label and tracked only in diagnostics.",
+    "violated_obligation_ids": []
+  },
+  "quality_gate": {
+    "status": "passed",
+    "adjudication_count": 12,
+    "adjudicator": {
+      "status": "passed",
+      "attempts": [
+        {
+          "attempt": 1,
+          "errors": [],
+          "token_usage": {
+            "input_tokens": 5453,
+            "output_tokens": 662,
+            "total_tokens": 6115
+          },
+          "max_tokens": 1024
+        }
+      ],
+      "token_usage": {
+        "input_tokens": 5453,
+        "output_tokens": 662,
+        "total_tokens": 6115
+      }
+    }
+  },
+  "token_usage": {
+    "input_tokens": 5453,
+    "output_tokens": 662,
+    "total_tokens": 6115
+  },
+  "pipeline_diagnostics": {
+    "errors": [],
+    "warnings": [],
+    "missing_information": [],
+    "conflicts": [],
+    "stage_status": {
+      "Stage 1": "passed",
+      "Stage 2": "passed",
+      "Stage 3": "passed"
+    },
+    "input_quality": {
+      "status": "adequate",
+      "function_name": "GetEXIFProperty",
+      "reasons": [],
+      "operation_count": 12,
+      "concrete_operation_count": 12,
+      "unresolved_operation_count": 0,
+      "semantic_record_count": 56
+    },
+    "evidence_status": {
+      "status": "adequate",
+      "reasons": []
+    }
+  }
+}

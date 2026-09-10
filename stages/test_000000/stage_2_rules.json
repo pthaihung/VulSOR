@@ -1,0 +1,238 @@
+{
+  "sample_id": "test_000000",
+  "stage": "rules",
+  "agent_key": "obligation_reasoner",
+  "output": {
+    "rules": [
+      {
+        "id": "obligation_1",
+        "cluster_id": "cluster_1",
+        "operation_id": "op_1",
+        "coverage_category": "out-of-bounds",
+        "safety_requirement": "must ensure the computed pointer q = directory + 12*entry + 2 remains within the bounds of the exif buffer before dereferencing or reading from q",
+        "applicable_condition": "always",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[0]",
+          "execution_agent.records[2]",
+          "state_agent.records[0]",
+          "value_agent.records[5]",
+          "execution_agent.records[3]"
+        ],
+        "note": "Loop iterates entry < number_entries and computes q from directory; a later guard breaks if q > exif+length-12, but the pointer arithmetic itself may exceed the buffer before the guard is evaluated."
+      },
+      {
+        "id": "obligation_2",
+        "cluster_id": "cluster_2",
+        "operation_id": "op_2",
+        "coverage_category": "out-of-bounds",
+        "safety_requirement": "must ensure q points to at least 2 readable bytes before calling ReadPropertyUnsignedShort(endian,q)",
+        "applicable_condition": "always",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[1]",
+          "state_agent.records[1]",
+          "state_agent.records[0]",
+          "execution_agent.records[4]",
+          "value_agent.records[7]"
+        ],
+        "note": "ReadPropertyUnsignedShort reads from q; q is derived from directory and only a later splay-tree guard is linked, not a bounds check on q."
+      },
+      {
+        "id": "obligation_3",
+        "cluster_id": "cluster_3",
+        "operation_id": "op_3",
+        "coverage_category": "out-of-bounds",
+        "safety_requirement": "must ensure q+4 points to at least 4 readable bytes before calling ReadPropertySignedLong(endian,q+4)",
+        "applicable_condition": "always",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[2]",
+          "state_agent.records[2]",
+          "state_agent.records[3]",
+          "state_agent.records[0]",
+          "state_agent.records[1]"
+        ],
+        "note": "ReadPropertySignedLong reads 4 bytes at q+4; no linked guard verifies that q+4 is within the exif buffer."
+      },
+      {
+        "id": "obligation_4",
+        "cluster_id": "cluster_4",
+        "operation_id": "op_4",
+        "coverage_category": "integer-overflow",
+        "safety_requirement": "must ensure the multiplication components*tag_bytes[format] does not overflow size_t before assigning to number_bytes",
+        "applicable_condition": "always",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[3]",
+          "state_agent.records[2]",
+          "state_agent.records[3]",
+          "state_agent.records[0]",
+          "state_agent.records[1]"
+        ],
+        "note": "components is a signed value read from the file and tag_bytes[format] is a size multiplier; the product is cast to size_t without a linked overflow guard."
+      },
+      {
+        "id": "obligation_5",
+        "cluster_id": "cluster_5",
+        "operation_id": "op_5",
+        "coverage_category": "out-of-bounds",
+        "safety_requirement": "must ensure q+8 points to at least 4 readable bytes before calling ReadPropertySignedLong(endian,q+8)",
+        "applicable_condition": "always",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[4]",
+          "state_agent.records[4]",
+          "state_agent.records[0]",
+          "state_agent.records[1]",
+          "state_agent.records[2]"
+        ],
+        "note": "ReadPropertySignedLong reads 4 bytes at q+8; no linked guard verifies that q+8 is within the exif buffer."
+      },
+      {
+        "id": "obligation_6",
+        "cluster_id": "cluster_6",
+        "operation_id": "op_6",
+        "coverage_category": "out-of-bounds",
+        "safety_requirement": "must ensure exif+dir_offset remains within the exif buffer before using p for subsequent reads",
+        "applicable_condition": "always",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[5]",
+          "state_agent.records[5]",
+          "state_agent.records[0]",
+          "state_agent.records[1]",
+          "state_agent.records[2]"
+        ],
+        "note": "p is computed from exif plus a signed dir_offset read from the file; no linked guard validates the resulting pointer against the buffer bounds."
+      },
+      {
+        "id": "obligation_7",
+        "cluster_id": "cluster_7",
+        "operation_id": "op_7",
+        "coverage_category": "unchecked-api-failure",
+        "safety_requirement": "must ensure the result of AcquireQuantumMemory is checked for NULL before value is dereferenced or used",
+        "applicable_condition": "always",
+        "link_confidence": "strong",
+        "evidence_refs": [
+          "operation_agent.operations[6]",
+          "execution_agent.records[16]",
+          "execution_agent.records[15]",
+          "state_agent.records[7]",
+          "state_agent.records[8]"
+        ],
+        "note": "AcquireQuantumMemory may return NULL; a linked guard checks value != NULL, but the allocation result must be validated before any use."
+      },
+      {
+        "id": "obligation_8",
+        "cluster_id": "cluster_8",
+        "operation_id": "op_8",
+        "coverage_category": "out-of-bounds",
+        "safety_requirement": "must ensure p has at least number_bytes readable bytes before indexing p[i] in the loop",
+        "applicable_condition": "always",
+        "link_confidence": "strong",
+        "evidence_refs": [
+          "operation_agent.operations[7]",
+          "execution_agent.records[17]",
+          "state_agent.records[0]",
+          "state_agent.records[1]",
+          "state_agent.records[2]"
+        ],
+        "note": "Loop reads p[i] for i < number_bytes; p is derived from exif+dir_offset and no linked guard confirms p has number_bytes valid bytes."
+      },
+      {
+        "id": "obligation_9",
+        "cluster_id": "cluster_9",
+        "operation_id": "op_9",
+        "coverage_category": "out-of-bounds",
+        "safety_requirement": "must ensure p1 points to at least 1 readable byte before dereferencing *(signed char *) p1",
+        "applicable_condition": "always",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[8]",
+          "state_agent.records[0]",
+          "state_agent.records[1]",
+          "state_agent.records[2]",
+          "state_agent.records[3]"
+        ],
+        "note": "EXIFMultipleValues dereferences p1 as a signed char; no linked guard verifies p1 is within the buffer."
+      },
+      {
+        "id": "obligation_10",
+        "cluster_id": "cluster_10",
+        "operation_id": "op_10",
+        "coverage_category": "out-of-bounds",
+        "safety_requirement": "must ensure p1 points to at least sizeof(float) readable bytes before dereferencing *(float *) p1",
+        "applicable_condition": "always",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[9]",
+          "state_agent.records[5]",
+          "state_agent.records[6]",
+          "state_agent.records[7]",
+          "state_agent.records[8]"
+        ],
+        "note": "EXIFMultipleValues dereferences p1 as a float; no linked guard verifies p1 has sufficient readable bytes."
+      },
+      {
+        "id": "obligation_11",
+        "cluster_id": "cluster_11",
+        "operation_id": "op_11",
+        "coverage_category": "out-of-bounds",
+        "safety_requirement": "must ensure p1 points to at least sizeof(double) readable bytes before dereferencing *(double *) p1",
+        "applicable_condition": "always",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[10]",
+          "state_agent.records[6]",
+          "state_agent.records[7]",
+          "state_agent.records[8]",
+          "state_agent.records[9]"
+        ],
+        "note": "EXIFMultipleValues dereferences p1 as a double; no linked guard verifies p1 has sufficient readable bytes."
+      },
+      {
+        "id": "obligation_12",
+        "cluster_id": "cluster_12",
+        "operation_id": "op_12",
+        "coverage_category": "early-exit-cleanup",
+        "safety_requirement": "must ensure exif_resources is destroyed on all exit paths after it is allocated and populated",
+        "applicable_condition": "always",
+        "link_confidence": "strong",
+        "evidence_refs": [
+          "operation_agent.operations[11]",
+          "execution_agent.records[19]",
+          "state_agent.records[15]",
+          "state_agent.records[12]",
+          "state_agent.records[13]"
+        ],
+        "note": "DestroySplayTree is called at line 867 after a do-while loop; any early return or break before this point would leak exif_resources."
+      }
+    ]
+  },
+  "quality_gate": {
+    "status": "passed",
+    "attempts": [
+      {
+        "attempt": 1,
+        "errors": [],
+        "token_usage": {
+          "input_tokens": 4963,
+          "output_tokens": 1903,
+          "total_tokens": 6866
+        },
+        "max_tokens": 8192
+      }
+    ],
+    "token_usage": {
+      "input_tokens": 4963,
+      "output_tokens": 1903,
+      "total_tokens": 6866
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4963,
+    "output_tokens": 1903,
+    "total_tokens": 6866
+  }
+}

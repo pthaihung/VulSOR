@@ -6,7 +6,6 @@ import os
 import random
 import shutil
 import sys
-import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -15,9 +14,21 @@ from src.agents.LLMClient import mask_api_key, normalize_api_key
 from src.agents.Pipeline import STAGE_LABELS, VulSORPipeline, count_lines, read_json_file
 
 try:
-    from tqdm import tqdm
-except ImportError:  # pragma: no cover - optional terminal nicety
-    tqdm = None
+    from rich.console import Console as RichConsole
+    from rich.progress import BarColumn, Progress, TaskProgressColumn, TextColumn, TimeElapsedColumn, TimeRemainingColumn
+except ImportError:  # pragma: no cover - rich is optional for plain log fallback
+    RichConsole = None
+    Progress = None
+    BarColumn = None
+    TaskProgressColumn = None
+    TextColumn = None
+    TimeElapsedColumn = None
+    TimeRemainingColumn = None
+
+try:
+    from tqdm import tqdm as Tqdm
+except ImportError:  # pragma: no cover - tqdm is optional
+    Tqdm = None
 
 
 class Console:
@@ -85,8 +96,8 @@ def run_interactive(project_root: Path) -> None:
         console,
         "Use LLM API",
         default=True,
-        yes_help_text="Call OpenRouter and run the real agent pipeline.",
-        no_help_text="Render prompts locally without calling OpenRouter.",
+        yes_help_text="Call the configured LLM provider and run the real agent pipeline.",
+        no_help_text="Render prompts locally without calling the configured LLM provider.",
     )
     dry_run = not use_llm
     if use_llm:
@@ -130,7 +141,7 @@ def run_interactive(project_root: Path) -> None:
                 pause()
                 continue
 
-            stage = choose_stage(console)
+            stage = choose_stage(console, allow_all=(action == "run-pipeline"))
             samples = prompt_samples(console, pipeline, default="0")
             if action == "run-stage":
                 run_samples_exact_stage(console, pipeline, samples, stage)
@@ -165,19 +176,26 @@ def choose_dataset(console: Console) -> str:
     )
 
 
-def choose_stage(console: Console) -> int:
+def choose_stage(console: Console, allow_all: bool = False) -> int:
+    final_stage = max(STAGE_LABELS)
+    options = [
+        ("1", "suggestion", "Build semantic model from source code."),
+        ("2", "suggestion", "Build obligations from Stage 1 output."),
+        (str(final_stage), "suggestion" if allow_all else "default", "Adjudicate obligations and produce final verdict."),
+    ]
+    default = str(final_stage)
+    if allow_all:
+        options.append(("all", "default", f"Run every stage through Stage {final_stage}."))
+        default = "all"
     value = choose_option(
         console,
         title="Target stage",
-        options=[
-            ("1", "suggestion", "Build semantic model from source code."),
-            ("2", "suggestion", "Build CPG evidence from Stage 1 output."),
-            ("3", "suggestion", "Build obligations from Stage 1 and Stage 2."),
-            ("4", "default", "Adjudicate obligations and produce final verdict."),
-        ],
-        default="4",
+        options=options,
+        default=default,
         allow_custom=False,
     )
+    if value == "all":
+        return final_stage
     return int(value)
 
 
@@ -203,7 +221,7 @@ def choose_bool(
 
 
 def prompt_api_key(console: Console) -> None:
-    env_name = "OPENROUTER_API_KEY"
+    env_name = "DEEPSEEK_API_KEY"
     existing = normalize_api_key(os.environ.get(env_name, ""))
     if existing:
         os.environ[env_name] = existing
@@ -211,7 +229,7 @@ def prompt_api_key(console: Console) -> None:
     if existing:
         console.print(f"{env_name}: existing key found ({mask_api_key(existing)}). Press Enter to keep it.", Console.DIM)
     else:
-        console.print(f"{env_name}: paste your OpenRouter key. Input is hidden.", Console.DIM)
+        console.print(f"{env_name}: paste your DeepSeek key. Input is hidden.", Console.DIM)
     api_key = normalize_api_key(getpass.getpass(f"Paste API key for {env_name}: "))
     if api_key:
         os.environ[env_name] = api_key
@@ -363,7 +381,8 @@ def resolve_sample_token(token: str, samples: list[dict[str, Any]], sample_by_id
 
 
 def inspect_samples(console: Console, pipeline: VulSORPipeline, samples: list[dict[str, Any]]) -> None:
-    for sample in samples:
+    for index, sample in enumerate(samples):
+        print_sample_separator(index)
         sample_id = sample["sample_id"]
         line_count = count_lines(sample.get("code", ""))
         ground_truth = pipeline.ground_truth_for_sample(sample_id) or {}
@@ -373,14 +392,25 @@ def inspect_samples(console: Console, pipeline: VulSORPipeline, samples: list[di
 
 
 def print_status(console: Console, pipeline: VulSORPipeline, samples: list[dict[str, Any]]) -> None:
-    for sample in samples:
+    for index, sample in enumerate(samples):
+        print_sample_separator(index)
         sample_id = sample["sample_id"]
         statuses = pipeline.stage_status(sample_id)
         rendered = []
         for stage, state in statuses.items():
-            color = Console.GREEN if state == "ready" else Console.DIM
+            if state == "ready":
+                color = Console.GREEN
+            elif state == "optional":
+                color = Console.YELLOW
+            else:
+                color = Console.DIM
             rendered.append(console.color(f"S{stage}:{state}", color))
         print(f"  {sample_id}  " + "  ".join(rendered))
+
+
+def print_sample_separator(index: int) -> None:
+    if index > 0:
+        print()
 
 
 def run_samples_to_stage(console: Console, pipeline: VulSORPipeline, samples: list[dict[str, Any]], stage: int) -> None:
@@ -389,6 +419,7 @@ def run_samples_to_stage(console: Console, pipeline: VulSORPipeline, samples: li
     progress = PipelineProgressReporter(console, total, stage, started, exact_stage=False)
     try:
         for index, sample in enumerate(samples, start=1):
+            print_sample_separator(index - 1)
             progress.log(f"Sample {index}/{total}: {sample['sample_id']} [{STAGE_LABELS[stage]}]", Console.CYAN)
             record = pipeline.run_sample(
                 sample,
@@ -410,6 +441,7 @@ def run_samples_exact_stage(console: Console, pipeline: VulSORPipeline, samples:
     progress = PipelineProgressReporter(console, total, stage, started, exact_stage=True)
     try:
         for index, sample in enumerate(samples, start=1):
+            print_sample_separator(index - 1)
             progress.log(f"Sample {index}/{total}: {sample['sample_id']} [{STAGE_LABELS[stage]}]", Console.CYAN)
             record = pipeline.run_exact_stage(
                 sample,
@@ -445,28 +477,45 @@ class PipelineProgressReporter:
         self.current_sample_id = ""
         self.current_stage = 0
         self.current_detail = "starting"
-        self.stage4_units_estimate = 1
-        self.current_stage4_obligations = 0
+        self.adjudication_units_estimate = 1
+        self.current_adjudication_units = 0
         self.stage_started_at: dict[tuple[str, int], float] = {}
-        self.lock = threading.RLock()
-        self.stop_event = threading.Event()
-        self.live_paused = False
-        self.spinner_index = 0
-        self.last_live_width = 0
+        self.child_started_at: dict[tuple[str, int, str, str], float] = {}
+        self.attempt_started_at: dict[tuple[str, int, str, int], float] = {}
+        self.last_plain_progress_at = 0.0
         self.tqdm_bar: Any = None
-        self.thread: threading.Thread | None = None
-        if self.console.enabled and tqdm is not None:
-            self.tqdm_bar = tqdm(
-                total=self.total_units(),
+        self.rich_console: Any = None
+        self.rich_progress: Any = None
+        self.rich_task: Any = None
+        if Tqdm is not None:
+            self.tqdm_bar = Tqdm(
+                total=self.sample_total,
                 desc="Running pipeline",
-                unit="step",
+                unit="sample",
                 dynamic_ncols=True,
                 leave=True,
-                bar_format="{desc} {bar} {n_fmt}/{total_fmt} {elapsed}",
             )
-        elif self.console.enabled:
-            self.thread = threading.Thread(target=self.render_loop, daemon=True)
-            self.thread.start()
+        elif self.console.enabled and Progress is not None and RichConsole is not None:
+            self.rich_console = RichConsole()
+            self.rich_progress = Progress(
+                TextColumn("[bold cyan]{task.description}"),
+                BarColumn(bar_width=None),
+                TaskProgressColumn(),
+                TextColumn("samples {task.completed}/{task.total}"),
+                TimeElapsedColumn(),
+                TimeRemainingColumn(),
+                TextColumn("[dim]{task.fields[sample]}"),
+                TextColumn("[dim]{task.fields[detail]}"),
+                console=self.rich_console,
+                transient=False,
+            )
+            self.rich_task = self.rich_progress.add_task(
+                "Running pipeline",
+                total=self.sample_total,
+                sample="",
+                detail="starting",
+            )
+            self.rich_progress.start()
 
     def for_sample(self, sample_index: int, sample_total: int):
         def report(event: dict[str, Any]) -> None:
@@ -501,26 +550,26 @@ class PipelineProgressReporter:
     def print_stage_start(self, event: dict[str, Any]) -> None:
         stage = int(event["stage"])
         sample_id = str(event.get("sample_id", ""))
-        with self.lock:
-            self.current_sample_index = int(event.get("sample_index", self.current_sample_index or 1))
-            self.current_sample_total = int(event.get("sample_total", self.sample_total))
-            self.current_sample_id = sample_id
-            self.current_stage = stage
-            self.current_detail = STAGE_LABELS[stage]
-            if stage == 4:
-                self.current_stage4_obligations = 0
-            self.stage_started_at[(sample_id, stage)] = time.perf_counter()
+        self.current_sample_index = int(event.get("sample_index", self.current_sample_index or 1))
+        self.current_sample_total = int(event.get("sample_total", self.sample_total))
+        self.current_sample_id = sample_id
+        self.current_stage = stage
+        self.current_detail = STAGE_LABELS[stage]
+        if stage == 3:
+            self.current_adjudication_units = 0
+        self.stage_started_at[(sample_id, stage)] = time.perf_counter()
         stage_label = self.console.color(f"stage {stage}/{self.target_stage}", Console.PURPLE)
         self.log(f"  {stage_label}: {STAGE_LABELS[stage]} started", Console.DIM)
 
     def print_stage_done(self, event: dict[str, Any]) -> None:
         stage = int(event["stage"])
         sample_id = str(event.get("sample_id", ""))
-        with self.lock:
-            if stage == 2 or (stage == 4 and self.current_stage4_obligations == 0):
-                self.completed += 1
-            self.current_detail = f"{STAGE_LABELS[stage]} done"
-            duration = time.perf_counter() - self.stage_started_at.get((sample_id, stage), time.perf_counter())
+        if stage == self.target_stage:
+            self.completed += 1
+            if self.tqdm_bar is not None:
+                self.tqdm_bar.update(1)
+        self.current_detail = f"{STAGE_LABELS[stage]} done"
+        duration = time.perf_counter() - self.stage_started_at.get((sample_id, stage), time.perf_counter())
         self.log_stage_info(
             event,
             f"stage {stage}/{self.target_stage} done",
@@ -531,20 +580,24 @@ class PipelineProgressReporter:
     def print_child_start(self, event: dict[str, Any], label: str, name: str) -> None:
         index = int(event.get("index", 1))
         total = int(event.get("total", 1))
-        with self.lock:
-            self.current_detail = f"{label} {index}/{total}: {name}"
+        sample_id = str(event.get("sample_id", ""))
+        stage = int(event.get("stage", 0) or 0)
+        self.child_started_at[(sample_id, stage, label, name)] = time.perf_counter()
+        self.current_detail = f"{label} {index}/{total}: {name}"
 
     def print_child_done(self, event: dict[str, Any], label: str, name: str, failed: bool = False) -> None:
         index = int(event.get("index", 1))
         total = int(event.get("total", 1))
         stage = int(event.get("stage", 0) or 0)
-        with self.lock:
-            if label == "agent" and stage in {1, 3}:
-                self.completed += 1
-            elif label == "obligation":
-                self.current_stage4_obligations = max(self.current_stage4_obligations, total)
-                self.stage4_units_estimate = max(self.stage4_units_estimate, total)
-                self.completed += 1
+        if label == "agent" and stage in {1, 2, 3}:
+            if stage == 3:
+                self.current_adjudication_units = 1
+        elif label == "obligation":
+            self.current_adjudication_units = max(self.current_adjudication_units, total)
+            self.adjudication_units_estimate = max(self.adjudication_units_estimate, total)
+        sample_id = str(event.get("sample_id", ""))
+        started = self.child_started_at.get((sample_id, stage, label, name))
+        duration = time.perf_counter() - started if started is not None else None
         status = "failed" if failed else "done"
         color = Console.RED if failed else Console.GREEN
         label_color = Console.YELLOW if label == "agent" else Console.BLUE
@@ -555,6 +608,7 @@ class PipelineProgressReporter:
             f"    {label_text} {name}: {status}  "
             f"{format_token_usage(event.get('token_usage'))}"
             f"{format_token_limit(event.get('max_tokens'))}"
+            f"{format_elapsed_suffix(duration)}"
             f"{summary_text}",
             color,
         )
@@ -572,14 +626,15 @@ class PipelineProgressReporter:
         if token_multiplier > 1:
             retry_notes.append(f"max tokens x{token_multiplier}")
         retry_note = ", " + ", ".join(retry_notes) if retry_notes else ""
-        with self.lock:
-            self.current_detail = f"{agent_key} LLM attempt {attempt}/{total}"
-        if attempt > 1 or retry_note:
-            self.log(
-                f"      LLM attempt {attempt}/{total}: {agent_key} started "
-                f"(timeout {timeout}s, max={max_tokens}{retry_note})",
-                Console.DIM,
-            )
+        sample_id = str(event.get("sample_id", ""))
+        stage = int(event.get("stage", 0) or 0)
+        self.attempt_started_at[(sample_id, stage, str(agent_key), attempt)] = time.perf_counter()
+        self.current_detail = f"{agent_key} LLM attempt {attempt}/{total}"
+        self.log(
+            f"      LLM attempt {attempt}/{total}: {agent_key} started "
+            f"(timeout {timeout}s, max={max_tokens}{retry_note})",
+            Console.DIM,
+        )
 
     def print_llm_attempt_done(self, event: dict[str, Any]) -> None:
         attempt = int(event.get("attempt", 1))
@@ -589,16 +644,20 @@ class PipelineProgressReporter:
         failed = bool(errors)
         color = Console.YELLOW if failed else Console.GREEN
         status = "retry needed" if failed else "valid"
-        with self.lock:
-            self.current_detail = f"{agent_key} LLM attempt {attempt}/{total} {status}"
-        if failed:
-            first_error = str(errors[0]) if errors else "validation failed"
-            self.log(
-                f"      LLM attempt {attempt}/{total}: {agent_key} retry needed "
-                f"{format_token_usage(event.get('token_usage'))}"
-                f"{format_token_limit(event.get('max_tokens'))}; {first_error}",
-                color,
-            )
+        sample_id = str(event.get("sample_id", ""))
+        stage = int(event.get("stage", 0) or 0)
+        started = self.attempt_started_at.get((sample_id, stage, str(agent_key), attempt))
+        duration = time.perf_counter() - started if started is not None else None
+        self.current_detail = f"{agent_key} LLM attempt {attempt}/{total} {status}"
+        first_error = str(errors[0]) if errors else ""
+        error_text = f"; {first_error}" if first_error else ""
+        self.log(
+            f"      LLM attempt {attempt}/{total}: {agent_key} {status} "
+            f"{format_token_usage(event.get('token_usage'))}"
+            f"{format_token_limit(event.get('max_tokens'))}"
+            f"{format_elapsed_suffix(duration)}{error_text}",
+            color,
+        )
 
     def log_stage_info(
         self,
@@ -619,33 +678,6 @@ class PipelineProgressReporter:
         ]
         self.log("  ".join(part for part in parts if part), color)
 
-    def render_loop(self) -> None:
-        while not self.stop_event.wait(0.25):
-            with self.lock:
-                if self.live_paused:
-                    continue
-            self.render_live_line()
-
-    def render_live_line(self) -> None:
-        with self.lock:
-            line = self.live_line()
-            self.spinner_index += 1
-            self.write_live_line_locked(line)
-
-    def live_line(self) -> str:
-        total_units = self.total_units()
-        completed = min(self.completed, total_units)
-        elapsed = time.perf_counter() - self.started
-        bar = progress_bar(completed, total_units, width=36)
-        label = self.running_label()
-        sample_text = f"sample {self.current_sample_index}/{self.current_sample_total}"
-        if self.current_sample_id:
-            sample_text += f" {self.current_sample_id}"
-        return (
-            f"Running {label} [{bar}] {completed}/{total_units} "
-            f"{format_duration(elapsed)}  {sample_text}  {self.current_detail}"
-        )
-
     def running_label(self) -> str:
         if not self.current_stage:
             return "pipeline"
@@ -653,82 +685,89 @@ class PipelineProgressReporter:
         return label.replace("Stage ", "stage ", 1)
 
     def refresh_progress(self) -> None:
-        if self.tqdm_bar is None:
+        elapsed = time.perf_counter() - self.started
+        if self.tqdm_bar is not None:
+            sample_text = f"sample {self.current_sample_index}/{self.current_sample_total}"
+            if self.current_sample_id:
+                sample_text += f" {self.current_sample_id}"
+            self.tqdm_bar.set_postfix_str(
+                f"{sample_text} | {self.current_detail} | elapsed {format_duration(elapsed)}",
+                refresh=True,
+            )
             return
-        with self.lock:
-            total_units = self.total_units()
-            if self.tqdm_bar.total != total_units:
-                self.tqdm_bar.total = total_units
-            self.tqdm_bar.n = min(self.completed, total_units)
-            self.tqdm_bar.set_description_str(f"Running {self.running_label()}")
-            self.tqdm_bar.refresh()
+        if self.rich_progress is not None and self.rich_task is not None:
+            completed = min(self.completed, self.sample_total)
+            sample_text = f"sample {self.current_sample_index}/{self.current_sample_total}"
+            if self.current_sample_id:
+                sample_text += f" {self.current_sample_id}"
+            self.rich_progress.update(
+                self.rich_task,
+                total=self.sample_total,
+                completed=completed,
+                description=f"Running {self.running_label()}",
+                sample=sample_text,
+                detail=self.current_detail,
+            )
+            return
+        return
 
-    def write_live_line_locked(self, line: str) -> None:
-        width = max(terminal_width() - 1, 40)
-        rendered = line[:width].ljust(max(self.last_live_width, len(line[:width])))
-        sys.stdout.write("\r" + self.console.color(rendered, Console.CYAN))
-        sys.stdout.flush()
-        self.last_live_width = len(rendered)
+    def print_plain_progress(self, elapsed: float) -> None:
+        now = time.perf_counter()
+        if now - self.last_plain_progress_at < 0.25:
+            return
+        self.last_plain_progress_at = now
+        completed = min(self.completed, self.sample_total)
+        width = max(10, min(30, terminal_width() - 80))
+        bar = progress_bar(completed, self.sample_total, width)
+        eta = estimate_eta(elapsed, completed, self.sample_total)
+        eta_text = f" eta={format_duration(eta)}" if 0 < completed < self.sample_total else ""
+        sample_text = f"sample={self.current_sample_index}/{self.current_sample_total}"
+        if self.current_sample_id:
+            sample_text += f" {self.current_sample_id}"
+        self.console.print(
+            f"  progress [{bar}] samples {completed}/{self.sample_total} elapsed={format_duration(elapsed)}{eta_text} "
+            f"{sample_text} {self.current_detail}",
+            Console.DIM,
+        )
 
     def clear_live_line(self) -> None:
-        if self.tqdm_bar is not None:
-            self.tqdm_bar.clear()
-            return
-        if not self.console.enabled:
-            return
-        with self.lock:
-            self.clear_live_line_locked()
+        return
 
     def pause_live(self) -> None:
         if self.tqdm_bar is not None:
-            self.tqdm_bar.clear()
             return
-        if not self.console.enabled:
-            return
-        with self.lock:
-            self.live_paused = True
-            self.clear_live_line_locked()
+        if self.rich_progress is not None:
+            self.rich_progress.stop()
 
     def resume_live(self) -> None:
         if self.tqdm_bar is not None:
-            self.tqdm_bar.refresh()
+            self.refresh_progress()
             return
-        if not self.console.enabled:
-            return
-        with self.lock:
-            self.live_paused = False
-            if not self.stop_event.is_set():
-                self.write_live_line_locked(self.live_line())
-
-    def clear_live_line_locked(self) -> None:
-        if self.last_live_width:
-            sys.stdout.write("\r" + " " * self.last_live_width + "\r")
-            sys.stdout.flush()
-            self.last_live_width = 0
+        if self.rich_progress is not None:
+            self.refresh_progress()
+            self.rich_progress.start()
 
     def log(self, text: str, color: str | None = None) -> None:
-        with self.lock:
-            if self.tqdm_bar is not None:
-                self.tqdm_bar.write(self.console.color(text, color) if color else text)
-                return
-            if self.console.enabled:
-                self.clear_live_line_locked()
-            self.console.print(text, color)
-            if self.console.enabled and not self.stop_event.is_set():
-                self.write_live_line_locked(self.live_line())
+        if self.tqdm_bar is not None:
+            Tqdm.write(self.console.color(text, color) if color else text)
+            return
+        if self.rich_progress is not None:
+            rendered = self.console.color(text, color) if color else text
+            self.rich_progress.console.print(rendered, markup=False)
+            return
+        self.console.print(text, color)
 
     def close(self) -> None:
-        self.stop_event.set()
-        if self.thread is not None:
-            self.thread.join(timeout=1.0)
         if self.tqdm_bar is not None:
             self.refresh_progress()
             self.tqdm_bar.close()
-        else:
-            self.clear_live_line()
+            return
+        if self.rich_progress is not None:
+            self.refresh_progress()
+            self.rich_progress.stop()
 
     def total_units(self) -> int:
-        return max(self.sample_total * self.estimated_units_per_sample(), self.completed, 1)
+        return max(self.sample_total, self.completed, 1)
 
     def estimated_units_per_sample(self) -> int:
         stages = [self.target_stage] if self.exact_stage else range(1, self.target_stage + 1)
@@ -738,8 +777,6 @@ class PipelineProgressReporter:
                 total += 4
             elif stage in {2, 3}:
                 total += 1
-            elif stage == 4:
-                total += max(self.stage4_units_estimate, 1)
         return max(total, 1)
 
 
@@ -747,7 +784,7 @@ def print_stage_preview(console: Console, pipeline: VulSORPipeline, sample: dict
     sample_id = sample["sample_id"]
     output_path = pipeline._stage_file_for_number(sample_id, stage)
     print(f"  output: {output_path}")
-    if stage != 4 or not record:
+    if stage != 3 or not record:
         print_pipeline_token_usage(pipeline, sample, stage, current_record=record)
         print_status(console, pipeline, [sample])
         return
@@ -764,15 +801,37 @@ def print_stage_preview(console: Console, pipeline: VulSORPipeline, sample: dict
     errors = len(diagnostics.get("errors", []))
     quality_gate = record.get("quality_gate", {})
 
-    prediction_color = Console.RED if violation == 1 else Console.GREEN
+    evidence_status = output.get("evidence_status")
+    if prediction == "InsufficientEvidence" or evidence_status == "insufficient":
+        prediction_color = Console.YELLOW
+    else:
+        prediction_color = Console.RED if violation == 1 else Console.GREEN
     correctness_color = Console.GREEN if correct is True else Console.RED if correct is False else Console.YELLOW
-    print(f"  verdict: {quality_gate.get('status', 'unknown')}  predict={console.color(str(prediction).lower(), prediction_color)}  violation={violation}")
+    evidence_text = f"  evidence={evidence_status}" if evidence_status else ""
+    print(
+        f"  verdict: {quality_gate.get('status', 'unknown')}  "
+        f"predict={console.color(str(prediction).lower(), prediction_color)}  "
+        f"violation={violation}{evidence_text}"
+    )
     print(f"  ground_truth: {format_ground_truth(ground_truth)}")
     print(f"  correct: {console.color(str(correct), correctness_color)}")
+    if output.get("best_effort_binary_prediction") is not None:
+        print(
+            "  best_effort: "
+            f"prediction={output.get('best_effort_binary_prediction')}, "
+            f"correct={output.get('best_effort_correct')}"
+        )
     violated_ids = output.get("violated_obligation_ids", [])
     if violated_ids:
         print(f"  violated_obligation_ids: {violated_ids}")
-    print(f"  diagnostics: obligations={quality_gate.get('adjudication_count', 0)}, warnings={warnings}, missing={missing}, conflicts={conflicts}, errors={errors}")
+    evaluation = output.get("evaluation_diagnostics", {})
+    eval_text = ""
+    if evaluation:
+        eval_text = (
+            f", diagnostic={evaluation.get('diagnostic_label', 'unknown')}"
+            f", failure_stage={evaluation.get('failure_stage', 'unknown')}"
+        )
+    print(f"  diagnostics: obligations={quality_gate.get('adjudication_count', 0)}, warnings={warnings}, missing={missing}, conflicts={conflicts}, errors={errors}{eval_text}")
     print_pipeline_token_usage(pipeline, sample, stage, current_record=record)
 
 
@@ -840,6 +899,8 @@ def format_token_usage(token_usage: Any, include_label: bool = True) -> str:
     input_tokens = int(token_usage.get("input_tokens", 0) or 0)
     output_tokens = int(token_usage.get("output_tokens", 0) or 0)
     total_tokens = int(token_usage.get("total_tokens", 0) or 0)
+    if total_tokens == 0:
+        total_tokens = input_tokens + output_tokens
     prefix = "tokens " if include_label else ""
     return f"{prefix}input={input_tokens}, output={output_tokens}, total={total_tokens}"
 
@@ -901,6 +962,10 @@ def format_duration(seconds: float | None) -> str:
     return f"{minutes:02d}:{secs:02d}"
 
 
+def format_elapsed_suffix(seconds: float | None) -> str:
+    return f"  elapsed={format_duration(seconds)}" if seconds is not None else ""
+
+
 def pause() -> None:
     input("Press Enter to return to the menu...")
 
@@ -910,12 +975,12 @@ def main() -> None:
     parser.add_argument("--split", default="test", choices=["train", "valid", "test"])
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--samples", default=None, help="Sample selection: all, random:N, 3-50, 1,2,3, or sample IDs.")
-    parser.add_argument("--stage", type=int, choices=[1, 2, 3, 4], default=4, help="Run pipeline up to this stage.")
-    parser.add_argument("--only-stage", type=int, choices=[1, 2, 3, 4], default=None, help="Run only this stage; previous outputs must exist.")
+    parser.add_argument("--stage", type=int, choices=[1, 2, 3], default=3, help="Run pipeline up to this stage.")
+    parser.add_argument("--only-stage", type=int, choices=[1, 2, 3], default=None, help="Run only this stage; previous outputs must exist.")
     parser.add_argument("--interactive", action="store_true", help="Open the guided CLI menu.")
-    parser.add_argument("--dry-run", action="store_true", help="Render prompts without calling OpenRouter.")
+    parser.add_argument("--dry-run", action="store_true", help="Render prompts without calling the configured LLM provider.")
     parser.add_argument("--use-llm", action="store_true", help="Call the configured LLM API. This is the default unless --dry-run is set.")
-    parser.add_argument("--api-key", default=None, help="OpenRouter API key for this run. Prefer OPENROUTER_API_KEY for shell history safety.")
+    parser.add_argument("--api-key", default=None, help="DeepSeek API key for this run. Prefer DEEPSEEK_API_KEY for shell history safety.")
     parser.add_argument("--overwrite", action="store_true", help="Clear this split's stage outputs before running.")
     args = parser.parse_args()
 
@@ -926,7 +991,7 @@ def main() -> None:
         return
 
     if args.api_key:
-        os.environ["OPENROUTER_API_KEY"] = normalize_api_key(args.api_key)
+        os.environ["DEEPSEEK_API_KEY"] = normalize_api_key(args.api_key)
     dry_run = args.dry_run and not args.use_llm
     pipeline = VulSORPipeline(
         project_root=project_root,
@@ -952,6 +1017,7 @@ def main() -> None:
         if args.only_stage is not None:
             try:
                 for index, sample in enumerate(samples, start=1):
+                    print_sample_separator(index - 1)
                     progress.log(f"Sample {index}/{total}: {sample['sample_id']} [{STAGE_LABELS[args.only_stage]}]", Console.CYAN)
                     record = pipeline.run_exact_stage(
                         sample,
@@ -968,6 +1034,7 @@ def main() -> None:
         else:
             try:
                 for index, sample in enumerate(samples, start=1):
+                    print_sample_separator(index - 1)
                     progress.log(f"Sample {index}/{total}: {sample['sample_id']} [{STAGE_LABELS[args.stage]}]", Console.CYAN)
                     record = pipeline.run_sample(
                         sample,
