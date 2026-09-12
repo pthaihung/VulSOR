@@ -1,2 +1,2 @@
 @echo off
-python "D:\VulB\main.py" %*
+python "%~dp0..\..\main.py" %*

@@ -16,9 +16,9 @@ class PipelineMetricsTests(unittest.TestCase):
             labels.write_text(
                 "\n".join(
                     [
-                        json.dumps({"sample_id": "s1", "target": 1}),
-                        json.dumps({"sample_id": "s2", "target": 0}),
-                        json.dumps({"sample_id": "s3", "target": 1}),
+                        json.dumps({"sample_id": "s1", "pair_id": "p1", "target": 1}),
+                        json.dumps({"sample_id": "s2", "pair_id": "p1", "target": 0}),
+                        json.dumps({"sample_id": "s3", "pair_id": "p2", "target": 1}),
                     ]
                 ),
                 encoding="utf-8",
@@ -32,6 +32,10 @@ class PipelineMetricsTests(unittest.TestCase):
             self.assertEqual(3, result["evaluation"]["expected_samples"])
             self.assertEqual(3, result["evaluation"]["selective"]["evaluated_samples"])
             self.assertEqual(1.0, result["evaluation"]["selective"]["accuracy"])
+            self.assertEqual(0.0, result["evaluation"]["selective"]["fpr"])
+            self.assertEqual(1.0, result["evaluation"]["pairwise"]["pairwise_correct"])
+            self.assertEqual(0.0, result["evaluation"]["pairwise"]["pairwise_reversed"])
+            self.assertEqual(1.0, result["evaluation"]["pairwise"]["vulnerability_pairwise_score"])
             self.assertEqual(1.0, result["evaluation"]["coverage"])
             self.assertEqual(0, result["evaluation"]["abstention_count"])
             self.assertEqual(3, result["pipeline"]["operation_count"])
@@ -43,6 +47,9 @@ class PipelineMetricsTests(unittest.TestCase):
             self.assertEqual(3, result["pipeline"]["tri_state_stage3_artifact_count"])
             self.assertEqual(0, result["pipeline"]["legacy_or_invalid_stage3_artifact_count"])
             self.assertEqual(30, result["tokens"]["total_tokens"])
+            self.assertEqual(10, result["tokens"]["average_total_tokens_per_sample"])
+            self.assertEqual(0, result["tokens"]["average_input_tokens_per_sample"])
+            self.assertEqual(0, result["tokens"]["average_output_tokens_per_sample"])
 
     def test_excludes_missing_or_mismatched_decision_contracts_from_binary_metrics(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

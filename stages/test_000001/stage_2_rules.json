@@ -1,196 +1,180 @@
 {
   "sample_id": "test_000001",
+  "schema_version": "semantic-claims-v4.13",
   "stage": "rules",
   "agent_key": "obligation_reasoner",
   "output": {
     "rules": [
       {
-        "id": "obligation_1",
-        "cluster_id": "cluster_1",
-        "operation_id": "op_1",
-        "coverage_category": "out-of-bounds",
-        "safety_requirement": "must ensure that buffer+length and MaxTextExtent-length describe a valid writable range before FormatLocaleString writes to it",
-        "applicable_condition": "when FormatLocaleString is called with buffer+length and MaxTextExtent-length inside the component loop",
-        "link_confidence": "strong",
-        "evidence_refs": [
-          "operation_agent.operations[0]",
-          "execution_agent.records[0]",
-          "value_agent.records[0]",
-          "value_agent.records[1]"
+        "locations": [
+          "L535",
+          "L537",
+          "L539",
+          "L541",
+          "L543",
+          "L545"
         ],
-        "note": "Loop and arithmetic facts link the write offset and remaining size to the buffer."
+        "expression": "ReadPropertyByte(&exif,&length)",
+        "requirements": [
+          "The exif pointer must designate a readable byte within the EXIF profile buffer before each byte is read.",
+          "The remaining length must be greater than zero before each byte is read."
+        ]
       },
       {
-        "id": "obligation_2",
-        "cluster_id": "cluster_2",
-        "operation_id": "op_2",
-        "coverage_category": "out-of-bounds",
-        "safety_requirement": "must ensure p1+size remains within the allocated buffer before advancing p1",
-        "applicable_condition": "when p1+=size is executed after the length >= MaxTextExtent-1 guard",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[1]",
-          "execution_agent.records[1]",
-          "value_agent.records[2]",
-          "value_agent.records[3]"
+        "locations": [
+          "L551"
         ],
-        "note": "The guard concerns length, while the pointer advance uses size."
+        "expression": "ReadPropertySignedShort(LSBEndian,exif)",
+        "requirements": [
+          "The exif pointer must designate a readable range of at least two bytes within the EXIF profile buffer."
+        ]
       },
       {
-        "id": "obligation_3",
-        "cluster_id": "cluster_3",
-        "operation_id": "op_3",
-        "coverage_category": "out-of-bounds",
-        "safety_requirement": "must ensure length-2 is a valid index into buffer before writing buffer[length-2]",
-        "applicable_condition": "when length > 1 and buffer[length-2] is assigned",
-        "link_confidence": "strong",
-        "evidence_refs": [
-          "operation_agent.operations[2]",
-          "execution_agent.records[2]",
-          "value_agent.records[3]"
+        "locations": [
+          "L560"
         ],
-        "note": "The length > 1 guard is linked to the indexed write."
+        "expression": "ReadPropertyUnsignedShort(endian,exif+2)",
+        "requirements": [
+          "The address exif+2 must designate a readable range of at least two bytes within the EXIF profile buffer."
+        ]
       },
       {
-        "id": "obligation_4",
-        "cluster_id": "cluster_4",
-        "operation_id": "op_4",
-        "coverage_category": "unchecked-api-failure",
-        "safety_requirement": "must ensure ReadPropertyByte has enough remaining EXIF data before reading and advancing exif",
-        "applicable_condition": "when the while length != 0 loop calls ReadPropertyByte(&exif,&length)",
-        "link_confidence": "strong",
-        "evidence_refs": [
-          "operation_agent.operations[3]",
-          "execution_agent.records[5]",
-          "execution_agent.records[6]",
-          "state_agent.records[3]"
+        "locations": [
+          "L565"
         ],
-        "note": "The loop condition and continue guard are linked to the read operation."
+        "expression": "ReadPropertySignedLong(endian,exif+4)",
+        "requirements": [
+          "The address exif+4 must designate a readable range of at least four bytes within the EXIF profile buffer."
+        ]
       },
       {
-        "id": "obligation_5",
-        "cluster_id": "cluster_5",
-        "operation_id": "op_5",
-        "coverage_category": "out-of-bounds",
-        "safety_requirement": "must ensure exif+4 is within the EXIF data before ReadPropertySignedLong reads from it",
-        "applicable_condition": "when ReadPropertySignedLong(endian,exif+4) is evaluated",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[4]",
-          "state_agent.records[4]",
-          "value_agent.records[8]",
-          "execution_agent.records[10]"
+        "locations": [
+          "L595"
         ],
-        "note": "The later offset guard does not guard the read at exif+4."
+        "expression": "ReadPropertyUnsignedShort(endian,directory)",
+        "requirements": [
+          "The directory pointer must designate a readable range of at least two bytes within the EXIF profile buffer."
+        ]
       },
       {
-        "id": "obligation_6",
-        "cluster_id": "cluster_6",
-        "operation_id": "op_6",
-        "coverage_category": "out-of-bounds",
-        "safety_requirement": "must ensure directory points to enough EXIF data before ReadPropertyUnsignedShort reads from it",
-        "applicable_condition": "when ReadPropertyUnsignedShort(endian,directory) is evaluated",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[5]",
-          "state_agent.records[5]",
-          "state_agent.records[6]"
+        "locations": [
+          "L615"
         ],
-        "note": "directory is derived from exif+offset, but no bound check is linked to this read."
+        "expression": "ReadPropertyUnsignedShort(endian,q)",
+        "requirements": [
+          "The q pointer must designate a readable range of at least two bytes within the EXIF profile buffer."
+        ]
       },
       {
-        "id": "obligation_7",
-        "cluster_id": "cluster_7",
-        "operation_id": "op_7",
-        "coverage_category": "out-of-bounds",
-        "safety_requirement": "must ensure directory+(12*entry)+2 remains within the EXIF data before q is formed and used",
-        "applicable_condition": "when entry < number_entries and q is assigned from directory+(12*entry)+2",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[6]",
-          "execution_agent.records[13]",
-          "state_agent.records[7]",
-          "state_agent.records[8]"
+        "locations": [
+          "L616"
         ],
-        "note": "The loop bound and splay-tree check are linked, but no EXIF-size bound is shown."
+        "expression": "ReadPropertyUnsignedShort(endian,q+2)",
+        "requirements": [
+          "The address q+2 must designate a readable range of at least two bytes within the EXIF profile buffer."
+        ]
       },
       {
-        "id": "obligation_8",
-        "cluster_id": "cluster_8",
-        "operation_id": "op_8",
-        "coverage_category": "integer-overflow",
-        "safety_requirement": "must ensure components*tag_bytes[format] does not overflow size_t before number_bytes is used for allocation or copying",
-        "applicable_condition": "when number_bytes=(size_t) components*tag_bytes[format] is computed",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[7]",
-          "state_agent.records[10]",
-          "state_agent.records[4]",
-          "state_agent.records[5]"
+        "locations": [
+          "L621"
         ],
-        "note": "The multiplication result feeds later allocation and copy operations."
+        "expression": "ReadPropertySignedLong(endian,q+4)",
+        "requirements": [
+          "The address q+4 must designate a readable range of at least four bytes within the EXIF profile buffer."
+        ]
       },
       {
-        "id": "obligation_9",
-        "cluster_id": "cluster_9",
-        "operation_id": "op_9",
-        "coverage_category": "out-of-bounds",
-        "safety_requirement": "must ensure exif+dir_offset remains within the EXIF data before p is formed and dereferenced",
-        "applicable_condition": "when p=(unsigned char *)(exif+dir_offset) is evaluated",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[8]",
-          "state_agent.records[11]",
-          "state_agent.records[4]",
-          "state_agent.records[5]"
+        "locations": [
+          "L624"
         ],
-        "note": "dir_offset is derived from EXIF data without a linked bound check."
+        "expression": "tag_bytes[format]",
+        "requirements": [
+          "The format value must be within the valid index range of the tag_bytes array."
+        ]
       },
       {
-        "id": "obligation_10",
-        "cluster_id": "cluster_10",
-        "operation_id": "op_10",
-        "coverage_category": "unchecked-api-failure",
-        "safety_requirement": "must ensure the result of AcquireQuantumMemory((size_t)number_bytes+1UL,...) is checked for null before value is used",
-        "applicable_condition": "when value is assigned from AcquireQuantumMemory",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[9]",
-          "state_agent.records[13]",
-          "state_agent.records[10]"
+        "locations": [
+          "L637"
         ],
-        "note": "The allocation result is linked to number_bytes and later use."
+        "expression": "ReadPropertySignedLong(endian,q+8)",
+        "requirements": [
+          "The address q+8 must designate a readable range of at least four bytes within the EXIF profile buffer."
+        ]
       },
       {
-        "id": "obligation_11",
-        "cluster_id": "cluster_11",
-        "operation_id": "op_11",
-        "coverage_category": "out-of-bounds",
-        "safety_requirement": "must ensure p1 points to at least one readable byte before dereferencing *(signed char *)p1",
-        "applicable_condition": "when (double)(*(signed char *)p1) is evaluated",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[10]",
-          "state_agent.records[7]",
-          "state_agent.records[8]",
-          "state_agent.records[11]"
+        "locations": [
+          "L670",
+          "L747"
         ],
-        "note": "p1 is linked to q and p, but no bound check for this dereference is shown."
+        "expression": "p[i]",
+        "requirements": [
+          "The address p+i must designate a readable byte within the EXIF profile buffer."
+        ]
       },
       {
-        "id": "obligation_12",
-        "cluster_id": "cluster_12",
-        "operation_id": "op_12",
-        "coverage_category": "out-of-bounds",
-        "safety_requirement": "must ensure p points to enough EXIF data before ReadPropertySignedLong(endian,p) reads from it",
-        "applicable_condition": "when offset=(ssize_t)ReadPropertySignedLong(endian,p) is evaluated",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[11]",
-          "state_agent.records[15]",
-          "state_agent.records[14]"
+        "locations": [
+          "L679"
         ],
-        "note": "The linked cleanup fact does not guard the read from p."
+        "expression": "*(signed char *) p1",
+        "requirements": [
+          "The p1 pointer must designate a readable byte within the EXIF profile buffer."
+        ]
+      },
+      {
+        "locations": [
+          "L684"
+        ],
+        "expression": "ReadPropertySignedShort(endian,p1)",
+        "requirements": [
+          "The p1 pointer must designate a readable range of at least two bytes within the EXIF profile buffer."
+        ]
+      },
+      {
+        "locations": [
+          "L689"
+        ],
+        "expression": "ReadPropertyUnsignedShort(endian,p1)",
+        "requirements": [
+          "The p1 pointer must designate a readable range of at least two bytes within the EXIF profile buffer."
+        ]
+      },
+      {
+        "locations": [
+          "L695",
+          "L707"
+        ],
+        "expression": "ReadPropertyUnsignedLong(endian,p1)",
+        "requirements": [
+          "The p1 pointer must designate a readable range of at least four bytes within the EXIF profile buffer."
+        ]
+      },
+      {
+        "locations": [
+          "L720",
+          "L726"
+        ],
+        "expression": "ReadPropertySignedLong(endian,p1)",
+        "requirements": [
+          "The p1 pointer must designate a readable range of at least four bytes within the EXIF profile buffer."
+        ]
+      },
+      {
+        "locations": [
+          "L827"
+        ],
+        "expression": "ReadPropertySignedLong(endian,p)",
+        "requirements": [
+          "The p pointer must designate a readable range of at least four bytes within the EXIF profile buffer."
+        ]
+      },
+      {
+        "locations": [
+          "L854"
+        ],
+        "expression": "ReadPropertySignedLong(endian,directory+2+(12*number_entries))",
+        "requirements": [
+          "The address directory+2+(12*number_entries) must designate a readable range of at least four bytes within the EXIF profile buffer."
+        ]
       }
     ]
   },
@@ -199,24 +183,43 @@
     "attempts": [
       {
         "attempt": 1,
+        "retry_mode": "initial",
         "errors": [],
         "token_usage": {
-          "input_tokens": 4888,
-          "output_tokens": 1731,
-          "total_tokens": 6619
+          "input_tokens": 6019,
+          "output_tokens": 866,
+          "total_tokens": 6885
         },
-        "max_tokens": 8192
+        "max_tokens": 8192,
+        "serialization_prefix_recovered": false
       }
     ],
     "token_usage": {
-      "input_tokens": 4888,
-      "output_tokens": 1731,
-      "total_tokens": 6619
+      "input_tokens": 6019,
+      "output_tokens": 866,
+      "total_tokens": 6885
+    },
+    "safety_relevance_filter": {
+      "input_operation_groups": 18,
+      "kept_obligations": 18,
+      "filtered_non_safety_candidates": 0
     }
   },
   "token_usage": {
-    "input_tokens": 4888,
-    "output_tokens": 1731,
-    "total_tokens": 6619
+    "input_tokens": 6019,
+    "output_tokens": 866,
+    "total_tokens": 6885
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "rules",
+    "sample_id": "test_000001",
+    "split": "test",
+    "source_hash": "bb82458bd3eaf9db3243170666c06071e2e9c31970b85bdeace273e92c5dba29",
+    "upstream_hashes": {
+      "semantic_model": "486e6648279c066b6796dfe98def731bd0e709a432e160b0c9f3e8b719883bd3"
+    },
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
   }
 }

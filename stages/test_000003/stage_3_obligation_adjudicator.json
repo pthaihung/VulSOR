@@ -1,5 +1,7 @@
 {
   "sample_id": "test_000003",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "obligation_adjudicator",
   "agent_key": "obligation_adjudicator",
   "ground_truth": {
     "sample_id": "test_000003",
@@ -12,325 +14,110 @@
     ]
   },
   "output": {
-    "adjudications": [
+    "assessments": [
+      "satisfied",
+      "violated",
+      "violated",
+      "violated",
+      "satisfied"
+    ],
+    "obligation_count": 5,
+    "requirement_count": 7,
+    "violation": 1,
+    "binary_prediction": 1,
+    "label": "Vulnerable",
+    "decision": "Vulnerable",
+    "decision_basis": "violated_obligation",
+    "triggering_obligations": [
       {
-        "rule": {
-          "id": "obligation_1",
-          "cluster_id": "cluster_2",
-          "operation_id": "op_2",
-          "coverage_category": "unchecked-api-failure",
-          "safety_requirement": "GetAuthenticPixels must return a non-NULL pointer before q is dereferenced or used as a valid pixel buffer",
-          "applicable_condition": "always",
-          "link_confidence": "weak",
-          "evidence_refs": [
-            "operation_agent.operations[1]",
-            "state_agent.records[1]",
-            "state_agent.records[2]"
-          ],
-          "note": "Allocation result q is checked for NULL at line 28; rule captures the required non-NULL property for later use."
-        },
-        "output": {
-          "obligation_id": "obligation_1",
-          "violation": 0,
-          "refs": [
-            "operation_agent.operations[1]",
-            "state_agent.records[1]",
-            "state_agent.records[2]"
-          ]
-        }
+        "index": 1,
+        "locations": [
+          "L35"
+        ],
+        "expression": "*p++",
+        "requirements": [
+          "p must designate a readable byte within the pixel storage region"
+        ]
       },
       {
-        "rule": {
-          "id": "obligation_2",
-          "cluster_id": "cluster_3",
-          "operation_id": "op_3",
-          "coverage_category": "null-deref",
-          "safety_requirement": "q must be non-NULL on paths where q is dereferenced or passed to SetPSDPixel",
-          "applicable_condition": "q is used after the NULL check at line 28",
-          "link_confidence": "strong",
-          "evidence_refs": [
-            "operation_agent.operations[2]",
-            "state_agent.records[1]",
-            "state_agent.records[2]"
-          ],
-          "note": "Guard exists; obligation records the required non-NULL property for downstream uses."
-        },
-        "output": {
-          "obligation_id": "obligation_2",
-          "violation": 0,
-          "refs": [
-            "operation_agent.operations[2]",
-            "state_agent.records[1]",
-            "state_agent.records[2]"
-          ]
-        }
+        "index": 2,
+        "locations": [
+          "L39"
+        ],
+        "expression": "PushShortPixel(MSBEndian,p,&nibble)",
+        "requirements": [
+          "p must designate a readable 2-byte big-endian short within the pixel storage region"
+        ]
       },
       {
-        "rule": {
-          "id": "obligation_3",
-          "cluster_id": "cluster_4",
-          "operation_id": "op_4",
-          "coverage_category": "unchecked-api-failure",
-          "safety_requirement": "GetAuthenticIndexQueue must return a valid index queue pointer before indexes is used",
-          "applicable_condition": "always",
-          "link_confidence": "weak",
-          "evidence_refs": [
-            "operation_agent.operations[3]",
-            "state_agent.records[3]"
-          ],
-          "note": "Index queue allocation result is assigned without a nearby NULL check in the cluster."
-        },
-        "output": {
-          "obligation_id": "obligation_3",
-          "violation": 0,
-          "refs": [
-            "operation_agent.operations[3]",
-            "state_agent.records[3]"
-          ]
-        }
-      },
-      {
-        "rule": {
-          "id": "obligation_4",
-          "cluster_id": "cluster_6",
-          "operation_id": "op_6",
-          "coverage_category": "out-of-bounds",
-          "safety_requirement": "p must point within the allocated pixel buffer when dereferenced as *p++",
-          "applicable_condition": "packet_size == 1",
-          "link_confidence": "strong",
-          "evidence_refs": [
-            "operation_agent.operations[5]",
-            "execution_agent.records[2]",
-            "state_agent.records[5]"
-          ],
-          "note": "Pointer p is incremented and dereferenced under the packet_size==1 branch."
-        },
-        "output": {
-          "obligation_id": "obligation_4",
-          "violation": 0,
-          "refs": [
-            "operation_agent.operations[5]",
-            "execution_agent.records[2]",
-            "state_agent.records[5]"
-          ]
-        }
-      },
-      {
-        "rule": {
-          "id": "obligation_5",
-          "cluster_id": "cluster_7",
-          "operation_id": "op_7",
-          "coverage_category": "out-of-bounds",
-          "safety_requirement": "p must point within the allocated pixel buffer when passed to PushFloatPixel",
-          "applicable_condition": "always",
-          "link_confidence": "weak",
-          "evidence_refs": [
-            "operation_agent.operations[6]",
-            "state_agent.records[7]"
-          ],
-          "note": "PushFloatPixel writes through p; buffer bounds are not established in the cluster."
-        },
-        "output": {
-          "obligation_id": "obligation_5",
-          "violation": 0,
-          "refs": [
-            "operation_agent.operations[6]",
-            "state_agent.records[7]"
-          ]
-        }
-      },
-      {
-        "rule": {
-          "id": "obligation_6",
-          "cluster_id": "cluster_9",
-          "operation_id": "op_9",
-          "coverage_category": "out-of-bounds",
-          "safety_requirement": "q and indexes must point within their allocated buffers when passed to SetPSDPixel",
-          "applicable_condition": "image->depth > 1",
-          "link_confidence": "strong",
-          "evidence_refs": [
-            "operation_agent.operations[8]",
-            "execution_agent.records[4]",
-            "state_agent.records[8]",
-            "state_agent.records[9]"
-          ],
-          "note": "SetPSDPixel receives q and indexes under the depth>1 branch; q is incremented afterward."
-        },
-        "output": {
-          "obligation_id": "obligation_6",
-          "violation": 0,
-          "refs": [
-            "operation_agent.operations[8]",
-            "execution_agent.records[4]",
-            "state_agent.records[8]",
-            "state_agent.records[9]"
-          ]
-        }
-      },
-      {
-        "rule": {
-          "id": "obligation_7",
-          "cluster_id": "cluster_10",
-          "operation_id": "op_10",
-          "coverage_category": "integer-overflow",
-          "safety_requirement": "image->columns - x must not underflow or overflow when cast to ssize_t",
-          "applicable_condition": "always",
-          "link_confidence": "weak",
-          "evidence_refs": [
-            "operation_agent.operations[9]",
-            "state_agent.records[10]"
-          ],
-          "note": "number_bits is computed as image->columns-x and cast to ssize_t."
-        },
-        "output": {
-          "obligation_id": "obligation_7",
-          "violation": 0,
-          "refs": [
-            "operation_agent.operations[9]",
-            "state_agent.records[10]"
-          ]
-        }
-      },
-      {
-        "rule": {
-          "id": "obligation_8",
-          "cluster_id": "cluster_11",
-          "operation_id": "op_11",
-          "coverage_category": "out-of-bounds",
-          "safety_requirement": "q must point within the allocated pixel buffer when written via q++",
-          "applicable_condition": "always",
-          "link_confidence": "weak",
-          "evidence_refs": [
-            "operation_agent.operations[10]",
-            "state_agent.records[11]",
-            "state_agent.records[12]"
-          ],
-          "note": "q is incremented at line 68; bounds relative to the allocated buffer are not established."
-        },
-        "output": {
-          "obligation_id": "obligation_8",
-          "violation": 0,
-          "refs": [
-            "operation_agent.operations[10]",
-            "state_agent.records[11]",
-            "state_agent.records[12]"
-          ]
-        }
-      },
-      {
-        "rule": {
-          "id": "obligation_9",
-          "cluster_id": "cluster_12",
-          "operation_id": "op_12",
-          "coverage_category": "out-of-bounds",
-          "safety_requirement": "q and indexes must point within their allocated buffers when incremented via q++ and indexes++",
-          "applicable_condition": "always",
-          "link_confidence": "weak",
-          "evidence_refs": [
-            "operation_agent.operations[11]",
-            "state_agent.records[11]",
-            "state_agent.records[12]"
-          ],
-          "note": "Post-increment of q and indexes at line 68 requires valid buffer bounds."
-        },
-        "output": {
-          "obligation_id": "obligation_9",
-          "violation": 0,
-          "refs": [
-            "operation_agent.operations[11]",
-            "state_agent.records[11]",
-            "state_agent.records[12]"
-          ]
-        }
+        "index": 3,
+        "locations": [
+          "L47"
+        ],
+        "expression": "PushFloatPixel(MSBEndian,p,&nibble)",
+        "requirements": [
+          "p must designate a readable big-endian float within the pixel storage region"
+        ]
       }
     ],
-    "violation": 0,
-    "binary_prediction": 0,
-    "best_effort_binary_prediction": 0,
-    "label": "Benign",
-    "verdict_confidence": "normal",
-    "evidence_status": "adequate",
-    "input_quality": {
-      "status": "adequate",
-      "function_name": "ReadPSDChannelPixels",
-      "reasons": [],
-      "operation_count": 12,
-      "concrete_operation_count": 12,
-      "unresolved_operation_count": 0,
-      "semantic_record_count": 49
+    "correct": false,
+    "analysis_failure": false,
+    "analysis_failure_reasons": [],
+    "assessment_counts": {
+      "satisfied": 2,
+      "violated": 3
     },
-    "ground_truth": {
-      "sample_id": "test_000003",
-      "pair_id": "test_000001",
-      "target": 0,
-      "label": "benign",
-      "cve": "CVE-2022-32545",
-      "cwe": [
-        "CWE-190"
-      ]
-    },
-    "correct": true,
-    "best_effort_correct": true,
-    "evaluation_diagnostics": {
-      "diagnostic_label": "correct",
-      "failure_stage": "none",
-      "reason": "Binary prediction matches ground truth with adequate evidence status.",
-      "ground_truth_used_only_for_evaluation": true
-    },
-    "aggregation_rule": "Vulnerable iff at least one obligation has violation=1. Otherwise Benign. Missing or ambiguous evidence is ignored for the binary label and tracked only in diagnostics.",
-    "violated_obligation_ids": []
+    "aggregation_rule": "Any violated obligation -> Vulnerable; otherwise all obligations are satisfied -> Benign."
   },
   "quality_gate": {
     "status": "passed",
-    "adjudication_count": 9,
     "adjudicator": {
       "status": "passed",
       "attempts": [
         {
           "attempt": 1,
+          "retry_mode": "initial",
           "errors": [],
           "token_usage": {
-            "input_tokens": 3476,
-            "output_tokens": 423,
-            "total_tokens": 3899
+            "input_tokens": 3423,
+            "output_tokens": 18,
+            "total_tokens": 3441
           },
-          "max_tokens": 1024
+          "max_tokens": 1024,
+          "serialization_prefix_recovered": false
         }
       ],
       "token_usage": {
-        "input_tokens": 3476,
-        "output_tokens": 423,
-        "total_tokens": 3899
+        "input_tokens": 3423,
+        "output_tokens": 18,
+        "total_tokens": 3441
       }
     }
   },
   "token_usage": {
-    "input_tokens": 3476,
-    "output_tokens": 423,
-    "total_tokens": 3899
+    "input_tokens": 3423,
+    "output_tokens": 18,
+    "total_tokens": 3441
   },
   "pipeline_diagnostics": {
     "errors": [],
-    "warnings": [],
-    "missing_information": [],
-    "conflicts": [],
     "stage_status": {
       "Stage 1": "passed",
       "Stage 2": "passed",
       "Stage 3": "passed"
-    },
-    "input_quality": {
-      "status": "adequate",
-      "function_name": "ReadPSDChannelPixels",
-      "reasons": [],
-      "operation_count": 12,
-      "concrete_operation_count": 12,
-      "unresolved_operation_count": 0,
-      "semantic_record_count": 49
-    },
-    "evidence_status": {
-      "status": "adequate",
-      "reasons": []
     }
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "obligation_adjudicator",
+    "sample_id": "test_000003",
+    "split": "test",
+    "source_hash": "94918d9af06c176e1c30392f38a49cfacadc045eeb0b813d741a6d4a592ce528",
+    "upstream_hashes": {
+      "semantic_model": "a407ba9a8bd792d4415c522ec3cecd7634a9535ad11ede01cc08df8bf8d433ff",
+      "rules": "053fe305314a57e4166bac7f7e847dcdf4d70a7352625943bac0eb0872596ad3"
+    },
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
   }
 }

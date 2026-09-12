@@ -34,14 +34,14 @@ CWE_CATEGORY_MAP = {
 def main() -> None:
     parser = argparse.ArgumentParser(description="Check Stage 2 obligation coverage against ground-truth CWE families.")
     parser.add_argument("--project-root", default=".", help="Repository root containing data/, config/, and stages/.")
-    parser.add_argument("--stage-root", default=None, help="Artifact directory; defaults to stages/semantic-v2.")
+    parser.add_argument("--stage-root", default=None, help="Artifact directory; defaults to stages.")
     parser.add_argument("--split", default="test", choices=["train", "valid", "test"])
     parser.add_argument("--limit", type=int, default=None)
     args = parser.parse_args()
 
     root = Path(args.project_root).resolve()
     label_path = root / "data" / "PrimeVul_clean" / "labels" / f"{args.split}.jsonl"
-    stage_root = Path(args.stage_root) if args.stage_root is not None else root / "stages" / "semantic-v2"
+    stage_root = Path(args.stage_root) if args.stage_root is not None else root / "stages"
     if not stage_root.is_absolute():
         stage_root = root / stage_root
     labels = list(read_jsonl(label_path))

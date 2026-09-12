@@ -31,6 +31,15 @@ except ImportError:  # pragma: no cover - tqdm is optional
     Tqdm = None
 
 
+RUN_PIPELINE_LABEL = "run-pipeline"
+
+
+def sample_run_label(stage: int, *, exact_stage: bool) -> str:
+    if exact_stage:
+        return STAGE_LABELS[stage]
+    return RUN_PIPELINE_LABEL
+
+
 class Console:
     RESET = "\033[0m"
     DIM = "\033[90m"
@@ -106,10 +115,18 @@ def run_interactive(project_root: Path) -> None:
         console,
         "Overwrite selected split outputs",
         default=False,
-        yes_help_text="Clear previous stage outputs for this split and the LLM response cache first.",
+        yes_help_text="Clear previous stage outputs for this split before running.",
         no_help_text="Keep existing stage outputs and reuse them when applicable.",
     )
-    pipeline = VulSORPipeline(project_root=project_root, split=split, dry_run=dry_run, overwrite=overwrite)
+    cache_policy = choose_cache_policy(console) if use_llm else "disabled"
+    pipeline = VulSORPipeline(
+        project_root=project_root,
+        split=split,
+        dry_run=dry_run,
+        overwrite=overwrite,
+        no_cache=(cache_policy == "disabled"),
+        refresh_cache=(cache_policy == "refresh"),
+    )
     console.print(f"Selected dataset: {dataset}", Console.DIM)
 
     while True:
@@ -218,6 +235,20 @@ def choose_bool(
         allow_custom=False,
     )
     return value == "yes"
+
+
+def choose_cache_policy(console: Console) -> str:
+    return choose_option(
+        console,
+        title="LLM cache",
+        options=[
+            ("use", "default", "Reuse existing LLM responses and save new responses."),
+            ("disabled", "suggestion", "Do not read or write the LLM response cache."),
+            ("refresh", "suggestion", "Clear existing LLM responses first, then save new responses."),
+        ],
+        default="use",
+        allow_custom=False,
+    )
 
 
 def prompt_api_key(console: Console) -> None:
@@ -391,7 +422,12 @@ def inspect_samples(console: Console, pipeline: VulSORPipeline, samples: list[di
         print_status(console, pipeline, [sample])
 
 
-def print_status(console: Console, pipeline: VulSORPipeline, samples: list[dict[str, Any]]) -> None:
+def print_status(
+    console: Console,
+    pipeline: VulSORPipeline,
+    samples: list[dict[str, Any]],
+    summary: SummaryRecorder | None = None,
+) -> None:
     for index, sample in enumerate(samples):
         print_sample_separator(index)
         sample_id = sample["sample_id"]
@@ -405,22 +441,104 @@ def print_status(console: Console, pipeline: VulSORPipeline, samples: list[dict[
             else:
                 color = Console.DIM
             rendered.append(console.color(f"S{stage}:{state}", color))
-        print(f"  {sample_id}  " + "  ".join(rendered))
+        print_output(f"  {sample_id}  " + "  ".join(rendered), summary)
 
 
-def print_sample_separator(index: int) -> None:
+class SummaryRecorder:
+    def __init__(self, path: Path, project_root: Path) -> None:
+        self.path = path
+        self.project_root = project_root
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.write_text("", encoding="utf-8")
+
+    @classmethod
+    def create(
+        cls,
+        project_root: Path,
+        *,
+        split: str,
+        stage: int,
+        exact_stage: bool,
+    ) -> "SummaryRecorder":
+        mode = "only-stage" if exact_stage else RUN_PIPELINE_LABEL
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        suffix = f"{mode}-{stage}" if exact_stage else mode
+        path = project_root / "stages" / "summary" / f"{timestamp}_{split}_{suffix}.txt"
+        return cls(path, project_root)
+
+    def write_line(self, text: str = "") -> None:
+        with self.path.open("a", encoding="utf-8", newline="\n") as handle:
+            handle.write(text + "\n")
+
+    def display_path(self) -> str:
+        return repo_relative_path(self.path, self.project_root)
+
+
+def repo_relative_path(path: Path, project_root: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(project_root.resolve()))
+    except ValueError:
+        return str(path)
+
+
+def print_output(text: str = "", summary: SummaryRecorder | None = None) -> None:
+    print(text)
+    if summary is not None:
+        summary.write_line(text)
+
+
+def write_metrics_summary(
+    console: Console,
+    pipeline: VulSORPipeline,
+    samples: list[dict[str, Any]],
+    summary: SummaryRecorder | None = None,
+) -> None:
+    try:
+        from scripts.eval_pipeline_metrics import evaluate_pipeline, write_summary_artifacts
+
+        labels_path = pipeline.project_root / "data" / "PrimeVul_clean" / "labels" / f"{pipeline.split}.jsonl"
+        context_path = pipeline.project_root / "data" / "build_context" / "context_clean" / f"{pipeline.split}.jsonl"
+        sample_ids = {str(sample["sample_id"]) for sample in samples}
+        result = evaluate_pipeline(
+            labels_path,
+            pipeline.stage_root,
+            context_path=context_path,
+            project_root=pipeline.project_root,
+            sample_ids=sample_ids,
+        )
+        written, _ = write_summary_artifacts(
+            pipeline.project_root / "stages" / "summary",
+            pipeline.split,
+            result,
+            [],
+            pipeline.project_root,
+        )
+    except (FileNotFoundError, RuntimeError, ValueError) as exc:
+        print_output(f"Metrics summary skipped: {exc}", summary)
+        return
+
+    markdown_paths = [path for path in written if path.suffix == ".md"]
+    json_paths = [path for path in written if path.suffix == ".json"]
+    if markdown_paths:
+        print_output(f"Metrics markdown saved: {repo_relative_path(markdown_paths[0], pipeline.project_root)}", summary)
+    if json_paths:
+        print_output(f"Metrics JSON saved: {repo_relative_path(json_paths[0], pipeline.project_root)}", summary)
+
+
+def print_sample_separator(index: int, summary: SummaryRecorder | None = None) -> None:
     if index > 0:
-        print()
+        print_output(summary=summary)
 
 
 def run_samples_to_stage(console: Console, pipeline: VulSORPipeline, samples: list[dict[str, Any]], stage: int) -> None:
     total = len(samples)
     started = time.perf_counter()
-    progress = PipelineProgressReporter(console, total, stage, started, exact_stage=False)
+    summary = SummaryRecorder.create(pipeline.project_root, split=pipeline.split, stage=stage, exact_stage=False)
+    progress = PipelineProgressReporter(console, total, stage, started, exact_stage=False, summary=summary)
     try:
         for index, sample in enumerate(samples, start=1):
-            print_sample_separator(index - 1)
-            progress.log(f"Sample {index}/{total}: {sample['sample_id']} [{STAGE_LABELS[stage]}]", Console.CYAN)
+            print_sample_separator(index - 1, summary)
+            progress.log(f"Sample {index}/{total}: {sample['sample_id']} [{sample_run_label(stage, exact_stage=False)}]", Console.CYAN)
             record = pipeline.run_sample(
                 sample,
                 up_to_stage=stage,
@@ -428,21 +546,26 @@ def run_samples_to_stage(console: Console, pipeline: VulSORPipeline, samples: li
             )
             progress.pause_live()
             try:
-                print_stage_preview(console, pipeline, sample, stage, record)
+                print_stage_preview(console, pipeline, sample, stage, record, summary)
             finally:
                 progress.resume_live()
     finally:
         progress.close()
+    saved_text = f"Summary saved: {summary.display_path()}"
+    console.print(saved_text, Console.DIM)
+    summary.write_line(saved_text)
+    write_metrics_summary(console, pipeline, samples, summary)
 
 
 def run_samples_exact_stage(console: Console, pipeline: VulSORPipeline, samples: list[dict[str, Any]], stage: int) -> None:
     total = len(samples)
     started = time.perf_counter()
-    progress = PipelineProgressReporter(console, total, stage, started, exact_stage=True)
+    summary = SummaryRecorder.create(pipeline.project_root, split=pipeline.split, stage=stage, exact_stage=True)
+    progress = PipelineProgressReporter(console, total, stage, started, exact_stage=True, summary=summary)
     try:
         for index, sample in enumerate(samples, start=1):
-            print_sample_separator(index - 1)
-            progress.log(f"Sample {index}/{total}: {sample['sample_id']} [{STAGE_LABELS[stage]}]", Console.CYAN)
+            print_sample_separator(index - 1, summary)
+            progress.log(f"Sample {index}/{total}: {sample['sample_id']} [{sample_run_label(stage, exact_stage=True)}]", Console.CYAN)
             record = pipeline.run_exact_stage(
                 sample,
                 stage,
@@ -450,11 +573,15 @@ def run_samples_exact_stage(console: Console, pipeline: VulSORPipeline, samples:
             )
             progress.pause_live()
             try:
-                print_stage_preview(console, pipeline, sample, stage, record)
+                print_stage_preview(console, pipeline, sample, stage, record, summary)
             finally:
                 progress.resume_live()
     finally:
         progress.close()
+    saved_text = f"Summary saved: {summary.display_path()}"
+    console.print(saved_text, Console.DIM)
+    summary.write_line(saved_text)
+    write_metrics_summary(console, pipeline, samples, summary)
 
 
 class PipelineProgressReporter:
@@ -465,12 +592,14 @@ class PipelineProgressReporter:
         target_stage: int,
         started: float,
         exact_stage: bool,
+        summary: SummaryRecorder | None = None,
     ) -> None:
         self.console = console
         self.sample_total = sample_total
         self.target_stage = target_stage
         self.started = started
         self.exact_stage = exact_stage
+        self.summary = summary
         self.completed = 0
         self.current_sample_index = 0
         self.current_sample_total = sample_total
@@ -748,14 +877,20 @@ class PipelineProgressReporter:
             self.rich_progress.start()
 
     def log(self, text: str, color: str | None = None) -> None:
+        rendered = self.console.color(text, color) if color else text
         if self.tqdm_bar is not None:
-            Tqdm.write(self.console.color(text, color) if color else text)
+            Tqdm.write(rendered)
+            if self.summary is not None:
+                self.summary.write_line(rendered)
             return
         if self.rich_progress is not None:
-            rendered = self.console.color(text, color) if color else text
             self.rich_progress.console.print(rendered, markup=False)
+            if self.summary is not None:
+                self.summary.write_line(rendered)
             return
         self.console.print(text, color)
+        if self.summary is not None:
+            self.summary.write_line(rendered)
 
     def close(self) -> None:
         if self.tqdm_bar is not None:
@@ -780,13 +915,20 @@ class PipelineProgressReporter:
         return max(total, 1)
 
 
-def print_stage_preview(console: Console, pipeline: VulSORPipeline, sample: dict[str, Any], stage: int, record: dict[str, Any] | None) -> None:
+def print_stage_preview(
+    console: Console,
+    pipeline: VulSORPipeline,
+    sample: dict[str, Any],
+    stage: int,
+    record: dict[str, Any] | None,
+    summary: SummaryRecorder | None = None,
+) -> None:
     sample_id = sample["sample_id"]
     output_path = pipeline._stage_file_for_number(sample_id, stage)
-    print(f"  output: {output_path}")
+    print_output(f"  output: {repo_relative_path(output_path, pipeline.project_root)}", summary)
     if stage != 3 or not record:
-        print_pipeline_token_usage(pipeline, sample, stage, current_record=record)
-        print_status(console, pipeline, [sample])
+        print_pipeline_token_usage(pipeline, sample, stage, current_record=record, summary=summary)
+        print_status(console, pipeline, [sample], summary=summary)
         return
 
     output = record.get("output", {})
@@ -810,22 +952,23 @@ def print_stage_preview(console: Console, pipeline: VulSORPipeline, sample: dict
         prediction_color = Console.RED if violation == 1 else Console.GREEN
     correctness_color = Console.GREEN if correct is True else Console.RED if correct is False else Console.YELLOW
     evidence_text = f"  evidence={evidence_status}" if evidence_status else ""
-    print(
+    print_output(
         f"  verdict: {quality_gate.get('status', 'unknown')}  "
         f"predict={console.color(str(prediction).lower(), prediction_color)}  "
-        f"violation={violation}{evidence_text}"
+        f"violation={violation}{evidence_text}",
+        summary,
     )
-    print(f"  ground_truth: {format_ground_truth(ground_truth)}")
-    print(f"  correct: {console.color(str(correct), correctness_color)}")
+    print_output(f"  ground_truth: {format_ground_truth(ground_truth)}", summary)
+    print_output(f"  correct: {console.color(str(correct), correctness_color)}", summary)
     basis = output.get("decision_basis")
     triggering = output.get("triggering_obligations", [])
     if basis:
-        print(f"  decision_basis: {basis}, triggering_obligations={triggering}")
+        print_output(f"  decision_basis: {basis}, triggering_obligations={triggering}", summary)
     if output.get("analysis_failure"):
-        print(f"  analysis_failure_reasons: {output.get('analysis_failure_reasons', [])}")
+        print_output(f"  analysis_failure_reasons: {output.get('analysis_failure_reasons', [])}", summary)
     violated_ids = output.get("violated_obligation_ids", [])
     if violated_ids:
-        print(f"  violated_obligation_ids: {violated_ids}")
+        print_output(f"  violated_obligation_ids: {violated_ids}", summary)
     evaluation = output.get("evaluation_diagnostics", {})
     eval_text = ""
     if evaluation:
@@ -833,8 +976,8 @@ def print_stage_preview(console: Console, pipeline: VulSORPipeline, sample: dict
             f", diagnostic={evaluation.get('diagnostic_label', 'unknown')}"
             f", failure_stage={evaluation.get('failure_stage', 'unknown')}"
         )
-    print(f"  diagnostics: obligations={quality_gate.get('adjudication_count', 0)}, warnings={warnings}, missing={missing}, conflicts={conflicts}, errors={errors}{eval_text}")
-    print_pipeline_token_usage(pipeline, sample, stage, current_record=record)
+    print_output(f"  diagnostics: obligations={quality_gate.get('adjudication_count', 0)}, warnings={warnings}, missing={missing}, conflicts={conflicts}, errors={errors}{eval_text}", summary)
+    print_pipeline_token_usage(pipeline, sample, stage, current_record=record, summary=summary)
 
 
 def print_pipeline_token_usage(
@@ -842,15 +985,16 @@ def print_pipeline_token_usage(
     sample: dict[str, Any],
     stage: int,
     current_record: dict[str, Any] | None = None,
+    summary: SummaryRecorder | None = None,
 ) -> None:
     stage_usages = stage_token_usages(pipeline, sample["sample_id"], stage, current_record=current_record)
     if not stage_usages:
         return
-    print("  tokens by stage:")
+    print_output("  tokens by stage:", summary)
     for stage_number, usage in stage_usages:
-        print(f"    stage {stage_number}: {format_token_usage(usage, include_label=False)}")
+        print_output(f"    stage {stage_number}: {format_token_usage(usage, include_label=False)}", summary)
     total = sum_token_usages([usage for _, usage in stage_usages])
-    print(f"  tokens total: {format_token_usage(total, include_label=False)}")
+    print_output(f"  tokens total: {format_token_usage(total, include_label=False)}", summary)
 
 
 def stage_token_usages(
@@ -984,7 +1128,9 @@ def main() -> None:
     parser.add_argument("--use-llm", action="store_true", help="Call the configured LLM API. This is the default unless --dry-run is set.")
     parser.add_argument("--api-key", default=None, help="DeepSeek API key for this run. Prefer DEEPSEEK_API_KEY for shell history safety.")
     parser.add_argument("--overwrite", action="store_true", help="Clear this split's stage outputs before running.")
-    parser.add_argument("--output-root", type=Path, default=None, help="Artifact directory; defaults to stages/semantic-v2.")
+    parser.add_argument("--no-cache", action="store_true", help="Do not read or write the LLM response cache for this run.")
+    parser.add_argument("--refresh-cache", action="store_true", help="Clear the LLM response cache before running, then save new responses.")
+    parser.add_argument("--output-root", type=Path, default=None, help="Artifact directory; defaults to stages.")
     args = parser.parse_args()
 
     project_root = Path(__file__).resolve().parents[2]
@@ -996,11 +1142,15 @@ def main() -> None:
     if args.api_key:
         os.environ["DEEPSEEK_API_KEY"] = normalize_api_key(args.api_key)
     dry_run = args.dry_run and not args.use_llm
+    if args.no_cache and args.refresh_cache:
+        raise SystemExit("Choose either --no-cache or --refresh-cache, not both.")
     pipeline = VulSORPipeline(
         project_root=project_root,
         split=args.split,
         dry_run=dry_run,
         overwrite=args.overwrite,
+        no_cache=args.no_cache,
+        refresh_cache=args.refresh_cache,
         output_root=(args.output_root if args.output_root and args.output_root.is_absolute() else project_root / args.output_root) if args.output_root else None,
     )
     samples = pipeline.load_samples(limit=args.limit)
@@ -1011,18 +1161,25 @@ def main() -> None:
         console = Console()
         started = time.perf_counter()
         total = len(samples)
+        summary = SummaryRecorder.create(
+            project_root,
+            split=args.split,
+            stage=args.only_stage if args.only_stage is not None else args.stage,
+            exact_stage=args.only_stage is not None,
+        )
         progress = PipelineProgressReporter(
             console,
             total,
             args.only_stage if args.only_stage is not None else args.stage,
             started,
             exact_stage=args.only_stage is not None,
+            summary=summary,
         )
         if args.only_stage is not None:
             try:
                 for index, sample in enumerate(samples, start=1):
-                    print_sample_separator(index - 1)
-                    progress.log(f"Sample {index}/{total}: {sample['sample_id']} [{STAGE_LABELS[args.only_stage]}]", Console.CYAN)
+                    print_sample_separator(index - 1, summary)
+                    progress.log(f"Sample {index}/{total}: {sample['sample_id']} [{sample_run_label(args.only_stage, exact_stage=True)}]", Console.CYAN)
                     record = pipeline.run_exact_stage(
                         sample,
                         args.only_stage,
@@ -1030,7 +1187,7 @@ def main() -> None:
                     )
                     progress.pause_live()
                     try:
-                        print_stage_preview(console, pipeline, sample, args.only_stage, record)
+                        print_stage_preview(console, pipeline, sample, args.only_stage, record, summary)
                     finally:
                         progress.resume_live()
             finally:
@@ -1038,8 +1195,8 @@ def main() -> None:
         else:
             try:
                 for index, sample in enumerate(samples, start=1):
-                    print_sample_separator(index - 1)
-                    progress.log(f"Sample {index}/{total}: {sample['sample_id']} [{STAGE_LABELS[args.stage]}]", Console.CYAN)
+                    print_sample_separator(index - 1, summary)
+                    progress.log(f"Sample {index}/{total}: {sample['sample_id']} [{sample_run_label(args.stage, exact_stage=False)}]", Console.CYAN)
                     record = pipeline.run_sample(
                         sample,
                         up_to_stage=args.stage,
@@ -1047,11 +1204,15 @@ def main() -> None:
                     )
                     progress.pause_live()
                     try:
-                        print_stage_preview(console, pipeline, sample, args.stage, record)
+                        print_stage_preview(console, pipeline, sample, args.stage, record, summary)
                     finally:
                         progress.resume_live()
             finally:
                 progress.close()
+        saved_text = f"Summary saved: {summary.display_path()}"
+        console.print(saved_text, Console.DIM)
+        summary.write_line(saved_text)
+        write_metrics_summary(console, pipeline, samples, summary)
     except (FileNotFoundError, RuntimeError, ValueError) as exc:
         print(f"Cannot run pipeline: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc

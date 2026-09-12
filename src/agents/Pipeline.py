@@ -74,6 +74,8 @@ class VulSORPipeline:
         split: str = "test",
         dry_run: bool = False,
         overwrite: bool = False,
+        no_cache: bool = False,
+        refresh_cache: bool = False,
         output_root: Path | None = None,
     ) -> None:
         self.project_root = project_root
@@ -82,6 +84,7 @@ class VulSORPipeline:
         self.datasets_config = load_yaml(project_root / "config" / "datasets.yml")
         self.agents_config = load_yaml(project_root / "config" / "agents.yml")
         self._labels_by_sample_id: dict[str, dict[str, Any]] | None = None
+        self._contexts_by_sample_id: dict[str, dict[str, Any]] | None = None
 
         provider = dict(self.agents_config.get("provider", {}))
         cache_config = dict(provider.get("cache", {}) or {})
@@ -101,10 +104,16 @@ class VulSORPipeline:
         )
         self.agents = self._build_agents()
         self.pipeline_fingerprint = self._compute_pipeline_fingerprint()
-        self.stage_root = output_root or project_root / "stages" / "semantic-v4"
+        self.stage_root = output_root or project_root / "stages"
         self._ensure_stage_dirs()
+        if no_cache and refresh_cache:
+            raise ValueError("Choose either no_cache or refresh_cache, not both.")
         if overwrite:
             self._clear_split_outputs()
+        if refresh_cache:
+            self._clear_llm_cache()
+        if no_cache:
+            self._disable_llm_cache()
 
     def run(self, limit: int | None = None) -> None:
         self.run_samples(self.load_samples(limit=limit), up_to_stage=3)
@@ -667,9 +676,15 @@ class VulSORPipeline:
 
     def load_samples(self, limit: int | None = None) -> list[dict[str, Any]]:
         samples = []
+        contexts = self.load_contexts()
         for index, sample in enumerate(read_jsonl(self._input_file())):
             if limit is not None and index >= limit:
                 break
+            sample_context = contexts.get(str(sample.get("sample_id")))
+            if sample_context is not None:
+                sample = dict(sample)
+                sample["context"] = sample_context.get("context")
+                sample["context_record"] = sample_context
             samples.append(sample)
         return samples
 
@@ -847,6 +862,18 @@ class VulSORPipeline:
             elif sample_dir.is_file():
                 sample_dir.unlink()
 
+    def _clear_llm_cache(self) -> None:
+        cache_dir = getattr(self.llm_client, "cache_dir", None)
+        if isinstance(cache_dir, Path) and cache_dir.exists():
+            if cache_dir.is_dir():
+                shutil.rmtree(cache_dir)
+            else:
+                cache_dir.unlink()
+
+    def _disable_llm_cache(self) -> None:
+        if hasattr(self.llm_client, "cache_enabled"):
+            self.llm_client.cache_enabled = False
+
     def _input_file(self) -> Path:
         active_dataset = self.datasets_config["defaults"]["active_dataset"]
         split_config = self.datasets_config["datasets"][active_dataset]["splits"][
@@ -861,6 +888,14 @@ class VulSORPipeline:
         )
         label_file = split_config.get("label_file")
         return self.project_root / label_file if label_file else None
+
+    def _context_file(self) -> Path | None:
+        active_dataset = self.datasets_config["defaults"]["active_dataset"]
+        split_config = self.datasets_config["datasets"][active_dataset]["splits"].get(
+            self.split, {}
+        )
+        context_file = split_config.get("context_file")
+        return self.project_root / context_file if context_file else None
 
     def load_labels(self) -> dict[str, dict[str, Any]]:
         if self._labels_by_sample_id is not None:
@@ -883,6 +918,19 @@ class VulSORPipeline:
                     }
         self._labels_by_sample_id = labels
         return labels
+
+    def load_contexts(self) -> dict[str, dict[str, Any]]:
+        if self._contexts_by_sample_id is not None:
+            return self._contexts_by_sample_id
+        contexts: dict[str, dict[str, Any]] = {}
+        context_path = self._context_file()
+        if context_path is not None and context_path.exists():
+            for context_record in read_jsonl(context_path):
+                sample_id = context_record.get("sample_id")
+                if sample_id:
+                    contexts[str(sample_id)] = context_record
+        self._contexts_by_sample_id = contexts
+        return contexts
 
     def ground_truth_for_sample(self, sample_id: str) -> dict[str, Any] | None:
         return self.load_labels().get(sample_id)
@@ -1429,6 +1477,8 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument("--no-cache", action="store_true")
+    parser.add_argument("--refresh-cache", action="store_true")
     parser.add_argument("--output-root", type=Path, default=None)
     args = parser.parse_args()
 
@@ -1438,6 +1488,8 @@ def main() -> None:
         split=args.split,
         dry_run=args.dry_run,
         overwrite=args.overwrite,
+        no_cache=args.no_cache,
+        refresh_cache=args.refresh_cache,
         output_root=(
             (
                 args.output_root

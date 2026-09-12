@@ -122,7 +122,6 @@ class OpenAICompatibleClient:
         if not isinstance(raw, dict) or not is_cacheable_response(raw):
             return None
         cached_raw = dict(raw)
-        cached_raw["usage"] = zero_token_usage()
         cached_raw["cached"] = True
         return cached_raw
 

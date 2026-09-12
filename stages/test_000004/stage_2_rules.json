@@ -1,184 +1,192 @@
 {
   "sample_id": "test_000004",
+  "schema_version": "semantic-claims-v4.13",
   "stage": "rules",
   "agent_key": "obligation_reasoner",
   "output": {
     "rules": [
       {
-        "id": "obligation_1",
-        "cluster_id": "cluster_1",
-        "operation_id": "op_1",
-        "coverage_category": "unchecked-api-failure",
-        "safety_requirement": "the result of absl::make_unique must be checked for null before being dereferenced or stored as a valid pointer",
-        "applicable_condition": "always",
-        "link_confidence": "strong",
-        "evidence_refs": [
-          "operation_agent.operations[0]",
-          "execution_agent.records[2]",
-          "state_agent.records[0]"
+        "locations": [
+          "L12"
         ],
-        "note": "make_unique allocation result is used to assign EnsureFrameInfo(it)->nodes without a null check."
+        "expression": "frame_info_[\"\"]",
+        "requirements": [
+          "the key \"\" must exist in frame_info_ so that the returned FrameInfo pointer is valid"
+        ]
       },
       {
-        "id": "obligation_2",
-        "cluster_id": "cluster_2",
-        "operation_id": "op_2",
-        "coverage_category": "null-deref",
-        "safety_requirement": "frame_info_[\"\"] must be non-null before .get() is called on it",
-        "applicable_condition": "always",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[1]",
-          "state_agent.records[1]"
+        "locations": [
+          "L40"
         ],
-        "note": "frame_info_[\"\"] is dereferenced via .get() to assign root_frame_info_."
+        "expression": "cf_info.frame_names[id]",
+        "requirements": [
+          "the index id must be within the valid readable extent of cf_info.frame_names"
+        ]
       },
       {
-        "id": "obligation_3",
-        "cluster_id": "cluster_3",
-        "operation_id": "op_3",
-        "coverage_category": "integer-overflow",
-        "safety_requirement": "gview_.num_nodes() must not exceed the maximum size representable by pending_ids_ or cause resize to overflow",
-        "applicable_condition": "always",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[2]",
-          "state_agent.records[2]"
+        "locations": [
+          "L43"
         ],
-        "note": "pending_ids_.resize(gview_.num_nodes()) uses a size that may be attacker-influenced."
+        "expression": "gview_.node(id)",
+        "requirements": [
+          "the node id must designate a node that exists in gview_"
+        ]
       },
       {
-        "id": "obligation_4",
-        "cluster_id": "cluster_4",
-        "operation_id": "op_4",
-        "coverage_category": "out-of-bounds",
-        "safety_requirement": "id must be a valid index into cf_info.frame_names before frame_names[id] is accessed",
-        "applicable_condition": "always",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[3]",
-          "state_agent.records[3]",
-          "execution_agent.records[5]"
+        "locations": [
+          "L47"
         ],
-        "note": "cf_info.frame_names[id] is indexed by id without a visible bounds check."
+        "expression": "frame_info->total_inputs += n->num_inputs()",
+        "requirements": [
+          "frame_info must point to a live FrameInfo object"
+        ]
       },
       {
-        "id": "obligation_5",
-        "cluster_id": "cluster_5",
-        "operation_id": "op_5",
-        "coverage_category": "null-deref",
-        "safety_requirement": "gview_.node(id) must return a non-null pointer before item is dereferenced",
-        "applicable_condition": "always",
-        "link_confidence": "strong",
-        "evidence_refs": [
-          "operation_agent.operations[4]",
-          "state_agent.records[4]",
-          "execution_agent.records[10]"
+        "locations": [
+          "L49"
         ],
-        "note": "gview_.node(id) result is assigned to item and later dereferenced."
+        "expression": "params_.create_kernel(n->properties(), &item->kernel)",
+        "requirements": [
+          "item must point to a live NodeItem object whose kernel member is writable"
+        ]
       },
       {
-        "id": "obligation_6",
-        "cluster_id": "cluster_6",
-        "operation_id": "op_6",
-        "coverage_category": "integer-overflow",
-        "safety_requirement": "frame_info->total_inputs must not overflow when adding n->num_inputs()",
-        "applicable_condition": "always",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[5]",
-          "state_agent.records[5]"
+        "locations": [
+          "L55"
         ],
-        "note": "frame_info->total_inputs += n->num_inputs() may overflow."
+        "expression": "CHECK(item->kernel)",
+        "requirements": [
+          "item->kernel must be non-null"
+        ]
       },
       {
-        "id": "obligation_7",
-        "cluster_id": "cluster_7",
-        "operation_id": "op_7",
-        "coverage_category": "unchecked-api-failure",
-        "safety_requirement": "params_.create_kernel must be checked for failure before item->kernel is used",
-        "applicable_condition": "always",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[6]",
-          "state_agent.records[6]",
-          "state_agent.records[7]"
+        "locations": [
+          "L56"
         ],
-        "note": "create_kernel result is stored in item->kernel and set to nullptr on failure, but no check is shown before use."
+        "expression": "item->kernel->AsAsync()",
+        "requirements": [
+          "item->kernel must point to a live kernel object"
+        ]
       },
       {
-        "id": "obligation_8",
-        "cluster_id": "cluster_8",
-        "operation_id": "op_8",
-        "coverage_category": "null-deref",
-        "safety_requirement": "frame_info_[frame_name].get() must return a non-null pointer before frame_info is dereferenced",
-        "applicable_condition": "item->is_enter is true",
-        "link_confidence": "strong",
-        "evidence_refs": [
-          "operation_agent.operations[7]",
-          "execution_agent.records[14]",
-          "state_agent.records[9]"
+        "locations": [
+          "L65"
         ],
-        "note": "frame_info_[frame_name].get() is assigned to frame_info and later dereferenced."
+        "expression": "item->kernel->const_tensor()",
+        "requirements": [
+          "item->kernel must point to a live kernel object"
+        ]
       },
       {
-        "id": "obligation_9",
-        "cluster_id": "cluster_9",
-        "operation_id": "op_9",
-        "coverage_category": "integer-overflow",
-        "safety_requirement": "id + 1 must not overflow when passed to enter_frame_info_.resize",
-        "applicable_condition": "enter_frame_info_.size() <= id",
-        "link_confidence": "strong",
-        "evidence_refs": [
-          "operation_agent.operations[8]",
-          "execution_agent.records[16]",
-          "state_agent.records[10]"
+        "locations": [
+          "L70"
         ],
-        "note": "enter_frame_info_.resize(id + 1) may overflow if id is near the maximum size."
+        "expression": "const_tensors_.emplace_back(*const_tensor)",
+        "requirements": [
+          "const_tensor must point to a live Tensor object"
+        ]
       },
       {
-        "id": "obligation_10",
-        "cluster_id": "cluster_10",
-        "operation_id": "op_10",
-        "coverage_category": "out-of-bounds",
-        "safety_requirement": "id must be a valid index into pending_ids_ before pending_ids_[id] is accessed",
-        "applicable_condition": "always",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[9]",
-          "execution_agent.records[4]",
-          "state_agent.records[12]"
+        "locations": [
+          "L83"
         ],
-        "note": "pending_ids_[id] is indexed by id without a visible bounds check."
+        "expression": "frame_info_[frame_name].get()",
+        "requirements": [
+          "the key frame_name must exist in frame_info_ so that the returned FrameInfo pointer is valid"
+        ]
       },
       {
-        "id": "obligation_11",
-        "cluster_id": "cluster_11",
-        "operation_id": "op_11",
-        "coverage_category": "unchecked-api-failure",
-        "safety_requirement": "new bool[n->num_outputs()] must not return null before outputs_required is used",
-        "applicable_condition": "always",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[10]",
-          "state_agent.records[13]"
+        "locations": [
+          "L101"
         ],
-        "note": "new bool[n->num_outputs()] allocation result is stored in outputs_required without a null check."
+        "expression": "enter_frame_info_[id] = frame_info",
+        "requirements": [
+          "the index id must be within the valid writable extent of enter_frame_info_"
+        ]
       },
       {
-        "id": "obligation_12",
-        "cluster_id": "cluster_12",
-        "operation_id": "op_12",
-        "coverage_category": "out-of-bounds",
-        "safety_requirement": "e->src_output() must be a valid index into outputs_required before outputs_required[e->src_output()] is accessed",
-        "applicable_condition": "always",
-        "link_confidence": "strong",
-        "evidence_refs": [
-          "operation_agent.operations[11]",
-          "execution_agent.records[18]",
-          "state_agent.records[14]"
+        "locations": [
+          "L122",
+          "L123"
         ],
-        "note": "outputs_required[e->src_output()] is indexed by e->src_output() without a visible bounds check."
+        "expression": "pending_ids_[id] = frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead)",
+        "requirements": [
+          "the index id must be within the valid writable extent of pending_ids_",
+          "frame_info must point to a live FrameInfo object"
+        ]
+      },
+      {
+        "locations": [
+          "L131"
+        ],
+        "expression": "frame_info->nodes->push_back(item)",
+        "requirements": [
+          "frame_info->nodes must point to a live vector of NodeItem pointers"
+        ]
+      },
+      {
+        "locations": [
+          "L139"
+        ],
+        "expression": "new bool[n->num_outputs()]",
+        "requirements": [
+          "n->num_outputs() must be non-negative"
+        ]
+      },
+      {
+        "locations": [
+          "L140"
+        ],
+        "expression": "std::fill(&outputs_required[0], &outputs_required[n->num_outputs()], false)",
+        "requirements": [
+          "the range [outputs_required, outputs_required + n->num_outputs()) must be writable"
+        ]
+      },
+      {
+        "locations": [
+          "L145",
+          "L147"
+        ],
+        "expression": "outputs_required[e->src_output()]",
+        "requirements": [
+          "the index e->src_output() must be within the valid readable and writable extent of outputs_required"
+        ]
+      },
+      {
+        "locations": [
+          "L153"
+        ],
+        "expression": "outputs_required[i]",
+        "requirements": [
+          "the index i must be within the valid readable extent of outputs_required"
+        ]
+      },
+      {
+        "locations": [
+          "L157"
+        ],
+        "expression": "item->outputs_required = std::move(outputs_required)",
+        "requirements": [
+          "item must point to a live NodeItem object whose outputs_required member is writable"
+        ]
+      },
+      {
+        "locations": [
+          "L170"
+        ],
+        "expression": "gview_.node(dst_id)",
+        "requirements": [
+          "the node id dst_id must designate a node that exists in gview_"
+        ]
+      },
+      {
+        "locations": [
+          "L171"
+        ],
+        "expression": "e.input_slot += dst_item->input_start",
+        "requirements": [
+          "dst_item must point to a live NodeItem object"
+        ]
       }
     ]
   },
@@ -187,24 +195,43 @@
     "attempts": [
       {
         "attempt": 1,
+        "retry_mode": "initial",
         "errors": [],
         "token_usage": {
-          "input_tokens": 5168,
-          "output_tokens": 1509,
-          "total_tokens": 6677
+          "input_tokens": 4213,
+          "output_tokens": 868,
+          "total_tokens": 5081
         },
-        "max_tokens": 8192
+        "max_tokens": 8192,
+        "serialization_prefix_recovered": false
       }
     ],
     "token_usage": {
-      "input_tokens": 5168,
-      "output_tokens": 1509,
-      "total_tokens": 6677
+      "input_tokens": 4213,
+      "output_tokens": 868,
+      "total_tokens": 5081
+    },
+    "safety_relevance_filter": {
+      "input_operation_groups": 22,
+      "kept_obligations": 20,
+      "filtered_non_safety_candidates": 2
     }
   },
   "token_usage": {
-    "input_tokens": 5168,
-    "output_tokens": 1509,
-    "total_tokens": 6677
+    "input_tokens": 4213,
+    "output_tokens": 868,
+    "total_tokens": 5081
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "rules",
+    "sample_id": "test_000004",
+    "split": "test",
+    "source_hash": "261979c9b849e65b86e50b51be1dc796dcf51f1efe351f4391f80b90a07d322d",
+    "upstream_hashes": {
+      "semantic_model": "a90163749447ca32e257db79de7623c9eb427f1aa1d22ec307941effda772bdf"
+    },
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
   }
 }

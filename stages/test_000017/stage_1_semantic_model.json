@@ -1,0 +1,1352 @@
+{
+  "sample_id": "test_000017",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L97"
+          ],
+          "expression": "output_indices_t(i, d - 1) = indices(i, d)",
+          "claim": "write to output_indices_t at row i, column d-1 and read from indices at row i, column d"
+        },
+        {
+          "locations": [
+            "L99"
+          ],
+          "expression": "output_values_t(i) = values(i)",
+          "claim": "write to output_values_t at index i and read from values at index i"
+        },
+        {
+          "locations": [
+            "L108"
+          ],
+          "expression": "sparse_handles_t(b) = handle",
+          "claim": "write to sparse_handles_t at index b"
+        },
+        {
+          "locations": [
+            "L126"
+          ],
+          "expression": "sparse_handles_t(b) = handle",
+          "claim": "write to sparse_handles_t at index b"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "input_indices"
+          ],
+          "claim": "input_indices is bound to the tensor named \"sparse_indices\" from the context.",
+          "evidence": "L7: OP_REQUIRES_OK(context, context->input(\"sparse_indices\", &input_indices));"
+        },
+        {
+          "entities": [
+            "input_values"
+          ],
+          "claim": "input_values is bound to the tensor named \"sparse_values\" from the context.",
+          "evidence": "L8: OP_REQUIRES_OK(context, context->input(\"sparse_values\", &input_values));"
+        },
+        {
+          "entities": [
+            "input_shape"
+          ],
+          "claim": "input_shape is bound to the tensor named \"sparse_shape\" from the context.",
+          "evidence": "L9: OP_REQUIRES_OK(context, context->input(\"sparse_shape\", &input_shape));"
+        },
+        {
+          "entities": [
+            "map"
+          ],
+          "claim": "map is bound to the SparseTensorsMap obtained from GetMap with is_writing=true.",
+          "evidence": "L10: OP_REQUIRES_OK(context, GetMap(context, true /* is_writing */, &map));"
+        },
+        {
+          "entities": [
+            "input_shape_vec"
+          ],
+          "claim": "input_shape_vec is a vector view over the storage of input_shape.",
+          "evidence": "L47: auto input_shape_vec = input_shape->vec<int64_t>();"
+        },
+        {
+          "entities": [
+            "tensor_input_shape"
+          ],
+          "claim": "tensor_input_shape is constructed from input_shape_vec via TensorShape::BuildTensorShape.",
+          "evidence": "L49: TensorShape tensor_input_shape;\nL50: OP_REQUIRES_OK(context, TensorShape::BuildTensorShape(input_shape_vec,\nL51: &tensor_input_shape));"
+        },
+        {
+          "entities": [
+            "input_st"
+          ],
+          "claim": "input_st is a SparseTensor created from input_indices, input_values, tensor_input_shape, and std_order.",
+          "evidence": "L54: SparseTensor input_st;\nL55: OP_REQUIRES_OK(context, SparseTensor::Create(*input_indices, *input_values,\nL56: tensor_input_shape, std_order,\nL57: &input_st));"
+        },
+        {
+          "entities": [
+            "sparse_handles"
+          ],
+          "claim": "sparse_handles is a DT_INT64 tensor of shape {N}.",
+          "evidence": "L61: Tensor sparse_handles(DT_INT64, TensorShape({N}));"
+        },
+        {
+          "entities": [
+            "sparse_handles_t"
+          ],
+          "claim": "sparse_handles_t is a vector view over the storage of sparse_handles.",
+          "evidence": "L62: auto sparse_handles_t = sparse_handles.vec<int64_t>();"
+        },
+        {
+          "entities": [
+            "output_shape"
+          ],
+          "claim": "output_shape is constructed from input_shape_vec.data() + 1 with length input_shape->NumElements() - 1.",
+          "evidence": "L68: TensorShape output_shape;\nL69: OP_REQUIRES_OK(context, TensorShapeUtils::MakeShape(\nL70: input_shape_vec.data() + 1,\nL71: input_shape->NumElements() - 1, &output_shape));"
+        },
+        {
+          "entities": [
+            "minibatch"
+          ],
+          "claim": "minibatch is a GroupIterable over input_st grouped by dimension 0.",
+          "evidence": "L75: sparse::GroupIterable minibatch = input_st.group({0});"
+        },
+        {
+          "entities": [
+            "output_indices"
+          ],
+          "claim": "output_indices is a DT_INT64 tensor of shape {num_entries, rank - 1}.",
+          "evidence": "L89: Tensor output_indices = Tensor(DT_INT64, {num_entries, rank - 1});"
+        },
+        {
+          "entities": [
+            "output_values"
+          ],
+          "claim": "output_values is a tensor of DataTypeToEnum<T>::value with shape {num_entries}.",
+          "evidence": "L90: Tensor output_values = Tensor(DataTypeToEnum<T>::value, {num_entries});"
+        },
+        {
+          "entities": [
+            "output_indices_t"
+          ],
+          "claim": "output_indices_t is a matrix view over the storage of output_indices.",
+          "evidence": "L92: auto output_indices_t = output_indices.matrix<int64_t>();"
+        },
+        {
+          "entities": [
+            "output_values_t"
+          ],
+          "claim": "output_values_t is a vector view over the storage of output_values.",
+          "evidence": "L93: auto output_values_t = output_values.vec<T>();"
+        },
+        {
+          "entities": [
+            "st_i"
+          ],
+          "claim": "st_i is a SparseTensor created from output_indices, output_values, and output_shape.",
+          "evidence": "L102: SparseTensor st_i;\nL103: OP_REQUIRES_OK(context,\nL104: SparseTensor::Create(output_indices, output_values,\nL105: output_shape, &st_i));"
+        },
+        {
+          "entities": [
+            "map",
+            "st_i",
+            "handle"
+          ],
+          "claim": "st_i is added to map, producing handle.",
+          "evidence": "L106: int64_t handle;\nL107: OP_REQUIRES_OK(context, map->AddSparseTensor(context, st_i, &handle));"
+        },
+        {
+          "entities": [
+            "sparse_handles_t",
+            "handle"
+          ],
+          "claim": "sparse_handles_t(b) is assigned handle.",
+          "evidence": "L108: sparse_handles_t(b) = handle;"
+        },
+        {
+          "entities": [
+            "empty_indices"
+          ],
+          "claim": "empty_indices is a DT_INT64 tensor of shape {0, rank - 1}.",
+          "evidence": "L114: Tensor empty_indices(DT_INT64, {0, rank - 1});"
+        },
+        {
+          "entities": [
+            "empty_values"
+          ],
+          "claim": "empty_values is a tensor of DataTypeToEnum<T>::value with shape {0}.",
+          "evidence": "L115: Tensor empty_values(DataTypeToEnum<T>::value, {0});"
+        },
+        {
+          "entities": [
+            "empty_st"
+          ],
+          "claim": "empty_st is a SparseTensor created from empty_indices, empty_values, and output_shape.",
+          "evidence": "L116: SparseTensor empty_st;\nL117: OP_REQUIRES_OK(context, SparseTensor::Create(empty_indices, empty_values,\nL118: output_shape, &empty_st));"
+        },
+        {
+          "entities": [
+            "map",
+            "empty_st",
+            "handle"
+          ],
+          "claim": "empty_st is added to map, producing handle.",
+          "evidence": "L123: int64_t handle;\nL124: OP_REQUIRES_OK(context,\nL125: map->AddSparseTensor(context, empty_st, &handle));"
+        },
+        {
+          "entities": [
+            "sparse_handles_t",
+            "handle"
+          ],
+          "claim": "sparse_handles_t(b) is assigned handle for skipped batch entries.",
+          "evidence": "L126: sparse_handles_t(b) = handle;"
+        },
+        {
+          "entities": [
+            "context",
+            "sparse_handles"
+          ],
+          "claim": "sparse_handles is set as output 0 of context.",
+          "evidence": "L131: context->set_output(0, sparse_handles);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "rank",
+            "input_shape->NumElements()"
+          ],
+          "claim": "rank is the number of elements of input_shape, and rank > 1 is required before rank is used as a dimension count.",
+          "evidence": "L40: int rank = input_shape->NumElements();\nL42: OP_REQUIRES(\nL43: context, rank > 1,"
+        },
+        {
+          "entities": [
+            "N",
+            "input_shape_vec(0)"
+          ],
+          "claim": "N is the first element of input_shape_vec and is used as the length of the sparse_handles tensor and as the upper bound for batch index b.",
+          "evidence": "L59: const int64_t N = input_shape_vec(0);\nL61: Tensor sparse_handles(DT_INT64, TensorShape({N}));\nL80: context, b > -1 && b < N,"
+        },
+        {
+          "entities": [
+            "output_shape",
+            "input_shape_vec.data() + 1",
+            "input_shape->NumElements() - 1"
+          ],
+          "claim": "output_shape is built from input_shape_vec starting at offset 1 with length input_shape->NumElements() - 1.",
+          "evidence": "L69: OP_REQUIRES_OK(context, TensorShapeUtils::MakeShape(\nL70: input_shape_vec.data() + 1,\nL71: input_shape->NumElements() - 1, &output_shape));"
+        },
+        {
+          "entities": [
+            "num_entries",
+            "values.size()"
+          ],
+          "claim": "num_entries is the size of the subset values and determines the first dimension of output_indices and the length of output_values.",
+          "evidence": "L87: const int64_t num_entries = values.size();\nL89: Tensor output_indices = Tensor(DT_INT64, {num_entries, rank - 1});\nL90: Tensor output_values = Tensor(DataTypeToEnum<T>::value, {num_entries});"
+        },
+        {
+          "entities": [
+            "output_indices_t",
+            "indices",
+            "rank"
+          ],
+          "claim": "output_indices_t is indexed at (i, d-1) for i in [0, num_entries) and d in [1, rank), matching the allocated shape {num_entries, rank - 1}.",
+          "evidence": "L89: Tensor output_indices = Tensor(DT_INT64, {num_entries, rank - 1});\nL95: for (int i = 0; i < num_entries; ++i) {\nL96: for (int d = 1; d < rank; ++d) {\nL97: output_indices_t(i, d - 1) = indices(i, d);"
+        },
+        {
+          "entities": [
+            "output_values_t",
+            "values",
+            "num_entries"
+          ],
+          "claim": "output_values_t is indexed at i for i in [0, num_entries), matching the allocated length num_entries.",
+          "evidence": "L90: Tensor output_values = Tensor(DataTypeToEnum<T>::value, {num_entries});\nL95: for (int i = 0; i < num_entries; ++i) {\nL99: output_values_t(i) = values(i);"
+        },
+        {
+          "entities": [
+            "sparse_handles_t",
+            "b",
+            "N"
+          ],
+          "claim": "sparse_handles_t is indexed by b, which is constrained to 0 <= b < N, matching the tensor length N.",
+          "evidence": "L61: Tensor sparse_handles(DT_INT64, TensorShape({N}));\nL80: context, b > -1 && b < N,\nL108: sparse_handles_t(b) = handle;"
+        },
+        {
+          "entities": [
+            "empty_indices",
+            "rank"
+          ],
+          "claim": "empty_indices has shape {0, rank - 1}, so its second dimension is rank - 1.",
+          "evidence": "L114: Tensor empty_indices(DT_INT64, {0, rank - 1});"
+        },
+        {
+          "entities": [
+            "empty_values"
+          ],
+          "claim": "empty_values has length 0.",
+          "evidence": "L115: Tensor empty_values(DataTypeToEnum<T>::value, {0});"
+        },
+        {
+          "entities": [
+            "b",
+            "N",
+            "sparse_handles_t"
+          ],
+          "claim": "the gap-filling loop indexes sparse_handles_t(b) for b in [0, N), matching the tensor length N.",
+          "evidence": "L120: for (int64_t b = 0; b < N; ++b) {\nL126: sparse_handles_t(b) = handle;"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "input_indices",
+            "input_values",
+            "input_shape"
+          ],
+          "claim": "continuing past the shape checks implies input_indices is a matrix, input_values is a vector, input_shape is a vector, input_values->shape().dim_size(0) == input_indices->shape().dim_size(0), and input_shape->shape().dim_size(0) == input_indices->shape().dim_size(1)",
+          "evidence": "L12: OP_REQUIRES(context, TensorShapeUtils::IsMatrix(input_indices->shape()),\nL16: OP_REQUIRES(context, TensorShapeUtils::IsVector(input_values->shape()),\nL20: OP_REQUIRES(context, TensorShapeUtils::IsVector(input_shape->shape()),\nL26: input_values->shape().dim_size(0) == input_indices->shape().dim_size(0),\nL33: input_shape->shape().dim_size(0) == input_indices->shape().dim_size(1),"
+        },
+        {
+          "entities": [
+            "rank"
+          ],
+          "claim": "continuing past this check implies rank > 1",
+          "evidence": "L43: context, rank > 1,"
+        },
+        {
+          "entities": [
+            "b",
+            "N"
+          ],
+          "claim": "inside the minibatch loop, continuing past this check implies 0 <= b < N",
+          "evidence": "L80: context, b > -1 && b < N,"
+        },
+        {
+          "entities": [
+            "b",
+            "N",
+            "sparse_handles_t"
+          ],
+          "claim": "in the gap-filling loop, b ranges over 0 <= b < N and only unvisited b are written to sparse_handles_t(b)",
+          "evidence": "L120: for (int64_t b = 0; b < N; ++b) {\nL122: if (visited.find(b) == visited.end()) {\nL126: sparse_handles_t(b) = handle;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3704,
+              "output_tokens": 166,
+              "total_tokens": 3870
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3704,
+          "output_tokens": 166,
+          "total_tokens": 3870
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L97",
+                "matched": true,
+                "expression": "output_indices_t(i, d - 1) = indices(i, d)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L99",
+                "matched": true,
+                "expression": "output_values_t(i) = values(i)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L108",
+                "matched": true,
+                "expression": "sparse_handles_t(b) = handle"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L126",
+                "matched": true,
+                "expression": "sparse_handles_t(b) = handle"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2307,
+              "output_tokens": 1516,
+              "total_tokens": 3823
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2307,
+          "output_tokens": 1516,
+          "total_tokens": 3823
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "OP_REQUIRES_OK(context, context->input(\"sparse_indices\", &input_indices));",
+                "matched_lines": [
+                  7
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "OP_REQUIRES_OK(context, context->input(\"sparse_values\", &input_values));",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "OP_REQUIRES_OK(context, context->input(\"sparse_shape\", &input_shape));",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "OP_REQUIRES_OK(context, GetMap(context, true /* is_writing */, &map));",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 47,
+                "fragment": "auto input_shape_vec = input_shape->vec<int64_t>();",
+                "matched_lines": [
+                  47
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 49,
+                "fragment": "TensorShape tensor_input_shape;",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "OP_REQUIRES_OK(context, TensorShape::BuildTensorShape(input_shape_vec,",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "&tensor_input_shape));",
+                "matched_lines": [
+                  51
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 54,
+                "fragment": "SparseTensor input_st;",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "OP_REQUIRES_OK(context, SparseTensor::Create(*input_indices, *input_values,",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "tensor_input_shape, std_order,",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "&input_st));",
+                "matched_lines": [
+                  57
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 61,
+                "fragment": "Tensor sparse_handles(DT_INT64, TensorShape({N}));",
+                "matched_lines": [
+                  61
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 62,
+                "fragment": "auto sparse_handles_t = sparse_handles.vec<int64_t>();",
+                "matched_lines": [
+                  62
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 68,
+                "fragment": "TensorShape output_shape;",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "OP_REQUIRES_OK(context, TensorShapeUtils::MakeShape(",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "input_shape_vec.data() + 1,",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 71,
+                "fragment": "input_shape->NumElements() - 1, &output_shape));",
+                "matched_lines": [
+                  71
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 75,
+                "fragment": "sparse::GroupIterable minibatch = input_st.group({0});",
+                "matched_lines": [
+                  75
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 89,
+                "fragment": "Tensor output_indices = Tensor(DT_INT64, {num_entries, rank - 1});",
+                "matched_lines": [
+                  89
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 90,
+                "fragment": "Tensor output_values = Tensor(DataTypeToEnum<T>::value, {num_entries});",
+                "matched_lines": [
+                  90
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 92,
+                "fragment": "auto output_indices_t = output_indices.matrix<int64_t>();",
+                "matched_lines": [
+                  92
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 93,
+                "fragment": "auto output_values_t = output_values.vec<T>();",
+                "matched_lines": [
+                  93
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[15]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 102,
+                "fragment": "SparseTensor st_i;",
+                "matched_lines": [
+                  102
+                ]
+              },
+              {
+                "evidence_line": 103,
+                "fragment": "OP_REQUIRES_OK(context,",
+                "matched_lines": [
+                  103
+                ]
+              },
+              {
+                "evidence_line": 104,
+                "fragment": "SparseTensor::Create(output_indices, output_values,",
+                "matched_lines": [
+                  104
+                ]
+              },
+              {
+                "evidence_line": 105,
+                "fragment": "output_shape, &st_i));",
+                "matched_lines": [
+                  105
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[16]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 106,
+                "fragment": "int64_t handle;",
+                "matched_lines": [
+                  106
+                ]
+              },
+              {
+                "evidence_line": 107,
+                "fragment": "OP_REQUIRES_OK(context, map->AddSparseTensor(context, st_i, &handle));",
+                "matched_lines": [
+                  107
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[17]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 108,
+                "fragment": "sparse_handles_t(b) = handle;",
+                "matched_lines": [
+                  108
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[18]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 114,
+                "fragment": "Tensor empty_indices(DT_INT64, {0, rank - 1});",
+                "matched_lines": [
+                  114
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[19]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 115,
+                "fragment": "Tensor empty_values(DataTypeToEnum<T>::value, {0});",
+                "matched_lines": [
+                  115
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[20]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 116,
+                "fragment": "SparseTensor empty_st;",
+                "matched_lines": [
+                  116
+                ]
+              },
+              {
+                "evidence_line": 117,
+                "fragment": "OP_REQUIRES_OK(context, SparseTensor::Create(empty_indices, empty_values,",
+                "matched_lines": [
+                  117
+                ]
+              },
+              {
+                "evidence_line": 118,
+                "fragment": "output_shape, &empty_st));",
+                "matched_lines": [
+                  118
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[21]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 123,
+                "fragment": "int64_t handle;",
+                "matched_lines": [
+                  123
+                ]
+              },
+              {
+                "evidence_line": 124,
+                "fragment": "OP_REQUIRES_OK(context,",
+                "matched_lines": [
+                  124
+                ]
+              },
+              {
+                "evidence_line": 125,
+                "fragment": "map->AddSparseTensor(context, empty_st, &handle));",
+                "matched_lines": [
+                  125
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[22]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 126,
+                "fragment": "sparse_handles_t(b) = handle;",
+                "matched_lines": [
+                  126
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[23]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 131,
+                "fragment": "context->set_output(0, sparse_handles);",
+                "matched_lines": [
+                  131
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 12,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 13,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 14,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 15,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 16,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 17,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 18,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 19,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 20,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 21,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 22,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 23,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2495,
+              "output_tokens": 942,
+              "total_tokens": 3437
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2495,
+          "output_tokens": 942,
+          "total_tokens": 3437
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 40,
+                "fragment": "int rank = input_shape->NumElements();",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 42,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "context, rank > 1,",
+                "matched_lines": [
+                  43
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 59,
+                "fragment": "const int64_t N = input_shape_vec(0);",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "Tensor sparse_handles(DT_INT64, TensorShape({N}));",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 80,
+                "fragment": "context, b > -1 && b < N,",
+                "matched_lines": [
+                  80
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 69,
+                "fragment": "OP_REQUIRES_OK(context, TensorShapeUtils::MakeShape(",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "input_shape_vec.data() + 1,",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 71,
+                "fragment": "input_shape->NumElements() - 1, &output_shape));",
+                "matched_lines": [
+                  71
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 87,
+                "fragment": "const int64_t num_entries = values.size();",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 89,
+                "fragment": "Tensor output_indices = Tensor(DT_INT64, {num_entries, rank - 1});",
+                "matched_lines": [
+                  89
+                ]
+              },
+              {
+                "evidence_line": 90,
+                "fragment": "Tensor output_values = Tensor(DataTypeToEnum<T>::value, {num_entries});",
+                "matched_lines": [
+                  90
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 89,
+                "fragment": "Tensor output_indices = Tensor(DT_INT64, {num_entries, rank - 1});",
+                "matched_lines": [
+                  89
+                ]
+              },
+              {
+                "evidence_line": 95,
+                "fragment": "for (int i = 0; i < num_entries; ++i) {",
+                "matched_lines": [
+                  95
+                ]
+              },
+              {
+                "evidence_line": 96,
+                "fragment": "for (int d = 1; d < rank; ++d) {",
+                "matched_lines": [
+                  96
+                ]
+              },
+              {
+                "evidence_line": 97,
+                "fragment": "output_indices_t(i, d - 1) = indices(i, d);",
+                "matched_lines": [
+                  97
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 90,
+                "fragment": "Tensor output_values = Tensor(DataTypeToEnum<T>::value, {num_entries});",
+                "matched_lines": [
+                  90
+                ]
+              },
+              {
+                "evidence_line": 95,
+                "fragment": "for (int i = 0; i < num_entries; ++i) {",
+                "matched_lines": [
+                  95
+                ]
+              },
+              {
+                "evidence_line": 99,
+                "fragment": "output_values_t(i) = values(i);",
+                "matched_lines": [
+                  99
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 61,
+                "fragment": "Tensor sparse_handles(DT_INT64, TensorShape({N}));",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 80,
+                "fragment": "context, b > -1 && b < N,",
+                "matched_lines": [
+                  80
+                ]
+              },
+              {
+                "evidence_line": 108,
+                "fragment": "sparse_handles_t(b) = handle;",
+                "matched_lines": [
+                  108
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 114,
+                "fragment": "Tensor empty_indices(DT_INT64, {0, rank - 1});",
+                "matched_lines": [
+                  114
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 115,
+                "fragment": "Tensor empty_values(DataTypeToEnum<T>::value, {0});",
+                "matched_lines": [
+                  115
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 120,
+                "fragment": "for (int64_t b = 0; b < N; ++b) {",
+                "matched_lines": [
+                  120
+                ]
+              },
+              {
+                "evidence_line": 126,
+                "fragment": "sparse_handles_t(b) = handle;",
+                "matched_lines": [
+                  126
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2175,
+              "output_tokens": 403,
+              "total_tokens": 2578
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2175,
+          "output_tokens": 403,
+          "total_tokens": 2578
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "OP_REQUIRES(context, TensorShapeUtils::IsMatrix(input_indices->shape()),",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "OP_REQUIRES(context, TensorShapeUtils::IsVector(input_values->shape()),",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "OP_REQUIRES(context, TensorShapeUtils::IsVector(input_shape->shape()),",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "input_values->shape().dim_size(0) == input_indices->shape().dim_size(0),",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "input_shape->shape().dim_size(0) == input_indices->shape().dim_size(1),",
+                "matched_lines": [
+                  33
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "context, rank > 1,",
+                "matched_lines": [
+                  43
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 80,
+                "fragment": "context, b > -1 && b < N,",
+                "matched_lines": [
+                  80
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 120,
+                "fragment": "for (int64_t b = 0; b < N; ++b) {",
+                "matched_lines": [
+                  120
+                ]
+              },
+              {
+                "evidence_line": 122,
+                "fragment": "if (visited.find(b) == visited.end()) {",
+                "matched_lines": [
+                  122
+                ]
+              },
+              {
+                "evidence_line": 126,
+                "fragment": "sparse_handles_t(b) = handle;",
+                "matched_lines": [
+                  126
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 4,
+      "states": 24,
+      "values": 10,
+      "executions": 4
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 10681,
+    "output_tokens": 3027,
+    "total_tokens": 13708
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000017",
+    "split": "test",
+    "source_hash": "eb9ae9d0537af984c872fe07a9f2f97c61da1776eb7234f026e5b9188ce7413a",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

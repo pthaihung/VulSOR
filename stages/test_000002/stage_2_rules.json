@@ -1,144 +1,58 @@
 {
   "sample_id": "test_000002",
+  "schema_version": "semantic-claims-v4.13",
   "stage": "rules",
   "agent_key": "obligation_reasoner",
   "output": {
     "rules": [
       {
-        "id": "obligation_1",
-        "cluster_id": "cluster_2",
-        "operation_id": "op_2",
-        "coverage_category": "unchecked-api-failure",
-        "safety_requirement": "GetAuthenticPixels must return a non-NULL pointer before q is dereferenced or used as a valid pixel buffer",
-        "applicable_condition": "always",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[1]",
-          "state_agent.records[1]",
-          "state_agent.records[2]"
+        "locations": [
+          "L27"
         ],
-        "note": "Allocation result q is checked for NULL at line 28; rule captures the required non-NULL property for later use."
+        "expression": "GetAuthenticPixels(image,0,row,image->columns,1,exception)",
+        "requirements": [
+          "the requested row must be within the image's valid row extent",
+          "the requested column extent must be within the image's valid column extent"
+        ]
       },
       {
-        "id": "obligation_2",
-        "cluster_id": "cluster_3",
-        "operation_id": "op_3",
-        "coverage_category": "null-deref",
-        "safety_requirement": "q must be non-NULL before any dereference or pixel-buffer use on the path where the NULL check does not exit",
-        "applicable_condition": "q == (PixelPacket *) NULL is false",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[2]",
-          "state_agent.records[1]",
-          "state_agent.records[2]"
+        "locations": [
+          "L35"
         ],
-        "note": "Guard at line 28 establishes the non-NULL path requirement for q."
+        "expression": "*p++",
+        "requirements": [
+          "p must designate a readable byte within the pixel data buffer"
+        ]
       },
       {
-        "id": "obligation_3",
-        "cluster_id": "cluster_4",
-        "operation_id": "op_4",
-        "coverage_category": "unchecked-api-failure",
-        "safety_requirement": "GetAuthenticIndexQueue must return a valid index queue pointer before indexes is used in pixel writes",
-        "applicable_condition": "always",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[3]",
-          "state_agent.records[3]"
+        "locations": [
+          "L39"
         ],
-        "note": "indexes is assigned from GetAuthenticIndexQueue and later passed to SetPSDPixel."
+        "expression": "PushShortPixel(MSBEndian,p,&nibble)",
+        "requirements": [
+          "p must designate a readable range of at least two bytes within the pixel data buffer"
+        ]
       },
       {
-        "id": "obligation_4",
-        "cluster_id": "cluster_6",
-        "operation_id": "op_6",
-        "coverage_category": "out-of-bounds",
-        "safety_requirement": "p must point within the allocated pixels buffer before *p++ is evaluated",
-        "applicable_condition": "packet_size == 1",
-        "link_confidence": "strong",
-        "evidence_refs": [
-          "operation_agent.operations[5]",
-          "execution_agent.records[2]",
-          "execution_agent.records[10]",
-          "state_agent.records[5]"
+        "locations": [
+          "L47"
         ],
-        "note": "p is advanced by p++ while reading from the pixels buffer under the packet_size==1 branch."
+        "expression": "PushFloatPixel(MSBEndian,p,&nibble)",
+        "requirements": [
+          "p must designate a readable range of at least sizeof(MagickFloatType) bytes within the pixel data buffer"
+        ]
       },
       {
-        "id": "obligation_5",
-        "cluster_id": "cluster_7",
-        "operation_id": "op_7",
-        "coverage_category": "out-of-bounds",
-        "safety_requirement": "p must point within the allocated pixels buffer before PushFloatPixel writes through p",
-        "applicable_condition": "always",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[6]",
-          "state_agent.records[7]"
+        "locations": [
+          "L52",
+          "L66"
         ],
-        "note": "PushFloatPixel advances p and writes to the pixel buffer."
-      },
-      {
-        "id": "obligation_6",
-        "cluster_id": "cluster_9",
-        "operation_id": "op_9",
-        "coverage_category": "out-of-bounds",
-        "safety_requirement": "q and indexes must point to valid pixel/index storage for the current x position before SetPSDPixel writes through them",
-        "applicable_condition": "image->depth > 1",
-        "link_confidence": "strong",
-        "evidence_refs": [
-          "operation_agent.operations[8]",
-          "execution_agent.records[4]",
-          "execution_agent.records[11]",
-          "execution_agent.records[12]",
-          "state_agent.records[8]"
-        ],
-        "note": "SetPSDPixel receives q and indexes after they were obtained from image queues."
-      },
-      {
-        "id": "obligation_7",
-        "cluster_id": "cluster_10",
-        "operation_id": "op_10",
-        "coverage_category": "integer-overflow",
-        "safety_requirement": "image->columns - x must not overflow or underflow when converted to ssize_t for number_bits",
-        "applicable_condition": "always",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[9]",
-          "state_agent.records[10]",
-          "state_agent.records[11]"
-        ],
-        "note": "number_bits is computed from image->columns minus x and later clamped to 8."
-      },
-      {
-        "id": "obligation_8",
-        "cluster_id": "cluster_11",
-        "operation_id": "op_11",
-        "coverage_category": "out-of-bounds",
-        "safety_requirement": "q must point within the allocated pixel buffer before q++ is used in the SetPSDPixel call",
-        "applicable_condition": "always",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[10]",
-          "state_agent.records[13]",
-          "state_agent.records[14]"
-        ],
-        "note": "q is incremented while writing pixels in the bit-packing loop."
-      },
-      {
-        "id": "obligation_9",
-        "cluster_id": "cluster_12",
-        "operation_id": "op_12",
-        "coverage_category": "out-of-bounds",
-        "safety_requirement": "q and indexes must remain within their allocated buffers before q++ and x++ are evaluated",
-        "applicable_condition": "always",
-        "link_confidence": "weak",
-        "evidence_refs": [
-          "operation_agent.operations[11]",
-          "state_agent.records[13]",
-          "state_agent.records[14]"
-        ],
-        "note": "q++ and x++ advance through pixel/index storage in the SetPSDPixel call."
+        "expression": "SetPSDPixel(image,channels,type,packet_size,pixel,q,indexes,x)",
+        "requirements": [
+          "q must designate a writable pixel within the authentic pixel region obtained for the current row",
+          "indexes must designate a writable index entry corresponding to the pixel at q",
+          "x must be within the valid column extent of the authentic pixel region"
+        ]
       }
     ]
   },
@@ -147,24 +61,43 @@
     "attempts": [
       {
         "attempt": 1,
+        "retry_mode": "initial",
         "errors": [],
         "token_usage": {
-          "input_tokens": 5430,
-          "output_tokens": 1159,
-          "total_tokens": 6589
+          "input_tokens": 3274,
+          "output_tokens": 323,
+          "total_tokens": 3597
         },
-        "max_tokens": 8192
+        "max_tokens": 8192,
+        "serialization_prefix_recovered": false
       }
     ],
     "token_usage": {
-      "input_tokens": 5430,
-      "output_tokens": 1159,
-      "total_tokens": 6589
+      "input_tokens": 3274,
+      "output_tokens": 323,
+      "total_tokens": 3597
+    },
+    "safety_relevance_filter": {
+      "input_operation_groups": 7,
+      "kept_obligations": 5,
+      "filtered_non_safety_candidates": 2
     }
   },
   "token_usage": {
-    "input_tokens": 5430,
-    "output_tokens": 1159,
-    "total_tokens": 6589
+    "input_tokens": 3274,
+    "output_tokens": 323,
+    "total_tokens": 3597
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "rules",
+    "sample_id": "test_000002",
+    "split": "test",
+    "source_hash": "c7c48d86e08a855278a2076d5545bbe4e47d9aed33bd92d9d14132d7f46b1dbd",
+    "upstream_hashes": {
+      "semantic_model": "f7f63cc556497504da3ebf52d44929303129d1198e4a24311b740c10f99d6062"
+    },
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
   }
 }
