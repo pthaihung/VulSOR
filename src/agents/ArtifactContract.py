@@ -27,7 +27,7 @@ def artifact_metadata(
 ) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
-        "artifact_version": 8,
+        "artifact_version": 9,
         "stage": stage,
         "sample_id": sample_id,
         "split": split,

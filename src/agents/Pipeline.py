@@ -31,7 +31,7 @@ STAGE_LABELS = {
     2: "Stage 2 - obligations",
     3: "Stage 3 - adjudication",
 }
-PIPELINE_REVISION = "independent-semantic-views-v4.12"
+PIPELINE_REVISION = "independent-semantic-views-v4.13"
 
 AGENT_CLASSES = {
     "operation_agent": OperationAgent,
@@ -494,8 +494,9 @@ class VulSORPipeline:
                 stage_token_usage = add_token_usage(
                     stage_token_usage, token_usage_from_exception(exc)
                 )
-        elif operation_count > 0:
-            adjudicator_error = "selected operations produced no safety requirements"
+        # Zero obligations after a successful Stage-2 safety-relevance gate is a
+        # valid semantic result, not a technical failure. The deterministic rule over
+        # an empty obligation set yields Benign.
 
         final_verdict = aggregate_final_verdict(
             assessments,
@@ -845,11 +846,6 @@ class VulSORPipeline:
                 shutil.rmtree(sample_dir)
             elif sample_dir.is_file():
                 sample_dir.unlink()
-        cache_dir = getattr(self.llm_client, "cache_dir", None)
-        if cache_dir:
-            shutil.rmtree(cache_dir, ignore_errors=True)
-        if hasattr(self.llm_client, "cache_enabled"):
-            self.llm_client.cache_enabled = False
 
     def _input_file(self) -> Path:
         active_dataset = self.datasets_config["defaults"]["active_dataset"]
@@ -1034,8 +1030,12 @@ def validate_obligations(
                 errors.append(f"{path}.expression must copy the Operation expression")
 
         requirements = obligation.get("requirements")
-        if not isinstance(requirements, list) or not requirements:
-            errors.append(f"{path}.requirements must be a non-empty array")
+        if not isinstance(requirements, list):
+            errors.append(f"{path}.requirements must be an array")
+            continue
+        # Empty requirements is a deliberate Stage-2 safety-relevance rejection.
+        # It is filtered before persistence/adjudication and is not an AnalysisFailure.
+        if not requirements:
             continue
         normalized: set[str] = set()
         for requirement_index, requirement in enumerate(requirements):
@@ -1117,10 +1117,24 @@ def normalize_reasoner_output(reasoner_output: dict[str, Any]) -> dict[str, Any]
     parsed = normalized.get("parsed")
     if isinstance(parsed, dict):
         parsed_copy = dict(parsed)
-        parsed_copy["obligations"] = normalize_obligations_requirements(
+        all_obligations = normalize_obligations_requirements(
             parsed_copy.get("obligations", [])
         )
+        filtered = [
+            obligation for obligation in all_obligations
+            if not isinstance(obligation, dict)
+            or not isinstance(obligation.get("requirements"), list)
+            or len(obligation.get("requirements", [])) > 0
+        ]
+        parsed_copy["obligations"] = filtered
         normalized["parsed"] = parsed_copy
+        quality_gate = dict(normalized.get("quality_gate", {}))
+        quality_gate["safety_relevance_filter"] = {
+            "input_operation_groups": len(all_obligations),
+            "kept_obligations": len(filtered),
+            "filtered_non_safety_candidates": max(len(all_obligations) - len(filtered), 0),
+        }
+        normalized["quality_gate"] = quality_gate
     return normalized
 
 
@@ -1181,8 +1195,6 @@ def aggregate_final_verdict(
     if analysis_error:
         reasons.append(analysis_error)
     reasons.extend(validate_assessments(assessments, obligation_count))
-    if obligation_count <= 0 and operation_count > 0:
-        reasons.append("selected operations have no requirements")
 
     aggregation_rule = (
         "Any violated obligation -> Vulnerable; otherwise all obligations are "
@@ -1201,13 +1213,17 @@ def aggregate_final_verdict(
             "aggregation_rule": aggregation_rule,
         }
 
-    if obligation_count == 0 and operation_count == 0:
+    if obligation_count == 0:
         return {
             "violation": 0,
             "binary_prediction": 0,
             "label": "Benign",
             "decision": "Benign",
-            "decision_basis": "no_nontrivial_reasoning_operations",
+            "decision_basis": (
+                "no_nontrivial_reasoning_operations"
+                if operation_count == 0
+                else "no_security_relevant_obligations"
+            ),
             "analysis_failure": False,
             "analysis_failure_reasons": [],
             "aggregation_rule": aggregation_rule,

@@ -72,9 +72,19 @@ class PromptAgent:
             max_retries = max(max_retries, 1)
         progress_context = progress_context or {}
         previous_errors: list[str] = []
+        continuation_prefix: Any | None = None
+        continuation_source_error: str | None = None
         for attempt_index in range(max_retries + 1):
-            retry_without_reasoning = _should_retry_without_reasoning(previous_errors)
-            token_multiplier = _retry_token_multiplier(previous_errors)
+            retry_mode = (
+                "initial" if attempt_index == 0
+                else "serialization_continuation" if continuation_prefix is not None
+                else "semantic_regeneration"
+            )
+            retry_without_reasoning = (
+                continuation_prefix is not None
+                or _should_retry_without_reasoning(previous_errors)
+            )
+            token_multiplier = 1 if continuation_prefix is not None else _retry_token_multiplier(previous_errors)
             max_tokens = self._effective_max_tokens(
                 retry_without_reasoning=retry_without_reasoning,
                 token_multiplier=token_multiplier,
@@ -88,6 +98,7 @@ class PromptAgent:
                         "attempt": attempt_index + 1,
                         "total": max_retries + 1,
                         "retry_without_reasoning": retry_without_reasoning,
+                        "retry_mode": retry_mode,
                         "token_multiplier": token_multiplier,
                         "max_tokens": max_tokens,
                         "timeout_seconds": int(self.llm.get("timeout_seconds", 120)),
@@ -101,26 +112,67 @@ class PromptAgent:
             attempt_usage = token_usage_from_response(raw)
             token_usage = add_token_usage(token_usage, attempt_usage)
             content: str | None = None
+            next_continuation_prefix: Any | None = None
+            next_continuation_error: str | None = None
             try:
                 content = _extract_message_content(raw)
                 parsed = _parse_json_content(content)
+                if continuation_prefix is not None:
+                    parsed = _merge_collection_outputs(
+                        continuation_prefix,
+                        parsed,
+                        self.prompt.get("output_schema", {}),
+                    )
+                    continuation_prefix = None
+                    continuation_source_error = None
                 parsed = _normalize_common_model_shapes(parsed)
                 errors = [] if _is_dry_run(parsed) else validate_output_schema(parsed, self.prompt.get("output_schema", {}))
                 for validator in extra_validators or []:
                     errors.extend([] if _is_dry_run(parsed) else validator(parsed))
             except (json.JSONDecodeError, TypeError, ValueError) as exc:
-                parsed = {
-                    "unparseable_output": content,
-                    "raw_response_summary": _summarize_raw_response(raw),
-                }
-                errors = [str(exc)]
+                error_text = str(exc)
+                salvaged = None
+                if isinstance(content, str) and (
+                    _looks_like_truncated_json(error_text)
+                    or _response_finished_by_length(raw)
+                ):
+                    salvaged = _salvage_truncated_collection_prefix(
+                        content,
+                        self.prompt.get("output_schema", {}),
+                    )
+                if salvaged is not None:
+                    base = continuation_prefix
+                    if base is not None:
+                        salvaged = _merge_collection_outputs(
+                            base,
+                            salvaged,
+                            self.prompt.get("output_schema", {}),
+                        )
+                    next_continuation_prefix = salvaged
+                    next_continuation_error = error_text
+                    parsed = {
+                        "serialization_recovery": "truncated_collection_prefix",
+                        "salvaged_prefix": salvaged,
+                        "raw_response_summary": _summarize_raw_response(raw),
+                    }
+                    errors = [
+                        "truncated JSON serialization recovered a complete record prefix; continue serialization without regenerating prior records"
+                    ]
+                else:
+                    parsed = {
+                        "unparseable_output": content,
+                        "raw_response_summary": _summarize_raw_response(raw),
+                    }
+                    errors = [error_text]
 
             attempts.append(
                 {
                     "attempt": attempt_index + 1,
+                    "retry_mode": retry_mode,
                     "errors": errors,
                     "token_usage": attempt_usage,
                     "max_tokens": max_tokens,
+                    "serialization_prefix_recovered": next_continuation_prefix is not None,
                 }
             )
             if progress_callback is not None:
@@ -131,6 +183,7 @@ class PromptAgent:
                         "agent_key": self.agent_key,
                         "attempt": attempt_index + 1,
                         "total": max_retries + 1,
+                        "retry_mode": retry_mode,
                         "errors": errors,
                         "token_usage": attempt_usage,
                         "max_tokens": max_tokens,
@@ -152,16 +205,28 @@ class PromptAgent:
             messages = []
             if system_prompt:
                 messages.append(LLMMessage(role="system", content=system_prompt))
-            retry_prompt = (
-                build_length_retry_user_prompt(user_prompt, self.prompt.get("output_schema", {}))
-                if _is_empty_length_error(errors)
-                else build_retry_user_prompt(
+            if next_continuation_prefix is not None:
+                continuation_prefix = next_continuation_prefix
+                continuation_source_error = next_continuation_error
+                retry_prompt = build_serialization_continuation_user_prompt(
                     original_user_prompt=user_prompt,
-                    invalid_output=parsed,
-                    errors=errors,
                     schema=self.prompt.get("output_schema", {}),
+                    completed_prefix=continuation_prefix,
+                    parse_error=continuation_source_error or "truncated JSON",
                 )
-            )
+            else:
+                continuation_prefix = None
+                continuation_source_error = None
+                retry_prompt = (
+                    build_length_retry_user_prompt(user_prompt, self.prompt.get("output_schema", {}))
+                    if _is_empty_length_error(errors)
+                    else build_retry_user_prompt(
+                        original_user_prompt=user_prompt,
+                        invalid_output=parsed,
+                        errors=errors,
+                        schema=self.prompt.get("output_schema", {}),
+                    )
+                )
             messages.append(
                 LLMMessage(
                     role="user",
@@ -208,7 +273,10 @@ class PromptAgent:
         max_tokens = int(self.llm.get("max_tokens", 1024))
         max_tokens *= max(token_multiplier, 1)
         if retry_without_reasoning:
-            max_tokens = max(max_tokens * 2, 8192)
+            # Disabling reasoning is a repair/serialization choice, not a reason to
+            # double the completion budget again. Keep enough room for structured JSON
+            # while avoiding the old 4x retry ceiling on length failures.
+            max_tokens = max(max_tokens, 8192)
         return max_tokens
 
     def _response_format(self) -> Any:
@@ -382,6 +450,117 @@ def _parse_json_content(content: str) -> Any:
             except json.JSONDecodeError:
                 pass
         raise original_error
+
+
+
+def _single_collection_key(schema: Any) -> str | None:
+    if not isinstance(schema, dict) or len(schema) != 1:
+        return None
+    key, child = next(iter(schema.items()))
+    if isinstance(key, str) and isinstance(child, list):
+        return key
+    return None
+
+
+def _salvage_truncated_collection_prefix(content: str, schema: Any) -> Any | None:
+    """Recover only fully serialized records from a truncated top-level collection.
+
+    This is deliberately conservative: it never repairs or invents a partial record.
+    The returned prefix is used only for a continuation request, not accepted as a
+    complete semantic artifact by itself.
+    """
+    key = _single_collection_key(schema)
+    if key is None or not isinstance(content, str):
+        return None
+    match = re.search(r'"' + re.escape(key) + r'"\s*:\s*\[', content)
+    if match is None:
+        return None
+    decoder = json.JSONDecoder()
+    pos = match.end()
+    items: list[Any] = []
+    length = len(content)
+    while pos < length:
+        while pos < length and content[pos] in " \t\r\n,":
+            pos += 1
+        if pos >= length or content[pos] == "]":
+            break
+        try:
+            item, end = decoder.raw_decode(content, pos)
+        except json.JSONDecodeError:
+            break
+        items.append(item)
+        pos = end
+    if not items:
+        return None
+    return {key: items}
+
+
+def _merge_collection_outputs(prefix: Any, continuation: Any, schema: Any) -> Any:
+    """Merge continuation records after a recovered prefix without duplicating items."""
+    key = _single_collection_key(schema)
+    if key is None:
+        return continuation
+    if not isinstance(prefix, dict) or not isinstance(continuation, dict):
+        return continuation
+    left = prefix.get(key)
+    right = continuation.get(key)
+    if not isinstance(left, list) or not isinstance(right, list):
+        return continuation
+    merged: list[Any] = []
+    seen: set[str] = set()
+    for item in [*left, *right]:
+        try:
+            marker = json.dumps(item, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        except (TypeError, ValueError):
+            marker = repr(item)
+        if marker in seen:
+            continue
+        seen.add(marker)
+        merged.append(item)
+    return {key: merged}
+
+
+def _response_finished_by_length(raw: dict[str, Any]) -> bool:
+    choices = raw.get("choices") if isinstance(raw, dict) else None
+    if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+        return False
+    return str(choices[0].get("finish_reason", "")).lower() == "length"
+
+
+def build_serialization_continuation_user_prompt(
+    original_user_prompt: str,
+    schema: Any,
+    completed_prefix: Any,
+    parse_error: str,
+    task_limit: int = 12000,
+    prefix_limit: int = 12000,
+) -> str:
+    """Ask for only the records missing after a truncated JSON serialization.
+
+    This is a serialization repair, not a semantic regeneration: already completed
+    records are preserved and merged deterministically after the continuation.
+    """
+    return "\n".join(
+        [
+            "The previous response was truncated while serializing JSON.",
+            "Do NOT regenerate, revise, or repeat the completed records below.",
+            "Continue the same analysis and return ONLY the additional records that should follow.",
+            "Use the same top-level collection/schema. Return an empty collection if no records remain.",
+            "Return JSON only; no Markdown or prose.",
+            "",
+            "parse_error:",
+            parse_error,
+            "",
+            "required_schema:",
+            json.dumps(schema, ensure_ascii=False, separators=(",", ":")),
+            "",
+            "completed_records_preserved_by_pipeline:",
+            _truncate_text(json.dumps(completed_prefix, ensure_ascii=False, separators=(",", ":")), prefix_limit),
+            "",
+            "original_task:",
+            _truncate_text(original_user_prompt, task_limit),
+        ]
+    )
 
 
 def _json_schema_name(agent_key: str) -> str:

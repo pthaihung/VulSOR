@@ -1,6 +1,6 @@
 {
   "sample_id": "test_000009",
-  "schema_version": "semantic-claims-v4.12",
+  "schema_version": "semantic-claims-v4.13",
   "stage": "rules",
   "agent_key": "obligation_reasoner",
   "output": {
@@ -11,27 +11,25 @@
         ],
         "expression": "node_map_->GetNode(node.input(1))",
         "requirements": [
-          "the node_map_ pointer must designate a live accessible object",
-          "the argument node.input(1) must be a valid input name index within the node's input list"
+          "node_map_ must designate a live accessible object whose GetNode member can be invoked"
         ]
       },
       {
         "locations": [
           "L12"
         ],
-        "expression": "IsReallyConstant(*new_shape)",
+        "expression": "*new_shape",
         "requirements": [
-          "the new_shape pointer must designate a live accessible NodeDef object"
+          "new_shape must designate a live accessible NodeDef object"
         ]
       },
       {
         "locations": [
-          "L24"
+          "L14"
         ],
-        "expression": "EvaluateNode(*new_shape, TensorVector(), &outputs)",
+        "expression": "new_shape->DebugString()",
         "requirements": [
-          "the new_shape pointer must designate a live accessible NodeDef object",
-          "the outputs pointer must designate a writable TensorVector object"
+          "new_shape must designate a live accessible NodeDef object whose DebugString member can be invoked"
         ]
       },
       {
@@ -40,8 +38,7 @@
         ],
         "expression": "props[0]",
         "requirements": [
-          "the props vector must contain at least one element",
-          "the index 0 must be within the valid readable extent of props"
+          "props must contain at least one element so that index 0 is within the valid readable extent"
         ]
       },
       {
@@ -50,9 +47,8 @@
         ],
         "expression": "outputs[0]->dtype()",
         "requirements": [
-          "the outputs vector must contain at least one element",
-          "the index 0 must be within the valid readable extent of outputs",
-          "the outputs[0] pointer must designate a live accessible Tensor object"
+          "outputs must contain at least one element so that index 0 is within the valid readable extent",
+          "outputs[0] must designate a live accessible Tensor object whose dtype member can be invoked"
         ]
       },
       {
@@ -62,9 +58,8 @@
         ],
         "expression": "outputs[0]->NumElements()",
         "requirements": [
-          "the outputs vector must contain at least one element",
-          "the index 0 must be within the valid readable extent of outputs",
-          "the outputs[0] pointer must designate a live accessible Tensor object"
+          "outputs must contain at least one element so that index 0 is within the valid readable extent",
+          "outputs[0] must designate a live accessible Tensor object whose NumElements member can be invoked"
         ]
       },
       {
@@ -73,11 +68,9 @@
         ],
         "expression": "outputs[0]->flat<int32>()(i)",
         "requirements": [
-          "the outputs vector must contain at least one element",
-          "the index 0 must be within the valid readable extent of outputs",
-          "the outputs[0] pointer must designate a live accessible Tensor object",
-          "the flat<int32>() view must have at least i+1 readable elements",
-          "the index i must be within the valid readable extent of the flat<int32>() view"
+          "outputs must contain at least one element so that index 0 is within the valid readable extent",
+          "outputs[0] must designate a live accessible Tensor object whose flat<int32> member can be invoked",
+          "i must be within the valid readable extent of the flat<int32> tensor data"
         ]
       },
       {
@@ -86,11 +79,9 @@
         ],
         "expression": "outputs[0]->flat<int64_t>()(i)",
         "requirements": [
-          "the outputs vector must contain at least one element",
-          "the index 0 must be within the valid readable extent of outputs",
-          "the outputs[0] pointer must designate a live accessible Tensor object",
-          "the flat<int64_t>() view must have at least i+1 readable elements",
-          "the index i must be within the valid readable extent of the flat<int64_t>() view"
+          "outputs must contain at least one element so that index 0 is within the valid readable extent",
+          "outputs[0] must designate a live accessible Tensor object whose flat<int64_t> member can be invoked",
+          "i must be within the valid readable extent of the flat<int64_t> tensor data"
         ]
       }
     ]
@@ -100,36 +91,43 @@
     "attempts": [
       {
         "attempt": 1,
+        "retry_mode": "initial",
         "errors": [],
         "token_usage": {
-          "input_tokens": 3007,
-          "output_tokens": 514,
-          "total_tokens": 3521
+          "input_tokens": 3527,
+          "output_tokens": 450,
+          "total_tokens": 3977
         },
-        "max_tokens": 8192
+        "max_tokens": 8192,
+        "serialization_prefix_recovered": false
       }
     ],
     "token_usage": {
-      "input_tokens": 3007,
-      "output_tokens": 514,
-      "total_tokens": 3521
+      "input_tokens": 3527,
+      "output_tokens": 450,
+      "total_tokens": 3977
+    },
+    "safety_relevance_filter": {
+      "input_operation_groups": 8,
+      "kept_obligations": 8,
+      "filtered_non_safety_candidates": 0
     }
   },
   "token_usage": {
-    "input_tokens": 3007,
-    "output_tokens": 514,
-    "total_tokens": 3521
+    "input_tokens": 3527,
+    "output_tokens": 450,
+    "total_tokens": 3977
   },
   "artifact_metadata": {
-    "schema_version": "semantic-claims-v4.12",
-    "artifact_version": 8,
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
     "stage": "rules",
     "sample_id": "test_000009",
     "split": "test",
     "source_hash": "81ef8f7ac06092b0881d09204511094f4a3e05d5c47c535ac2ed2d24b7fb09c6",
     "upstream_hashes": {
-      "semantic_model": "5be83f3e1a467b1fbfe5e7b234ef2fa20349c3935c40296541f0a6915d617b60"
+      "semantic_model": "c3ff53cd810ca0e2044609cec0f521a34b8b8328b6d07687031cc1e906ad9fc4"
     },
-    "pipeline_fingerprint": "34127dd44d6640e216b41abd4687553aadce8136ca7fcc4cc94637fe70450bb0"
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
   }
 }

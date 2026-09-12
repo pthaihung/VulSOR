@@ -28,6 +28,15 @@ system_prompt: |
   - address/offset relations that can determine alignment of a later typed access;
   - compile-time extents or constants when they constrain a safety-relevant value.
 
+  RELEVANCE / COMPRESSION GATE:
+  Emit a value fact only when removing that fact could materially change a later
+  safety judgment involving bounds, extent, size, offset, pointer displacement,
+  alignment, integer representability/overflow, allocation size, or resource count.
+  Do not enumerate every intermediate assignment, alias, arithmetic step, loop update,
+  or derived equality. Collapse a chain into the strongest source-supported relation
+  needed for safety reasoning, and omit weaker intermediate restatements. Prefer a
+  smaller complete set of safety-bearing relations over a large data-flow inventory.
+
   Do not inventory ordinary assignments or data flow that has no safety consequence.
   Do not emit guard/path implications; those belong to Execution.
   Do not emit object lifetime/resource state; those belong to State.

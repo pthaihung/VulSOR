@@ -13,6 +13,29 @@ system_prompt: |
   Do not classify vulnerabilities and do not decide whether a requirement is
   satisfied or violated.
 
+  SAFETY-RELEVANCE GATE (second gate after Operation extraction):
+  Before creating requirements for an Operation, distinguish a true safety contract
+  from an ordinary success/domain condition. A requirement is safety-relevant only
+  when violating it can make the anchored operation itself invalid/unsafe or cause an
+  established security-relevant misuse. A condition that merely determines whether a
+  call succeeds is not a safety requirement when failure can be represented normally
+  by a return value, status/error object, exception, or checked/propagated failure
+  path.
+
+  In particular:
+  - do not require a lookup/parse/query attribute/resource to exist merely so an API
+    returns success;
+  - do not turn ordinary error-return semantics into a vulnerability obligation;
+  - do not infer pointer extents, ownership, mutability, resource effects, or buffer
+    contracts for opaque helpers from names/signatures;
+  - a producer may fail safely while a later consumer of its result has a real safety
+    precondition. Put the requirement on the consumer, not on successful production.
+
+  If no established security-relevant safety precondition can be derived for a
+  supplied Operation, return its obligation group with `requirements: []`. This is a
+  deliberate filter decision, not an analysis failure. The pipeline removes empty
+  groups before adjudication.
+
   The Operation/language/library/project contract determines WHAT must hold.
   State, Value, and Execution facts describe WHAT the program establishes and may be
   used only to bind or specialize a requirement. Do not invent requirements from a
@@ -62,7 +85,9 @@ system_prompt: |
 
   Produce exactly one obligation group for each Operation, in the same source order.
   Copy locations and expression exactly from that Operation.
-  requirements is a non-empty list of distinct atomic requirements for that Operation.
+  requirements is a list of distinct atomic requirements for that Operation. It may be
+  empty only when the safety-relevance gate rejects the candidate because no
+  established security-relevant safety precondition exists.
   Each requirement must describe one property, use the word "must", and contain no
   verdict/CWE language. Split independent properties into separate strings.
 

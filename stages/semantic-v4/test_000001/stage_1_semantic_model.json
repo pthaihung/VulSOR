@@ -1,6 +1,6 @@
 {
   "sample_id": "test_000001",
-  "schema_version": "semantic-claims-v4.12",
+  "schema_version": "semantic-claims-v4.13",
   "stage": "semantic_model",
   "output": {
     "semantic_model": {
@@ -15,13 +15,6 @@
         },
         {
           "locations": [
-            "L447"
-          ],
-          "expression": "strlen(property)",
-          "claim": "strlen on property string"
-        },
-        {
-          "locations": [
             "L451"
           ],
           "expression": "*(property+5)",
@@ -33,13 +26,6 @@
           ],
           "expression": "*(property+5)",
           "claim": "indexed read of property at offset 5"
-        },
-        {
-          "locations": [
-            "L482"
-          ],
-          "expression": "strlen(property)",
-          "claim": "strlen on property string"
         },
         {
           "locations": [
@@ -65,7 +51,7 @@
             "L781"
           ],
           "expression": "EXIFTag[i]",
-          "claim": "indexed access to EXIFTag array"
+          "claim": "indexed access into EXIFTag table"
         },
         {
           "locations": [
@@ -77,7 +63,7 @@
             "L545"
           ],
           "expression": "ReadPropertyByte(&exif,&length)",
-          "claim": "read of byte from exif buffer with length update"
+          "claim": "read of EXIF byte through exif pointer with length bound"
         },
         {
           "locations": [
@@ -107,56 +93,56 @@
             "L588"
           ],
           "expression": "directory_stack[level]",
-          "claim": "indexed access to directory_stack array"
+          "claim": "indexed access into directory_stack array"
         },
         {
           "locations": [
             "L595"
           ],
           "expression": "ReadPropertyUnsignedShort(endian,directory)",
-          "claim": "read of unsigned short from directory buffer"
+          "claim": "read of unsigned short from directory pointer"
         },
         {
           "locations": [
             "L609"
           ],
           "expression": "directory+(12*entry)+2",
-          "claim": "pointer arithmetic to compute directory entry address"
+          "claim": "pointer arithmetic to locate directory entry"
         },
         {
           "locations": [
             "L615"
           ],
           "expression": "ReadPropertyUnsignedShort(endian,q)",
-          "claim": "read of unsigned short from q"
+          "claim": "read of unsigned short from q pointer"
         },
         {
           "locations": [
             "L616"
           ],
           "expression": "ReadPropertyUnsignedShort(endian,q+2)",
-          "claim": "read of unsigned short from q+2"
+          "claim": "read of unsigned short from q pointer at offset 2"
         },
         {
           "locations": [
             "L621"
           ],
           "expression": "ReadPropertySignedLong(endian,q+4)",
-          "claim": "read of signed long from q+4"
+          "claim": "read of signed long from q pointer at offset 4"
         },
         {
           "locations": [
             "L624"
           ],
           "expression": "tag_bytes[format]",
-          "claim": "indexed access to tag_bytes array"
+          "claim": "indexed access into tag_bytes array"
         },
         {
           "locations": [
             "L637"
           ],
           "expression": "ReadPropertySignedLong(endian,q+8)",
-          "claim": "read of signed long from q+8"
+          "claim": "read of signed long from q pointer at offset 8"
         },
         {
           "locations": [
@@ -164,7 +150,7 @@
             "L737"
           ],
           "expression": "AcquireQuantumMemory((size_t) number_bytes+1UL, sizeof(*value))",
-          "claim": "allocation of memory for value string"
+          "claim": "allocation of memory sized by number_bytes"
         },
         {
           "locations": [
@@ -174,7 +160,15 @@
             "L748"
           ],
           "expression": "p[i]",
-          "claim": "indexed read of p buffer"
+          "claim": "indexed read from p buffer"
+        },
+        {
+          "locations": [
+            "L673",
+            "L750"
+          ],
+          "expression": "value[i]",
+          "claim": "indexed write into value buffer"
         },
         {
           "locations": [
@@ -252,14 +246,29 @@
             "L827"
           ],
           "expression": "ReadPropertySignedLong(endian,p)",
-          "claim": "read of signed long from p"
+          "claim": "read of signed long from p pointer"
+        },
+        {
+          "locations": [
+            "L835",
+            "L837",
+            "L838",
+            "L848",
+            "L849",
+            "L850",
+            "L859",
+            "L860",
+            "L861"
+          ],
+          "expression": "directory_stack[level]",
+          "claim": "indexed write into directory_stack array"
         },
         {
           "locations": [
             "L844"
           ],
           "expression": "directory_stack[i]",
-          "claim": "indexed access to directory_stack array"
+          "claim": "indexed read from directory_stack array"
         },
         {
           "locations": [
@@ -267,7 +276,7 @@
             "L855"
           ],
           "expression": "ReadPropertySignedLong(endian,directory+2+(12*number_entries))",
-          "claim": "read of signed long from directory offset"
+          "claim": "read of signed long from directory pointer at computed offset"
         }
       ],
       "states": [
@@ -275,8 +284,8 @@
           "entities": [
             "profile"
           ],
-          "claim": "profile is the EXIF StringInfo obtained from the image profile; NULL if absent.",
-          "evidence": "L440: profile=GetImageProfile(image,\"exif\");\nL441: if (profile == (const StringInfo *) NULL)"
+          "claim": "profile is the EXIF StringInfo obtained from the image profile; if absent, the function returns without further object state.",
+          "evidence": "L440: profile=GetImageProfile(image,\"exif\");\nL441: if (profile == (const StringInfo *) NULL)\nL442: return(MagickFalse);"
         },
         {
           "entities": [
@@ -287,99 +296,110 @@
         },
         {
           "entities": [
-            "directory"
-          ],
-          "claim": "directory points into the exif byte storage at the first IFD offset.",
-          "evidence": "L572: directory=exif+offset;"
-        },
-        {
-          "entities": [
-            "directory_stack",
             "directory",
-            "entry",
-            "tag_offset"
+            "exif"
           ],
-          "claim": "directory_stack entries hold saved directory pointers, entry indices, and tag offsets; popping restores directory, entry, and tag_offset from the stack.",
-          "evidence": "L586: directory=directory_stack[level].directory;\nL587: entry=directory_stack[level].entry;\nL588: tag_offset=directory_stack[level].offset;"
-        },
-        {
-          "entities": [
-            "q"
-          ],
-          "claim": "q points into the exif byte storage at the current directory entry.",
-          "evidence": "L609: q=(unsigned char *) (directory+(12*entry)+2);"
-        },
-        {
-          "entities": [
-            "p"
-          ],
-          "claim": "p points into the exif byte storage at the tag value location, either inline within the directory entry or at an offset into the exif storage.",
-          "evidence": "L628: p=q+8;\nL644: p=(unsigned char *) (exif+dir_offset);"
-        },
-        {
-          "entities": [
-            "p1"
-          ],
-          "claim": "p1 is initialized from p and advanced by size per component, preserving provenance to the exif storage region.",
-          "evidence": "L35: p1=p; \\\nL42: p1+=size; \\\nL61: p1=p; \\\nL68: p1+=size; \\"
-        },
-        {
-          "entities": [
-            "value"
-          ],
-          "claim": "value is a heap-allocated string produced by AcquireString or AcquireQuantumMemory, or NULL if allocation fails.",
-          "evidence": "L46: value=AcquireString(buffer); \\\nL72: value=AcquireString(buffer); \\\nL663: value=(char *) AcquireQuantumMemory((size_t) number_bytes+1UL,\nL737: value=(char *) AcquireQuantumMemory((size_t) number_bytes+1UL,"
-        },
-        {
-          "entities": [
-            "value"
-          ],
-          "claim": "value is released with DestroyString after being used.",
-          "evidence": "L816: value=DestroyString(value);"
-        },
-        {
-          "entities": [
-            "key"
-          ],
-          "claim": "key is a heap-allocated string produced by AcquireString and released with DestroyString.",
-          "evidence": "L763: key=AcquireString(property);\nL817: key=DestroyString(key);"
+          "claim": "directory is initialized to an interior byte address within the exif storage region at the first IFD offset.",
+          "evidence": "L572: directory=exif+offset;"
         },
         {
           "entities": [
             "exif_resources"
           ],
-          "claim": "exif_resources is a SplayTree allocated by NewSplayTree and later destroyed.",
-          "evidence": "L576: exif_resources=NewSplayTree((int (*)(const void *,const void *)) NULL,\nL869: exif_resources=DestroySplayTree(exif_resources);"
+          "claim": "exif_resources is a newly created splay tree resource used to track visited directory entries.",
+          "evidence": "L576: exif_resources=NewSplayTree((int (*)(const void *,const void *)) NULL,\nL577: (void *(*)(void *)) NULL,(void *(*)(void *)) NULL);"
         },
         {
           "entities": [
-            "directory_stack",
             "directory",
-            "entry",
-            "tag_offset"
+            "directory_stack"
           ],
-          "claim": "directory_stack entries are written with the current directory, incremented entry, and tag_offset before descending into a sub-IFD.",
-          "evidence": "L835: directory_stack[level].directory=directory;\nL836: entry++;\nL837: directory_stack[level].entry=entry;\nL838: directory_stack[level].offset=tag_offset;"
+          "claim": "When level > 0, directory is restored from the directory_stack entry at the decremented level, preserving its provenance into the exif storage region.",
+          "evidence": "L583: if (level > 0)\nL585: level--;\nL586: directory=directory_stack[level].directory;"
         },
         {
           "entities": [
-            "directory_stack",
+            "q",
             "directory"
           ],
-          "claim": "directory_stack entries are written with directory pointers derived from exif plus an offset for sub-IFD and next-IFD traversal.",
-          "evidence": "L848: directory_stack[level].directory=exif+offset;\nL859: directory_stack[level].directory=exif+offset;"
+          "claim": "q is an interior byte address derived from directory plus the current entry offset.",
+          "evidence": "L609: q=(unsigned char *) (directory+(12*entry)+2);"
+        },
+        {
+          "entities": [
+            "p",
+            "q"
+          ],
+          "claim": "When number_bytes <= 4, p is set to q+8, an interior byte address within the directory entry.",
+          "evidence": "L627: if (number_bytes <= 4)\nL628: p=q+8;"
+        },
+        {
+          "entities": [
+            "p",
+            "exif"
+          ],
+          "claim": "When number_bytes > 4, p is set to an interior byte address within the exif storage region at dir_offset.",
+          "evidence": "L644: p=(unsigned char *) (exif+dir_offset);"
+        },
+        {
+          "entities": [
+            "value"
+          ],
+          "claim": "value is initialized to NULL before format-specific allocation.",
+          "evidence": "L654: value=(char *) NULL;"
+        },
+        {
+          "entities": [
+            "value"
+          ],
+          "claim": "For BYTE/UNDEFINED format, value may be allocated as a new string buffer of number_bytes+1 bytes.",
+          "evidence": "L661: value=(char *) NULL;\nL662: if (~((size_t) number_bytes) >= 1)\nL663: value=(char *) AcquireQuantumMemory((size_t) number_bytes+1UL,\nL664: sizeof(*value));"
+        },
+        {
+          "entities": [
+            "value"
+          ],
+          "claim": "For STRING/default format, value may be allocated as a new string buffer of number_bytes+1 bytes.",
+          "evidence": "L735: value=(char *) NULL;\nL736: if (~((size_t) number_bytes) >= 1)\nL737: value=(char *) AcquireQuantumMemory((size_t) number_bytes+1UL,\nL738: sizeof(*value));"
+        },
+        {
+          "entities": [
+            "value"
+          ],
+          "claim": "When value is non-NULL, it is released with DestroyString after being used.",
+          "evidence": "L755: if (value != (char *) NULL)\nL816: value=DestroyString(value);"
+        },
+        {
+          "entities": [
+            "key"
+          ],
+          "claim": "key is a newly allocated string copy of property.",
+          "evidence": "L763: key=AcquireString(property);"
+        },
+        {
+          "entities": [
+            "key"
+          ],
+          "claim": "key is released with DestroyString after use.",
+          "evidence": "L817: key=DestroyString(key);"
+        },
+        {
+          "entities": [
+            "directory_stack",
+            "exif"
+          ],
+          "claim": "When following an EXIF/GPS/Interop offset, directory_stack entries are populated with directory pointers into the exif storage region and associated entry/offset state.",
+          "evidence": "L835: directory_stack[level].directory=directory;\nL837: directory_stack[level].entry=entry;\nL838: directory_stack[level].offset=tag_offset;\nL848: directory_stack[level].directory=exif+offset;\nL849: directory_stack[level].offset=tag_offset1;\nL850: directory_stack[level].entry=0;\nL859: directory_stack[level].directory=exif+offset;\nL860: directory_stack[level].entry=0;\nL861: directory_stack[level].offset=tag_offset1;"
+        },
+        {
+          "entities": [
+            "exif_resources"
+          ],
+          "claim": "exif_resources is destroyed before the function returns.",
+          "evidence": "L869: exif_resources=DestroySplayTree(exif_resources);"
         }
       ],
       "values": [
-        {
-          "entities": [
-            "MaxDirectoryStack",
-            "directory_stack",
-            "level"
-          ],
-          "claim": "directory_stack has MaxDirectoryStack (16) elements; level is bounded below MaxDirectoryStack-2 before pushing entries, so directory_stack[level] accesses stay within the array.",
-          "evidence": "L4: #define MaxDirectoryStack  16\nL406: directory_stack[MaxDirectoryStack];\nL828: if (((size_t) offset < length) && (level < (MaxDirectoryStack-2)))\nL857: (level < (MaxDirectoryStack-2)))"
-        },
         {
           "entities": [
             "tag_bytes",
@@ -387,31 +407,34 @@
             "number_bytes",
             "components"
           ],
-          "claim": "tag_bytes[] has 13 elements indexed by format; format is checked < sizeof(tag_bytes)/sizeof(*tag_bytes) and != 0 before use. number_bytes = components * tag_bytes[format], with components >= 0 and overflow check number_bytes < components.",
-          "evidence": "L435: tag_bytes[] = {0, 1, 1, 2, 4, 8, 1, 1, 2, 4, 8, 4, 8};\nL616: format=(size_t) ReadPropertyUnsignedShort(endian,q+2);\nL617: if (format >= (sizeof(tag_bytes)/sizeof(*tag_bytes)))\nL619: if (format == 0)\nL621: components=(ssize_t) ReadPropertySignedLong(endian,q+4);\nL622: if (components < 0)\nL624: number_bytes=(size_t) components*tag_bytes[format];\nL625: if (number_bytes < components)"
+          "claim": "tag_bytes[] has 13 elements indexed by format; number_bytes = components * tag_bytes[format], with format validated < 13 and != 0 before use.",
+          "evidence": "L435: tag_bytes[] = {0, 1, 1, 2, 4, 8, 1, 1, 2, 4, 8, 4, 8};\nL617: if (format >= (sizeof(tag_bytes)/sizeof(*tag_bytes)))\nL619: if (format == 0)\nL624: number_bytes=(size_t) components*tag_bytes[format];"
         },
         {
           "entities": [
-            "q",
-            "directory",
-            "entry",
-            "exif",
-            "length"
+            "number_bytes",
+            "components"
           ],
-          "claim": "q = directory + 12*entry + 2; q is checked against exif+length-12 before reading 12-byte directory entries.",
-          "evidence": "L609: q=(unsigned char *) (directory+(12*entry)+2);\nL610: if (q > (exif+length-12))"
+          "claim": "number_bytes is computed as (size_t)components*tag_bytes[format]; overflow is detected by number_bytes < components.",
+          "evidence": "L624: number_bytes=(size_t) components*tag_bytes[format];\nL625: if (number_bytes < components)"
         },
         {
           "entities": [
             "p",
             "q",
-            "number_bytes",
-            "exif",
+            "number_bytes"
+          ],
+          "claim": "If number_bytes <= 4, p points to q+8 (inline value); otherwise p is set from an offset into exif.",
+          "evidence": "L627: if (number_bytes <= 4)\nL628: p=q+8;\nL644: p=(unsigned char *) (exif+dir_offset);"
+        },
+        {
+          "entities": [
             "dir_offset",
+            "number_bytes",
             "length"
           ],
-          "claim": "If number_bytes <= 4, p = q+8 (inline value); otherwise p = exif+dir_offset after checking dir_offset >= 0, dir_offset < length, and dir_offset+number_bytes <= length without overflow.",
-          "evidence": "L627: if (number_bytes <= 4)\nL628: p=q+8;\nL637: dir_offset=(ssize_t) ReadPropertySignedLong(endian,q+8);\nL638: if ((dir_offset < 0) || (size_t) dir_offset >= length)\nL640: if (((size_t) dir_offset+number_bytes) < (size_t) dir_offset)\nL642: if (((size_t) dir_offset+number_bytes) > length)\nL644: p=(unsigned char *) (exif+dir_offset);"
+          "claim": "For out-of-line values, dir_offset must be >=0 and < length, and dir_offset+number_bytes must not overflow and must be <= length.",
+          "evidence": "L637: dir_offset=(ssize_t) ReadPropertySignedLong(endian,q+8);\nL638: if ((dir_offset < 0) || (size_t) dir_offset >= length)\nL640: if (((size_t) dir_offset+number_bytes) < (size_t) dir_offset)\nL642: if (((size_t) dir_offset+number_bytes) > length)"
         },
         {
           "entities": [
@@ -421,7 +444,7 @@
             "tag_bytes",
             "format"
           ],
-          "claim": "Before formatting, p is checked to lie in [exif, exif+length-tag_bytes[format]].",
+          "claim": "Before formatting, p must satisfy p >= exif and p <= exif+length-tag_bytes[format].",
           "evidence": "L652: if ((p < exif) || (p > (exif+length-tag_bytes[format])))"
         },
         {
@@ -431,7 +454,7 @@
             "length",
             "number_bytes"
           ],
-          "claim": "For EXIF_FMT_STRING/default, p is checked to lie in [exif, exif+length-number_bytes] before reading number_bytes bytes.",
+          "claim": "For string/byte formats, p must satisfy p >= exif and p <= exif+length-number_bytes.",
           "evidence": "L733: if ((p < exif) || (p > (exif+length-number_bytes)))"
         },
         {
@@ -439,49 +462,46 @@
             "value",
             "number_bytes"
           ],
-          "claim": "value is allocated with number_bytes+1 bytes only when ~((size_t) number_bytes) >= 1, preventing size_t overflow of number_bytes+1.",
-          "evidence": "L662: if (~((size_t) number_bytes) >= 1)\nL663: value=(char *) AcquireQuantumMemory((size_t) number_bytes+1UL,\nL736: if (~((size_t) number_bytes) >= 1)\nL737: value=(char *) AcquireQuantumMemory((size_t) number_bytes+1UL,"
+          "claim": "value is allocated with AcquireQuantumMemory(number_bytes+1, sizeof(*value)) when ~((size_t)number_bytes) >= 1.",
+          "evidence": "L662: if (~((size_t) number_bytes) >= 1)\nL663: value=(char *) AcquireQuantumMemory((size_t) number_bytes+1UL,\nL664: sizeof(*value));\nL736: if (~((size_t) number_bytes) >= 1)\nL737: value=(char *) AcquireQuantumMemory((size_t) number_bytes+1UL,\nL738: sizeof(*value));"
+        },
+        {
+          "entities": [
+            "i",
+            "number_bytes",
+            "value"
+          ],
+          "claim": "Loops write value[i] for i in [0, number_bytes) and then value[number_bytes]='\\0', requiring allocation of at least number_bytes+1 bytes.",
+          "evidence": "L667: for (i=0; i < (ssize_t) number_bytes; i++)\nL673: value[i]='\\0';\nL744: for (i=0; i < (ssize_t) number_bytes; i++)\nL750: value[i]='\\0';"
         },
         {
           "entities": [
             "p1",
-            "p",
             "size",
             "components"
           ],
-          "claim": "In EXIFMultipleValues/EXIFMultipleFractions, p1 starts at p and advances by size bytes per component for components iterations, so p1 reaches p + size*components.",
+          "claim": "In EXIFMultipleValues/EXIFMultipleFractions, p1 starts at p and advances by size per component for components iterations.",
           "evidence": "L35: p1=p; \\\nL36: for (component=0; component < components; component++) \\\nL42: p1+=size; \\\nL61: p1=p; \\\nL62: for (component=0; component < components; component++) \\\nL68: p1+=size; \\"
         },
         {
           "entities": [
-            "p1",
-            "p",
-            "size",
-            "components",
-            "number_bytes",
-            "tag_bytes",
-            "format"
-          ],
-          "claim": "For the EXIFMultipleValues/EXIFMultipleFractions cases, size equals tag_bytes[format] and components*size = number_bytes, so p1 accesses stay within the number_bytes region starting at p.",
-          "evidence": "L679: EXIFMultipleValues(1,\"%.20g\",(double) (*(signed char *) p1));\nL684: EXIFMultipleValues(2,\"%hd\",ReadPropertySignedShort(endian,p1));\nL689: EXIFMultipleValues(2,\"%hu\",ReadPropertyUnsignedShort(endian,p1));\nL694: EXIFMultipleValues(4,\"%.20g\",(double)\nL700: EXIFMultipleValues(4,\"%.20g\",(double)\nL706: EXIFMultipleFractions(8,\"%.20g/%.20g\",(double)\nL713: EXIFMultipleFractions(8,\"%.20g/%.20g\",(double)\nL720: EXIFMultipleValues(4,\"%.20g\",(double)\nL726: EXIFMultipleValues(8,\"%.20g\",(double)"
-        },
-        {
-          "entities": [
-            "buffer",
             "length",
+            "buffer",
             "MaxTextExtent"
           ],
-          "claim": "In EXIFMultipleValues/EXIFMultipleFractions, FormatLocaleString writes at buffer+length with size MaxTextExtent-length; length is clamped to MaxTextExtent-1 when it reaches MaxTextExtent-1, and buffer[length-2] is only written when length > 1.",
-          "evidence": "L38: length+=FormatLocaleString(buffer+length,MaxTextExtent-length, \\\nL40: if (length >= (MaxTextExtent-1)) \\\nL41: length=MaxTextExtent-1; \\\nL44: if (length > 1) \\\nL45: buffer[length-2]='\\0'; \\\nL64: length+=FormatLocaleString(buffer+length,MaxTextExtent-length, \\\nL66: if (length >= (MaxTextExtent-1)) \\\nL67: length=MaxTextExtent-1; \\\nL70: if (length > 1) \\\nL71: buffer[length-2]='\\0'; \\"
+          "claim": "In EXIFMultipleValues/EXIFMultipleFractions, length accumulates FormatLocaleString output and is clamped to MaxTextExtent-1; buffer[length-2] is written when length > 1.",
+          "evidence": "L38: length+=FormatLocaleString(buffer+length,MaxTextExtent-length, \\\nL40: if (length >= (MaxTextExtent-1)) \\\nL41: length=MaxTextExtent-1; \\\nL44: if (length > 1) \\\nL45: buffer[length-2]='\\0'; \\"
         },
         {
           "entities": [
-            "offset",
+            "q",
+            "directory",
+            "entry",
             "exif",
             "length"
           ],
-          "claim": "The first IFD offset is read as a signed long; it is rejected if negative or >= length, then directory = exif+offset.",
-          "evidence": "L565: offset=(ssize_t) ReadPropertySignedLong(endian,exif+4);\nL566: if ((offset < 0) || (size_t) offset >= length)\nL572: directory=exif+offset;"
+          "claim": "q = directory + 12*entry + 2; q must be <= exif+length-12 before reading the entry.",
+          "evidence": "L609: q=(unsigned char *) (directory+(12*entry)+2);\nL610: if (q > (exif+length-12))"
         },
         {
           "entities": [
@@ -489,103 +509,81 @@
             "exif",
             "length"
           ],
-          "claim": "directory is checked to lie in [exif, exif+length-2] before reading the entry count.",
-          "evidence": "L590: if ((directory < exif) || (directory > (exif+length-2)))\nL595: number_entries=(size_t) ReadPropertyUnsignedShort(endian,directory);"
+          "claim": "directory must satisfy directory >= exif and directory <= exif+length-2.",
+          "evidence": "L590: if ((directory < exif) || (directory > (exif+length-2)))"
         },
         {
           "entities": [
             "offset",
-            "exif",
-            "length",
-            "directory_stack",
-            "level"
+            "length"
           ],
-          "claim": "For EXIF/GPS/Interop offset tags, offset is read from p; if offset >= 0 and < length and level < MaxDirectoryStack-2, directory_stack[level] is set to exif+offset.",
-          "evidence": "L827: offset=(ssize_t) ReadPropertySignedLong(endian,p);\nL828: if (((size_t) offset < length) && (level < (MaxDirectoryStack-2)))\nL848: directory_stack[level].directory=exif+offset;"
+          "claim": "The first IFD offset read from exif+4 must be >=0 and < length.",
+          "evidence": "L565: offset=(ssize_t) ReadPropertySignedLong(endian,exif+4);\nL566: if ((offset < 0) || (size_t) offset >= length)"
         },
         {
           "entities": [
             "offset",
+            "length",
+            "level",
+            "MaxDirectoryStack"
+          ],
+          "claim": "For EXIF/GPS/Interop offset tags, offset must be < length and level < MaxDirectoryStack-2 to push directory_stack entries.",
+          "evidence": "L827: offset=(ssize_t) ReadPropertySignedLong(endian,p);\nL828: if (((size_t) offset < length) && (level < (MaxDirectoryStack-2)))"
+        },
+        {
+          "entities": [
             "directory",
             "number_entries",
             "exif",
-            "length",
-            "directory_stack",
-            "level"
+            "length"
           ],
-          "claim": "The next-IFD offset is read from directory+2+12*number_entries only after checking that address is <= exif+length; if nonzero, < length, and level < MaxDirectoryStack-2, directory_stack[level] is set to exif+offset.",
-          "evidence": "L852: if ((directory+2+(12*number_entries)+4) > (exif+length))\nL854: offset=(ssize_t) ReadPropertySignedLong(endian,directory+2+(12*\nL855: number_entries));\nL856: if ((offset != 0) && ((size_t) offset < length) &&\nL857: (level < (MaxDirectoryStack-2)))\nL859: directory_stack[level].directory=exif+offset;"
+          "claim": "Before reading the next-IFD offset, directory+2+12*number_entries+4 must be <= exif+length.",
+          "evidence": "L852: if ((directory+2+(12*number_entries)+4) > (exif+length))"
+        },
+        {
+          "entities": [
+            "offset",
+            "length",
+            "level",
+            "MaxDirectoryStack"
+          ],
+          "claim": "The next-IFD offset must be nonzero, < length, and level < MaxDirectoryStack-2 to push another directory_stack entry.",
+          "evidence": "L854: offset=(ssize_t) ReadPropertySignedLong(endian,directory+2+(12*\nL855: number_entries));\nL856: if ((offset != 0) && ((size_t) offset < length) &&\nL857: (level < (MaxDirectoryStack-2)))"
         },
         {
           "entities": [
             "tag",
             "property",
-            "n",
-            "i"
+            "n"
           ],
-          "claim": "For '#'/'@' tag parsing, n = strlen(property) must equal 4; n/=4 makes n=1, and the loop shifts tag left by 4 and ORs in each parsed hex digit.",
-          "evidence": "L482: n=strlen(property);\nL483: if (n != 4)\nL488: n/=4;\nL491: for (i=(ssize_t) n-1L; i >= 0; i--)\nL494: tag<<=4;"
-        },
-        {
-          "entities": [
-            "tag",
-            "tag_value",
-            "all"
-          ],
-          "claim": "tag is initialized to ~0UL and must be changed before use; tag_value is computed as ReadPropertyUnsignedShort(endian,q)+tag_offset.",
-          "evidence": "L450: tag=(~0UL);\nL527: if (tag == (~0UL))\nL615: tag_value=(size_t) ReadPropertyUnsignedShort(endian,q)+tag_offset;"
-        },
-        {
-          "entities": [
-            "length",
-            "profile"
-          ],
-          "claim": "length = GetStringInfoLength(profile); parsing requires length >= 6 initially and length >= 16 after locating the EXIF header.",
-          "evidence": "L529: length=GetStringInfoLength(profile);\nL530: if (length < 6)\nL549: if (length < 16)"
-        },
-        {
-          "entities": [
-            "exif",
-            "length",
-            "ReadPropertyByte"
-          ],
-          "claim": "The EXIF header scan advances exif and decrements length via ReadPropertyByte until the 6-byte 'Exif\\0\\0' sequence is found or length becomes 0.",
-          "evidence": "L533: while (length != 0)\nL535: if (ReadPropertyByte(&exif,&length) != 0x45)\nL537: if (ReadPropertyByte(&exif,&length) != 0x78)\nL539: if (ReadPropertyByte(&exif,&length) != 0x69)\nL541: if (ReadPropertyByte(&exif,&length) != 0x66)\nL543: if (ReadPropertyByte(&exif,&length) != 0x00)\nL545: if (ReadPropertyByte(&exif,&length) != 0x00)"
-        },
-        {
-          "entities": [
-            "id",
-            "endian"
-          ],
-          "claim": "id is read as a signed short at exif; id == 0x4949 selects LSBEndian, id == 0x4D4D selects MSBEndian, otherwise parsing fails.",
-          "evidence": "L551: id=(ssize_t) ReadPropertySignedShort(LSBEndian,exif);\nL552: endian=LSBEndian;\nL553: if (id == 0x4949)\nL554: endian=LSBEndian;\nL556: if (id == 0x4D4D)\nL557: endian=MSBEndian;"
-        },
-        {
-          "entities": [
-            "tag_offset",
-            "tag_value",
-            "tag_offset1"
-          ],
-          "claim": "tag_offset is added to each entry tag to form tag_value; tag_offset1 is 0x10000 for GPS offset tags and 0 otherwise.",
-          "evidence": "L575: tag_offset=0;\nL615: tag_value=(size_t) ReadPropertyUnsignedShort(endian,q)+tag_offset;\nL833: tag_offset1=(ssize_t) ((tag_value == TAG_GPS_OFFSET) ? 0x10000 :\nL834: 0);"
+          "claim": "For '#'/'@' tag specifications, strlen(property) must equal 4 and n is set to 1 before parsing four hex digits into tag.",
+          "evidence": "L482: n=strlen(property);\nL483: if (n != 4)\nL488: n/=4;\nL491: for (i=(ssize_t) n-1L; i >= 0; i--)"
         },
         {
           "entities": [
             "tag_value",
-            "all",
-            "tag"
+            "tag_offset"
           ],
-          "claim": "The value-formatting block is entered only when all != 0 or tag == tag_value.",
-          "evidence": "L646: if ((all != 0) || (tag == (size_t) tag_value))"
+          "claim": "tag_value = ReadPropertyUnsignedShort(endian,q) + tag_offset.",
+          "evidence": "L615: tag_value=(size_t) ReadPropertyUnsignedShort(endian,q)+tag_offset;"
         },
         {
           "entities": [
+            "tag_offset1",
             "tag_value",
-            "key",
-            "all"
+            "TAG_GPS_OFFSET"
           ],
-          "claim": "For all==2, key formatting uses tag_value ranges: < 0x10000 as '#%04lx', < 0x20000 as '@%04lx' with tag_value & 0xffff, otherwise 'unknown'.",
-          "evidence": "L793: if (tag_value < 0x10000)\nL794: (void) FormatLocaleString(key,MaxTextExtent,\"#%04lx\",\nL795: (unsigned long) tag_value);\nL797: if (tag_value < 0x20000)\nL798: (void) FormatLocaleString(key,MaxTextExtent,\"@%04lx\",\nL799: (unsigned long) (tag_value & 0xffff));"
+          "claim": "tag_offset1 is 0x10000 when tag_value == TAG_GPS_OFFSET, otherwise 0.",
+          "evidence": "L833: tag_offset1=(ssize_t) ((tag_value == TAG_GPS_OFFSET) ? 0x10000 :\nL834: 0);"
+        },
+        {
+          "entities": [
+            "directory_stack",
+            "level",
+            "MaxDirectoryStack"
+          ],
+          "claim": "directory_stack has MaxDirectoryStack (16) elements; level is incremented when pushing entries and must remain within bounds.",
+          "evidence": "L4: #define MaxDirectoryStack  16\nL406: directory_stack[MaxDirectoryStack];\nL839: level++;\nL851: level++;\nL862: level++;"
         }
       ],
       "executions": [
@@ -593,14 +591,14 @@
           "entities": [
             "property"
           ],
-          "claim": "continuing past the initial checks implies property is non-NULL, non-empty, and after skipping leading whitespace has strlen(property) > 5",
+          "claim": "continuing past the initial checks implies property is non-NULL, non-empty, and has length > 5 after skipping leading whitespace",
           "evidence": "L443: if ((property == (const char *) NULL) || (*property == '\\0'))\nL444: return(MagickFalse);\nL445: while (isspace((int) ((unsigned char) *property)) != 0)\nL446: property++;\nL447: if (strlen(property) <= 5)\nL448: return(MagickFalse);"
         },
         {
           "entities": [
             "tag"
           ],
-          "claim": "continuing past the switch implies tag != ~0UL",
+          "claim": "continuing after the switch implies tag != ~0UL",
           "evidence": "L527: if (tag == (~0UL))\nL528: return(MagickFalse);"
         },
         {
@@ -619,11 +617,10 @@
         },
         {
           "entities": [
-            "id",
-            "endian"
+            "id"
           ],
-          "claim": "continuing past the endianness check implies id is 0x4949 or 0x4D4D, with endian set to LSBEndian or MSBEndian respectively",
-          "evidence": "L551: id=(ssize_t) ReadPropertySignedShort(LSBEndian,exif);\nL552: endian=LSBEndian;\nL553: if (id == 0x4949)\nL554: endian=LSBEndian;\nL555: else\nL556: if (id == 0x4D4D)\nL557: endian=MSBEndian;\nL558: else\nL559: return(MagickFalse);"
+          "claim": "continuing past endian detection implies id is 0x4949 or 0x4D4D",
+          "evidence": "L553: if (id == 0x4949)\nL554: endian=LSBEndian;\nL555: else\nL556: if (id == 0x4D4D)\nL557: endian=MSBEndian;\nL558: else\nL559: return(MagickFalse);"
         },
         {
           "entities": [
@@ -655,8 +652,8 @@
           "entities": [
             "format"
           ],
-          "claim": "continuing past this check implies format is nonzero and less than the number of tag_bytes entries",
-          "evidence": "L616: format=(size_t) ReadPropertyUnsignedShort(endian,q+2);\nL617: if (format >= (sizeof(tag_bytes)/sizeof(*tag_bytes)))\nL618: break;\nL619: if (format == 0)\nL620: break;  /* corrupt EXIF */"
+          "claim": "continuing past this check implies format < 12 and format != 0",
+          "evidence": "L617: if (format >= (sizeof(tag_bytes)/sizeof(*tag_bytes)))\nL618: break;\nL619: if (format == 0)\nL620: break;  /* corrupt EXIF */"
         },
         {
           "entities": [
@@ -708,7 +705,7 @@
             "length",
             "level"
           ],
-          "claim": "continuing past this check implies 0 <= offset < length and level < MaxDirectoryStack-2",
+          "claim": "continuing into the nested-directory push implies 0 <= offset < length and level < MaxDirectoryStack-2",
           "evidence": "L827: offset=(ssize_t) ReadPropertySignedLong(endian,p);\nL828: if (((size_t) offset < length) && (level < (MaxDirectoryStack-2)))"
         },
         {
@@ -727,8 +724,8 @@
             "length",
             "level"
           ],
-          "claim": "continuing past this check implies offset != 0, 0 <= offset < length, and level < MaxDirectoryStack-2",
-          "evidence": "L856: if ((offset != 0) && ((size_t) offset < length) &&\nL857: (level < (MaxDirectoryStack-2)))"
+          "claim": "continuing into the next-IFD push implies offset != 0, 0 <= offset < length, and level < MaxDirectoryStack-2",
+          "evidence": "L854: offset=(ssize_t) ReadPropertySignedLong(endian,directory+2+(12*\nL855: number_entries));\nL856: if ((offset != 0) && ((size_t) offset < length) &&\nL857: (level < (MaxDirectoryStack-2)))"
         }
       ]
     },
@@ -738,19 +735,21 @@
         "attempts": [
           {
             "attempt": 1,
+            "retry_mode": "initial",
             "errors": [],
             "token_usage": {
-              "input_tokens": 13553,
-              "output_tokens": 1101,
-              "total_tokens": 14654
+              "input_tokens": 13847,
+              "output_tokens": 1145,
+              "total_tokens": 14992
             },
-            "max_tokens": 8192
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
           }
         ],
         "token_usage": {
-          "input_tokens": 13553,
-          "output_tokens": 1101,
-          "total_tokens": 14654
+          "input_tokens": 13847,
+          "output_tokens": 1145,
+          "total_tokens": 14992
         },
         "grounding": {
           "operation_agent.operations[0]": {
@@ -771,16 +770,6 @@
           "operation_agent.operations[1]": {
             "expression_matches": [
               {
-                "location": "L447",
-                "matched": true,
-                "expression": "strlen(property)"
-              }
-            ],
-            "status": "pass"
-          },
-          "operation_agent.operations[2]": {
-            "expression_matches": [
-              {
                 "location": "L451",
                 "matched": true,
                 "expression": "*(property+5)"
@@ -788,7 +777,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[3]": {
+          "operation_agent.operations[2]": {
             "expression_matches": [
               {
                 "location": "L480",
@@ -798,17 +787,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[4]": {
-            "expression_matches": [
-              {
-                "location": "L482",
-                "matched": true,
-                "expression": "strlen(property)"
-              }
-            ],
-            "status": "pass"
-          },
-          "operation_agent.operations[5]": {
+          "operation_agent.operations[3]": {
             "expression_matches": [
               {
                 "location": "L493",
@@ -818,7 +797,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[6]": {
+          "operation_agent.operations[4]": {
             "expression_matches": [
               {
                 "location": "L506",
@@ -828,7 +807,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[7]": {
+          "operation_agent.operations[5]": {
             "expression_matches": [
               {
                 "location": "L516",
@@ -863,7 +842,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[8]": {
+          "operation_agent.operations[6]": {
             "expression_matches": [
               {
                 "location": "L535",
@@ -898,7 +877,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[9]": {
+          "operation_agent.operations[7]": {
             "expression_matches": [
               {
                 "location": "L551",
@@ -908,7 +887,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[10]": {
+          "operation_agent.operations[8]": {
             "expression_matches": [
               {
                 "location": "L560",
@@ -918,7 +897,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[11]": {
+          "operation_agent.operations[9]": {
             "expression_matches": [
               {
                 "location": "L565",
@@ -928,7 +907,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[12]": {
+          "operation_agent.operations[10]": {
             "expression_matches": [
               {
                 "location": "L586",
@@ -948,7 +927,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[13]": {
+          "operation_agent.operations[11]": {
             "expression_matches": [
               {
                 "location": "L595",
@@ -958,7 +937,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[14]": {
+          "operation_agent.operations[12]": {
             "expression_matches": [
               {
                 "location": "L609",
@@ -968,7 +947,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[15]": {
+          "operation_agent.operations[13]": {
             "expression_matches": [
               {
                 "location": "L615",
@@ -978,7 +957,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[16]": {
+          "operation_agent.operations[14]": {
             "expression_matches": [
               {
                 "location": "L616",
@@ -988,7 +967,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[17]": {
+          "operation_agent.operations[15]": {
             "expression_matches": [
               {
                 "location": "L621",
@@ -998,7 +977,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[18]": {
+          "operation_agent.operations[16]": {
             "expression_matches": [
               {
                 "location": "L624",
@@ -1008,7 +987,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[19]": {
+          "operation_agent.operations[17]": {
             "expression_matches": [
               {
                 "location": "L637",
@@ -1018,7 +997,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[20]": {
+          "operation_agent.operations[18]": {
             "expression_matches": [
               {
                 "location": "L663",
@@ -1033,7 +1012,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[21]": {
+          "operation_agent.operations[19]": {
             "expression_matches": [
               {
                 "location": "L670",
@@ -1058,7 +1037,22 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[22]": {
+          "operation_agent.operations[20]": {
+            "expression_matches": [
+              {
+                "location": "L673",
+                "matched": true,
+                "expression": "value[i]"
+              },
+              {
+                "location": "L750",
+                "matched": true,
+                "expression": "value[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[21]": {
             "expression_matches": [
               {
                 "location": "L679",
@@ -1068,7 +1062,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[23]": {
+          "operation_agent.operations[22]": {
             "expression_matches": [
               {
                 "location": "L684",
@@ -1078,7 +1072,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[24]": {
+          "operation_agent.operations[23]": {
             "expression_matches": [
               {
                 "location": "L689",
@@ -1088,7 +1082,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[25]": {
+          "operation_agent.operations[24]": {
             "expression_matches": [
               {
                 "location": "L694",
@@ -1103,7 +1097,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[26]": {
+          "operation_agent.operations[25]": {
             "expression_matches": [
               {
                 "location": "L700",
@@ -1118,7 +1112,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[27]": {
+          "operation_agent.operations[26]": {
             "expression_matches": [
               {
                 "location": "L706",
@@ -1138,7 +1132,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[28]": {
+          "operation_agent.operations[27]": {
             "expression_matches": [
               {
                 "location": "L713",
@@ -1158,7 +1152,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[29]": {
+          "operation_agent.operations[28]": {
             "expression_matches": [
               {
                 "location": "L720",
@@ -1173,7 +1167,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[30]": {
+          "operation_agent.operations[29]": {
             "expression_matches": [
               {
                 "location": "L726",
@@ -1188,12 +1182,62 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[31]": {
+          "operation_agent.operations[30]": {
             "expression_matches": [
               {
                 "location": "L827",
                 "matched": true,
                 "expression": "ReadPropertySignedLong(endian,p)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[31]": {
+            "expression_matches": [
+              {
+                "location": "L835",
+                "matched": true,
+                "expression": "directory_stack[level]"
+              },
+              {
+                "location": "L837",
+                "matched": true,
+                "expression": "directory_stack[level]"
+              },
+              {
+                "location": "L838",
+                "matched": true,
+                "expression": "directory_stack[level]"
+              },
+              {
+                "location": "L848",
+                "matched": true,
+                "expression": "directory_stack[level]"
+              },
+              {
+                "location": "L849",
+                "matched": true,
+                "expression": "directory_stack[level]"
+              },
+              {
+                "location": "L850",
+                "matched": true,
+                "expression": "directory_stack[level]"
+              },
+              {
+                "location": "L859",
+                "matched": true,
+                "expression": "directory_stack[level]"
+              },
+              {
+                "location": "L860",
+                "matched": true,
+                "expression": "directory_stack[level]"
+              },
+              {
+                "location": "L861",
+                "matched": true,
+                "expression": "directory_stack[level]"
               }
             ],
             "status": "pass"
@@ -1231,19 +1275,21 @@
         "attempts": [
           {
             "attempt": 1,
+            "retry_mode": "initial",
             "errors": [],
             "token_usage": {
               "input_tokens": 12450,
-              "output_tokens": 891,
-              "total_tokens": 13341
+              "output_tokens": 1044,
+              "total_tokens": 13494
             },
-            "max_tokens": 8192
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
           }
         ],
         "token_usage": {
           "input_tokens": 12450,
-          "output_tokens": 891,
-          "total_tokens": 13341
+          "output_tokens": 1044,
+          "total_tokens": 13494
         },
         "grounding": {
           "state_agent.states[0]": {
@@ -1260,6 +1306,13 @@
                 "fragment": "if (profile == (const StringInfo *) NULL)",
                 "matched_lines": [
                   441
+                ]
+              },
+              {
+                "evidence_line": 442,
+                "fragment": "return(MagickFalse);",
+                "matched_lines": [
+                  442
                 ]
               }
             ],
@@ -1292,30 +1345,49 @@
           "state_agent.states[3]": {
             "evidence_matches": [
               {
-                "evidence_line": 586,
-                "fragment": "directory=directory_stack[level].directory;",
+                "evidence_line": 576,
+                "fragment": "exif_resources=NewSplayTree((int (*)(const void *,const void *)) NULL,",
                 "matched_lines": [
-                  586
+                  576
                 ]
               },
               {
-                "evidence_line": 587,
-                "fragment": "entry=directory_stack[level].entry;",
+                "evidence_line": 577,
+                "fragment": "(void *(*)(void *)) NULL,(void *(*)(void *)) NULL);",
                 "matched_lines": [
-                  587
-                ]
-              },
-              {
-                "evidence_line": 588,
-                "fragment": "tag_offset=directory_stack[level].offset;",
-                "matched_lines": [
-                  588
+                  577
                 ]
               }
             ],
             "status": "pass"
           },
           "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 583,
+                "fragment": "if (level > 0)",
+                "matched_lines": [
+                  583
+                ]
+              },
+              {
+                "evidence_line": 585,
+                "fragment": "level--;",
+                "matched_lines": [
+                  585
+                ]
+              },
+              {
+                "evidence_line": 586,
+                "fragment": "directory=directory_stack[level].directory;",
+                "matched_lines": [
+                  586
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
             "evidence_matches": [
               {
                 "evidence_line": 609,
@@ -1327,15 +1399,27 @@
             ],
             "status": "pass"
           },
-          "state_agent.states[5]": {
+          "state_agent.states[6]": {
             "evidence_matches": [
+              {
+                "evidence_line": 627,
+                "fragment": "if (number_bytes <= 4)",
+                "matched_lines": [
+                  627
+                ]
+              },
               {
                 "evidence_line": 628,
                 "fragment": "p=q+8;",
                 "matched_lines": [
                   628
                 ]
-              },
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
               {
                 "evidence_line": 644,
                 "fragment": "p=(unsigned char *) (exif+dir_offset);",
@@ -1346,53 +1430,32 @@
             ],
             "status": "pass"
           },
-          "state_agent.states[6]": {
+          "state_agent.states[8]": {
             "evidence_matches": [
               {
-                "evidence_line": 35,
-                "fragment": "p1=p; \\",
+                "evidence_line": 654,
+                "fragment": "value=(char *) NULL;",
                 "matched_lines": [
-                  35
-                ]
-              },
-              {
-                "evidence_line": 42,
-                "fragment": "p1+=size; \\",
-                "matched_lines": [
-                  42
-                ]
-              },
-              {
-                "evidence_line": 61,
-                "fragment": "p1=p; \\",
-                "matched_lines": [
-                  61
-                ]
-              },
-              {
-                "evidence_line": 68,
-                "fragment": "p1+=size; \\",
-                "matched_lines": [
-                  68
+                  654
                 ]
               }
             ],
             "status": "pass"
           },
-          "state_agent.states[7]": {
+          "state_agent.states[9]": {
             "evidence_matches": [
               {
-                "evidence_line": 46,
-                "fragment": "value=AcquireString(buffer); \\",
+                "evidence_line": 661,
+                "fragment": "value=(char *) NULL;",
                 "matched_lines": [
-                  46
+                  661
                 ]
               },
               {
-                "evidence_line": 72,
-                "fragment": "value=AcquireString(buffer); \\",
+                "evidence_line": 662,
+                "fragment": "if (~((size_t) number_bytes) >= 1)",
                 "matched_lines": [
-                  72
+                  662
                 ]
               },
               {
@@ -1403,17 +1466,57 @@
                 ]
               },
               {
-                "evidence_line": 737,
-                "fragment": "value=(char *) AcquireQuantumMemory((size_t) number_bytes+1UL,",
+                "evidence_line": 664,
+                "fragment": "sizeof(*value));",
                 "matched_lines": [
-                  737
+                  664
                 ]
               }
             ],
             "status": "pass"
           },
-          "state_agent.states[8]": {
+          "state_agent.states[10]": {
             "evidence_matches": [
+              {
+                "evidence_line": 735,
+                "fragment": "value=(char *) NULL;",
+                "matched_lines": [
+                  735
+                ]
+              },
+              {
+                "evidence_line": 736,
+                "fragment": "if (~((size_t) number_bytes) >= 1)",
+                "matched_lines": [
+                  736
+                ]
+              },
+              {
+                "evidence_line": 737,
+                "fragment": "value=(char *) AcquireQuantumMemory((size_t) number_bytes+1UL,",
+                "matched_lines": [
+                  737
+                ]
+              },
+              {
+                "evidence_line": 738,
+                "fragment": "sizeof(*value));",
+                "matched_lines": [
+                  738
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 755,
+                "fragment": "if (value != (char *) NULL)",
+                "matched_lines": [
+                  755
+                ]
+              },
               {
                 "evidence_line": 816,
                 "fragment": "value=DestroyString(value);",
@@ -1424,7 +1527,7 @@
             ],
             "status": "pass"
           },
-          "state_agent.states[9]": {
+          "state_agent.states[12]": {
             "evidence_matches": [
               {
                 "evidence_line": 763,
@@ -1432,7 +1535,12 @@
                 "matched_lines": [
                   763
                 ]
-              },
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[13]": {
+            "evidence_matches": [
               {
                 "evidence_line": 817,
                 "fragment": "key=DestroyString(key);",
@@ -1443,39 +1551,13 @@
             ],
             "status": "pass"
           },
-          "state_agent.states[10]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 576,
-                "fragment": "exif_resources=NewSplayTree((int (*)(const void *,const void *)) NULL,",
-                "matched_lines": [
-                  576
-                ]
-              },
-              {
-                "evidence_line": 869,
-                "fragment": "exif_resources=DestroySplayTree(exif_resources);",
-                "matched_lines": [
-                  869
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "state_agent.states[11]": {
+          "state_agent.states[14]": {
             "evidence_matches": [
               {
                 "evidence_line": 835,
                 "fragment": "directory_stack[level].directory=directory;",
                 "matched_lines": [
                   835
-                ]
-              },
-              {
-                "evidence_line": 836,
-                "fragment": "entry++;",
-                "matched_lines": [
-                  836
                 ]
               },
               {
@@ -1491,12 +1573,7 @@
                 "matched_lines": [
                   838
                 ]
-              }
-            ],
-            "status": "pass"
-          },
-          "state_agent.states[12]": {
-            "evidence_matches": [
+              },
               {
                 "evidence_line": 848,
                 "fragment": "directory_stack[level].directory=exif+offset;",
@@ -1505,96 +1582,87 @@
                 ]
               },
               {
+                "evidence_line": 849,
+                "fragment": "directory_stack[level].offset=tag_offset1;",
+                "matched_lines": [
+                  849
+                ]
+              },
+              {
+                "evidence_line": 850,
+                "fragment": "directory_stack[level].entry=0;",
+                "matched_lines": [
+                  850
+                ]
+              },
+              {
                 "evidence_line": 859,
                 "fragment": "directory_stack[level].directory=exif+offset;",
                 "matched_lines": [
                   859
+                ]
+              },
+              {
+                "evidence_line": 860,
+                "fragment": "directory_stack[level].entry=0;",
+                "matched_lines": [
+                  860
+                ]
+              },
+              {
+                "evidence_line": 861,
+                "fragment": "directory_stack[level].offset=tag_offset1;",
+                "matched_lines": [
+                  861
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[15]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 869,
+                "fragment": "exif_resources=DestroySplayTree(exif_resources);",
+                "matched_lines": [
+                  869
                 ]
               }
             ],
             "status": "pass"
           }
         },
-        "item_recovery": [
-          {
-            "action": "repair_evidence",
-            "index": 6,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 7,
-            "collection": "states"
-          }
-        ]
+        "item_recovery": []
       },
       "value_agent": {
         "status": "passed",
         "attempts": [
           {
             "attempt": 1,
+            "retry_mode": "initial",
             "errors": [],
             "token_usage": {
-              "input_tokens": 12518,
-              "output_tokens": 3159,
-              "total_tokens": 15677
+              "input_tokens": 12638,
+              "output_tokens": 2013,
+              "total_tokens": 14651
             },
-            "max_tokens": 8192
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
           }
         ],
         "token_usage": {
-          "input_tokens": 12518,
-          "output_tokens": 3159,
-          "total_tokens": 15677
+          "input_tokens": 12638,
+          "output_tokens": 2013,
+          "total_tokens": 14651
         },
         "grounding": {
           "value_agent.values[0]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 4,
-                "fragment": "#define MaxDirectoryStack  16",
-                "matched_lines": [
-                  4
-                ]
-              },
-              {
-                "evidence_line": 406,
-                "fragment": "directory_stack[MaxDirectoryStack];",
-                "matched_lines": [
-                  406
-                ]
-              },
-              {
-                "evidence_line": 828,
-                "fragment": "if (((size_t) offset < length) && (level < (MaxDirectoryStack-2)))",
-                "matched_lines": [
-                  828
-                ]
-              },
-              {
-                "evidence_line": 857,
-                "fragment": "(level < (MaxDirectoryStack-2)))",
-                "matched_lines": [
-                  857
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "value_agent.values[1]": {
             "evidence_matches": [
               {
                 "evidence_line": 435,
                 "fragment": "tag_bytes[] = {0, 1, 1, 2, 4, 8, 1, 1, 2, 4, 8, 4, 8};",
                 "matched_lines": [
                   435
-                ]
-              },
-              {
-                "evidence_line": 616,
-                "fragment": "format=(size_t) ReadPropertyUnsignedShort(endian,q+2);",
-                "matched_lines": [
-                  616
                 ]
               },
               {
@@ -1612,19 +1680,17 @@
                 ]
               },
               {
-                "evidence_line": 621,
-                "fragment": "components=(ssize_t) ReadPropertySignedLong(endian,q+4);",
+                "evidence_line": 624,
+                "fragment": "number_bytes=(size_t) components*tag_bytes[format];",
                 "matched_lines": [
-                  621
+                  624
                 ]
-              },
-              {
-                "evidence_line": 622,
-                "fragment": "if (components < 0)",
-                "matched_lines": [
-                  622
-                ]
-              },
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
               {
                 "evidence_line": 624,
                 "fragment": "number_bytes=(size_t) components*tag_bytes[format];",
@@ -1645,25 +1711,6 @@
           "value_agent.values[2]": {
             "evidence_matches": [
               {
-                "evidence_line": 609,
-                "fragment": "q=(unsigned char *) (directory+(12*entry)+2);",
-                "matched_lines": [
-                  609
-                ]
-              },
-              {
-                "evidence_line": 610,
-                "fragment": "if (q > (exif+length-12))",
-                "matched_lines": [
-                  610
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "value_agent.values[3]": {
-            "evidence_matches": [
-              {
                 "evidence_line": 627,
                 "fragment": "if (number_bytes <= 4)",
                 "matched_lines": [
@@ -1677,6 +1724,18 @@
                   628
                 ]
               },
+              {
+                "evidence_line": 644,
+                "fragment": "p=(unsigned char *) (exif+dir_offset);",
+                "matched_lines": [
+                  644
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
               {
                 "evidence_line": 637,
                 "fragment": "dir_offset=(ssize_t) ReadPropertySignedLong(endian,q+8);",
@@ -1703,13 +1762,6 @@
                 "fragment": "if (((size_t) dir_offset+number_bytes) > length)",
                 "matched_lines": [
                   642
-                ]
-              },
-              {
-                "evidence_line": 644,
-                "fragment": "p=(unsigned char *) (exif+dir_offset);",
-                "matched_lines": [
-                  644
                 ]
               }
             ],
@@ -1756,6 +1808,13 @@
                 ]
               },
               {
+                "evidence_line": 664,
+                "fragment": "sizeof(*value));",
+                "matched_lines": [
+                  664
+                ]
+              },
+              {
                 "evidence_line": 736,
                 "fragment": "if (~((size_t) number_bytes) >= 1)",
                 "matched_lines": [
@@ -1768,11 +1827,51 @@
                 "matched_lines": [
                   737
                 ]
+              },
+              {
+                "evidence_line": 738,
+                "fragment": "sizeof(*value));",
+                "matched_lines": [
+                  738
+                ]
               }
             ],
             "status": "pass"
           },
           "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 667,
+                "fragment": "for (i=0; i < (ssize_t) number_bytes; i++)",
+                "matched_lines": [
+                  667
+                ]
+              },
+              {
+                "evidence_line": 673,
+                "fragment": "value[i]='\\0';",
+                "matched_lines": [
+                  673
+                ]
+              },
+              {
+                "evidence_line": 744,
+                "fragment": "for (i=0; i < (ssize_t) number_bytes; i++)",
+                "matched_lines": [
+                  744
+                ]
+              },
+              {
+                "evidence_line": 750,
+                "fragment": "value[i]='\\0';",
+                "matched_lines": [
+                  750
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
             "evidence_matches": [
               {
                 "evidence_line": 35,
@@ -1819,74 +1918,6 @@
             ],
             "status": "pass"
           },
-          "value_agent.values[8]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 679,
-                "fragment": "EXIFMultipleValues(1,\"%.20g\",(double) (*(signed char *) p1));",
-                "matched_lines": [
-                  679
-                ]
-              },
-              {
-                "evidence_line": 684,
-                "fragment": "EXIFMultipleValues(2,\"%hd\",ReadPropertySignedShort(endian,p1));",
-                "matched_lines": [
-                  684
-                ]
-              },
-              {
-                "evidence_line": 689,
-                "fragment": "EXIFMultipleValues(2,\"%hu\",ReadPropertyUnsignedShort(endian,p1));",
-                "matched_lines": [
-                  689
-                ]
-              },
-              {
-                "evidence_line": 694,
-                "fragment": "EXIFMultipleValues(4,\"%.20g\",(double)",
-                "matched_lines": [
-                  694
-                ]
-              },
-              {
-                "evidence_line": 700,
-                "fragment": "EXIFMultipleValues(4,\"%.20g\",(double)",
-                "matched_lines": [
-                  700
-                ]
-              },
-              {
-                "evidence_line": 706,
-                "fragment": "EXIFMultipleFractions(8,\"%.20g/%.20g\",(double)",
-                "matched_lines": [
-                  706
-                ]
-              },
-              {
-                "evidence_line": 713,
-                "fragment": "EXIFMultipleFractions(8,\"%.20g/%.20g\",(double)",
-                "matched_lines": [
-                  713
-                ]
-              },
-              {
-                "evidence_line": 720,
-                "fragment": "EXIFMultipleValues(4,\"%.20g\",(double)",
-                "matched_lines": [
-                  720
-                ]
-              },
-              {
-                "evidence_line": 726,
-                "fragment": "EXIFMultipleValues(8,\"%.20g\",(double)",
-                "matched_lines": [
-                  726
-                ]
-              }
-            ],
-            "status": "pass"
-          },
           "value_agent.values[9]": {
             "evidence_matches": [
               {
@@ -1923,46 +1954,42 @@
                 "matched_lines": [
                   45
                 ]
-              },
-              {
-                "evidence_line": 64,
-                "fragment": "length+=FormatLocaleString(buffer+length,MaxTextExtent-length, \\",
-                "matched_lines": [
-                  64
-                ]
-              },
-              {
-                "evidence_line": 66,
-                "fragment": "if (length >= (MaxTextExtent-1)) \\",
-                "matched_lines": [
-                  66
-                ]
-              },
-              {
-                "evidence_line": 67,
-                "fragment": "length=MaxTextExtent-1; \\",
-                "matched_lines": [
-                  67
-                ]
-              },
-              {
-                "evidence_line": 70,
-                "fragment": "if (length > 1) \\",
-                "matched_lines": [
-                  70
-                ]
-              },
-              {
-                "evidence_line": 71,
-                "fragment": "buffer[length-2]='\\0'; \\",
-                "matched_lines": [
-                  71
-                ]
               }
             ],
             "status": "pass"
           },
           "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 609,
+                "fragment": "q=(unsigned char *) (directory+(12*entry)+2);",
+                "matched_lines": [
+                  609
+                ]
+              },
+              {
+                "evidence_line": 610,
+                "fragment": "if (q > (exif+length-12))",
+                "matched_lines": [
+                  610
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 590,
+                "fragment": "if ((directory < exif) || (directory > (exif+length-2)))",
+                "matched_lines": [
+                  590
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
             "evidence_matches": [
               {
                 "evidence_line": 565,
@@ -1977,37 +2004,11 @@
                 "matched_lines": [
                   566
                 ]
-              },
-              {
-                "evidence_line": 572,
-                "fragment": "directory=exif+offset;",
-                "matched_lines": [
-                  572
-                ]
               }
             ],
             "status": "pass"
           },
-          "value_agent.values[11]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 590,
-                "fragment": "if ((directory < exif) || (directory > (exif+length-2)))",
-                "matched_lines": [
-                  590
-                ]
-              },
-              {
-                "evidence_line": 595,
-                "fragment": "number_entries=(size_t) ReadPropertyUnsignedShort(endian,directory);",
-                "matched_lines": [
-                  595
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "value_agent.values[12]": {
+          "value_agent.values[13]": {
             "evidence_matches": [
               {
                 "evidence_line": 827,
@@ -2022,18 +2023,11 @@
                 "matched_lines": [
                   828
                 ]
-              },
-              {
-                "evidence_line": 848,
-                "fragment": "directory_stack[level].directory=exif+offset;",
-                "matched_lines": [
-                  848
-                ]
               }
             ],
             "status": "pass"
           },
-          "value_agent.values[13]": {
+          "value_agent.values[14]": {
             "evidence_matches": [
               {
                 "evidence_line": 852,
@@ -2041,7 +2035,12 @@
                 "matched_lines": [
                   852
                 ]
-              },
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[15]": {
+            "evidence_matches": [
               {
                 "evidence_line": 854,
                 "fragment": "offset=(ssize_t) ReadPropertySignedLong(endian,directory+2+(12*",
@@ -2069,18 +2068,11 @@
                 "matched_lines": [
                   857
                 ]
-              },
-              {
-                "evidence_line": 859,
-                "fragment": "directory_stack[level].directory=exif+offset;",
-                "matched_lines": [
-                  859
-                ]
               }
             ],
             "status": "pass"
           },
-          "value_agent.values[14]": {
+          "value_agent.values[16]": {
             "evidence_matches": [
               {
                 "evidence_line": 482,
@@ -2109,65 +2101,6 @@
                 "matched_lines": [
                   491
                 ]
-              },
-              {
-                "evidence_line": 494,
-                "fragment": "tag<<=4;",
-                "matched_lines": [
-                  494
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "value_agent.values[15]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 450,
-                "fragment": "tag=(~0UL);",
-                "matched_lines": [
-                  450
-                ]
-              },
-              {
-                "evidence_line": 527,
-                "fragment": "if (tag == (~0UL))",
-                "matched_lines": [
-                  527
-                ]
-              },
-              {
-                "evidence_line": 615,
-                "fragment": "tag_value=(size_t) ReadPropertyUnsignedShort(endian,q)+tag_offset;",
-                "matched_lines": [
-                  615
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "value_agent.values[16]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 529,
-                "fragment": "length=GetStringInfoLength(profile);",
-                "matched_lines": [
-                  529
-                ]
-              },
-              {
-                "evidence_line": 530,
-                "fragment": "if (length < 6)",
-                "matched_lines": [
-                  530
-                ]
-              },
-              {
-                "evidence_line": 549,
-                "fragment": "if (length < 16)",
-                "matched_lines": [
-                  549
-                ]
               }
             ],
             "status": "pass"
@@ -2175,52 +2108,10 @@
           "value_agent.values[17]": {
             "evidence_matches": [
               {
-                "evidence_line": 533,
-                "fragment": "while (length != 0)",
+                "evidence_line": 615,
+                "fragment": "tag_value=(size_t) ReadPropertyUnsignedShort(endian,q)+tag_offset;",
                 "matched_lines": [
-                  533
-                ]
-              },
-              {
-                "evidence_line": 535,
-                "fragment": "if (ReadPropertyByte(&exif,&length) != 0x45)",
-                "matched_lines": [
-                  535
-                ]
-              },
-              {
-                "evidence_line": 537,
-                "fragment": "if (ReadPropertyByte(&exif,&length) != 0x78)",
-                "matched_lines": [
-                  537
-                ]
-              },
-              {
-                "evidence_line": 539,
-                "fragment": "if (ReadPropertyByte(&exif,&length) != 0x69)",
-                "matched_lines": [
-                  539
-                ]
-              },
-              {
-                "evidence_line": 541,
-                "fragment": "if (ReadPropertyByte(&exif,&length) != 0x66)",
-                "matched_lines": [
-                  541
-                ]
-              },
-              {
-                "evidence_line": 543,
-                "fragment": "if (ReadPropertyByte(&exif,&length) != 0x00)",
-                "matched_lines": [
-                  543
-                ]
-              },
-              {
-                "evidence_line": 545,
-                "fragment": "if (ReadPropertyByte(&exif,&length) != 0x00)",
-                "matched_lines": [
-                  545
+                  615
                 ]
               }
             ],
@@ -2228,67 +2119,6 @@
           },
           "value_agent.values[18]": {
             "evidence_matches": [
-              {
-                "evidence_line": 551,
-                "fragment": "id=(ssize_t) ReadPropertySignedShort(LSBEndian,exif);",
-                "matched_lines": [
-                  551
-                ]
-              },
-              {
-                "evidence_line": 552,
-                "fragment": "endian=LSBEndian;",
-                "matched_lines": [
-                  552
-                ]
-              },
-              {
-                "evidence_line": 553,
-                "fragment": "if (id == 0x4949)",
-                "matched_lines": [
-                  553
-                ]
-              },
-              {
-                "evidence_line": 554,
-                "fragment": "endian=LSBEndian;",
-                "matched_lines": [
-                  554
-                ]
-              },
-              {
-                "evidence_line": 556,
-                "fragment": "if (id == 0x4D4D)",
-                "matched_lines": [
-                  556
-                ]
-              },
-              {
-                "evidence_line": 557,
-                "fragment": "endian=MSBEndian;",
-                "matched_lines": [
-                  557
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "value_agent.values[19]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 575,
-                "fragment": "tag_offset=0;",
-                "matched_lines": [
-                  575
-                ]
-              },
-              {
-                "evidence_line": 615,
-                "fragment": "tag_value=(size_t) ReadPropertyUnsignedShort(endian,q)+tag_offset;",
-                "matched_lines": [
-                  615
-                ]
-              },
               {
                 "evidence_line": 833,
                 "fragment": "tag_offset1=(ssize_t) ((tag_value == TAG_GPS_OFFSET) ? 0x10000 :",
@@ -2306,60 +2136,41 @@
             ],
             "status": "pass"
           },
-          "value_agent.values[20]": {
+          "value_agent.values[19]": {
             "evidence_matches": [
               {
-                "evidence_line": 646,
-                "fragment": "if ((all != 0) || (tag == (size_t) tag_value))",
+                "evidence_line": 4,
+                "fragment": "#define MaxDirectoryStack  16",
                 "matched_lines": [
-                  646
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "value_agent.values[21]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 793,
-                "fragment": "if (tag_value < 0x10000)",
-                "matched_lines": [
-                  793
+                  4
                 ]
               },
               {
-                "evidence_line": 794,
-                "fragment": "(void) FormatLocaleString(key,MaxTextExtent,\"#%04lx\",",
+                "evidence_line": 406,
+                "fragment": "directory_stack[MaxDirectoryStack];",
                 "matched_lines": [
-                  794
+                  406
                 ]
               },
               {
-                "evidence_line": 795,
-                "fragment": "(unsigned long) tag_value);",
+                "evidence_line": 839,
+                "fragment": "level++;",
                 "matched_lines": [
-                  795
+                  839
                 ]
               },
               {
-                "evidence_line": 797,
-                "fragment": "if (tag_value < 0x20000)",
+                "evidence_line": 851,
+                "fragment": "level++;",
                 "matched_lines": [
-                  797
+                  851
                 ]
               },
               {
-                "evidence_line": 798,
-                "fragment": "(void) FormatLocaleString(key,MaxTextExtent,\"@%04lx\",",
+                "evidence_line": 862,
+                "fragment": "level++;",
                 "matched_lines": [
-                  798
-                ]
-              },
-              {
-                "evidence_line": 799,
-                "fragment": "(unsigned long) (tag_value & 0xffff));",
-                "matched_lines": [
-                  799
+                  862
                 ]
               }
             ],
@@ -2369,42 +2180,7 @@
         "item_recovery": [
           {
             "action": "repair_evidence",
-            "index": 0,
-            "collection": "values"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 1,
-            "collection": "values"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 2,
-            "collection": "values"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 3,
-            "collection": "values"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 4,
-            "collection": "values"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 5,
-            "collection": "values"
-          },
-          {
-            "action": "repair_evidence",
             "index": 6,
-            "collection": "values"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 7,
             "collection": "values"
           },
           {
@@ -2419,62 +2195,12 @@
           },
           {
             "action": "repair_evidence",
-            "index": 10,
-            "collection": "values"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 11,
-            "collection": "values"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 12,
-            "collection": "values"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 13,
-            "collection": "values"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 14,
-            "collection": "values"
-          },
-          {
-            "action": "repair_evidence",
             "index": 15,
             "collection": "values"
           },
           {
             "action": "repair_evidence",
-            "index": 16,
-            "collection": "values"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 17,
-            "collection": "values"
-          },
-          {
-            "action": "repair_evidence",
             "index": 18,
-            "collection": "values"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 19,
-            "collection": "values"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 20,
-            "collection": "values"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 21,
             "collection": "values"
           }
         ]
@@ -2484,19 +2210,21 @@
         "attempts": [
           {
             "attempt": 1,
+            "retry_mode": "initial",
             "errors": [],
             "token_usage": {
               "input_tokens": 12318,
-              "output_tokens": 1425,
-              "total_tokens": 13743
+              "output_tokens": 1380,
+              "total_tokens": 13698
             },
-            "max_tokens": 8192
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
           }
         ],
         "token_usage": {
           "input_tokens": 12318,
-          "output_tokens": 1425,
-          "total_tokens": 13743
+          "output_tokens": 1380,
+          "total_tokens": 13698
         },
         "grounding": {
           "execution_agent.executions[0]": {
@@ -2612,20 +2340,6 @@
           },
           "execution_agent.executions[4]": {
             "evidence_matches": [
-              {
-                "evidence_line": 551,
-                "fragment": "id=(ssize_t) ReadPropertySignedShort(LSBEndian,exif);",
-                "matched_lines": [
-                  551
-                ]
-              },
-              {
-                "evidence_line": 552,
-                "fragment": "endian=LSBEndian;",
-                "matched_lines": [
-                  552
-                ]
-              },
               {
                 "evidence_line": 553,
                 "fragment": "if (id == 0x4949)",
@@ -2751,13 +2465,6 @@
           },
           "execution_agent.executions[8]": {
             "evidence_matches": [
-              {
-                "evidence_line": 616,
-                "fragment": "format=(size_t) ReadPropertyUnsignedShort(endian,q+2);",
-                "matched_lines": [
-                  616
-                ]
-              },
               {
                 "evidence_line": 617,
                 "fragment": "if (format >= (sizeof(tag_bytes)/sizeof(*tag_bytes)))",
@@ -2974,6 +2681,20 @@
           "execution_agent.executions[16]": {
             "evidence_matches": [
               {
+                "evidence_line": 854,
+                "fragment": "offset=(ssize_t) ReadPropertySignedLong(endian,directory+2+(12*",
+                "matched_lines": [
+                  854
+                ]
+              },
+              {
+                "evidence_line": 855,
+                "fragment": "number_entries));",
+                "matched_lines": [
+                  855
+                ]
+              },
+              {
                 "evidence_line": 856,
                 "fragment": "if ((offset != 0) && ((size_t) offset < length) &&",
                 "matched_lines": [
@@ -3001,28 +2722,28 @@
     "mode": "independent_global_views",
     "counts": {
       "operations": 34,
-      "states": 13,
-      "values": 22,
+      "states": 16,
+      "values": 20,
       "executions": 17
     },
-    "schema_version": "semantic-claims-v4.12",
+    "schema_version": "semantic-claims-v4.13",
     "operation_normalization": {
       "dropped_forbidden_preparation_only": 0
     }
   },
   "token_usage": {
-    "input_tokens": 50839,
-    "output_tokens": 6576,
-    "total_tokens": 57415
+    "input_tokens": 51253,
+    "output_tokens": 5582,
+    "total_tokens": 56835
   },
   "artifact_metadata": {
-    "schema_version": "semantic-claims-v4.12",
-    "artifact_version": 8,
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
     "stage": "semantic_model",
     "sample_id": "test_000001",
     "split": "test",
     "source_hash": "bb82458bd3eaf9db3243170666c06071e2e9c31970b85bdeace273e92c5dba29",
     "upstream_hashes": {},
-    "pipeline_fingerprint": "34127dd44d6640e216b41abd4687553aadce8136ca7fcc4cc94637fe70450bb0"
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
   }
 }

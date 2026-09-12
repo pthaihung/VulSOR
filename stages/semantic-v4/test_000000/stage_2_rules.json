@@ -1,19 +1,50 @@
 {
   "sample_id": "test_000000",
-  "schema_version": "semantic-claims-v4.12",
+  "schema_version": "semantic-claims-v4.13",
   "stage": "rules",
   "agent_key": "obligation_reasoner",
   "output": {
     "rules": [
       {
         "locations": [
-          "L586",
-          "L587",
-          "L588"
+          "L535",
+          "L537",
+          "L539",
+          "L541",
+          "L543",
+          "L545"
         ],
-        "expression": "directory_stack[level].directory",
+        "expression": "ReadPropertyByte(&exif,&length)",
         "requirements": [
-          "the index level must be within the valid readable extent of directory_stack"
+          "the exif pointer must designate a readable byte within the EXIF profile buffer",
+          "the length value must be greater than zero before the byte is consumed"
+        ]
+      },
+      {
+        "locations": [
+          "L551"
+        ],
+        "expression": "ReadPropertySignedShort(LSBEndian,exif)",
+        "requirements": [
+          "the exif pointer must designate a readable two-byte region within the EXIF profile buffer"
+        ]
+      },
+      {
+        "locations": [
+          "L560"
+        ],
+        "expression": "ReadPropertyUnsignedShort(endian,exif+2)",
+        "requirements": [
+          "the exif+2 pointer must designate a readable two-byte region within the EXIF profile buffer"
+        ]
+      },
+      {
+        "locations": [
+          "L565"
+        ],
+        "expression": "ReadPropertySignedLong(endian,exif+4)",
+        "requirements": [
+          "the exif+4 pointer must designate a readable four-byte region within the EXIF profile buffer"
         ]
       },
       {
@@ -22,37 +53,7 @@
         ],
         "expression": "ReadPropertyUnsignedShort(endian,directory)",
         "requirements": [
-          "the address directory must designate a readable region of at least 2 bytes"
-        ]
-      },
-      {
-        "locations": [
-          "L609"
-        ],
-        "expression": "directory+(12*entry)+2",
-        "requirements": [
-          "the computed address directory+(12*entry)+2 must not overflow the address space"
-        ]
-      },
-      {
-        "locations": [
-          "L612"
-        ],
-        "expression": "GetValueFromSplayTree(exif_resources,q)",
-        "requirements": [
-          "exif_resources must designate a valid splay tree object",
-          "q must be a valid key value for the splay tree lookup"
-        ]
-      },
-      {
-        "locations": [
-          "L614"
-        ],
-        "expression": "AddValueToSplayTree(exif_resources,q,q)",
-        "requirements": [
-          "exif_resources must designate a valid splay tree object",
-          "q must be a valid key value for the splay tree insertion",
-          "q must be a valid value to associate with the key in the splay tree"
+          "the directory pointer must designate a readable two-byte region within the EXIF profile buffer"
         ]
       },
       {
@@ -61,7 +62,7 @@
         ],
         "expression": "ReadPropertyUnsignedShort(endian,q)",
         "requirements": [
-          "the address q must designate a readable region of at least 2 bytes"
+          "the q pointer must designate a readable two-byte region within the EXIF profile buffer"
         ]
       },
       {
@@ -70,7 +71,7 @@
         ],
         "expression": "ReadPropertyUnsignedShort(endian,q+2)",
         "requirements": [
-          "the address q+2 must designate a readable region of at least 2 bytes"
+          "the q+2 pointer must designate a readable two-byte region within the EXIF profile buffer"
         ]
       },
       {
@@ -79,16 +80,7 @@
         ],
         "expression": "ReadPropertySignedLong(endian,q+4)",
         "requirements": [
-          "the address q+4 must designate a readable region of at least 4 bytes"
-        ]
-      },
-      {
-        "locations": [
-          "L624"
-        ],
-        "expression": "tag_bytes[format]",
-        "requirements": [
-          "the index format must be within the valid readable extent of tag_bytes"
+          "the q+4 pointer must designate a readable four-byte region within the EXIF profile buffer"
         ]
       },
       {
@@ -97,38 +89,17 @@
         ],
         "expression": "ReadPropertySignedLong(endian,q+8)",
         "requirements": [
-          "the address q+8 must designate a readable region of at least 4 bytes"
-        ]
-      },
-      {
-        "locations": [
-          "L644"
-        ],
-        "expression": "exif+dir_offset",
-        "requirements": [
-          "the computed address exif+dir_offset must not overflow the address space"
-        ]
-      },
-      {
-        "locations": [
-          "L663",
-          "L735"
-        ],
-        "expression": "AcquireQuantumMemory((size_t) number_bytes+1UL, sizeof(*value))",
-        "requirements": [
-          "the requested allocation size (number_bytes+1)*sizeof(*value) must not overflow the size computation"
+          "the q+8 pointer must designate a readable four-byte region within the EXIF profile buffer"
         ]
       },
       {
         "locations": [
           "L670",
-          "L671",
-          "L745",
-          "L746"
+          "L671"
         ],
         "expression": "p[i]",
         "requirements": [
-          "the address p+i must designate a readable byte"
+          "the p pointer must designate a readable byte at offset i within the EXIF data buffer"
         ]
       },
       {
@@ -137,7 +108,7 @@
         ],
         "expression": "*(signed char *) p1",
         "requirements": [
-          "the address p1 must designate a readable object of type signed char"
+          "the p1 pointer must designate a readable signed char object within the EXIF data buffer"
         ]
       },
       {
@@ -146,7 +117,7 @@
         ],
         "expression": "ReadPropertySignedShort(endian,p1)",
         "requirements": [
-          "the address p1 must designate a readable region of at least 2 bytes"
+          "the p1 pointer must designate a readable two-byte region within the EXIF data buffer"
         ]
       },
       {
@@ -155,7 +126,7 @@
         ],
         "expression": "ReadPropertyUnsignedShort(endian,p1)",
         "requirements": [
-          "the address p1 must designate a readable region of at least 2 bytes"
+          "the p1 pointer must designate a readable two-byte region within the EXIF data buffer"
         ]
       },
       {
@@ -165,7 +136,7 @@
         ],
         "expression": "ReadPropertyUnsignedLong(endian,p1)",
         "requirements": [
-          "the address p1 must designate a readable region of at least 4 bytes"
+          "the p1 pointer must designate a readable four-byte region within the EXIF data buffer"
         ]
       },
       {
@@ -175,7 +146,7 @@
         ],
         "expression": "ReadPropertySignedLong(endian,p1)",
         "requirements": [
-          "the address p1 must designate a readable region of at least 4 bytes"
+          "the p1 pointer must designate a readable four-byte region within the EXIF data buffer"
         ]
       },
       {
@@ -184,9 +155,9 @@
           "L707",
           "L708"
         ],
-        "expression": "ReadPropertyUnsignedLong(endian,p1+4)",
+        "expression": "ReadPropertyUnsignedLong(endian,p1)",
         "requirements": [
-          "the address p1+4 must designate a readable region of at least 4 bytes"
+          "the p1 pointer must designate a readable four-byte region within the EXIF data buffer"
         ]
       },
       {
@@ -195,9 +166,9 @@
           "L714",
           "L715"
         ],
-        "expression": "ReadPropertySignedLong(endian,p1+4)",
+        "expression": "ReadPropertySignedLong(endian,p1)",
         "requirements": [
-          "the address p1+4 must designate a readable region of at least 4 bytes"
+          "the p1 pointer must designate a readable four-byte region within the EXIF data buffer"
         ]
       },
       {
@@ -206,8 +177,8 @@
         ],
         "expression": "*(float *) p1",
         "requirements": [
-          "the address p1 must be suitably aligned for type float",
-          "the address p1 must designate a readable object of type float"
+          "the p1 pointer must designate a readable float object within the EXIF data buffer",
+          "the p1 pointer must be suitably aligned for a float access"
         ]
       },
       {
@@ -216,30 +187,18 @@
         ],
         "expression": "*(double *) p1",
         "requirements": [
-          "the address p1 must be suitably aligned for type double",
-          "the address p1 must designate a readable object of type double"
+          "the p1 pointer must designate a readable double object within the EXIF data buffer",
+          "the p1 pointer must be suitably aligned for a double access"
         ]
       },
       {
         "locations": [
-          "L810",
-          "L811"
+          "L745",
+          "L746"
         ],
-        "expression": "GetValueFromSplayTree((SplayTreeInfo *) image->properties,key)",
+        "expression": "p[i]",
         "requirements": [
-          "image->properties must designate a valid splay tree object",
-          "key must be a valid key value for the splay tree lookup"
-        ]
-      },
-      {
-        "locations": [
-          "L813"
-        ],
-        "expression": "SetImageProperty((Image *) image,key,value)",
-        "requirements": [
-          "image must designate a valid Image object",
-          "key must designate a valid null-terminated string",
-          "value must designate a valid null-terminated string"
+          "the p pointer must designate a readable byte at offset i within the EXIF data buffer"
         ]
       },
       {
@@ -248,16 +207,7 @@
         ],
         "expression": "ReadPropertySignedLong(endian,p)",
         "requirements": [
-          "the address p must designate a readable region of at least 4 bytes"
-        ]
-      },
-      {
-        "locations": [
-          "L842"
-        ],
-        "expression": "directory_stack[i].directory",
-        "requirements": [
-          "the index i must be within the valid readable extent of directory_stack"
+          "the p pointer must designate a readable four-byte region within the EXIF data buffer"
         ]
       },
       {
@@ -267,7 +217,7 @@
         ],
         "expression": "ReadPropertySignedLong(endian,directory+2+(12*number_entries))",
         "requirements": [
-          "the address directory+2+(12*number_entries) must designate a readable region of at least 4 bytes"
+          "the directory+2+(12*number_entries) pointer must designate a readable four-byte region within the EXIF profile buffer"
         ]
       }
     ]
@@ -277,36 +227,43 @@
     "attempts": [
       {
         "attempt": 1,
+        "retry_mode": "initial",
         "errors": [],
         "token_usage": {
-          "input_tokens": 9506,
-          "output_tokens": 1198,
-          "total_tokens": 10704
+          "input_tokens": 5835,
+          "output_tokens": 1019,
+          "total_tokens": 6854
         },
-        "max_tokens": 8192
+        "max_tokens": 8192,
+        "serialization_prefix_recovered": false
       }
     ],
     "token_usage": {
-      "input_tokens": 9506,
-      "output_tokens": 1198,
-      "total_tokens": 10704
+      "input_tokens": 5835,
+      "output_tokens": 1019,
+      "total_tokens": 6854
+    },
+    "safety_relevance_filter": {
+      "input_operation_groups": 22,
+      "kept_obligations": 22,
+      "filtered_non_safety_candidates": 0
     }
   },
   "token_usage": {
-    "input_tokens": 9506,
-    "output_tokens": 1198,
-    "total_tokens": 10704
+    "input_tokens": 5835,
+    "output_tokens": 1019,
+    "total_tokens": 6854
   },
   "artifact_metadata": {
-    "schema_version": "semantic-claims-v4.12",
-    "artifact_version": 8,
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
     "stage": "rules",
     "sample_id": "test_000000",
     "split": "test",
     "source_hash": "e5a0a9aa289efa18673f56250c01e16037ab10ce233c8bdcc82873a2cd1a1787",
     "upstream_hashes": {
-      "semantic_model": "7b47516223cc88934e9212e432d4b2466f94b545f7bcd1ed520da7082f7f7373"
+      "semantic_model": "7ae02d254f5538d839d384f24a1cffdf23641b6020f7fbf6e9348c9f0cbd8f06"
     },
-    "pipeline_fingerprint": "34127dd44d6640e216b41abd4687553aadce8136ca7fcc4cc94637fe70450bb0"
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
   }
 }

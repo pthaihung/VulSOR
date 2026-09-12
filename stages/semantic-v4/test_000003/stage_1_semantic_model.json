@@ -1,6 +1,6 @@
 {
   "sample_id": "test_000003",
-  "schema_version": "semantic-claims-v4.12",
+  "schema_version": "semantic-claims-v4.13",
   "stage": "semantic_model",
   "output": {
     "semantic_model": {
@@ -17,14 +17,14 @@
             "L39"
           ],
           "expression": "PushShortPixel(MSBEndian,p,&nibble)",
-          "claim": "read two bytes from p via PushShortPixel"
+          "claim": "read two bytes from pointer p via PushShortPixel"
         },
         {
           "locations": [
             "L47"
           ],
           "expression": "PushFloatPixel(MSBEndian,p,&nibble)",
-          "claim": "read four bytes from p via PushFloatPixel"
+          "claim": "read four bytes from pointer p via PushFloatPixel"
         },
         {
           "locations": [
@@ -47,43 +47,43 @@
           "entities": [
             "q"
           ],
-          "claim": "q points to the authentic pixel region for the requested row, or is NULL if GetAuthenticPixels failed.",
-          "evidence": "L27: q=GetAuthenticPixels(image,0,row,image->columns,1,exception);"
+          "claim": "q is initialized from GetAuthenticPixels for the row and image columns; if NULL, the function returns without further use.",
+          "evidence": "L27: q=GetAuthenticPixels(image,0,row,image->columns,1,exception);\nL28: if (q == (PixelPacket *) NULL)\nL29: return MagickFalse;"
         },
         {
           "entities": [
             "indexes"
           ],
-          "claim": "indexes is set to the image's authentic index queue.",
+          "claim": "indexes is initialized from GetAuthenticIndexQueue(image).",
           "evidence": "L30: indexes=GetAuthenticIndexQueue(image);"
         },
         {
           "entities": [
             "p"
           ],
-          "claim": "p is advanced through the pixels storage region by PushShortPixel, consuming short-sized pixel data.",
+          "claim": "p is advanced through the pixels storage region by PushShortPixel when packet_size is 2.",
           "evidence": "L39: p=PushShortPixel(MSBEndian,p,&nibble);"
         },
         {
           "entities": [
             "p"
           ],
-          "claim": "p is advanced through the pixels storage region by PushFloatPixel, consuming float-sized pixel data.",
+          "claim": "p is advanced through the pixels storage region by PushFloatPixel when packet_size is neither 1 nor 2.",
           "evidence": "L47: p=PushFloatPixel(MSBEndian,p,&nibble);"
         },
         {
           "entities": [
             "q"
           ],
-          "claim": "q is advanced to the next PixelPacket in the authentic pixel region.",
-          "evidence": "L53: q++;"
+          "claim": "q is advanced to the next PixelPacket after SetPSDPixel when image depth is greater than 1.",
+          "evidence": "L52: SetPSDPixel(image,channels,type,packet_size,pixel,q,indexes,x);\nL53: q++;"
         },
         {
           "entities": [
             "q"
           ],
-          "claim": "q is advanced to the next PixelPacket in the authentic pixel region within the bit-depth loop.",
-          "evidence": "L68: QuantumRange,q++,indexes,x++);"
+          "claim": "q is advanced to the next PixelPacket within the bit loop when image depth is 1.",
+          "evidence": "L66: SetPSDPixel(image,channels,type,packet_size,\nL68: QuantumRange,q++,indexes,x++);"
         }
       ],
       "values": [
@@ -92,7 +92,7 @@
             "packet_size",
             "GetPSDPacketSize(image)"
           ],
-          "claim": "packet_size is the PSD packet size returned by GetPSDPacketSize(image); it selects 1-byte, 2-byte, or float pixel decoding.",
+          "claim": "packet_size is the PSD packet size in bytes; branches select 1-byte, 2-byte, or float pixel decoding.",
           "evidence": "L31: packet_size=GetPSDPacketSize(image);\nL34: if (packet_size == 1)\nL37: if (packet_size == 2)"
         },
         {
@@ -103,77 +103,54 @@
             "PushShortPixel",
             "PushFloatPixel"
           ],
-          "claim": "p starts at pixels and is advanced by one byte for packet_size==1, by PushShortPixel for packet_size==2, and by PushFloatPixel otherwise.",
+          "claim": "p starts at pixels and advances by 1 byte for packet_size==1, by PushShortPixel for packet_size==2, and by PushFloatPixel otherwise.",
           "evidence": "L26: p=pixels;\nL35: pixel=ScaleCharToQuantum(*p++);\nL39: p=PushShortPixel(MSBEndian,p,&nibble);\nL47: p=PushFloatPixel(MSBEndian,p,&nibble);"
         },
         {
           "entities": [
             "x",
             "image->columns",
-            "q",
-            "q++"
+            "number_bits"
           ],
-          "claim": "The loop iterates x from 0 while x < (ssize_t) image->columns, and q is advanced by one PixelPacket per iteration in the depth>1 branch.",
-          "evidence": "L32: for (x=0; x < (ssize_t) image->columns; x++)\nL53: q++;"
-        },
-        {
-          "entities": [
-            "number_bits",
-            "image->columns",
-            "x"
-          ],
-          "claim": "number_bits is computed as (ssize_t) image->columns - x and capped at 8.",
-          "evidence": "L61: number_bits=(ssize_t) image->columns-x;\nL62: if (number_bits > 8)\nL63: number_bits=8;"
-        },
-        {
-          "entities": [
-            "bit",
-            "number_bits",
-            "x",
-            "q",
-            "q++",
-            "x++"
-          ],
-          "claim": "In the depth<=1 branch, the inner loop runs bit from 0 while bit < number_bits, and each iteration advances q and x by one.",
-          "evidence": "L64: for (bit=0; bit < number_bits; bit++)\nL68: QuantumRange,q++,indexes,x++);"
+          "claim": "number_bits is min(image->columns - x, 8) as a signed ssize_t, bounding the inner bit loop.",
+          "evidence": "L61: number_bits=(ssize_t) image->columns-x;\nL62: if (number_bits > 8)\nL63: number_bits=8;\nL64: for (bit=0; bit < number_bits; bit++)"
         },
         {
           "entities": [
             "pixel",
-            "unsigned char",
-            "ssize_t",
+            "bit",
             "0x01 << (7-bit)"
           ],
-          "claim": "The bit test converts pixel through (ssize_t) then to unsigned char before masking with (0x01 << (7-bit)).",
-          "evidence": "L67: (((unsigned char) ((ssize_t) pixel)) & (0x01 << (7-bit))) != 0 ? 0 :"
+          "claim": "In the depth<=1 path, the bit test uses ((unsigned char)((ssize_t) pixel)) & (0x01 << (7-bit)), with bit in [0, number_bits).",
+          "evidence": "L67: (((unsigned char) ((ssize_t) pixel)) & (0x01 << (7-bit))) != 0 ? 0 :\nL64: for (bit=0; bit < number_bits; bit++)"
         },
         {
           "entities": [
             "x",
-            "image->columns"
+            "image->columns",
+            "q",
+            "indexes"
           ],
-          "claim": "After the inner bit loop, if x != (ssize_t) image->columns then x is decremented by one before continue.",
-          "evidence": "L70: if (x != (ssize_t) image->columns)\nL71: x--;"
+          "claim": "In the depth<=1 path, x and q are incremented once per inner bit iteration, and x is decremented by 1 if it did not reach image->columns.",
+          "evidence": "L68: QuantumRange,q++,indexes,x++);\nL70: if (x != (ssize_t) image->columns)\nL71: x--;"
+        },
+        {
+          "entities": [
+            "q",
+            "image->columns",
+            "row"
+          ],
+          "claim": "q is obtained from GetAuthenticPixels(image,0,row,image->columns,1,exception), so the pixel buffer spans image->columns pixels for the given row.",
+          "evidence": "L27: q=GetAuthenticPixels(image,0,row,image->columns,1,exception);"
         },
         {
           "entities": [
             "nibble",
-            "MagickFloatType",
-            "QuantumRange",
-            "MagickRealType",
-            "pixel"
+            "pixel",
+            "QuantumRange"
           ],
-          "claim": "For the float packet path, nibble is a MagickFloatType filled by PushFloatPixel, then pixel is ClampToQuantum((MagickRealType)QuantumRange*nibble).",
-          "evidence": "L44: MagickFloatType\nL45: nibble;\nL47: p=PushFloatPixel(MSBEndian,p,&nibble);\nL48: pixel=ClampToQuantum((MagickRealType)QuantumRange*nibble);"
-        },
-        {
-          "entities": [
-            "nibble",
-            "unsigned short",
-            "pixel"
-          ],
-          "claim": "For packet_size==2, nibble is an unsigned short filled by PushShortPixel and converted by ScaleShortToQuantum.",
-          "evidence": "L23: unsigned short\nL24: nibble;\nL39: p=PushShortPixel(MSBEndian,p,&nibble);\nL40: pixel=ScaleShortToQuantum(nibble);"
+          "claim": "For packet_size==2, nibble is read as an unsigned short and converted via ScaleShortToQuantum; for the float path, pixel is ClampToQuantum((MagickRealType)QuantumRange*nibble).",
+          "evidence": "L39: p=PushShortPixel(MSBEndian,p,&nibble);\nL40: pixel=ScaleShortToQuantum(nibble);\nL48: pixel=ClampToQuantum((MagickRealType)QuantumRange*nibble);"
         }
       ],
       "executions": [
@@ -181,7 +158,7 @@
           "entities": [
             "q"
           ],
-          "claim": "If GetAuthenticPixels returns NULL, the function returns immediately without dereferencing q.",
+          "claim": "continuing past this check implies q is non-NULL",
           "evidence": "L27: q=GetAuthenticPixels(image,0,row,image->columns,1,exception);\nL28: if (q == (PixelPacket *) NULL)\nL29: return MagickFalse;"
         },
         {
@@ -189,22 +166,15 @@
             "x",
             "image->columns"
           ],
-          "claim": "The main loop body executes only while 0 <= x < image->columns.",
+          "claim": "loop body executes only while 0 <= x < image->columns",
           "evidence": "L32: for (x=0; x < (ssize_t) image->columns; x++)"
         },
         {
           "entities": [
             "packet_size"
           ],
-          "claim": "Within the loop, packet_size is either 1, 2, or neither (treated as the float branch).",
-          "evidence": "L34: if (packet_size == 1)\nL37: if (packet_size == 2)\nL42: else"
-        },
-        {
-          "entities": [
-            "image->depth"
-          ],
-          "claim": "When image->depth > 1, SetPSDPixel is called and q is incremented once per loop iteration; otherwise the bit-packing branch is taken.",
-          "evidence": "L50: if (image->depth > 1)\nL52: SetPSDPixel(image,channels,type,packet_size,pixel,q,indexes,x);\nL53: q++;\nL55: else"
+          "claim": "packet_size is 1, 2, or otherwise (float path)",
+          "evidence": "L31: packet_size=GetPSDPacketSize(image);\nL34: if (packet_size == 1)\nL37: if (packet_size == 2)"
         },
         {
           "entities": [
@@ -212,15 +182,23 @@
             "image->columns",
             "x"
           ],
-          "claim": "In the bit-packing branch, number_bits is min(image->columns - x, 8), so the inner loop runs at most 8 times.",
-          "evidence": "L61: number_bits=(ssize_t) image->columns-x;\nL62: if (number_bits > 8)\nL63: number_bits=8;\nL64: for (bit=0; bit < number_bits; bit++)"
+          "claim": "number_bits = min(image->columns - x, 8), so 0 <= number_bits <= 8",
+          "evidence": "L61: number_bits=(ssize_t) image->columns-x;\nL62: if (number_bits > 8)\nL63: number_bits=8;"
+        },
+        {
+          "entities": [
+            "bit",
+            "number_bits"
+          ],
+          "claim": "bit loop executes only while 0 <= bit < number_bits",
+          "evidence": "L64: for (bit=0; bit < number_bits; bit++)"
         },
         {
           "entities": [
             "x",
             "image->columns"
           ],
-          "claim": "After the bit-packing inner loop, if x has not reached image->columns, x is decremented before continue, so the outer loop's x++ restores the same x for the next iteration.",
+          "claim": "after the bit loop, if x != image->columns then x is decremented before continue",
           "evidence": "L70: if (x != (ssize_t) image->columns)\nL71: x--;\nL72: continue;"
         }
       ]
@@ -231,19 +209,21 @@
         "attempts": [
           {
             "attempt": 1,
+            "retry_mode": "initial",
             "errors": [],
             "token_usage": {
-              "input_tokens": 2410,
-              "output_tokens": 155,
-              "total_tokens": 2565
+              "input_tokens": 2704,
+              "output_tokens": 201,
+              "total_tokens": 2905
             },
-            "max_tokens": 8192
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
           }
         ],
         "token_usage": {
-          "input_tokens": 2410,
-          "output_tokens": 155,
-          "total_tokens": 2565
+          "input_tokens": 2704,
+          "output_tokens": 201,
+          "total_tokens": 2905
         },
         "grounding": {
           "operation_agent.operations[0]": {
@@ -290,6 +270,31 @@
               }
             ],
             "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L53",
+                "matched": true,
+                "expression": "q++"
+              },
+              {
+                "location": "L68",
+                "matched": true,
+                "expression": "q++"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L68",
+                "matched": true,
+                "expression": "x++"
+              }
+            ],
+            "status": "pass"
           }
         },
         "item_recovery": []
@@ -299,19 +304,21 @@
         "attempts": [
           {
             "attempt": 1,
+            "retry_mode": "initial",
             "errors": [],
             "token_usage": {
               "input_tokens": 1307,
-              "output_tokens": 322,
-              "total_tokens": 1629
+              "output_tokens": 422,
+              "total_tokens": 1729
             },
-            "max_tokens": 8192
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
           }
         ],
         "token_usage": {
           "input_tokens": 1307,
-          "output_tokens": 322,
-          "total_tokens": 1629
+          "output_tokens": 422,
+          "total_tokens": 1729
         },
         "grounding": {
           "state_agent.states[0]": {
@@ -333,6 +340,20 @@
                 "fragment": "q=GetAuthenticPixels(image,0,row,image->columns,1,exception);",
                 "matched_lines": [
                   27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "if (q == (PixelPacket *) NULL)",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "return MagickFalse;",
+                "matched_lines": [
+                  29
                 ]
               }
             ],
@@ -377,6 +398,13 @@
           "state_agent.states[5]": {
             "evidence_matches": [
               {
+                "evidence_line": 52,
+                "fragment": "SetPSDPixel(image,channels,type,packet_size,pixel,q,indexes,x);",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
                 "evidence_line": 53,
                 "fragment": "q++;",
                 "matched_lines": [
@@ -388,6 +416,13 @@
           },
           "state_agent.states[6]": {
             "evidence_matches": [
+              {
+                "evidence_line": 66,
+                "fragment": "SetPSDPixel(image,channels,type,packet_size,",
+                "matched_lines": [
+                  66
+                ]
+              },
               {
                 "evidence_line": 68,
                 "fragment": "QuantumRange,q++,indexes,x++);",
@@ -442,19 +477,21 @@
         "attempts": [
           {
             "attempt": 1,
+            "retry_mode": "initial",
             "errors": [],
             "token_usage": {
-              "input_tokens": 1375,
-              "output_tokens": 928,
-              "total_tokens": 2303
+              "input_tokens": 1495,
+              "output_tokens": 789,
+              "total_tokens": 2284
             },
-            "max_tokens": 8192
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
           }
         ],
         "token_usage": {
-          "input_tokens": 1375,
-          "output_tokens": 928,
-          "total_tokens": 2303
+          "input_tokens": 1495,
+          "output_tokens": 789,
+          "total_tokens": 2284
         },
         "grounding": {
           "value_agent.values[0]": {
@@ -519,25 +556,6 @@
           "value_agent.values[2]": {
             "evidence_matches": [
               {
-                "evidence_line": 32,
-                "fragment": "for (x=0; x < (ssize_t) image->columns; x++)",
-                "matched_lines": [
-                  32
-                ]
-              },
-              {
-                "evidence_line": 53,
-                "fragment": "q++;",
-                "matched_lines": [
-                  53
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "value_agent.values[3]": {
-            "evidence_matches": [
-              {
                 "evidence_line": 61,
                 "fragment": "number_bits=(ssize_t) image->columns-x;",
                 "matched_lines": [
@@ -557,30 +575,18 @@
                 "matched_lines": [
                   63
                 ]
-              }
-            ],
-            "status": "pass"
-          },
-          "value_agent.values[4]": {
-            "evidence_matches": [
+              },
               {
                 "evidence_line": 64,
                 "fragment": "for (bit=0; bit < number_bits; bit++)",
                 "matched_lines": [
                   64
                 ]
-              },
-              {
-                "evidence_line": 68,
-                "fragment": "QuantumRange,q++,indexes,x++);",
-                "matched_lines": [
-                  68
-                ]
               }
             ],
             "status": "pass"
           },
-          "value_agent.values[5]": {
+          "value_agent.values[3]": {
             "evidence_matches": [
               {
                 "evidence_line": 67,
@@ -588,12 +594,26 @@
                 "matched_lines": [
                   67
                 ]
+              },
+              {
+                "evidence_line": 64,
+                "fragment": "for (bit=0; bit < number_bits; bit++)",
+                "matched_lines": [
+                  64
+                ]
               }
             ],
             "status": "pass"
           },
-          "value_agent.values[6]": {
+          "value_agent.values[4]": {
             "evidence_matches": [
+              {
+                "evidence_line": 68,
+                "fragment": "QuantumRange,q++,indexes,x++);",
+                "matched_lines": [
+                  68
+                ]
+              },
               {
                 "evidence_line": 70,
                 "fragment": "if (x != (ssize_t) image->columns)",
@@ -611,55 +631,20 @@
             ],
             "status": "pass"
           },
-          "value_agent.values[7]": {
+          "value_agent.values[5]": {
             "evidence_matches": [
               {
-                "evidence_line": 44,
-                "fragment": "MagickFloatType",
+                "evidence_line": 27,
+                "fragment": "q=GetAuthenticPixels(image,0,row,image->columns,1,exception);",
                 "matched_lines": [
-                  44
-                ]
-              },
-              {
-                "evidence_line": 45,
-                "fragment": "nibble;",
-                "matched_lines": [
-                  45
-                ]
-              },
-              {
-                "evidence_line": 47,
-                "fragment": "p=PushFloatPixel(MSBEndian,p,&nibble);",
-                "matched_lines": [
-                  47
-                ]
-              },
-              {
-                "evidence_line": 48,
-                "fragment": "pixel=ClampToQuantum((MagickRealType)QuantumRange*nibble);",
-                "matched_lines": [
-                  48
+                  27
                 ]
               }
             ],
             "status": "pass"
           },
-          "value_agent.values[8]": {
+          "value_agent.values[6]": {
             "evidence_matches": [
-              {
-                "evidence_line": 23,
-                "fragment": "unsigned short",
-                "matched_lines": [
-                  23
-                ]
-              },
-              {
-                "evidence_line": 24,
-                "fragment": "nibble;",
-                "matched_lines": [
-                  24
-                ]
-              },
               {
                 "evidence_line": 39,
                 "fragment": "p=PushShortPixel(MSBEndian,p,&nibble);",
@@ -673,6 +658,13 @@
                 "matched_lines": [
                   40
                 ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "pixel=ClampToQuantum((MagickRealType)QuantumRange*nibble);",
+                "matched_lines": [
+                  48
+                ]
               }
             ],
             "status": "pass"
@@ -685,19 +677,21 @@
         "attempts": [
           {
             "attempt": 1,
+            "retry_mode": "initial",
             "errors": [],
             "token_usage": {
               "input_tokens": 1175,
-              "output_tokens": 539,
-              "total_tokens": 1714
+              "output_tokens": 433,
+              "total_tokens": 1608
             },
-            "max_tokens": 8192
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
           }
         ],
         "token_usage": {
           "input_tokens": 1175,
-          "output_tokens": 539,
-          "total_tokens": 1714
+          "output_tokens": 433,
+          "total_tokens": 1608
         },
         "grounding": {
           "execution_agent.executions[0]": {
@@ -741,6 +735,13 @@
           "execution_agent.executions[2]": {
             "evidence_matches": [
               {
+                "evidence_line": 31,
+                "fragment": "packet_size=GetPSDPacketSize(image);",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
                 "evidence_line": 34,
                 "fragment": "if (packet_size == 1)",
                 "matched_lines": [
@@ -753,51 +754,11 @@
                 "matched_lines": [
                   37
                 ]
-              },
-              {
-                "evidence_line": 42,
-                "fragment": "else",
-                "matched_lines": [
-                  42
-                ]
               }
             ],
             "status": "pass"
           },
           "execution_agent.executions[3]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 50,
-                "fragment": "if (image->depth > 1)",
-                "matched_lines": [
-                  50
-                ]
-              },
-              {
-                "evidence_line": 52,
-                "fragment": "SetPSDPixel(image,channels,type,packet_size,pixel,q,indexes,x);",
-                "matched_lines": [
-                  52
-                ]
-              },
-              {
-                "evidence_line": 53,
-                "fragment": "q++;",
-                "matched_lines": [
-                  53
-                ]
-              },
-              {
-                "evidence_line": 55,
-                "fragment": "else",
-                "matched_lines": [
-                  55
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[4]": {
             "evidence_matches": [
               {
                 "evidence_line": 61,
@@ -819,7 +780,12 @@
                 "matched_lines": [
                   63
                 ]
-              },
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
               {
                 "evidence_line": 64,
                 "fragment": "for (bit=0; bit < number_bits; bit++)",
@@ -868,27 +834,27 @@
     "counts": {
       "operations": 4,
       "states": 7,
-      "values": 9,
+      "values": 7,
       "executions": 6
     },
-    "schema_version": "semantic-claims-v4.12",
+    "schema_version": "semantic-claims-v4.13",
     "operation_normalization": {
-      "dropped_forbidden_preparation_only": 0
+      "dropped_forbidden_preparation_only": 2
     }
   },
   "token_usage": {
-    "input_tokens": 6267,
-    "output_tokens": 1944,
-    "total_tokens": 8211
+    "input_tokens": 6681,
+    "output_tokens": 1845,
+    "total_tokens": 8526
   },
   "artifact_metadata": {
-    "schema_version": "semantic-claims-v4.12",
-    "artifact_version": 8,
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
     "stage": "semantic_model",
     "sample_id": "test_000003",
     "split": "test",
     "source_hash": "94918d9af06c176e1c30392f38a49cfacadc045eeb0b813d741a6d4a592ce528",
     "upstream_hashes": {},
-    "pipeline_fingerprint": "34127dd44d6640e216b41abd4687553aadce8136ca7fcc4cc94637fe70450bb0"
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
   }
 }

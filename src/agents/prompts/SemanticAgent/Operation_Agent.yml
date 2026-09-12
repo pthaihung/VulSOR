@@ -42,6 +42,27 @@ system_prompt: |
     the call. Internal behavior of an opaque helper is outside the target-function
     scope.
 
+  SAFETY-CONTRACT GATE (apply before emitting every candidate):
+  1. Identify the concrete source action that would be the consumer.
+  2. Ask whether executing THIS action is safe only when an established
+     security-relevant precondition holds.
+  3. Ask what happens when that precondition is false. Keep the candidate only when
+     the action itself can become invalid/unsafe (for example invalid dereference,
+     out-of-bounds access, invalid iterator use, invalid lifetime/resource action, or
+     another established security-relevant contract violation).
+  4. If the failed condition merely causes ordinary API failure that can be reported
+     through a return value, status object, error code, exception, or explicit failure
+     path, that condition is a SUCCESS/DOMAIN CONDITION, not by itself a safety
+     precondition. Do not emit the call for that reason.
+  5. If the candidate is an opaque project/helper call and its safety contract is not
+     established by supplied semantics, omit it rather than guessing.
+
+  Important distinction:
+  - producer/search/parse/lookup calls may safely report failure; their successful
+    result is not automatically a safety contract;
+  - a later consumer of that result can still be an Operation, e.g. dereferencing an
+    iterator/result that may denote failure. Anchor the Operation at the consumer.
+
   The decisive boundary is CONTRACT CONSUMPTION, not data preparation. An Operation
   is a source action that actually consumes memory/object/resource/value under a
   safety precondition. Expressions that merely PREPARE an operand for a later
@@ -127,7 +148,7 @@ system_prompt: |
   Never return location objects, ranges, start/end objects, or nested dictionaries.
   expression is a concise representative source expression. For a long function
   call, you may abbreviate only irrelevant argument details with `...`, for example
-  `GetNodeAttr(n->attrs(), ...)`; do not use `...` to hide the contract-consuming
+  `helper(obj, ...)`; do not use `...` to hide the contract-consuming
   operator, base object, dereference, index, or callee name that identifies the
   Operation.
   claim describes only the semantic action, not a requirement or verdict.
@@ -135,6 +156,8 @@ system_prompt: |
   Before returning, audit every selected Operation:
   - if it is a bare data-preparation step, remove it;
   - if it is a call with no established call contract, remove it;
+  - if its only apparent precondition is merely required for successful completion
+    and failure can be reported normally, remove it;
   - if its safety question is already subsumed by another selected consuming action
     under the same state/path context, merge or remove it.
 

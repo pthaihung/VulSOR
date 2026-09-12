@@ -7,7 +7,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 
-SCHEMA_VERSION = "semantic-claims-v4.12"
+SCHEMA_VERSION = "semantic-claims-v4.13"
 COLLECTIONS = {
     "operation_agent": "operations",
     "state_agent": "states",

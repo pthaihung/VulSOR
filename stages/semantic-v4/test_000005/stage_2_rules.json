@@ -1,6 +1,6 @@
 {
   "sample_id": "test_000005",
-  "schema_version": "semantic-claims-v4.12",
+  "schema_version": "semantic-claims-v4.13",
   "stage": "rules",
   "agent_key": "obligation_reasoner",
   "output": {
@@ -11,40 +11,7 @@
         ],
         "expression": "frame_info_[\"\"]",
         "requirements": [
-          "the map key \"\" must be present in frame_info_ so that operator[] does not insert a new element"
-        ]
-      },
-      {
-        "locations": [
-          "L14"
-        ],
-        "expression": "pending_ids_.resize(gview_.num_nodes())",
-        "requirements": [
-          "the requested new size gview_.num_nodes() must be representable as the container's size_type"
-        ]
-      },
-      {
-        "locations": [
-          "L32"
-        ],
-        "expression": "GetNodeAttr(n->attrs(), \"send_device\", &send_device)",
-        "requirements": [
-          "n must designate a live accessible node object",
-          "n->attrs() must designate a live accessible attribute map",
-          "the attribute named \"send_device\" must be present in n->attrs()",
-          "the attribute value for \"send_device\" must be convertible to the type of send_device"
-        ]
-      },
-      {
-        "locations": [
-          "L33"
-        ],
-        "expression": "GetNodeAttr(n->attrs(), \"recv_device\", &recv_device)",
-        "requirements": [
-          "n must designate a live accessible node object",
-          "n->attrs() must designate a live accessible attribute map",
-          "the attribute named \"recv_device\" must be present in n->attrs()",
-          "the attribute value for \"recv_device\" must be convertible to the type of recv_device"
+          "the key \"\" must be present in frame_info_ so that the lookup yields a valid FrameInfo pointer"
         ]
       },
       {
@@ -53,7 +20,7 @@
         ],
         "expression": "cf_info.frame_names[id]",
         "requirements": [
-          "id must be a valid index into cf_info.frame_names"
+          "id must be within the valid index range of cf_info.frame_names"
         ]
       },
       {
@@ -62,7 +29,16 @@
         ],
         "expression": "gview_.node(id)",
         "requirements": [
-          "id must be a valid node id in gview_"
+          "id must designate a node that exists in gview_ so that node(id) returns a valid NodeItem pointer"
+        ]
+      },
+      {
+        "locations": [
+          "L47"
+        ],
+        "expression": "frame_info->total_inputs += n->num_inputs()",
+        "requirements": [
+          "frame_info must point to a live FrameInfo object"
         ]
       },
       {
@@ -71,10 +47,7 @@
         ],
         "expression": "params_.create_kernel(n->properties(), &item->kernel)",
         "requirements": [
-          "n must designate a live accessible node object",
-          "n->properties() must designate a live accessible properties object",
-          "item must designate a live accessible NodeItem object",
-          "&item->kernel must designate a writable location of the kernel pointer type"
+          "item must point to a live NodeItem object whose kernel field is writable"
         ]
       },
       {
@@ -83,16 +56,7 @@
         ],
         "expression": "params_.delete_kernel(item->kernel)",
         "requirements": [
-          "item->kernel must satisfy the kernel deletion contract of params_.delete_kernel"
-        ]
-      },
-      {
-        "locations": [
-          "L53"
-        ],
-        "expression": "AttachDef(s, *n)",
-        "requirements": [
-          "n must designate a live accessible node object"
+          "item->kernel must be a kernel pointer previously produced by params_.create_kernel"
         ]
       },
       {
@@ -101,7 +65,7 @@
         ],
         "expression": "item->kernel->AsAsync()",
         "requirements": [
-          "item->kernel must designate a live accessible kernel object"
+          "item->kernel must point to a live kernel object"
         ]
       },
       {
@@ -110,7 +74,7 @@
         ],
         "expression": "item->kernel->const_tensor()",
         "requirements": [
-          "item->kernel must designate a live accessible kernel object"
+          "item->kernel must point to a live kernel object"
         ]
       },
       {
@@ -119,71 +83,44 @@
         ],
         "expression": "const_tensors_.emplace_back(*const_tensor)",
         "requirements": [
-          "const_tensor must designate a live accessible Tensor object",
-          "the Tensor object designated by const_tensor must be copy-constructible into const_tensors_"
+          "const_tensor must point to a live Tensor object"
         ]
       },
       {
         "locations": [
-          "L79"
+          "L74"
         ],
-        "expression": "GetNodeAttr(n->attrs(), \"is_constant\", &is_constant_enter)",
+        "expression": "item->kernel->type_string_view()",
         "requirements": [
-          "n must designate a live accessible node object",
-          "n->attrs() must designate a live accessible attribute map",
-          "the attribute named \"is_constant\" must be present in n->attrs()",
-          "the attribute value for \"is_constant\" must be convertible to the type of is_constant_enter"
-        ]
-      },
-      {
-        "locations": [
-          "L83"
-        ],
-        "expression": "GetNodeAttr(n->attrs(), \"frame_name\", &frame_name)",
-        "requirements": [
-          "n must designate a live accessible node object",
-          "n->attrs() must designate a live accessible attribute map",
-          "the attribute named \"frame_name\" must be present in n->attrs()",
-          "the attribute value for \"frame_name\" must be convertible to the type of frame_name"
+          "item->kernel must point to a live kernel object"
         ]
       },
       {
         "locations": [
           "L84"
         ],
-        "expression": "frame_info_[frame_name]",
+        "expression": "frame_info_[frame_name].get()",
         "requirements": [
-          "the map key frame_name must be present in frame_info_ so that operator[] does not insert a new element"
+          "frame_name must be present in frame_info_ so that the lookup yields a valid FrameInfo pointer"
         ]
       },
       {
         "locations": [
-          "L88"
-        ],
-        "expression": "GetNodeAttr(n->attrs(), \"parallel_iterations\", &parallel_iterations)",
-        "requirements": [
-          "n must designate a live accessible node object",
-          "n->attrs() must designate a live accessible attribute map",
-          "the attribute named \"parallel_iterations\" must be present in n->attrs()",
-          "the attribute value for \"parallel_iterations\" must be convertible to the type of parallel_iterations"
-        ]
-      },
-      {
-        "locations": [
+          "L99",
           "L100"
         ],
         "expression": "enter_frame_info_.resize(id + 1)",
         "requirements": [
-          "the requested new size id + 1 must be representable as the container's size_type"
+          "id + 1 must not exceed the maximum size representable by enter_frame_info_"
         ]
       },
       {
         "locations": [
           "L102"
         ],
-        "expression": "enter_frame_info_[id]",
+        "expression": "enter_frame_info_[id] = frame_info",
         "requirements": [
-          "id must be a valid index into enter_frame_info_"
+          "id must be within the valid index range of enter_frame_info_"
         ]
       },
       {
@@ -191,9 +128,10 @@
           "L123",
           "L124"
         ],
-        "expression": "pending_ids_[id]",
+        "expression": "pending_ids_[id] = frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead)",
         "requirements": [
-          "id must be a valid index into pending_ids_"
+          "id must be within the valid index range of pending_ids_",
+          "frame_info must point to a live FrameInfo object"
         ]
       },
       {
@@ -202,7 +140,7 @@
         ],
         "expression": "root_nodes_.push_back(item)",
         "requirements": [
-          "item must designate a live accessible NodeItem object"
+          "item must point to a live NodeItem object"
         ]
       },
       {
@@ -211,21 +149,8 @@
         ],
         "expression": "frame_info->nodes->push_back(item)",
         "requirements": [
-          "frame_info must designate a live accessible FrameInfo object",
-          "frame_info->nodes must designate a live accessible vector",
-          "item must designate a live accessible NodeItem object"
-        ]
-      },
-      {
-        "locations": [
-          "L135"
-        ],
-        "expression": "GetNodeAttr(n->attrs(), \"frame_name\", &enter_name)",
-        "requirements": [
-          "n must designate a live accessible node object",
-          "n->attrs() must designate a live accessible attribute map",
-          "the attribute named \"frame_name\" must be present in n->attrs()",
-          "the attribute value for \"frame_name\" must be convertible to the type of enter_name"
+          "frame_info must point to a live FrameInfo object",
+          "frame_info->nodes must point to a live vector"
         ]
       },
       {
@@ -234,8 +159,7 @@
         ],
         "expression": "new bool[n->num_outputs()]",
         "requirements": [
-          "n must designate a live accessible node object",
-          "n->num_outputs() must be a non-negative count representable as the array size"
+          "n->num_outputs() must be non-negative"
         ]
       },
       {
@@ -244,7 +168,7 @@
         ],
         "expression": "std::fill(&outputs_required[0], &outputs_required[n->num_outputs()], false)",
         "requirements": [
-          "outputs_required must designate a writable array of at least n->num_outputs() bool elements"
+          "outputs_required must point to an array of at least n->num_outputs() bool elements"
         ]
       },
       {
@@ -254,8 +178,7 @@
         ],
         "expression": "outputs_required[e->src_output()]",
         "requirements": [
-          "e must designate a live accessible edge object",
-          "e->src_output() must be a valid index into outputs_required"
+          "e->src_output() must be within the valid index range of outputs_required"
         ]
       },
       {
@@ -264,7 +187,7 @@
         ],
         "expression": "outputs_required[i]",
         "requirements": [
-          "i must be a valid index into outputs_required"
+          "i must be within the valid index range of outputs_required"
         ]
       },
       {
@@ -273,8 +196,7 @@
         ],
         "expression": "item->outputs_required = std::move(outputs_required)",
         "requirements": [
-          "item must designate a live accessible NodeItem object",
-          "item->outputs_required must be assignable from the moved unique_ptr"
+          "item must point to a live NodeItem object whose outputs_required field is writable"
         ]
       },
       {
@@ -283,17 +205,16 @@
         ],
         "expression": "gview_.node(dst_id)",
         "requirements": [
-          "dst_id must be a valid node id in gview_"
+          "dst_id must designate a node that exists in gview_ so that node(dst_id) returns a valid NodeItem pointer"
         ]
       },
       {
         "locations": [
-          "L179"
+          "L172"
         ],
-        "expression": "gview_.SetAllocAttrs(&graph, params_.device)",
+        "expression": "e.input_slot += dst_item->input_start",
         "requirements": [
-          "&graph must designate a live accessible Graph object",
-          "params_.device must satisfy the device argument contract of gview_.SetAllocAttrs"
+          "dst_item must point to a live NodeItem object"
         ]
       }
     ]
@@ -303,36 +224,43 @@
     "attempts": [
       {
         "attempt": 1,
+        "retry_mode": "initial",
         "errors": [],
         "token_usage": {
-          "input_tokens": 4329,
-          "output_tokens": 1530,
-          "total_tokens": 5859
+          "input_tokens": 4527,
+          "output_tokens": 945,
+          "total_tokens": 5472
         },
-        "max_tokens": 8192
+        "max_tokens": 8192,
+        "serialization_prefix_recovered": false
       }
     ],
     "token_usage": {
-      "input_tokens": 4329,
-      "output_tokens": 1530,
-      "total_tokens": 5859
+      "input_tokens": 4527,
+      "output_tokens": 945,
+      "total_tokens": 5472
+    },
+    "safety_relevance_filter": {
+      "input_operation_groups": 23,
+      "kept_obligations": 23,
+      "filtered_non_safety_candidates": 0
     }
   },
   "token_usage": {
-    "input_tokens": 4329,
-    "output_tokens": 1530,
-    "total_tokens": 5859
+    "input_tokens": 4527,
+    "output_tokens": 945,
+    "total_tokens": 5472
   },
   "artifact_metadata": {
-    "schema_version": "semantic-claims-v4.12",
-    "artifact_version": 8,
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
     "stage": "rules",
     "sample_id": "test_000005",
     "split": "test",
     "source_hash": "01fe115d7b961a8afcff6daad5874b34cd48902e327705f6c9701b3f3df2d293",
     "upstream_hashes": {
-      "semantic_model": "dcdab0eab9293b5ad7d30e81700baaa8f19bdc053c438a7eae0ff275ea46ba67"
+      "semantic_model": "df0ca4ad4bbe23df369c0170f2635083c02208f55fd27fcf447ce34fd115357f"
     },
-    "pipeline_fingerprint": "34127dd44d6640e216b41abd4687553aadce8136ca7fcc4cc94637fe70450bb0"
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
   }
 }

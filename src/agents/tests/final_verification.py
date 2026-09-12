@@ -4,16 +4,20 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT.parent))
-from VulSOR_semantic_v4_12_release.BaseAgent import PromptAgent, AgentRunError, _to_json_schema, _normalize_common_model_shapes
-from VulSOR_semantic_v4_12_release.QualityGate import validate_semantic_claim_grounding
-from VulSOR_semantic_v4_12_release.SemanticContract import validate_claim_output, SCHEMA_VERSION
-from VulSOR_semantic_v4_12_release.Pipeline import (
+from VulSOR_semantic_v4_13_release.BaseAgent import (
+    PromptAgent, AgentRunError, _to_json_schema, _normalize_common_model_shapes,
+    _salvage_truncated_collection_prefix, _merge_collection_outputs,
+)
+from VulSOR_semantic_v4_13_release.QualityGate import validate_semantic_claim_grounding
+from VulSOR_semantic_v4_13_release.SemanticContract import validate_claim_output, SCHEMA_VERSION
+from VulSOR_semantic_v4_13_release.Pipeline import (
     VulSORPipeline, PIPELINE_REVISION, AGENT_CLASSES,
     validate_obligations, validate_assessments, aggregate_final_verdict,
     assessment_counts, split_atomic_requirement, normalize_obligations_requirements,
     build_triggering_obligations, normalize_operations_for_reasoning,
+    normalize_reasoner_output,
 )
-from VulSOR_semantic_v4_12_release.SimpleYaml import load_yaml
+from VulSOR_semantic_v4_13_release.SimpleYaml import load_yaml
 
 passed=[]
 def check(name, cond):
@@ -22,8 +26,8 @@ def check(name, cond):
     passed.append(name)
 
 # A. version / architecture surface
-check('schema version v4.12', SCHEMA_VERSION == 'semantic-claims-v4.12')
-check('pipeline revision v4.12', PIPELINE_REVISION == 'independent-semantic-views-v4.12')
+check('schema version v4.13', SCHEMA_VERSION == 'semantic-claims-v4.13')
+check('pipeline revision v4.13', PIPELINE_REVISION == 'independent-semantic-views-v4.13')
 check('resolver removed from agent classes', 'obligation_resolver' not in AGENT_CLASSES)
 check('resolver prompt removed', not (ROOT/'prompts/Obligation_Resolver.yml').exists())
 
@@ -62,10 +66,11 @@ for n in range(0,11):
 check(f'exhaustive aggregation {num} valid combinations', num==2047)
 
 # Technical failure remains failure, never coerced to binary.
-for bad,count,ops in [(['unresolved'],1,1), (['satisfied'],2,1), ([],0,1)]:
+for bad,count,ops in [(['unresolved'],1,1), (['satisfied'],2,1)]:
     out=aggregate_final_verdict(bad,count,ops)
     check('invalid protocol -> AnalysisFailure '+repr(bad), out['analysis_failure'] and out['binary_prediction'] is None)
 check('no operation -> benign', aggregate_final_verdict([],0,0)['label']=='Benign')
+check('operations filtered to zero obligations -> benign', aggregate_final_verdict([],0,3)['label']=='Benign' and aggregate_final_verdict([],0,3)['decision_basis']=='no_security_relevant_obligations')
 
 # D. assessment count summary
 check('assessment counts two keys', assessment_counts(['satisfied','violated','violated']) == {'satisfied':1,'violated':2})
@@ -87,6 +92,22 @@ normalized=normalize_obligations_requirements(compound['obligations'])
 check('compound canonicalized to two atomic requirements', normalized[0]['requirements']==['i must be nonnegative','i must be below n'])
 check('atomic splitter leaves unsynthesizable conjunction intact', split_atomic_requirement('p must be non-null and live')==['p must be non-null and live'])
 check('unsplittable compound no longer protocol-fatal', not validate_obligations({'obligations':[{'locations':['L1'],'expression':'a[i]','requirements':['p must be non-null and p must remain live together']} ]},{'operations':[{'locations':['L1'],'expression':'a[i]','claim':'read'}]}))
+
+
+# E2. Stage-2 safety-relevance gate: empty requirements is a valid filter decision.
+filtered_candidate={'obligations':[{'locations':['L3'],'expression':'helper(x)','requirements':[]}]}
+filtered_semantic={'operations':[{'locations':['L3'],'expression':'helper(x)','claim':'opaque helper call'}]}
+check('empty requirements accepted as safety gate rejection', not validate_obligations(filtered_candidate, filtered_semantic))
+normalized_reasoner=normalize_reasoner_output({'parsed':filtered_candidate,'quality_gate':{}})
+check('empty safety candidate removed before adjudication', normalized_reasoner['parsed']['obligations']==[])
+check('safety gate reports filtered candidate', normalized_reasoner['quality_gate']['safety_relevance_filter']['filtered_non_safety_candidates']==1)
+
+# E3. Serialization continuation helpers preserve complete records and merge only new ones.
+truncated='{"values":[{"entities":["a"],"claim":"x","evidence":"L1: a=1;"},{"entities":["b"],"claim":"y","evidence":"L2: b='
+salvaged=_salvage_truncated_collection_prefix(truncated, {'values':[{'entities':['string'],'claim':'string','evidence':'string'}]})
+check('truncated collection salvages complete prefix', isinstance(salvaged,dict) and len(salvaged.get('values',[]))==1)
+merged=_merge_collection_outputs(salvaged, {'values':[salvaged['values'][0],{'entities':['b'],'claim':'y','evidence':'L2: b=2;'}]}, {'values':[{'entities':['string'],'claim':'string','evidence':'string'}]})
+check('continuation merge dedupes repeated prefix', len(merged['values'])==2 and merged['values'][1]['entities']==['b'])
 
 # F. Grounding regressions: multiline calls, macros, wrong-nearby location
 source='''void f(Node *n) {\n  int x = 0;\n  value = GetNodeAttr(\n      n->attrs(),\n      "is_constant",\n      &is_constant_enter);\n  other = GetNodeAttr(\n      n->attrs(),\n      "parallel_iterations",\n      &parallel_iterations);\n}\n'''
@@ -155,6 +176,35 @@ with tempfile.TemporaryDirectory() as td:
     grouped_out=grouped_agent.run(grouped_vars,extra_validators=[lambda x: validate_assessments(x,1)])
     check('multiple atomic requirements -> one obligation status', grouped_out['parsed']==['satisfied'])
 
+
+# H2. Truncated collection uses serialization continuation instead of semantic regeneration.
+class FakeRawClient:
+    def __init__(self, responses):
+        self.responses=list(responses); self.calls=0; self.requests=[]
+    def chat_completion(self, **kwargs):
+        self.calls += 1
+        self.requests.append(kwargs)
+        if not self.responses: raise AssertionError('queue exhausted')
+        return self.responses.pop(0)
+
+with tempfile.TemporaryDirectory() as td:
+    base=Path(td)
+    shutil.copytree(ROOT/'prompts',base/'prompts')
+    cfg={'prompt_file':'prompts/SemanticAgent/Value_Agent.yml','quality_gates':{'max_retries':1},'llm':{'max_tokens':8192,'timeout_seconds':120,'temperature':0,'response_format':'json','reasoning':{'enabled':True}}}
+    first='{"values":[{"entities":["a"],"claim":"a affects size","evidence":"L1: a=1;"},{"entities":["b"],"claim":"unfinished'
+    second=json.dumps({'values':[{'entities':['b'],'claim':'b affects size','evidence':'L2: b=2;'}]})
+    raw_client=FakeRawClient([
+        {'choices':[{'message':{'content':first},'finish_reason':'length'}], 'usage':{'prompt_tokens':100,'completion_tokens':80,'total_tokens':180}},
+        {'choices':[{'message':{'content':second},'finish_reason':'stop'}], 'usage':{'prompt_tokens':80,'completion_tokens':20,'total_tokens':100}},
+    ])
+    agent=PromptAgent('value_agent',cfg,base,raw_client)
+    out=agent.run({'numbered_function_code':'L1: a=1;\nL2: b=2;'})
+    check('truncated output uses exactly one continuation call', raw_client.calls==2)
+    check('continuation preserves prefix and appends remaining record', len(out['parsed']['values'])==2 and out['parsed']['values'][0]['entities']==['a'] and out['parsed']['values'][1]['entities']==['b'])
+    check('retry mode records serialization continuation', out['quality_gate']['attempts'][1]['retry_mode']=='serialization_continuation')
+    second_user=raw_client.requests[1]['messages'][-1].content
+    check('continuation prompt forbids regeneration', 'Do NOT regenerate' in second_user and 'ONLY the additional records' in second_user)
+
 # I. Minimal full six-agent pipeline, both binary branches + cache.
 def mkproj(base:Path, samples:list[dict], labels:list[dict]):
     (base/'config').mkdir(parents=True); (base/'data').mkdir()
@@ -197,6 +247,24 @@ with tempfile.TemporaryDirectory() as td:
     check('end-to-end violated -> Vulnerable', rec['output']['label']=='Vulnerable' and rec['output']['binary_prediction']==1)
     check('violated decision basis', rec['output']['decision_basis']=='violated_obligation')
     check('violated trigger traced', rec['output']['triggering_obligations']==[{'index':0,'locations':['L3'],'expression':'a[i]','requirements':['i must be within the valid readable extent of a']}])
+
+
+with tempfile.TemporaryDirectory() as td:
+    sample_filtered={'sample_id':'filtered','code':'int f(int x)\n{\n  return helper(x);\n}'}
+    base=Path(td); mkproj(base,[sample_filtered],[{'sample_id':'filtered','target':0}])
+    # Operation extractor emits a grounded candidate call, but Reasoner rejects it as
+    # having no established security-relevant safety contract. Stage 3 must not run.
+    filtered_resp=[
+      {'operations':[{'locations':['L3'],'expression':'helper(x)','claim':'opaque helper call'}]},
+      {'states':[]}, {'values':[]}, {'executions':[]},
+      {'obligations':[{'locations':['L3'],'expression':'helper(x)','requirements':[]}]},
+    ]
+    pipe=VulSORPipeline(base,split='test',dry_run=True,overwrite=True)
+    fake=FakeClient(filtered_resp); pipe.llm_client=fake; pipe.agents=pipe._build_agents(); pipe.pipeline_fingerprint=pipe._compute_pipeline_fingerprint()
+    rec=pipe.run_sample(sample_filtered,3)
+    check('all Stage2 candidates filtered -> Benign without adjudicator', rec['output']['label']=='Benign' and not rec['output']['analysis_failure'] and fake.calls==5)
+    rules=json.loads((base/'stages/semantic-v4/filtered/stage_2_rules.json').read_text())
+    check('filtered Stage2 artifact contains no obligations', rules['output']['rules']==[])
 
 # J. Recovery policy + batch continuity. Item-level grounding defects are salvaged;
 # genuinely unparseable agent output still becomes AnalysisFailure without stopping the batch.
@@ -263,7 +331,7 @@ with tempfile.TemporaryDirectory() as td:
     check('failed sample also emits sample_done', len(done)==1 and done[0]['analysis_failure'])
 
 # K2. Deterministic representation recovery.
-from VulSOR_semantic_v4_12_release.QualityGate import repair_semantic_claim_output
+from VulSOR_semantic_v4_13_release.QualityGate import repair_semantic_claim_output
 rec={'values':[{'entities':['p','p','n'],'claim':'relation','evidence':'L99: else'}]}
 ev=repair_semantic_claim_output(rec,'value_agent','int f()\n{\n  if (x) a();\n  else b();\n}')
 check('duplicate entities deduped before contract validation', len(rec['values'][0]['entities'])==2 if rec['values'] else True)

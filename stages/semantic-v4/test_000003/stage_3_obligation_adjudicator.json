@@ -1,6 +1,6 @@
 {
   "sample_id": "test_000003",
-  "schema_version": "semantic-claims-v4.12",
+  "schema_version": "semantic-claims-v4.13",
   "stage": "obligation_adjudicator",
   "agent_key": "obligation_adjudicator",
   "ground_truth": {
@@ -21,7 +21,7 @@
       "violated"
     ],
     "obligation_count": 4,
-    "requirement_count": 9,
+    "requirement_count": 5,
     "violation": 1,
     "binary_prediction": 1,
     "label": "Vulnerable",
@@ -35,8 +35,7 @@
         ],
         "expression": "*p++",
         "requirements": [
-          "the storage referenced by p must be readable for one byte",
-          "the pointer p must designate a live accessible object"
+          "p must designate a readable byte within the pixels storage region before the dereference"
         ]
       },
       {
@@ -46,8 +45,7 @@
         ],
         "expression": "PushShortPixel(MSBEndian,p,&nibble)",
         "requirements": [
-          "the source range starting at p must be readable for the number of bytes required by PushShortPixel",
-          "the pointer p must designate a live accessible object"
+          "p must designate a readable range of at least two bytes within the pixels storage region"
         ]
       },
       {
@@ -57,8 +55,7 @@
         ],
         "expression": "PushFloatPixel(MSBEndian,p,&nibble)",
         "requirements": [
-          "the source range starting at p must be readable for the number of bytes required by PushFloatPixel",
-          "the pointer p must designate a live accessible object"
+          "p must designate a readable range of at least four bytes within the pixels storage region"
         ]
       },
       {
@@ -69,9 +66,8 @@
         ],
         "expression": "SetPSDPixel(image,channels,type,packet_size,pixel,q,indexes,x)",
         "requirements": [
-          "the destination storage referenced by q must be writable for the pixel data written by SetPSDPixel",
-          "the destination storage referenced by indexes must be writable for the index data written by SetPSDPixel",
-          "the index x must be within the valid extent of the destination pixel and index storage"
+          "q must designate a writable PixelPacket within the pixel buffer obtained for the row",
+          "indexes must designate a writable IndexPacket corresponding to the pixel at index x"
         ]
       }
     ],
@@ -91,26 +87,28 @@
       "attempts": [
         {
           "attempt": 1,
+          "retry_mode": "initial",
           "errors": [],
           "token_usage": {
-            "input_tokens": 3623,
-            "output_tokens": 13,
-            "total_tokens": 3636
+            "input_tokens": 3418,
+            "output_tokens": 16,
+            "total_tokens": 3434
           },
-          "max_tokens": 1024
+          "max_tokens": 1024,
+          "serialization_prefix_recovered": false
         }
       ],
       "token_usage": {
-        "input_tokens": 3623,
-        "output_tokens": 13,
-        "total_tokens": 3636
+        "input_tokens": 3418,
+        "output_tokens": 16,
+        "total_tokens": 3434
       }
     }
   },
   "token_usage": {
-    "input_tokens": 3623,
-    "output_tokens": 13,
-    "total_tokens": 3636
+    "input_tokens": 3418,
+    "output_tokens": 16,
+    "total_tokens": 3434
   },
   "pipeline_diagnostics": {
     "errors": [],
@@ -121,16 +119,16 @@
     }
   },
   "artifact_metadata": {
-    "schema_version": "semantic-claims-v4.12",
-    "artifact_version": 8,
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
     "stage": "obligation_adjudicator",
     "sample_id": "test_000003",
     "split": "test",
     "source_hash": "94918d9af06c176e1c30392f38a49cfacadc045eeb0b813d741a6d4a592ce528",
     "upstream_hashes": {
-      "semantic_model": "31f48ed7d026b518da11333112b9b54cfff64c4b1da8e7538cc473d35f67221a",
-      "rules": "20199d483a423d495449aff973c43f67959887ca109075aec561bde9604fd339"
+      "semantic_model": "d4a232a863df6eadd33351883a3ec1650837dfe307fc87223432028b68f1f24d",
+      "rules": "0ed766666939442f0b82ad78915e8fe5587480db9e4d4964139ff4f8277a6c9d"
     },
-    "pipeline_fingerprint": "34127dd44d6640e216b41abd4687553aadce8136ca7fcc4cc94637fe70450bb0"
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
   }
 }
