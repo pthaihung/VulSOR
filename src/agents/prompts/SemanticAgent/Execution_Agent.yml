@@ -1,79 +1,69 @@
 agent: Execution
-role: Execution semantic extractor
+role: Safety-bearing execution condition extractor
 output_format: json
 
 inputs:
   numbered_function_code:
     source: dataset.inputs[].code
-    description: Target C/C++ function or anchor-focused code windows with original line numbers.
-  operation_anchors_json:
-    description: Compact operation anchors selected by Operation Agent.
+    description: Full target C/C++ function with original line numbers.
 
 system_prompt: |
-  Extract directly visible execution, control-flow, path, and ordering facts that are relevant to the supplied operation anchors.
-  Return intermediate facts only: no operation inventory, state/value analysis, vulnerability verdict, or external labels/context.
+  Independently reconstruct only execution/path conditions that can materially
+  constrain safety-relevant states or values in the supplied function.
 
-  Include: if/else/switch/ternary/loop guards, early exits, return/break/continue/goto/error paths, statement ordering relevant to later operations, direct path conditions, and loop reachability/repetition.
-  Do not infer branch behavior from project-specific calls except explicit checks in this function; if uncertain, record visible uncertainty with unresolved=true.
+  Macro definitions that are explicitly present in the supplied target function are
+  part of the available semantics. Follow their visible assignments, pointer updates,
+  and control effects when relevant instead of treating the macro body as unknown.
 
-  Required discipline:
-  - Hard budget: return at most 20 records selected across the whole function, not merely the first matching lines.
-  - Use operation_anchors_json as the scope guide. Prefer guards, early exits, loops, and ordering facts that control reachability of an anchor line or constrain objects named in anchor evidence.
-  - Omit generic branches with no relevant entity, target line, or clear relation to a supplied anchor.
-  - If no anchors are supplied, fall back to the most security-relevant execution facts in the function.
-  - Lines containing only "..." are omitted gaps between anchor windows; do not treat them as code.
-  - id order: exec_1, exec_2, ...
-  - line is the direct evidence line.
-  - entity is the controlled object or condition variable; use control_flow when no single entity applies.
-  - base_entity is the visible root, or control_flow.
-  - role: guard, branch, loop, jump, order, path, cleanup.
-  - effect: return, break, continue, goto, fallthrough, branch, loop, order, cleanup, unknown.
-  - target_line is the directly visible affected line, or 0.
-  - target_entity is the affected object, or "".
-  - Prefer compact relation names: guard_returns, guard_continues, guard_breaks, branch_condition, switch_condition, loop_condition, order_before, path_reaches, cleanup_exit.
-  - evidence must be a short exact code substring of at most 160 characters, not prose and not line numbers.
-  - Use "" or 0 for unknown optional fields. If no relevant execution fact exists, return records=[].
-  Return exactly one JSON object matching the schema.
+  Do not use an Operation inventory. Do not classify vulnerabilities, judge
+  safe/unsafe, generate safety requirements, or repeat State/Value relationships.
+
+  Execution owns conditions established by guards, early returns, break/continue,
+  loop conditions, switch cases, short-circuit evaluation, mutually exclusive paths,
+  and directly supported dominance/reachability.
+
+  Prefer a strong compressed downstream implication over raw branch inventory.
+  Example:
+      if (i < 0) return;
+      if (i >= n) return;
+  may be represented as:
+      continuing execution after these checks implies 0 <= i < n
+
+  Do not dump the CFG, plain statement ordering, or ordinary business-logic branches.
+  Keep only conditions plausibly capable of constraining a later memory, resource,
+  pointer, index, size, or numeric safety decision.
+
+  Do not propagate a condition beyond a point where an involved entity may be
+  modified or unknown external behavior prevents establishing continuity.
+  Merge multiple guards when they jointly establish one concise condition.
+
+  entities lists the source entities directly constrained.
+  claim states the execution implication concisely.
+  evidence contains only source-grounded lines, each written as L<number>: exact text.
+  For a macro-definition line, the final physical-line continuation backslash may
+  be omitted; do not otherwise rewrite or paraphrase the cited source text.
+
+  Empty output is valid.
+  Return exactly one JSON object matching the schema and no prose.
 
 user_prompt_template: |
   code:
     language: C/C++
     numbered: true
-    scope: anchor_windows_with_original_line_numbers
+    scope: full_target_function_with_original_line_numbers
     value: |
       {numbered_function_code}
 
-  operation_anchors:
-    format: json
-    value: |
-      {operation_anchors_json}
-
   return_json_schema:
-    records:
-      - id: exec_1
-        line: number
-        entity: string
-        base_entity: string
-        role: string
-        effect: string
-        target_line: number
-        target_entity: string
-        relation: string
-        condition: string
+    executions:
+      - entities:
+          - i
+        claim: string
         evidence: string
-        unresolved: boolean
 
 output_schema:
-  records:
-    - id: string
-      line: number
-      entity: string
-      base_entity: string
-      role: string
-      effect: string
-      target_line: number
-      target_entity: string
-      relation: string
-      condition: string
+  executions:
+    - entities:
+        - string
+      claim: string
       evidence: string
-      unresolved: boolean

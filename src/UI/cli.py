@@ -106,7 +106,7 @@ def run_interactive(project_root: Path) -> None:
         console,
         "Overwrite selected split outputs",
         default=False,
-        yes_help_text="Clear previous stage outputs for this split first.",
+        yes_help_text="Clear previous stage outputs for this split and the LLM response cache first.",
         no_help_text="Keep existing stage outputs and reuse them when applicable.",
     )
     pipeline = VulSORPipeline(project_root=project_root, split=split, dry_run=dry_run, overwrite=overwrite)
@@ -802,7 +802,9 @@ def print_stage_preview(console: Console, pipeline: VulSORPipeline, sample: dict
     quality_gate = record.get("quality_gate", {})
 
     evidence_status = output.get("evidence_status")
-    if prediction == "InsufficientEvidence" or evidence_status == "insufficient":
+    if prediction == "AnalysisFailure":
+        prediction_color = Console.YELLOW
+    elif evidence_status == "insufficient":
         prediction_color = Console.YELLOW
     else:
         prediction_color = Console.RED if violation == 1 else Console.GREEN
@@ -815,12 +817,12 @@ def print_stage_preview(console: Console, pipeline: VulSORPipeline, sample: dict
     )
     print(f"  ground_truth: {format_ground_truth(ground_truth)}")
     print(f"  correct: {console.color(str(correct), correctness_color)}")
-    if output.get("best_effort_binary_prediction") is not None:
-        print(
-            "  best_effort: "
-            f"prediction={output.get('best_effort_binary_prediction')}, "
-            f"correct={output.get('best_effort_correct')}"
-        )
+    basis = output.get("decision_basis")
+    triggering = output.get("triggering_obligations", [])
+    if basis:
+        print(f"  decision_basis: {basis}, triggering_obligations={triggering}")
+    if output.get("analysis_failure"):
+        print(f"  analysis_failure_reasons: {output.get('analysis_failure_reasons', [])}")
     violated_ids = output.get("violated_obligation_ids", [])
     if violated_ids:
         print(f"  violated_obligation_ids: {violated_ids}")
@@ -982,6 +984,7 @@ def main() -> None:
     parser.add_argument("--use-llm", action="store_true", help="Call the configured LLM API. This is the default unless --dry-run is set.")
     parser.add_argument("--api-key", default=None, help="DeepSeek API key for this run. Prefer DEEPSEEK_API_KEY for shell history safety.")
     parser.add_argument("--overwrite", action="store_true", help="Clear this split's stage outputs before running.")
+    parser.add_argument("--output-root", type=Path, default=None, help="Artifact directory; defaults to stages/semantic-v2.")
     args = parser.parse_args()
 
     project_root = Path(__file__).resolve().parents[2]
@@ -998,6 +1001,7 @@ def main() -> None:
         split=args.split,
         dry_run=dry_run,
         overwrite=args.overwrite,
+        output_root=(args.output_root if args.output_root and args.output_root.is_absolute() else project_root / args.output_root) if args.output_root else None,
     )
     samples = pipeline.load_samples(limit=args.limit)
     if args.samples:

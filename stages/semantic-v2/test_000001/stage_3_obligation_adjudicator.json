@@ -1,0 +1,330 @@
+{
+  "sample_id": "test_000001",
+  "schema_version": "semantic-claims-v2",
+  "stage": "obligation_adjudicator",
+  "agent_key": "obligation_adjudicator",
+  "ground_truth": {
+    "sample_id": "test_000001",
+    "pair_id": "test_000000",
+    "target": 0,
+    "label": "benign",
+    "cve": "CVE-2022-32547",
+    "cwe": [
+      "CWE-704"
+    ]
+  },
+  "output": {
+    "adjudications": [
+      {
+        "rule": {
+          "id": "obligation_1",
+          "cluster_id": "cluster_3",
+          "operation_id": "o3",
+          "coverage_category": "out-of-bounds",
+          "safety_requirement": "must ensure length >= 2 before writing buffer[length-2]",
+          "applicable_condition": "always",
+          "link_confidence": "unlinked",
+          "evidence_refs": [
+            "operation_agent.operations[2]"
+          ],
+          "note": "Null terminator write at index length-2 requires length >= 2."
+        },
+        "output": {
+          "obligation_id": "obligation_1",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[2]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_2",
+          "cluster_id": "cluster_4",
+          "operation_id": "o4",
+          "coverage_category": "unchecked-api-failure",
+          "safety_requirement": "must check that AcquireString(buffer) returns non-NULL before using value",
+          "applicable_condition": "always",
+          "link_confidence": "unlinked",
+          "evidence_refs": [
+            "operation_agent.operations[3]"
+          ],
+          "note": "Allocation result assigned to value without a linked null check."
+        },
+        "output": {
+          "obligation_id": "obligation_2",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[3]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_3",
+          "cluster_id": "cluster_7",
+          "operation_id": "o7",
+          "coverage_category": "out-of-bounds",
+          "safety_requirement": "must ensure exif points to at least one readable byte before ReadPropertyByte dereferences it",
+          "applicable_condition": "when the EXIF signature scan loop is entered",
+          "link_confidence": "strong",
+          "evidence_refs": [
+            "operation_agent.operations[6]",
+            "execution_agent.executions[9]",
+            "state_agent.states[2]",
+            "execution_agent.executions[8]"
+          ],
+          "note": "ReadPropertyByte advances exif and decrements length; loop condition length != 0 and prior length >= 6 guard are linked."
+        },
+        "output": {
+          "obligation_id": "obligation_3",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[6]",
+            "state_agent.states[2]",
+            "execution_agent.executions[8]",
+            "execution_agent.executions[9]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_4",
+          "cluster_id": "cluster_8",
+          "operation_id": "o8",
+          "coverage_category": "out-of-bounds",
+          "safety_requirement": "must ensure exif+4 through exif+7 are within the EXIF buffer before ReadPropertySignedLong reads them",
+          "applicable_condition": "when reading the signed long offset from exif+4",
+          "link_confidence": "strong",
+          "evidence_refs": [
+            "operation_agent.operations[7]",
+            "execution_agent.executions[12]",
+            "value_agent.values[11]"
+          ],
+          "note": "Reads four bytes at exif+4; linked facts only establish exif+2 signature check, not that exif+4..exif+7 are in bounds."
+        },
+        "output": {
+          "obligation_id": "obligation_4",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[7]",
+            "value_agent.values[11]",
+            "execution_agent.executions[12]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_5",
+          "cluster_id": "cluster_9",
+          "operation_id": "o9",
+          "coverage_category": "out-of-bounds",
+          "safety_requirement": "must ensure directory points to at least two readable bytes before ReadPropertyUnsignedShort reads directory",
+          "applicable_condition": "when the IFD entry-count read is reached",
+          "link_confidence": "weak",
+          "evidence_refs": [
+            "operation_agent.operations[8]",
+            "execution_agent.executions[14]",
+            "value_agent.values[14]",
+            "state_agent.states[3]"
+          ],
+          "note": "Directory bound check allows directory <= exif+length-2, which may leave fewer than two bytes for the unsigned short read."
+        },
+        "output": {
+          "obligation_id": "obligation_5",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[8]",
+            "state_agent.states[3]",
+            "value_agent.values[14]",
+            "execution_agent.executions[14]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_6",
+          "cluster_id": "cluster_10",
+          "operation_id": "o10",
+          "coverage_category": "out-of-bounds",
+          "safety_requirement": "must ensure directory+12*entry+2 does not exceed the EXIF buffer before dereferencing q",
+          "applicable_condition": "when computing q for an IFD entry",
+          "link_confidence": "strong",
+          "evidence_refs": [
+            "operation_agent.operations[9]",
+            "execution_agent.executions[15]",
+            "value_agent.values[16]"
+          ],
+          "note": "q is computed before the q > exif+length-12 break check; the check occurs after pointer arithmetic."
+        },
+        "output": {
+          "obligation_id": "obligation_6",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[9]",
+            "value_agent.values[16]",
+            "execution_agent.executions[15]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_7",
+          "cluster_id": "cluster_11",
+          "operation_id": "o11",
+          "coverage_category": "integer-overflow",
+          "safety_requirement": "must ensure components * tag_bytes[format] does not overflow size_t before number_bytes is used for allocation or copying",
+          "applicable_condition": "when components and tag_bytes[format] are multiplied",
+          "link_confidence": "strong",
+          "evidence_refs": [
+            "operation_agent.operations[10]",
+            "value_agent.values[19]",
+            "execution_agent.executions[17]",
+            "execution_agent.executions[16]"
+          ],
+          "note": "components is checked non-negative and format is bounded, but the multiplication itself is not checked for overflow."
+        },
+        "output": {
+          "obligation_id": "obligation_7",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[10]",
+            "value_agent.values[19]",
+            "execution_agent.executions[16]",
+            "execution_agent.executions[17]"
+          ]
+        }
+      },
+      {
+        "rule": {
+          "id": "obligation_8",
+          "cluster_id": "cluster_12",
+          "operation_id": "o12",
+          "coverage_category": "unchecked-api-failure",
+          "safety_requirement": "must check that AcquireQuantumMemory returns non-NULL before using value",
+          "applicable_condition": "when allocating number_bytes+1 bytes for value",
+          "link_confidence": "strong",
+          "evidence_refs": [
+            "operation_agent.operations[11]",
+            "state_agent.states[9]",
+            "state_agent.states[10]",
+            "value_agent.values[19]"
+          ],
+          "note": "Allocation result is assigned to value; linked state shows a later non-NULL branch but not a failure-path check."
+        },
+        "output": {
+          "obligation_id": "obligation_8",
+          "violation": 0,
+          "refs": [
+            "operation_agent.operations[11]",
+            "state_agent.states[9]",
+            "state_agent.states[10]",
+            "value_agent.values[19]"
+          ]
+        }
+      }
+    ],
+    "violation": 0,
+    "binary_prediction": 0,
+    "best_effort_binary_prediction": 0,
+    "label": "Benign",
+    "verdict_confidence": "normal",
+    "evidence_status": "adequate",
+    "input_quality": {
+      "status": "adequate",
+      "function_name": "GetEXIFProperty",
+      "reasons": [],
+      "operation_count": 12,
+      "concrete_operation_count": 12,
+      "unresolved_operation_count": 0,
+      "semantic_record_count": 56
+    },
+    "ground_truth": {
+      "sample_id": "test_000001",
+      "pair_id": "test_000000",
+      "target": 0,
+      "label": "benign",
+      "cve": "CVE-2022-32547",
+      "cwe": [
+        "CWE-704"
+      ]
+    },
+    "correct": true,
+    "best_effort_correct": true,
+    "evaluation_diagnostics": {
+      "diagnostic_label": "correct",
+      "failure_stage": "none",
+      "reason": "Binary prediction matches ground truth with adequate evidence status.",
+      "ground_truth_used_only_for_evaluation": true
+    },
+    "aggregation_rule": "Vulnerable iff at least one obligation has violation=1. Otherwise Benign. Missing or ambiguous evidence is ignored for the binary label and tracked only in diagnostics.",
+    "violated_obligation_ids": []
+  },
+  "quality_gate": {
+    "status": "passed",
+    "adjudication_count": 8,
+    "adjudicator": {
+      "status": "passed",
+      "attempts": [
+        {
+          "attempt": 1,
+          "errors": [],
+          "token_usage": {
+            "input_tokens": 3912,
+            "output_tokens": 393,
+            "total_tokens": 4305
+          },
+          "max_tokens": 1024
+        }
+      ],
+      "token_usage": {
+        "input_tokens": 3912,
+        "output_tokens": 393,
+        "total_tokens": 4305
+      }
+    }
+  },
+  "token_usage": {
+    "input_tokens": 3912,
+    "output_tokens": 393,
+    "total_tokens": 4305
+  },
+  "pipeline_diagnostics": {
+    "errors": [],
+    "warnings": [],
+    "missing_information": [],
+    "conflicts": [],
+    "stage_status": {
+      "Stage 1": "passed",
+      "Stage 2": "passed",
+      "Stage 3": "passed"
+    },
+    "input_quality": {
+      "status": "adequate",
+      "function_name": "GetEXIFProperty",
+      "reasons": [],
+      "operation_count": 12,
+      "concrete_operation_count": 12,
+      "unresolved_operation_count": 0,
+      "semantic_record_count": 56
+    },
+    "evidence_status": {
+      "status": "adequate",
+      "reasons": []
+    }
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v2",
+    "artifact_version": 2,
+    "stage": "obligation_adjudicator",
+    "sample_id": "test_000001",
+    "split": "test",
+    "source_hash": "bb82458bd3eaf9db3243170666c06071e2e9c31970b85bdeace273e92c5dba29",
+    "upstream_hashes": {
+      "semantic_model": "9fc164be2400c0beedd0b4bcff4f54143f5f6221bf56dc9786feecd1348e30a6",
+      "context_links": "49d63afb309ea833eb8073a4e66b34f14bb88e3fb32e5ddc5b38fa9038b5d57e",
+      "rules": "82caec76a9788a88944cd9b5ec5855fac254b4e3233289e5418f2fd719e03183"
+    },
+    "pipeline_fingerprint": "da786a3813704fa75cc1e3b1a0483d139e9c7ae7963f1aea0cd9029b3177aee8"
+  }
+}

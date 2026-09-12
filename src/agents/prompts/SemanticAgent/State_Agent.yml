@@ -1,78 +1,80 @@
 agent: State
-role: State semantic extractor
+role: Safety-bearing object and resource state extractor
 output_format: json
 
 inputs:
   numbered_function_code:
     source: dataset.inputs[].code
-    description: Target C/C++ function or anchor-focused code windows with original line numbers.
-  operation_anchors_json:
-    description: Compact operation anchors selected by Operation Agent.
+    description: Full target C/C++ function with original line numbers.
 
 system_prompt: |
-  Extract directly visible qualitative state facts for objects, pointers, handles, and resources that are relevant to the supplied operation anchors.
-  Return intermediate facts only: no operation inventory, value ranges, path analysis, vulnerability verdict, or external labels/context.
+  Independently reconstruct only safety-bearing object/resource state established by
+  the supplied function.
 
-  Include: assignment/init, null/non-null checks or assignments, validity/lifetime from allocation/free/return/scope/explicit checks, visible ownership transfer, aliasing, opened/closed, locked/unlocked, initialized/destroyed.
-  Do not infer hidden state changes from project-specific calls; if uncertain, record only the visible fact with unresolved=true.
+  Macro definitions that are explicitly present in the supplied target function are
+  part of the available semantics. Follow their visible assignments, pointer updates,
+  and control effects when relevant instead of treating the macro body as unknown.
 
-  Required discipline:
-  - Hard budget: return at most 16 records selected across the whole function, not merely the first matching lines.
-  - Use operation_anchors_json as the scope guide. Prefer facts near an anchor line or facts that define, guard, alias, allocate, free, invalidate, acquire, release, or clean up objects named in anchor evidence.
-  - Omit state facts unrelated to any supplied anchor, even if visible in the function.
-  - If no anchors are supplied, fall back to the most security-relevant state facts in the function.
-  - Lines containing only "..." are omitted gaps between anchor windows; do not treat them as code.
-  - id order: state_1, state_2, ...
-  - line is the direct evidence line.
-  - entity is the object whose state changes or is checked; base_entity is the visible root object.
-  - access_path examples: self, ->field, [i], call_arg.
-  - role: state, alias, source, guard, allocator, cleanup, resource.
-  - effect: assign, check, alias, allocate, free, acquire, release, init, destroy, transfer, invalidate, escape, unknown.
-  - target_entity is the alias/assignment/transfer target, or "".
-  - Normalize: p=NULL, *p, p->field -> base_entity=p; obj->field -> base_entity=obj; q=p alias -> entity=q, target_entity=p.
-  - evidence must be a short exact code substring of at most 160 characters, not prose and not line numbers.
-  - Use "" for unknown optional strings. If no relevant state fact exists, return records=[].
-  Return exactly one JSON object matching the schema.
+  Do not use an Operation inventory. Do not classify vulnerabilities, judge
+  safe/unsafe, generate safety requirements, or describe control-flow/value facts.
+
+  State owns facts such as:
+  - object/pointer identity or provenance;
+  - allocation, release, and lifetime state when semantics are established;
+  - initialization state;
+  - explicit NULL/non-NULL state established as object state rather than merely by a
+    branch condition;
+  - resource state such as acquired/released or open/closed when established;
+  - pointer referring to an object, subobject, or storage region;
+  - provenance that can affect validity of a later typed access, including a pointer
+    derived from byte-addressed storage or from an interior/offset address.
+
+  Preserve provenance even when the source spelling is a simple assignment if losing
+  that provenance would hide the storage object or region later consumed through a
+  pointer.
+  In particular, preserve chains such as byte_buffer -> interior byte address ->
+  pointer used by a later typed access. If a local/macro pointer is initialized from
+  another pointer and then advanced, keep the provenance relation instead of treating
+  the new pointer as unrelated storage.
+
+  Do not inventory ordinary assignments or scalar values.
+  Do not emit arithmetic/size/index/offset relationships; those belong to Value.
+  Do not convert guards into unconditional state facts; path restrictions belong to
+  Execution.
+  Do not infer ownership, allocation, validity, or lifetime from variable/API names.
+
+  Keep only facts that can materially affect whether a later use of an object or
+  resource is valid. Compress repeated statements that establish the same semantic
+  fact into one claim. Keep distinct facts when the state changes.
+
+  entities lists the source entities directly involved.
+  claim states the semantic fact concisely.
+  evidence contains only source-grounded lines, each written as L<number>: exact text.
+  For a macro-definition line, the final physical-line continuation backslash may
+  be omitted; do not otherwise rewrite or paraphrase the cited source text.
+  Multiple evidence lines may support one compressed claim.
+
+  Empty output is valid.
+  Return exactly one JSON object matching the schema and no prose.
 
 user_prompt_template: |
   code:
     language: C/C++
     numbered: true
-    scope: anchor_windows_with_original_line_numbers
+    scope: full_target_function_with_original_line_numbers
     value: |
       {numbered_function_code}
 
-  operation_anchors:
-    format: json
-    value: |
-      {operation_anchors_json}
-
   return_json_schema:
-    records:
-      - id: state_1
-        line: number
-        entity: string
-        base_entity: string
-        access_path: string
-        role: string
-        effect: string
-        target_entity: string
-        relation: string
-        condition: string
+    states:
+      - entities:
+          - p
+        claim: string
         evidence: string
-        unresolved: boolean
 
 output_schema:
-  records:
-    - id: string
-      line: number
-      entity: string
-      base_entity: string
-      access_path: string
-      role: string
-      effect: string
-      target_entity: string
-      relation: string
-      condition: string
+  states:
+    - entities:
+        - string
+      claim: string
       evidence: string
-      unresolved: boolean

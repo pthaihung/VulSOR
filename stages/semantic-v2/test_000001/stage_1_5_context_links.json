@@ -1,0 +1,2914 @@
+{
+  "sample_id": "test_000001",
+  "schema_version": "semantic-claims-v2",
+  "stage": "context_links",
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v2",
+    "artifact_version": 2,
+    "stage": "context_links",
+    "sample_id": "test_000001",
+    "split": "test",
+    "source_hash": "bb82458bd3eaf9db3243170666c06071e2e9c31970b85bdeace273e92c5dba29",
+    "upstream_hashes": {
+      "semantic_model": "ad02e9cff9e6c77a72e6ef4d3aa94c9703c92757435012f69e780acb8f7e470b"
+    },
+    "pipeline_fingerprint": "da786a3813704fa75cc1e3b1a0483d139e9c7ae7963f1aea0cd9029b3177aee8"
+  },
+  "output": {
+    "clusters": [
+      {
+        "id": "cluster_1",
+        "anchor_ref": "operation_agent.operations[0]",
+        "operation_id": "o1",
+        "risk_tags": [
+          "semantic-operation"
+        ],
+        "link_confidence": "unlinked",
+        "anchor_operation": {
+          "ref": "operation_agent.operations[0]",
+          "agent_key": "operation_agent",
+          "id": "o1",
+          "location": "L38",
+          "entities": [
+            "buffer",
+            "length",
+            "MaxTextExtent",
+            "FormatLocaleString"
+          ],
+          "claim": "Writes formatted output into buffer at offset length with remaining capacity MaxTextExtent-length.",
+          "evidence": "L38: length+=FormatLocaleString(buffer+length,MaxTextExtent-length,"
+        },
+        "linked_facts": [],
+        "links": [],
+        "omitted_link_count": 0
+      },
+      {
+        "id": "cluster_2",
+        "anchor_ref": "operation_agent.operations[1]",
+        "operation_id": "o2",
+        "risk_tags": [
+          "semantic-operation"
+        ],
+        "link_confidence": "unlinked",
+        "anchor_operation": {
+          "ref": "operation_agent.operations[1]",
+          "agent_key": "operation_agent",
+          "id": "o2",
+          "location": "L42",
+          "entities": [
+            "p1",
+            "size"
+          ],
+          "claim": "Advances pointer p1 by size bytes per component iteration.",
+          "evidence": "L42: p1+=size;"
+        },
+        "linked_facts": [],
+        "links": [],
+        "omitted_link_count": 0
+      },
+      {
+        "id": "cluster_3",
+        "anchor_ref": "operation_agent.operations[2]",
+        "operation_id": "o3",
+        "risk_tags": [
+          "bounds"
+        ],
+        "link_confidence": "unlinked",
+        "anchor_operation": {
+          "ref": "operation_agent.operations[2]",
+          "agent_key": "operation_agent",
+          "id": "o3",
+          "location": "L45",
+          "entities": [
+            "buffer",
+            "length"
+          ],
+          "claim": "Writes a null terminator into buffer at index length-2.",
+          "evidence": "L45: buffer[length-2]='\\0';"
+        },
+        "linked_facts": [],
+        "links": [],
+        "omitted_link_count": 0
+      },
+      {
+        "id": "cluster_4",
+        "anchor_ref": "operation_agent.operations[3]",
+        "operation_id": "o4",
+        "risk_tags": [
+          "copy-size",
+          "allocation"
+        ],
+        "link_confidence": "unlinked",
+        "anchor_operation": {
+          "ref": "operation_agent.operations[3]",
+          "agent_key": "operation_agent",
+          "id": "o4",
+          "location": "L46",
+          "entities": [
+            "value",
+            "buffer",
+            "AcquireString"
+          ],
+          "claim": "Allocates a string copy of buffer via AcquireString.",
+          "evidence": "L46: value=AcquireString(buffer);"
+        },
+        "linked_facts": [],
+        "links": [],
+        "omitted_link_count": 0
+      },
+      {
+        "id": "cluster_5",
+        "anchor_ref": "operation_agent.operations[4]",
+        "operation_id": "o5",
+        "risk_tags": [
+          "semantic-operation"
+        ],
+        "link_confidence": "strong",
+        "anchor_operation": {
+          "ref": "operation_agent.operations[4]",
+          "agent_key": "operation_agent",
+          "id": "o5",
+          "location": "L529",
+          "entities": [
+            "length",
+            "profile",
+            "GetStringInfoLength"
+          ],
+          "claim": "Reads the length of the EXIF profile StringInfo.",
+          "evidence": "L529: length=GetStringInfoLength(profile);"
+        },
+        "linked_facts": [
+          {
+            "ref": "value_agent.values[8]",
+            "agent_key": "value_agent",
+            "id": "v9",
+            "location": "L529",
+            "entities": [
+              "length",
+              "profile"
+            ],
+            "claim": "length equals the length of the EXIF profile.",
+            "evidence": "L529: length=GetStringInfoLength(profile);"
+          },
+          {
+            "ref": "execution_agent.executions[8]",
+            "agent_key": "execution_agent",
+            "id": "e9",
+            "location": "L530",
+            "entities": [
+              "length"
+            ],
+            "claim": "Reaching L532 requires length >= 6.",
+            "evidence": "L530: if (length < 6)\nL531: return(MagickFalse);"
+          },
+          {
+            "ref": "value_agent.values[9]",
+            "agent_key": "value_agent",
+            "id": "v10",
+            "location": "L530",
+            "entities": [
+              "length"
+            ],
+            "claim": "Reaching past L530 implies length >= 6.",
+            "evidence": "L530: if (length < 6)"
+          },
+          {
+            "ref": "execution_agent.executions[9]",
+            "agent_key": "execution_agent",
+            "id": "e10",
+            "location": "L535",
+            "entities": [
+              "exif",
+              "length"
+            ],
+            "claim": "The EXIF signature scan continues while length != 0 and breaks only after matching 0x45,0x78,0x69,0x66,0x00,0x00.",
+            "evidence": "L533: while (length != 0)\nL535: if (ReadPropertyByte(&exif,&length) != 0x45)\nL536: continue;\nL547: break;"
+          },
+          {
+            "ref": "execution_agent.executions[10]",
+            "agent_key": "execution_agent",
+            "id": "e11",
+            "location": "L549",
+            "entities": [
+              "length"
+            ],
+            "claim": "Reaching L551 requires length >= 16.",
+            "evidence": "L549: if (length < 16)\nL550: return(MagickFalse);"
+          },
+          {
+            "ref": "execution_agent.executions[13]",
+            "agent_key": "execution_agent",
+            "id": "e14",
+            "location": "L566",
+            "entities": [
+              "offset",
+              "length"
+            ],
+            "claim": "Reaching L571 requires offset >= 0 and (size_t) offset < length.",
+            "evidence": "L566: if ((offset < 0) || (size_t) offset >= length)\nL567: return(MagickFalse);"
+          },
+          {
+            "ref": "execution_agent.executions[14]",
+            "agent_key": "execution_agent",
+            "id": "e15",
+            "location": "L590",
+            "entities": [
+              "directory",
+              "exif",
+              "length"
+            ],
+            "claim": "The do-while loop breaks at L591 when directory < exif or directory > exif+length-2.",
+            "evidence": "L590: if ((directory < exif) || (directory > (exif+length-2)))\nL591: break;"
+          },
+          {
+            "ref": "value_agent.values[10]",
+            "agent_key": "value_agent",
+            "id": "v11",
+            "location": "L549",
+            "entities": [
+              "length"
+            ],
+            "claim": "Reaching past L549 implies length >= 16.",
+            "evidence": "L549: if (length < 16)"
+          },
+          {
+            "ref": "value_agent.values[12]",
+            "agent_key": "value_agent",
+            "id": "v13",
+            "location": "L566",
+            "entities": [
+              "offset",
+              "length"
+            ],
+            "claim": "Reaching past L566 implies 0 <= offset < length.",
+            "evidence": "L566: if ((offset < 0) || (size_t) offset >= length)"
+          },
+          {
+            "ref": "value_agent.values[14]",
+            "agent_key": "value_agent",
+            "id": "v15",
+            "location": "L590",
+            "entities": [
+              "directory",
+              "exif",
+              "length"
+            ],
+            "claim": "Reaching past L590 implies exif <= directory <= exif+length-2.",
+            "evidence": "L590: if ((directory < exif) || (directory > (exif+length-2)))"
+          }
+        ],
+        "links": [
+          {
+            "source_ref": "value_agent.values[8]",
+            "target_ref": "operation_agent.operations[4]",
+            "types": [
+              "shared_entity",
+              "same_location",
+              "nearby_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "strong",
+            "basis": "shared=length,profile"
+          },
+          {
+            "source_ref": "execution_agent.executions[8]",
+            "target_ref": "operation_agent.operations[4]",
+            "types": [
+              "shared_entity",
+              "nearby_line"
+            ],
+            "confidence": "strong",
+            "basis": "shared=length"
+          },
+          {
+            "source_ref": "value_agent.values[9]",
+            "target_ref": "operation_agent.operations[4]",
+            "types": [
+              "shared_entity",
+              "nearby_line"
+            ],
+            "confidence": "strong",
+            "basis": "shared=length"
+          },
+          {
+            "source_ref": "execution_agent.executions[9]",
+            "target_ref": "operation_agent.operations[4]",
+            "types": [
+              "shared_entity",
+              "nearby_entity_line"
+            ],
+            "confidence": "weak",
+            "basis": "shared=length"
+          },
+          {
+            "source_ref": "execution_agent.executions[10]",
+            "target_ref": "operation_agent.operations[4]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=length"
+          },
+          {
+            "source_ref": "execution_agent.executions[13]",
+            "target_ref": "operation_agent.operations[4]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=length"
+          },
+          {
+            "source_ref": "execution_agent.executions[14]",
+            "target_ref": "operation_agent.operations[4]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=length"
+          },
+          {
+            "source_ref": "value_agent.values[10]",
+            "target_ref": "operation_agent.operations[4]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=length"
+          },
+          {
+            "source_ref": "value_agent.values[12]",
+            "target_ref": "operation_agent.operations[4]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=length"
+          },
+          {
+            "source_ref": "value_agent.values[14]",
+            "target_ref": "operation_agent.operations[4]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=length"
+          }
+        ],
+        "omitted_link_count": 0
+      },
+      {
+        "id": "cluster_6",
+        "anchor_ref": "operation_agent.operations[5]",
+        "operation_id": "o6",
+        "risk_tags": [
+          "semantic-operation"
+        ],
+        "link_confidence": "strong",
+        "anchor_operation": {
+          "ref": "operation_agent.operations[5]",
+          "agent_key": "operation_agent",
+          "id": "o6",
+          "location": "L532",
+          "entities": [
+            "exif",
+            "profile",
+            "GetStringInfoDatum"
+          ],
+          "claim": "Obtains the data pointer of the EXIF profile StringInfo.",
+          "evidence": "L532: exif=GetStringInfoDatum(profile);"
+        },
+        "linked_facts": [
+          {
+            "ref": "state_agent.states[2]",
+            "agent_key": "state_agent",
+            "id": "s3",
+            "location": "L532",
+            "entities": [
+              "exif"
+            ],
+            "claim": "exif points to the data buffer of the EXIF profile.",
+            "evidence": "L532: exif=GetStringInfoDatum(profile);"
+          },
+          {
+            "ref": "value_agent.values[8]",
+            "agent_key": "value_agent",
+            "id": "v9",
+            "location": "L529",
+            "entities": [
+              "length",
+              "profile"
+            ],
+            "claim": "length equals the length of the EXIF profile.",
+            "evidence": "L529: length=GetStringInfoLength(profile);"
+          },
+          {
+            "ref": "execution_agent.executions[9]",
+            "agent_key": "execution_agent",
+            "id": "e10",
+            "location": "L535",
+            "entities": [
+              "exif",
+              "length"
+            ],
+            "claim": "The EXIF signature scan continues while length != 0 and breaks only after matching 0x45,0x78,0x69,0x66,0x00,0x00.",
+            "evidence": "L533: while (length != 0)\nL535: if (ReadPropertyByte(&exif,&length) != 0x45)\nL536: continue;\nL547: break;"
+          },
+          {
+            "ref": "execution_agent.executions[12]",
+            "agent_key": "execution_agent",
+            "id": "e13",
+            "location": "L560",
+            "entities": [
+              "endian",
+              "exif"
+            ],
+            "claim": "Reaching L565 requires ReadPropertyUnsignedShort(endian,exif+2) == 0x002a.",
+            "evidence": "L560: if (ReadPropertyUnsignedShort(endian,exif+2) != 0x002a)\nL561: return(MagickFalse);"
+          },
+          {
+            "ref": "execution_agent.executions[14]",
+            "agent_key": "execution_agent",
+            "id": "e15",
+            "location": "L590",
+            "entities": [
+              "directory",
+              "exif",
+              "length"
+            ],
+            "claim": "The do-while loop breaks at L591 when directory < exif or directory > exif+length-2.",
+            "evidence": "L590: if ((directory < exif) || (directory > (exif+length-2)))\nL591: break;"
+          },
+          {
+            "ref": "execution_agent.executions[15]",
+            "agent_key": "execution_agent",
+            "id": "e16",
+            "location": "L610",
+            "entities": [
+              "q",
+              "exif",
+              "length"
+            ],
+            "claim": "The entry loop breaks at L611 when q > exif+length-12.",
+            "evidence": "L610: if (q > (exif+length-12))\nL611: break;  /* corrupt EXIF */"
+          },
+          {
+            "ref": "state_agent.states[3]",
+            "agent_key": "state_agent",
+            "id": "s4",
+            "location": "L572",
+            "entities": [
+              "directory",
+              "exif",
+              "offset"
+            ],
+            "claim": "directory points into the exif buffer at the first IFD offset.",
+            "evidence": "L572: directory=exif+offset;"
+          },
+          {
+            "ref": "value_agent.values[11]",
+            "agent_key": "value_agent",
+            "id": "v12",
+            "location": "L565",
+            "entities": [
+              "offset",
+              "exif"
+            ],
+            "claim": "offset is read as a signed long from exif+4.",
+            "evidence": "L565: offset=(ssize_t) ReadPropertySignedLong(endian,exif+4);"
+          },
+          {
+            "ref": "value_agent.values[13]",
+            "agent_key": "value_agent",
+            "id": "v14",
+            "location": "L572",
+            "entities": [
+              "directory",
+              "exif",
+              "offset"
+            ],
+            "claim": "directory = exif + offset.",
+            "evidence": "L572: directory=exif+offset;"
+          },
+          {
+            "ref": "value_agent.values[14]",
+            "agent_key": "value_agent",
+            "id": "v15",
+            "location": "L590",
+            "entities": [
+              "directory",
+              "exif",
+              "length"
+            ],
+            "claim": "Reaching past L590 implies exif <= directory <= exif+length-2.",
+            "evidence": "L590: if ((directory < exif) || (directory > (exif+length-2)))"
+          },
+          {
+            "ref": "value_agent.values[16]",
+            "agent_key": "value_agent",
+            "id": "v17",
+            "location": "L610",
+            "entities": [
+              "q",
+              "exif",
+              "length"
+            ],
+            "claim": "Reaching past L610 implies q <= exif+length-12.",
+            "evidence": "L610: if (q > (exif+length-12))"
+          }
+        ],
+        "links": [
+          {
+            "source_ref": "state_agent.states[2]",
+            "target_ref": "operation_agent.operations[5]",
+            "types": [
+              "shared_entity",
+              "same_location",
+              "nearby_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "strong",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "value_agent.values[8]",
+            "target_ref": "operation_agent.operations[5]",
+            "types": [
+              "shared_entity",
+              "nearby_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "strong",
+            "basis": "shared=profile"
+          },
+          {
+            "source_ref": "execution_agent.executions[9]",
+            "target_ref": "operation_agent.operations[5]",
+            "types": [
+              "shared_entity",
+              "nearby_line"
+            ],
+            "confidence": "strong",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "execution_agent.executions[12]",
+            "target_ref": "operation_agent.operations[5]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "execution_agent.executions[14]",
+            "target_ref": "operation_agent.operations[5]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "execution_agent.executions[15]",
+            "target_ref": "operation_agent.operations[5]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "state_agent.states[3]",
+            "target_ref": "operation_agent.operations[5]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "value_agent.values[11]",
+            "target_ref": "operation_agent.operations[5]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "value_agent.values[13]",
+            "target_ref": "operation_agent.operations[5]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "value_agent.values[14]",
+            "target_ref": "operation_agent.operations[5]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "value_agent.values[16]",
+            "target_ref": "operation_agent.operations[5]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          }
+        ],
+        "omitted_link_count": 0
+      },
+      {
+        "id": "cluster_7",
+        "anchor_ref": "operation_agent.operations[6]",
+        "operation_id": "o7",
+        "risk_tags": [
+          "semantic-operation"
+        ],
+        "link_confidence": "strong",
+        "anchor_operation": {
+          "ref": "operation_agent.operations[6]",
+          "agent_key": "operation_agent",
+          "id": "o7",
+          "location": "L535",
+          "entities": [
+            "ReadPropertyByte",
+            "exif",
+            "length"
+          ],
+          "claim": "Reads a byte from exif and advances the pointer, decrementing length.",
+          "evidence": "L535: if (ReadPropertyByte(&exif,&length) != 0x45)"
+        },
+        "linked_facts": [
+          {
+            "ref": "execution_agent.executions[9]",
+            "agent_key": "execution_agent",
+            "id": "e10",
+            "location": "L535",
+            "entities": [
+              "exif",
+              "length"
+            ],
+            "claim": "The EXIF signature scan continues while length != 0 and breaks only after matching 0x45,0x78,0x69,0x66,0x00,0x00.",
+            "evidence": "L533: while (length != 0)\nL535: if (ReadPropertyByte(&exif,&length) != 0x45)\nL536: continue;\nL547: break;"
+          },
+          {
+            "ref": "state_agent.states[2]",
+            "agent_key": "state_agent",
+            "id": "s3",
+            "location": "L532",
+            "entities": [
+              "exif"
+            ],
+            "claim": "exif points to the data buffer of the EXIF profile.",
+            "evidence": "L532: exif=GetStringInfoDatum(profile);"
+          },
+          {
+            "ref": "execution_agent.executions[8]",
+            "agent_key": "execution_agent",
+            "id": "e9",
+            "location": "L530",
+            "entities": [
+              "length"
+            ],
+            "claim": "Reaching L532 requires length >= 6.",
+            "evidence": "L530: if (length < 6)\nL531: return(MagickFalse);"
+          },
+          {
+            "ref": "value_agent.values[8]",
+            "agent_key": "value_agent",
+            "id": "v9",
+            "location": "L529",
+            "entities": [
+              "length",
+              "profile"
+            ],
+            "claim": "length equals the length of the EXIF profile.",
+            "evidence": "L529: length=GetStringInfoLength(profile);"
+          },
+          {
+            "ref": "value_agent.values[9]",
+            "agent_key": "value_agent",
+            "id": "v10",
+            "location": "L530",
+            "entities": [
+              "length"
+            ],
+            "claim": "Reaching past L530 implies length >= 6.",
+            "evidence": "L530: if (length < 6)"
+          },
+          {
+            "ref": "execution_agent.executions[10]",
+            "agent_key": "execution_agent",
+            "id": "e11",
+            "location": "L549",
+            "entities": [
+              "length"
+            ],
+            "claim": "Reaching L551 requires length >= 16.",
+            "evidence": "L549: if (length < 16)\nL550: return(MagickFalse);"
+          },
+          {
+            "ref": "execution_agent.executions[12]",
+            "agent_key": "execution_agent",
+            "id": "e13",
+            "location": "L560",
+            "entities": [
+              "endian",
+              "exif"
+            ],
+            "claim": "Reaching L565 requires ReadPropertyUnsignedShort(endian,exif+2) == 0x002a.",
+            "evidence": "L560: if (ReadPropertyUnsignedShort(endian,exif+2) != 0x002a)\nL561: return(MagickFalse);"
+          },
+          {
+            "ref": "execution_agent.executions[13]",
+            "agent_key": "execution_agent",
+            "id": "e14",
+            "location": "L566",
+            "entities": [
+              "offset",
+              "length"
+            ],
+            "claim": "Reaching L571 requires offset >= 0 and (size_t) offset < length.",
+            "evidence": "L566: if ((offset < 0) || (size_t) offset >= length)\nL567: return(MagickFalse);"
+          },
+          {
+            "ref": "execution_agent.executions[14]",
+            "agent_key": "execution_agent",
+            "id": "e15",
+            "location": "L590",
+            "entities": [
+              "directory",
+              "exif",
+              "length"
+            ],
+            "claim": "The do-while loop breaks at L591 when directory < exif or directory > exif+length-2.",
+            "evidence": "L590: if ((directory < exif) || (directory > (exif+length-2)))\nL591: break;"
+          },
+          {
+            "ref": "execution_agent.executions[15]",
+            "agent_key": "execution_agent",
+            "id": "e16",
+            "location": "L610",
+            "entities": [
+              "q",
+              "exif",
+              "length"
+            ],
+            "claim": "The entry loop breaks at L611 when q > exif+length-12.",
+            "evidence": "L610: if (q > (exif+length-12))\nL611: break;  /* corrupt EXIF */"
+          },
+          {
+            "ref": "state_agent.states[3]",
+            "agent_key": "state_agent",
+            "id": "s4",
+            "location": "L572",
+            "entities": [
+              "directory",
+              "exif",
+              "offset"
+            ],
+            "claim": "directory points into the exif buffer at the first IFD offset.",
+            "evidence": "L572: directory=exif+offset;"
+          },
+          {
+            "ref": "value_agent.values[10]",
+            "agent_key": "value_agent",
+            "id": "v11",
+            "location": "L549",
+            "entities": [
+              "length"
+            ],
+            "claim": "Reaching past L549 implies length >= 16.",
+            "evidence": "L549: if (length < 16)"
+          },
+          {
+            "ref": "value_agent.values[11]",
+            "agent_key": "value_agent",
+            "id": "v12",
+            "location": "L565",
+            "entities": [
+              "offset",
+              "exif"
+            ],
+            "claim": "offset is read as a signed long from exif+4.",
+            "evidence": "L565: offset=(ssize_t) ReadPropertySignedLong(endian,exif+4);"
+          },
+          {
+            "ref": "value_agent.values[12]",
+            "agent_key": "value_agent",
+            "id": "v13",
+            "location": "L566",
+            "entities": [
+              "offset",
+              "length"
+            ],
+            "claim": "Reaching past L566 implies 0 <= offset < length.",
+            "evidence": "L566: if ((offset < 0) || (size_t) offset >= length)"
+          },
+          {
+            "ref": "value_agent.values[13]",
+            "agent_key": "value_agent",
+            "id": "v14",
+            "location": "L572",
+            "entities": [
+              "directory",
+              "exif",
+              "offset"
+            ],
+            "claim": "directory = exif + offset.",
+            "evidence": "L572: directory=exif+offset;"
+          },
+          {
+            "ref": "value_agent.values[14]",
+            "agent_key": "value_agent",
+            "id": "v15",
+            "location": "L590",
+            "entities": [
+              "directory",
+              "exif",
+              "length"
+            ],
+            "claim": "Reaching past L590 implies exif <= directory <= exif+length-2.",
+            "evidence": "L590: if ((directory < exif) || (directory > (exif+length-2)))"
+          }
+        ],
+        "links": [
+          {
+            "source_ref": "execution_agent.executions[9]",
+            "target_ref": "operation_agent.operations[6]",
+            "types": [
+              "shared_entity",
+              "same_location",
+              "execution_at_operation",
+              "nearby_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "strong",
+            "basis": "shared=exif,length"
+          },
+          {
+            "source_ref": "state_agent.states[2]",
+            "target_ref": "operation_agent.operations[6]",
+            "types": [
+              "shared_entity",
+              "nearby_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "strong",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "execution_agent.executions[8]",
+            "target_ref": "operation_agent.operations[6]",
+            "types": [
+              "shared_entity",
+              "nearby_entity_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=length"
+          },
+          {
+            "source_ref": "value_agent.values[8]",
+            "target_ref": "operation_agent.operations[6]",
+            "types": [
+              "shared_entity",
+              "nearby_entity_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=length"
+          },
+          {
+            "source_ref": "value_agent.values[9]",
+            "target_ref": "operation_agent.operations[6]",
+            "types": [
+              "shared_entity",
+              "nearby_entity_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=length"
+          },
+          {
+            "source_ref": "execution_agent.executions[10]",
+            "target_ref": "operation_agent.operations[6]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=length"
+          },
+          {
+            "source_ref": "execution_agent.executions[12]",
+            "target_ref": "operation_agent.operations[6]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "execution_agent.executions[13]",
+            "target_ref": "operation_agent.operations[6]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=length"
+          },
+          {
+            "source_ref": "execution_agent.executions[14]",
+            "target_ref": "operation_agent.operations[6]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif,length"
+          },
+          {
+            "source_ref": "execution_agent.executions[15]",
+            "target_ref": "operation_agent.operations[6]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif,length"
+          },
+          {
+            "source_ref": "state_agent.states[3]",
+            "target_ref": "operation_agent.operations[6]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "value_agent.values[10]",
+            "target_ref": "operation_agent.operations[6]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=length"
+          },
+          {
+            "source_ref": "value_agent.values[11]",
+            "target_ref": "operation_agent.operations[6]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "value_agent.values[12]",
+            "target_ref": "operation_agent.operations[6]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=length"
+          },
+          {
+            "source_ref": "value_agent.values[13]",
+            "target_ref": "operation_agent.operations[6]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "value_agent.values[14]",
+            "target_ref": "operation_agent.operations[6]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif,length"
+          }
+        ],
+        "omitted_link_count": 1
+      },
+      {
+        "id": "cluster_8",
+        "anchor_ref": "operation_agent.operations[7]",
+        "operation_id": "o8",
+        "risk_tags": [
+          "semantic-operation"
+        ],
+        "link_confidence": "strong",
+        "anchor_operation": {
+          "ref": "operation_agent.operations[7]",
+          "agent_key": "operation_agent",
+          "id": "o8",
+          "location": "L565",
+          "entities": [
+            "offset",
+            "ReadPropertySignedLong",
+            "endian",
+            "exif"
+          ],
+          "claim": "Reads a signed long offset from exif+4 using the given endianness.",
+          "evidence": "L565: offset=(ssize_t) ReadPropertySignedLong(endian,exif+4);"
+        },
+        "linked_facts": [
+          {
+            "ref": "value_agent.values[11]",
+            "agent_key": "value_agent",
+            "id": "v12",
+            "location": "L565",
+            "entities": [
+              "offset",
+              "exif"
+            ],
+            "claim": "offset is read as a signed long from exif+4.",
+            "evidence": "L565: offset=(ssize_t) ReadPropertySignedLong(endian,exif+4);"
+          },
+          {
+            "ref": "execution_agent.executions[13]",
+            "agent_key": "execution_agent",
+            "id": "e14",
+            "location": "L566",
+            "entities": [
+              "offset",
+              "length"
+            ],
+            "claim": "Reaching L571 requires offset >= 0 and (size_t) offset < length.",
+            "evidence": "L566: if ((offset < 0) || (size_t) offset >= length)\nL567: return(MagickFalse);"
+          },
+          {
+            "ref": "value_agent.values[12]",
+            "agent_key": "value_agent",
+            "id": "v13",
+            "location": "L566",
+            "entities": [
+              "offset",
+              "length"
+            ],
+            "claim": "Reaching past L566 implies 0 <= offset < length.",
+            "evidence": "L566: if ((offset < 0) || (size_t) offset >= length)"
+          },
+          {
+            "ref": "execution_agent.executions[12]",
+            "agent_key": "execution_agent",
+            "id": "e13",
+            "location": "L560",
+            "entities": [
+              "endian",
+              "exif"
+            ],
+            "claim": "Reaching L565 requires ReadPropertyUnsignedShort(endian,exif+2) == 0x002a.",
+            "evidence": "L560: if (ReadPropertyUnsignedShort(endian,exif+2) != 0x002a)\nL561: return(MagickFalse);"
+          },
+          {
+            "ref": "execution_agent.executions[9]",
+            "agent_key": "execution_agent",
+            "id": "e10",
+            "location": "L535",
+            "entities": [
+              "exif",
+              "length"
+            ],
+            "claim": "The EXIF signature scan continues while length != 0 and breaks only after matching 0x45,0x78,0x69,0x66,0x00,0x00.",
+            "evidence": "L533: while (length != 0)\nL535: if (ReadPropertyByte(&exif,&length) != 0x45)\nL536: continue;\nL547: break;"
+          },
+          {
+            "ref": "state_agent.states[2]",
+            "agent_key": "state_agent",
+            "id": "s3",
+            "location": "L532",
+            "entities": [
+              "exif"
+            ],
+            "claim": "exif points to the data buffer of the EXIF profile.",
+            "evidence": "L532: exif=GetStringInfoDatum(profile);"
+          },
+          {
+            "ref": "state_agent.states[3]",
+            "agent_key": "state_agent",
+            "id": "s4",
+            "location": "L572",
+            "entities": [
+              "directory",
+              "exif",
+              "offset"
+            ],
+            "claim": "directory points into the exif buffer at the first IFD offset.",
+            "evidence": "L572: directory=exif+offset;"
+          },
+          {
+            "ref": "value_agent.values[13]",
+            "agent_key": "value_agent",
+            "id": "v14",
+            "location": "L572",
+            "entities": [
+              "directory",
+              "exif",
+              "offset"
+            ],
+            "claim": "directory = exif + offset.",
+            "evidence": "L572: directory=exif+offset;"
+          },
+          {
+            "ref": "execution_agent.executions[14]",
+            "agent_key": "execution_agent",
+            "id": "e15",
+            "location": "L590",
+            "entities": [
+              "directory",
+              "exif",
+              "length"
+            ],
+            "claim": "The do-while loop breaks at L591 when directory < exif or directory > exif+length-2.",
+            "evidence": "L590: if ((directory < exif) || (directory > (exif+length-2)))\nL591: break;"
+          },
+          {
+            "ref": "execution_agent.executions[15]",
+            "agent_key": "execution_agent",
+            "id": "e16",
+            "location": "L610",
+            "entities": [
+              "q",
+              "exif",
+              "length"
+            ],
+            "claim": "The entry loop breaks at L611 when q > exif+length-12.",
+            "evidence": "L610: if (q > (exif+length-12))\nL611: break;  /* corrupt EXIF */"
+          },
+          {
+            "ref": "state_agent.states[7]",
+            "agent_key": "state_agent",
+            "id": "s8",
+            "location": "L644",
+            "entities": [
+              "p",
+              "exif",
+              "dir_offset"
+            ],
+            "claim": "p points into the exif buffer at dir_offset when number_bytes exceeds 4.",
+            "evidence": "L644: p=(unsigned char *) (exif+dir_offset);"
+          },
+          {
+            "ref": "value_agent.values[14]",
+            "agent_key": "value_agent",
+            "id": "v15",
+            "location": "L590",
+            "entities": [
+              "directory",
+              "exif",
+              "length"
+            ],
+            "claim": "Reaching past L590 implies exif <= directory <= exif+length-2.",
+            "evidence": "L590: if ((directory < exif) || (directory > (exif+length-2)))"
+          },
+          {
+            "ref": "value_agent.values[16]",
+            "agent_key": "value_agent",
+            "id": "v17",
+            "location": "L610",
+            "entities": [
+              "q",
+              "exif",
+              "length"
+            ],
+            "claim": "Reaching past L610 implies q <= exif+length-12.",
+            "evidence": "L610: if (q > (exif+length-12))"
+          }
+        ],
+        "links": [
+          {
+            "source_ref": "value_agent.values[11]",
+            "target_ref": "operation_agent.operations[7]",
+            "types": [
+              "shared_entity",
+              "same_location",
+              "nearby_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "strong",
+            "basis": "shared=exif,offset"
+          },
+          {
+            "source_ref": "execution_agent.executions[13]",
+            "target_ref": "operation_agent.operations[7]",
+            "types": [
+              "shared_entity",
+              "nearby_line"
+            ],
+            "confidence": "strong",
+            "basis": "shared=offset"
+          },
+          {
+            "source_ref": "value_agent.values[12]",
+            "target_ref": "operation_agent.operations[7]",
+            "types": [
+              "shared_entity",
+              "nearby_line"
+            ],
+            "confidence": "strong",
+            "basis": "shared=offset"
+          },
+          {
+            "source_ref": "execution_agent.executions[12]",
+            "target_ref": "operation_agent.operations[7]",
+            "types": [
+              "shared_entity",
+              "nearby_entity_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=endian,exif"
+          },
+          {
+            "source_ref": "execution_agent.executions[9]",
+            "target_ref": "operation_agent.operations[7]",
+            "types": [
+              "shared_entity",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "state_agent.states[2]",
+            "target_ref": "operation_agent.operations[7]",
+            "types": [
+              "shared_entity",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "state_agent.states[3]",
+            "target_ref": "operation_agent.operations[7]",
+            "types": [
+              "shared_entity",
+              "nearby_entity_line"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif,offset"
+          },
+          {
+            "source_ref": "value_agent.values[13]",
+            "target_ref": "operation_agent.operations[7]",
+            "types": [
+              "shared_entity",
+              "nearby_entity_line"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif,offset"
+          },
+          {
+            "source_ref": "execution_agent.executions[14]",
+            "target_ref": "operation_agent.operations[7]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "execution_agent.executions[15]",
+            "target_ref": "operation_agent.operations[7]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "state_agent.states[7]",
+            "target_ref": "operation_agent.operations[7]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "value_agent.values[14]",
+            "target_ref": "operation_agent.operations[7]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          },
+          {
+            "source_ref": "value_agent.values[16]",
+            "target_ref": "operation_agent.operations[7]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=exif"
+          }
+        ],
+        "omitted_link_count": 0
+      },
+      {
+        "id": "cluster_9",
+        "anchor_ref": "operation_agent.operations[8]",
+        "operation_id": "o9",
+        "risk_tags": [
+          "semantic-operation"
+        ],
+        "link_confidence": "weak",
+        "anchor_operation": {
+          "ref": "operation_agent.operations[8]",
+          "agent_key": "operation_agent",
+          "id": "o9",
+          "location": "L595",
+          "entities": [
+            "number_entries",
+            "ReadPropertyUnsignedShort",
+            "endian",
+            "directory"
+          ],
+          "claim": "Reads the number of IFD entries from the directory pointer.",
+          "evidence": "L595: number_entries=(size_t) ReadPropertyUnsignedShort(endian,directory);"
+        },
+        "linked_facts": [
+          {
+            "ref": "execution_agent.executions[14]",
+            "agent_key": "execution_agent",
+            "id": "e15",
+            "location": "L590",
+            "entities": [
+              "directory",
+              "exif",
+              "length"
+            ],
+            "claim": "The do-while loop breaks at L591 when directory < exif or directory > exif+length-2.",
+            "evidence": "L590: if ((directory < exif) || (directory > (exif+length-2)))\nL591: break;"
+          },
+          {
+            "ref": "value_agent.values[14]",
+            "agent_key": "value_agent",
+            "id": "v15",
+            "location": "L590",
+            "entities": [
+              "directory",
+              "exif",
+              "length"
+            ],
+            "claim": "Reaching past L590 implies exif <= directory <= exif+length-2.",
+            "evidence": "L590: if ((directory < exif) || (directory > (exif+length-2)))"
+          },
+          {
+            "ref": "execution_agent.executions[12]",
+            "agent_key": "execution_agent",
+            "id": "e13",
+            "location": "L560",
+            "entities": [
+              "endian",
+              "exif"
+            ],
+            "claim": "Reaching L565 requires ReadPropertyUnsignedShort(endian,exif+2) == 0x002a.",
+            "evidence": "L560: if (ReadPropertyUnsignedShort(endian,exif+2) != 0x002a)\nL561: return(MagickFalse);"
+          },
+          {
+            "ref": "state_agent.states[3]",
+            "agent_key": "state_agent",
+            "id": "s4",
+            "location": "L572",
+            "entities": [
+              "directory",
+              "exif",
+              "offset"
+            ],
+            "claim": "directory points into the exif buffer at the first IFD offset.",
+            "evidence": "L572: directory=exif+offset;"
+          },
+          {
+            "ref": "value_agent.values[13]",
+            "agent_key": "value_agent",
+            "id": "v14",
+            "location": "L572",
+            "entities": [
+              "directory",
+              "exif",
+              "offset"
+            ],
+            "claim": "directory = exif + offset.",
+            "evidence": "L572: directory=exif+offset;"
+          },
+          {
+            "ref": "state_agent.states[5]",
+            "agent_key": "state_agent",
+            "id": "s6",
+            "location": "L609",
+            "entities": [
+              "q",
+              "directory",
+              "entry"
+            ],
+            "claim": "q points into the directory buffer at the current entry.",
+            "evidence": "L609: q=(unsigned char *) (directory+(12*entry)+2);"
+          },
+          {
+            "ref": "value_agent.values[15]",
+            "agent_key": "value_agent",
+            "id": "v16",
+            "location": "L609",
+            "entities": [
+              "q",
+              "directory",
+              "entry"
+            ],
+            "claim": "q = directory + 12*entry + 2.",
+            "evidence": "L609: q=(unsigned char *) (directory+(12*entry)+2);"
+          }
+        ],
+        "links": [
+          {
+            "source_ref": "execution_agent.executions[14]",
+            "target_ref": "operation_agent.operations[8]",
+            "types": [
+              "shared_entity",
+              "nearby_entity_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=directory"
+          },
+          {
+            "source_ref": "value_agent.values[14]",
+            "target_ref": "operation_agent.operations[8]",
+            "types": [
+              "shared_entity",
+              "nearby_entity_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=directory"
+          },
+          {
+            "source_ref": "execution_agent.executions[12]",
+            "target_ref": "operation_agent.operations[8]",
+            "types": [
+              "shared_entity",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=endian"
+          },
+          {
+            "source_ref": "state_agent.states[3]",
+            "target_ref": "operation_agent.operations[8]",
+            "types": [
+              "shared_entity",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=directory"
+          },
+          {
+            "source_ref": "value_agent.values[13]",
+            "target_ref": "operation_agent.operations[8]",
+            "types": [
+              "shared_entity",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=directory"
+          },
+          {
+            "source_ref": "state_agent.states[5]",
+            "target_ref": "operation_agent.operations[8]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=directory"
+          },
+          {
+            "source_ref": "value_agent.values[15]",
+            "target_ref": "operation_agent.operations[8]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=directory"
+          }
+        ],
+        "omitted_link_count": 0
+      },
+      {
+        "id": "cluster_10",
+        "anchor_ref": "operation_agent.operations[9]",
+        "operation_id": "o10",
+        "risk_tags": [
+          "bounds"
+        ],
+        "link_confidence": "strong",
+        "anchor_operation": {
+          "ref": "operation_agent.operations[9]",
+          "agent_key": "operation_agent",
+          "id": "o10",
+          "location": "L609",
+          "entities": [
+            "q",
+            "directory",
+            "entry"
+          ],
+          "claim": "Computes a pointer q to the directory entry at index entry.",
+          "evidence": "L609: q=(unsigned char *) (directory+(12*entry)+2);"
+        },
+        "linked_facts": [
+          {
+            "ref": "state_agent.states[5]",
+            "agent_key": "state_agent",
+            "id": "s6",
+            "location": "L609",
+            "entities": [
+              "q",
+              "directory",
+              "entry"
+            ],
+            "claim": "q points into the directory buffer at the current entry.",
+            "evidence": "L609: q=(unsigned char *) (directory+(12*entry)+2);"
+          },
+          {
+            "ref": "value_agent.values[15]",
+            "agent_key": "value_agent",
+            "id": "v16",
+            "location": "L609",
+            "entities": [
+              "q",
+              "directory",
+              "entry"
+            ],
+            "claim": "q = directory + 12*entry + 2.",
+            "evidence": "L609: q=(unsigned char *) (directory+(12*entry)+2);"
+          },
+          {
+            "ref": "execution_agent.executions[15]",
+            "agent_key": "execution_agent",
+            "id": "e16",
+            "location": "L610",
+            "entities": [
+              "q",
+              "exif",
+              "length"
+            ],
+            "claim": "The entry loop breaks at L611 when q > exif+length-12.",
+            "evidence": "L610: if (q > (exif+length-12))\nL611: break;  /* corrupt EXIF */"
+          },
+          {
+            "ref": "value_agent.values[16]",
+            "agent_key": "value_agent",
+            "id": "v17",
+            "location": "L610",
+            "entities": [
+              "q",
+              "exif",
+              "length"
+            ],
+            "claim": "Reaching past L610 implies q <= exif+length-12.",
+            "evidence": "L610: if (q > (exif+length-12))"
+          },
+          {
+            "ref": "execution_agent.executions[14]",
+            "agent_key": "execution_agent",
+            "id": "e15",
+            "location": "L590",
+            "entities": [
+              "directory",
+              "exif",
+              "length"
+            ],
+            "claim": "The do-while loop breaks at L591 when directory < exif or directory > exif+length-2.",
+            "evidence": "L590: if ((directory < exif) || (directory > (exif+length-2)))\nL591: break;"
+          },
+          {
+            "ref": "state_agent.states[3]",
+            "agent_key": "state_agent",
+            "id": "s4",
+            "location": "L572",
+            "entities": [
+              "directory",
+              "exif",
+              "offset"
+            ],
+            "claim": "directory points into the exif buffer at the first IFD offset.",
+            "evidence": "L572: directory=exif+offset;"
+          },
+          {
+            "ref": "value_agent.values[13]",
+            "agent_key": "value_agent",
+            "id": "v14",
+            "location": "L572",
+            "entities": [
+              "directory",
+              "exif",
+              "offset"
+            ],
+            "claim": "directory = exif + offset.",
+            "evidence": "L572: directory=exif+offset;"
+          },
+          {
+            "ref": "value_agent.values[14]",
+            "agent_key": "value_agent",
+            "id": "v15",
+            "location": "L590",
+            "entities": [
+              "directory",
+              "exif",
+              "length"
+            ],
+            "claim": "Reaching past L590 implies exif <= directory <= exif+length-2.",
+            "evidence": "L590: if ((directory < exif) || (directory > (exif+length-2)))"
+          },
+          {
+            "ref": "value_agent.values[17]",
+            "agent_key": "value_agent",
+            "id": "v18",
+            "location": "L615",
+            "entities": [
+              "tag_value",
+              "tag_offset",
+              "q"
+            ],
+            "claim": "tag_value equals the unsigned short at q plus tag_offset.",
+            "evidence": "L615: tag_value=(size_t) ReadPropertyUnsignedShort(endian,q)+tag_offset;"
+          },
+          {
+            "ref": "state_agent.states[6]",
+            "agent_key": "state_agent",
+            "id": "s7",
+            "location": "L628",
+            "entities": [
+              "p",
+              "q"
+            ],
+            "claim": "p points into the directory entry when number_bytes is at most 4.",
+            "evidence": "L628: p=q+8;"
+          }
+        ],
+        "links": [
+          {
+            "source_ref": "state_agent.states[5]",
+            "target_ref": "operation_agent.operations[9]",
+            "types": [
+              "shared_entity",
+              "same_location",
+              "nearby_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "strong",
+            "basis": "shared=directory,entry,q"
+          },
+          {
+            "source_ref": "value_agent.values[15]",
+            "target_ref": "operation_agent.operations[9]",
+            "types": [
+              "shared_entity",
+              "same_location",
+              "nearby_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "strong",
+            "basis": "shared=directory,entry,q"
+          },
+          {
+            "source_ref": "execution_agent.executions[15]",
+            "target_ref": "operation_agent.operations[9]",
+            "types": [
+              "shared_entity",
+              "nearby_line"
+            ],
+            "confidence": "strong",
+            "basis": "shared=q"
+          },
+          {
+            "source_ref": "value_agent.values[16]",
+            "target_ref": "operation_agent.operations[9]",
+            "types": [
+              "shared_entity",
+              "nearby_line"
+            ],
+            "confidence": "strong",
+            "basis": "shared=q"
+          },
+          {
+            "source_ref": "execution_agent.executions[14]",
+            "target_ref": "operation_agent.operations[9]",
+            "types": [
+              "shared_entity",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=directory"
+          },
+          {
+            "source_ref": "state_agent.states[3]",
+            "target_ref": "operation_agent.operations[9]",
+            "types": [
+              "shared_entity",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=directory"
+          },
+          {
+            "source_ref": "value_agent.values[13]",
+            "target_ref": "operation_agent.operations[9]",
+            "types": [
+              "shared_entity",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=directory"
+          },
+          {
+            "source_ref": "value_agent.values[14]",
+            "target_ref": "operation_agent.operations[9]",
+            "types": [
+              "shared_entity",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=directory"
+          },
+          {
+            "source_ref": "value_agent.values[17]",
+            "target_ref": "operation_agent.operations[9]",
+            "types": [
+              "shared_entity",
+              "nearby_entity_line"
+            ],
+            "confidence": "weak",
+            "basis": "shared=q"
+          },
+          {
+            "source_ref": "state_agent.states[6]",
+            "target_ref": "operation_agent.operations[9]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=q"
+          }
+        ],
+        "omitted_link_count": 0
+      },
+      {
+        "id": "cluster_11",
+        "anchor_ref": "operation_agent.operations[10]",
+        "operation_id": "o11",
+        "risk_tags": [
+          "semantic-operation"
+        ],
+        "link_confidence": "strong",
+        "anchor_operation": {
+          "ref": "operation_agent.operations[10]",
+          "agent_key": "operation_agent",
+          "id": "o11",
+          "location": "L624",
+          "entities": [
+            "number_bytes",
+            "components",
+            "tag_bytes",
+            "format"
+          ],
+          "claim": "Computes number_bytes as components multiplied by the format byte size.",
+          "evidence": "L624: number_bytes=(size_t) components*tag_bytes[format];"
+        },
+        "linked_facts": [
+          {
+            "ref": "value_agent.values[19]",
+            "agent_key": "value_agent",
+            "id": "v20",
+            "location": "L624",
+            "entities": [
+              "number_bytes",
+              "components",
+              "tag_bytes",
+              "format"
+            ],
+            "claim": "number_bytes = components * tag_bytes[format].",
+            "evidence": "L624: number_bytes=(size_t) components*tag_bytes[format];"
+          },
+          {
+            "ref": "execution_agent.executions[17]",
+            "agent_key": "execution_agent",
+            "id": "e18",
+            "location": "L622",
+            "entities": [
+              "components"
+            ],
+            "claim": "The entry loop breaks at L623 when components < 0.",
+            "evidence": "L622: if (components < 0)\nL623: break;  /* corrupt EXIF */"
+          },
+          {
+            "ref": "execution_agent.executions[16]",
+            "agent_key": "execution_agent",
+            "id": "e17",
+            "location": "L617",
+            "entities": [
+              "format",
+              "tag_bytes"
+            ],
+            "claim": "The entry loop breaks at L618 when format >= number of tag_bytes entries.",
+            "evidence": "L617: if (format >= (sizeof(tag_bytes)/sizeof(*tag_bytes)))\nL618: break;"
+          },
+          {
+            "ref": "value_agent.values[18]",
+            "agent_key": "value_agent",
+            "id": "v19",
+            "location": "L617",
+            "entities": [
+              "format",
+              "tag_bytes"
+            ],
+            "claim": "Reaching past L617 implies format < 13.",
+            "evidence": "L617: if (format >= (sizeof(tag_bytes)/sizeof(*tag_bytes)))"
+          }
+        ],
+        "links": [
+          {
+            "source_ref": "value_agent.values[19]",
+            "target_ref": "operation_agent.operations[10]",
+            "types": [
+              "shared_entity",
+              "same_location",
+              "nearby_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "strong",
+            "basis": "shared=components,format,number_bytes"
+          },
+          {
+            "source_ref": "execution_agent.executions[17]",
+            "target_ref": "operation_agent.operations[10]",
+            "types": [
+              "shared_entity",
+              "nearby_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "strong",
+            "basis": "shared=components"
+          },
+          {
+            "source_ref": "execution_agent.executions[16]",
+            "target_ref": "operation_agent.operations[10]",
+            "types": [
+              "shared_entity",
+              "nearby_entity_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=format,tag_bytes"
+          },
+          {
+            "source_ref": "value_agent.values[18]",
+            "target_ref": "operation_agent.operations[10]",
+            "types": [
+              "shared_entity",
+              "nearby_entity_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=format,tag_bytes"
+          }
+        ],
+        "omitted_link_count": 0
+      },
+      {
+        "id": "cluster_12",
+        "anchor_ref": "operation_agent.operations[11]",
+        "operation_id": "o12",
+        "risk_tags": [
+          "allocation"
+        ],
+        "link_confidence": "strong",
+        "anchor_operation": {
+          "ref": "operation_agent.operations[11]",
+          "agent_key": "operation_agent",
+          "id": "o12",
+          "location": "L663",
+          "entities": [
+            "value",
+            "AcquireQuantumMemory",
+            "number_bytes"
+          ],
+          "claim": "Allocates number_bytes+1 bytes for value via AcquireQuantumMemory.",
+          "evidence": "L663: value=(char *) AcquireQuantumMemory((size_t) number_bytes+1UL,"
+        },
+        "linked_facts": [
+          {
+            "ref": "state_agent.states[9]",
+            "agent_key": "state_agent",
+            "id": "s10",
+            "location": "L663",
+            "entities": [
+              "value"
+            ],
+            "claim": "value is assigned a newly allocated buffer of number_bytes+1 bytes.",
+            "evidence": "L663: value=(char *) AcquireQuantumMemory((size_t) number_bytes+1UL,"
+          },
+          {
+            "ref": "state_agent.states[10]",
+            "agent_key": "state_agent",
+            "id": "s11",
+            "location": "L665",
+            "entities": [
+              "value"
+            ],
+            "claim": "value is non-NULL, entering the initialization block.",
+            "evidence": "L665: if (value != (char *) NULL)"
+          },
+          {
+            "ref": "state_agent.states[8]",
+            "agent_key": "state_agent",
+            "id": "s9",
+            "location": "L654",
+            "entities": [
+              "value"
+            ],
+            "claim": "value is NULL before format-specific allocation.",
+            "evidence": "L654: value=(char *) NULL;"
+          },
+          {
+            "ref": "value_agent.values[19]",
+            "agent_key": "value_agent",
+            "id": "v20",
+            "location": "L624",
+            "entities": [
+              "number_bytes",
+              "components",
+              "tag_bytes",
+              "format"
+            ],
+            "claim": "number_bytes = components * tag_bytes[format].",
+            "evidence": "L624: number_bytes=(size_t) components*tag_bytes[format];"
+          },
+          {
+            "ref": "state_agent.states[11]",
+            "agent_key": "state_agent",
+            "id": "s12",
+            "location": "L737",
+            "entities": [
+              "value"
+            ],
+            "claim": "value is assigned a newly allocated buffer of number_bytes+1 bytes in the string case.",
+            "evidence": "L737: value=(char *) AcquireQuantumMemory((size_t) number_bytes+1UL,"
+          }
+        ],
+        "links": [
+          {
+            "source_ref": "state_agent.states[9]",
+            "target_ref": "operation_agent.operations[11]",
+            "types": [
+              "shared_entity",
+              "same_location",
+              "nearby_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "strong",
+            "basis": "shared=value"
+          },
+          {
+            "source_ref": "state_agent.states[10]",
+            "target_ref": "operation_agent.operations[11]",
+            "types": [
+              "shared_entity",
+              "nearby_line"
+            ],
+            "confidence": "strong",
+            "basis": "shared=value"
+          },
+          {
+            "source_ref": "state_agent.states[8]",
+            "target_ref": "operation_agent.operations[11]",
+            "types": [
+              "shared_entity",
+              "nearby_entity_line",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=value"
+          },
+          {
+            "source_ref": "value_agent.values[19]",
+            "target_ref": "operation_agent.operations[11]",
+            "types": [
+              "shared_entity",
+              "prior_shared_claim"
+            ],
+            "confidence": "weak",
+            "basis": "shared=number_bytes"
+          },
+          {
+            "source_ref": "state_agent.states[11]",
+            "target_ref": "operation_agent.operations[11]",
+            "types": [
+              "shared_entity"
+            ],
+            "confidence": "weak",
+            "basis": "shared=value"
+          }
+        ],
+        "omitted_link_count": 0
+      }
+    ],
+    "links": [
+      {
+        "source_ref": "value_agent.values[8]",
+        "target_ref": "operation_agent.operations[4]",
+        "types": [
+          "shared_entity",
+          "same_location",
+          "nearby_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "strong",
+        "score": 12,
+        "basis": "shared=length,profile"
+      },
+      {
+        "source_ref": "execution_agent.executions[8]",
+        "target_ref": "operation_agent.operations[4]",
+        "types": [
+          "shared_entity",
+          "nearby_line"
+        ],
+        "confidence": "strong",
+        "score": 8,
+        "basis": "shared=length"
+      },
+      {
+        "source_ref": "value_agent.values[9]",
+        "target_ref": "operation_agent.operations[4]",
+        "types": [
+          "shared_entity",
+          "nearby_line"
+        ],
+        "confidence": "strong",
+        "score": 8,
+        "basis": "shared=length"
+      },
+      {
+        "source_ref": "execution_agent.executions[9]",
+        "target_ref": "operation_agent.operations[4]",
+        "types": [
+          "shared_entity",
+          "nearby_entity_line"
+        ],
+        "confidence": "weak",
+        "score": 6,
+        "basis": "shared=length"
+      },
+      {
+        "source_ref": "execution_agent.executions[10]",
+        "target_ref": "operation_agent.operations[4]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=length"
+      },
+      {
+        "source_ref": "execution_agent.executions[13]",
+        "target_ref": "operation_agent.operations[4]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=length"
+      },
+      {
+        "source_ref": "execution_agent.executions[14]",
+        "target_ref": "operation_agent.operations[4]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=length"
+      },
+      {
+        "source_ref": "value_agent.values[10]",
+        "target_ref": "operation_agent.operations[4]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=length"
+      },
+      {
+        "source_ref": "value_agent.values[12]",
+        "target_ref": "operation_agent.operations[4]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=length"
+      },
+      {
+        "source_ref": "value_agent.values[14]",
+        "target_ref": "operation_agent.operations[4]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=length"
+      },
+      {
+        "source_ref": "state_agent.states[2]",
+        "target_ref": "operation_agent.operations[5]",
+        "types": [
+          "shared_entity",
+          "same_location",
+          "nearby_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "strong",
+        "score": 12,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "value_agent.values[8]",
+        "target_ref": "operation_agent.operations[5]",
+        "types": [
+          "shared_entity",
+          "nearby_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "strong",
+        "score": 9,
+        "basis": "shared=profile"
+      },
+      {
+        "source_ref": "execution_agent.executions[9]",
+        "target_ref": "operation_agent.operations[5]",
+        "types": [
+          "shared_entity",
+          "nearby_line"
+        ],
+        "confidence": "strong",
+        "score": 8,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "execution_agent.executions[12]",
+        "target_ref": "operation_agent.operations[5]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "execution_agent.executions[14]",
+        "target_ref": "operation_agent.operations[5]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "execution_agent.executions[15]",
+        "target_ref": "operation_agent.operations[5]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "state_agent.states[3]",
+        "target_ref": "operation_agent.operations[5]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "value_agent.values[11]",
+        "target_ref": "operation_agent.operations[5]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "value_agent.values[13]",
+        "target_ref": "operation_agent.operations[5]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "value_agent.values[14]",
+        "target_ref": "operation_agent.operations[5]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "value_agent.values[16]",
+        "target_ref": "operation_agent.operations[5]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "execution_agent.executions[9]",
+        "target_ref": "operation_agent.operations[6]",
+        "types": [
+          "shared_entity",
+          "same_location",
+          "execution_at_operation",
+          "nearby_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "strong",
+        "score": 18,
+        "basis": "shared=exif,length"
+      },
+      {
+        "source_ref": "state_agent.states[2]",
+        "target_ref": "operation_agent.operations[6]",
+        "types": [
+          "shared_entity",
+          "nearby_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "strong",
+        "score": 9,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "execution_agent.executions[8]",
+        "target_ref": "operation_agent.operations[6]",
+        "types": [
+          "shared_entity",
+          "nearby_entity_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 7,
+        "basis": "shared=length"
+      },
+      {
+        "source_ref": "value_agent.values[8]",
+        "target_ref": "operation_agent.operations[6]",
+        "types": [
+          "shared_entity",
+          "nearby_entity_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 7,
+        "basis": "shared=length"
+      },
+      {
+        "source_ref": "value_agent.values[9]",
+        "target_ref": "operation_agent.operations[6]",
+        "types": [
+          "shared_entity",
+          "nearby_entity_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 7,
+        "basis": "shared=length"
+      },
+      {
+        "source_ref": "execution_agent.executions[10]",
+        "target_ref": "operation_agent.operations[6]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=length"
+      },
+      {
+        "source_ref": "execution_agent.executions[12]",
+        "target_ref": "operation_agent.operations[6]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "execution_agent.executions[13]",
+        "target_ref": "operation_agent.operations[6]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=length"
+      },
+      {
+        "source_ref": "execution_agent.executions[14]",
+        "target_ref": "operation_agent.operations[6]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif,length"
+      },
+      {
+        "source_ref": "execution_agent.executions[15]",
+        "target_ref": "operation_agent.operations[6]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif,length"
+      },
+      {
+        "source_ref": "state_agent.states[3]",
+        "target_ref": "operation_agent.operations[6]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "value_agent.values[10]",
+        "target_ref": "operation_agent.operations[6]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=length"
+      },
+      {
+        "source_ref": "value_agent.values[11]",
+        "target_ref": "operation_agent.operations[6]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "value_agent.values[12]",
+        "target_ref": "operation_agent.operations[6]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=length"
+      },
+      {
+        "source_ref": "value_agent.values[13]",
+        "target_ref": "operation_agent.operations[6]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "value_agent.values[14]",
+        "target_ref": "operation_agent.operations[6]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif,length"
+      },
+      {
+        "source_ref": "value_agent.values[11]",
+        "target_ref": "operation_agent.operations[7]",
+        "types": [
+          "shared_entity",
+          "same_location",
+          "nearby_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "strong",
+        "score": 12,
+        "basis": "shared=exif,offset"
+      },
+      {
+        "source_ref": "execution_agent.executions[13]",
+        "target_ref": "operation_agent.operations[7]",
+        "types": [
+          "shared_entity",
+          "nearby_line"
+        ],
+        "confidence": "strong",
+        "score": 8,
+        "basis": "shared=offset"
+      },
+      {
+        "source_ref": "value_agent.values[12]",
+        "target_ref": "operation_agent.operations[7]",
+        "types": [
+          "shared_entity",
+          "nearby_line"
+        ],
+        "confidence": "strong",
+        "score": 8,
+        "basis": "shared=offset"
+      },
+      {
+        "source_ref": "execution_agent.executions[12]",
+        "target_ref": "operation_agent.operations[7]",
+        "types": [
+          "shared_entity",
+          "nearby_entity_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 7,
+        "basis": "shared=endian,exif"
+      },
+      {
+        "source_ref": "execution_agent.executions[9]",
+        "target_ref": "operation_agent.operations[7]",
+        "types": [
+          "shared_entity",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 6,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "state_agent.states[2]",
+        "target_ref": "operation_agent.operations[7]",
+        "types": [
+          "shared_entity",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 6,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "state_agent.states[3]",
+        "target_ref": "operation_agent.operations[7]",
+        "types": [
+          "shared_entity",
+          "nearby_entity_line"
+        ],
+        "confidence": "weak",
+        "score": 6,
+        "basis": "shared=exif,offset"
+      },
+      {
+        "source_ref": "value_agent.values[13]",
+        "target_ref": "operation_agent.operations[7]",
+        "types": [
+          "shared_entity",
+          "nearby_entity_line"
+        ],
+        "confidence": "weak",
+        "score": 6,
+        "basis": "shared=exif,offset"
+      },
+      {
+        "source_ref": "execution_agent.executions[14]",
+        "target_ref": "operation_agent.operations[7]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "execution_agent.executions[15]",
+        "target_ref": "operation_agent.operations[7]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "state_agent.states[7]",
+        "target_ref": "operation_agent.operations[7]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "value_agent.values[14]",
+        "target_ref": "operation_agent.operations[7]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "value_agent.values[16]",
+        "target_ref": "operation_agent.operations[7]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=exif"
+      },
+      {
+        "source_ref": "execution_agent.executions[14]",
+        "target_ref": "operation_agent.operations[8]",
+        "types": [
+          "shared_entity",
+          "nearby_entity_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 7,
+        "basis": "shared=directory"
+      },
+      {
+        "source_ref": "value_agent.values[14]",
+        "target_ref": "operation_agent.operations[8]",
+        "types": [
+          "shared_entity",
+          "nearby_entity_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 7,
+        "basis": "shared=directory"
+      },
+      {
+        "source_ref": "execution_agent.executions[12]",
+        "target_ref": "operation_agent.operations[8]",
+        "types": [
+          "shared_entity",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 6,
+        "basis": "shared=endian"
+      },
+      {
+        "source_ref": "state_agent.states[3]",
+        "target_ref": "operation_agent.operations[8]",
+        "types": [
+          "shared_entity",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 6,
+        "basis": "shared=directory"
+      },
+      {
+        "source_ref": "value_agent.values[13]",
+        "target_ref": "operation_agent.operations[8]",
+        "types": [
+          "shared_entity",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 6,
+        "basis": "shared=directory"
+      },
+      {
+        "source_ref": "state_agent.states[5]",
+        "target_ref": "operation_agent.operations[8]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=directory"
+      },
+      {
+        "source_ref": "value_agent.values[15]",
+        "target_ref": "operation_agent.operations[8]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=directory"
+      },
+      {
+        "source_ref": "state_agent.states[5]",
+        "target_ref": "operation_agent.operations[9]",
+        "types": [
+          "shared_entity",
+          "same_location",
+          "nearby_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "strong",
+        "score": 12,
+        "basis": "shared=directory,entry,q"
+      },
+      {
+        "source_ref": "value_agent.values[15]",
+        "target_ref": "operation_agent.operations[9]",
+        "types": [
+          "shared_entity",
+          "same_location",
+          "nearby_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "strong",
+        "score": 12,
+        "basis": "shared=directory,entry,q"
+      },
+      {
+        "source_ref": "execution_agent.executions[15]",
+        "target_ref": "operation_agent.operations[9]",
+        "types": [
+          "shared_entity",
+          "nearby_line"
+        ],
+        "confidence": "strong",
+        "score": 8,
+        "basis": "shared=q"
+      },
+      {
+        "source_ref": "value_agent.values[16]",
+        "target_ref": "operation_agent.operations[9]",
+        "types": [
+          "shared_entity",
+          "nearby_line"
+        ],
+        "confidence": "strong",
+        "score": 8,
+        "basis": "shared=q"
+      },
+      {
+        "source_ref": "execution_agent.executions[14]",
+        "target_ref": "operation_agent.operations[9]",
+        "types": [
+          "shared_entity",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 6,
+        "basis": "shared=directory"
+      },
+      {
+        "source_ref": "state_agent.states[3]",
+        "target_ref": "operation_agent.operations[9]",
+        "types": [
+          "shared_entity",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 6,
+        "basis": "shared=directory"
+      },
+      {
+        "source_ref": "value_agent.values[13]",
+        "target_ref": "operation_agent.operations[9]",
+        "types": [
+          "shared_entity",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 6,
+        "basis": "shared=directory"
+      },
+      {
+        "source_ref": "value_agent.values[14]",
+        "target_ref": "operation_agent.operations[9]",
+        "types": [
+          "shared_entity",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 6,
+        "basis": "shared=directory"
+      },
+      {
+        "source_ref": "value_agent.values[17]",
+        "target_ref": "operation_agent.operations[9]",
+        "types": [
+          "shared_entity",
+          "nearby_entity_line"
+        ],
+        "confidence": "weak",
+        "score": 6,
+        "basis": "shared=q"
+      },
+      {
+        "source_ref": "state_agent.states[6]",
+        "target_ref": "operation_agent.operations[9]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=q"
+      },
+      {
+        "source_ref": "value_agent.values[19]",
+        "target_ref": "operation_agent.operations[10]",
+        "types": [
+          "shared_entity",
+          "same_location",
+          "nearby_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "strong",
+        "score": 12,
+        "basis": "shared=components,format,number_bytes"
+      },
+      {
+        "source_ref": "execution_agent.executions[17]",
+        "target_ref": "operation_agent.operations[10]",
+        "types": [
+          "shared_entity",
+          "nearby_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "strong",
+        "score": 9,
+        "basis": "shared=components"
+      },
+      {
+        "source_ref": "execution_agent.executions[16]",
+        "target_ref": "operation_agent.operations[10]",
+        "types": [
+          "shared_entity",
+          "nearby_entity_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 7,
+        "basis": "shared=format,tag_bytes"
+      },
+      {
+        "source_ref": "value_agent.values[18]",
+        "target_ref": "operation_agent.operations[10]",
+        "types": [
+          "shared_entity",
+          "nearby_entity_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 7,
+        "basis": "shared=format,tag_bytes"
+      },
+      {
+        "source_ref": "state_agent.states[9]",
+        "target_ref": "operation_agent.operations[11]",
+        "types": [
+          "shared_entity",
+          "same_location",
+          "nearby_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "strong",
+        "score": 12,
+        "basis": "shared=value"
+      },
+      {
+        "source_ref": "state_agent.states[10]",
+        "target_ref": "operation_agent.operations[11]",
+        "types": [
+          "shared_entity",
+          "nearby_line"
+        ],
+        "confidence": "strong",
+        "score": 8,
+        "basis": "shared=value"
+      },
+      {
+        "source_ref": "state_agent.states[8]",
+        "target_ref": "operation_agent.operations[11]",
+        "types": [
+          "shared_entity",
+          "nearby_entity_line",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 7,
+        "basis": "shared=value"
+      },
+      {
+        "source_ref": "value_agent.values[19]",
+        "target_ref": "operation_agent.operations[11]",
+        "types": [
+          "shared_entity",
+          "prior_shared_claim"
+        ],
+        "confidence": "weak",
+        "score": 6,
+        "basis": "shared=number_bytes"
+      },
+      {
+        "source_ref": "state_agent.states[11]",
+        "target_ref": "operation_agent.operations[11]",
+        "types": [
+          "shared_entity"
+        ],
+        "confidence": "weak",
+        "score": 5,
+        "basis": "shared=value"
+      }
+    ],
+    "unclustered_refs": [
+      "state_agent.states[0]",
+      "state_agent.states[1]",
+      "state_agent.states[4]",
+      "state_agent.states[12]",
+      "state_agent.states[13]",
+      "state_agent.states[14]",
+      "state_agent.states[15]",
+      "value_agent.values[0]",
+      "value_agent.values[1]",
+      "value_agent.values[2]",
+      "value_agent.values[3]",
+      "value_agent.values[4]",
+      "value_agent.values[5]",
+      "value_agent.values[6]",
+      "value_agent.values[7]",
+      "execution_agent.executions[0]",
+      "execution_agent.executions[1]",
+      "execution_agent.executions[2]",
+      "execution_agent.executions[3]",
+      "execution_agent.executions[4]",
+      "execution_agent.executions[5]",
+      "execution_agent.executions[6]",
+      "execution_agent.executions[7]",
+      "execution_agent.executions[11]",
+      "execution_agent.executions[18]",
+      "execution_agent.executions[19]"
+    ],
+    "summary": {
+      "operation_count": 12,
+      "fact_count": 68,
+      "cluster_count": 12,
+      "link_count": 76,
+      "unclustered_fact_count": 26,
+      "strong_cluster_count": 7,
+      "weak_cluster_count": 1,
+      "unlinked_operation_count": 4
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "mode": "deterministic_stage_1_5_linker",
+    "notes": [
+      "No LLM call is used in Stage 1.5.",
+      "Every Stage 1 operation remains represented even when no support fact links strongly."
+    ]
+  },
+  "token_usage": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0
+  }
+}

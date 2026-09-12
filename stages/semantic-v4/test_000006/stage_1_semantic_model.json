@@ -1,0 +1,321 @@
+{
+  "sample_id": "test_000006",
+  "schema_version": "semantic-claims-v4.12",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L7",
+            "L8",
+            "L9"
+          ],
+          "expression": "init_op_sig_it->second.outputs().find(kSavedModelInitOpSignatureKey)->second.name()",
+          "claim": "dereference the iterator returned by find on the outputs map"
+        },
+        {
+          "locations": [
+            "L28"
+          ],
+          "expression": "init_op_it->second.node_list().value(0)",
+          "claim": "indexed access to element 0 of the node_list value repeated field"
+        }
+      ],
+      "states": [],
+      "values": [],
+      "executions": [
+        {
+          "entities": [
+            "init_op_sig_it",
+            "sig_def_map"
+          ],
+          "claim": "If the signature key is found, execution returns immediately after dereferencing init_op_sig_it->second.outputs().find(kSavedModelInitOpSignatureKey)->second.name(), so the find result is assumed valid and the remaining collection-based path is not executed.",
+          "evidence": "L6: if (init_op_sig_it != sig_def_map.end()) {\nL7: *init_op_name = init_op_sig_it->second.outputs()\nL8: .find(kSavedModelInitOpSignatureKey)\nL9: ->second.name();\nL10: return Status::OK();"
+        },
+        {
+          "entities": [
+            "init_op_it",
+            "collection_def_map",
+            "init_op_collection_key"
+          ],
+          "claim": "Continuing past the signature lookup implies init_op_sig_it == sig_def_map.end(); then init_op_collection_key is kSavedModelMainOpKey if present in collection_def_map, otherwise kSavedModelLegacyInitOpKey, and init_op_it is the lookup of that key.",
+          "evidence": "L15: if (collection_def_map.find(kSavedModelMainOpKey) !=\nL16: collection_def_map.end()) {\nL17: init_op_collection_key = kSavedModelMainOpKey;\nL19: init_op_collection_key = kSavedModelLegacyInitOpKey;\nL22: const auto init_op_it = collection_def_map.find(init_op_collection_key);"
+        },
+        {
+          "entities": [
+            "init_op_it",
+            "collection_def_map"
+          ],
+          "claim": "If init_op_it is found, execution requires init_op_it->second.node_list().value_size() == 1 before accessing value(0); otherwise it returns FailedPrecondition.",
+          "evidence": "L23: if (init_op_it != collection_def_map.end()) {\nL24: if (init_op_it->second.node_list().value_size() != 1) {\nL25: return errors::FailedPrecondition(\nL28: *init_op_name = init_op_it->second.node_list().value(0);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2068,
+              "output_tokens": 99,
+              "total_tokens": 2167
+            },
+            "max_tokens": 8192
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2068,
+          "output_tokens": 99,
+          "total_tokens": 2167
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L7",
+                "matched": true,
+                "expression": "init_op_sig_it->second.outputs().find(kSavedModelInitOpSignatureKey)->second.name()"
+              },
+              {
+                "location": "L8",
+                "matched": true,
+                "expression": "init_op_sig_it->second.outputs().find(kSavedModelInitOpSignatureKey)->second.name()"
+              },
+              {
+                "location": "L9",
+                "matched": true,
+                "expression": "init_op_sig_it->second.outputs().find(kSavedModelInitOpSignatureKey)->second.name()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L28",
+                "matched": true,
+                "expression": "init_op_it->second.node_list().value(0)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 965,
+              "output_tokens": 12,
+              "total_tokens": 977
+            },
+            "max_tokens": 8192
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 965,
+          "output_tokens": 12,
+          "total_tokens": 977
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1033,
+              "output_tokens": 12,
+              "total_tokens": 1045
+            },
+            "max_tokens": 8192
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1033,
+          "output_tokens": 12,
+          "total_tokens": 1045
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 833,
+              "output_tokens": 448,
+              "total_tokens": 1281
+            },
+            "max_tokens": 8192
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 833,
+          "output_tokens": 448,
+          "total_tokens": 1281
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "if (init_op_sig_it != sig_def_map.end()) {",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 7,
+                "fragment": "*init_op_name = init_op_sig_it->second.outputs()",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": ".find(kSavedModelInitOpSignatureKey)",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "->second.name();",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "return Status::OK();",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "if (collection_def_map.find(kSavedModelMainOpKey) !=",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "collection_def_map.end()) {",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "init_op_collection_key = kSavedModelMainOpKey;",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "init_op_collection_key = kSavedModelLegacyInitOpKey;",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "const auto init_op_it = collection_def_map.find(init_op_collection_key);",
+                "matched_lines": [
+                  22
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "if (init_op_it != collection_def_map.end()) {",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "if (init_op_it->second.node_list().value_size() != 1) {",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "return errors::FailedPrecondition(",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "*init_op_name = init_op_it->second.node_list().value(0);",
+                "matched_lines": [
+                  28
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 2,
+      "states": 0,
+      "values": 0,
+      "executions": 3
+    },
+    "schema_version": "semantic-claims-v4.12",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4899,
+    "output_tokens": 571,
+    "total_tokens": 5470
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.12",
+    "artifact_version": 8,
+    "stage": "semantic_model",
+    "sample_id": "test_000006",
+    "split": "test",
+    "source_hash": "54b8006b1a2042b958cf8b4de7ccef793447991b5da70b3ca2f54f284e825c6c",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "34127dd44d6640e216b41abd4687553aadce8136ca7fcc4cc94637fe70450bb0"
+  }
+}

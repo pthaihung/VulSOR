@@ -10,6 +10,25 @@ from .QualityGate import build_retry_user_prompt, validate_output_schema
 from .SimpleYaml import load_yaml
 
 
+class AgentRunError(ValueError):
+    """Validated agent failure carrying usage so sample-level failure keeps accounting."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        agent_key: str,
+        errors: list[str],
+        attempts: list[dict[str, Any]],
+        token_usage: dict[str, int],
+    ) -> None:
+        super().__init__(message)
+        self.agent_key = agent_key
+        self.errors = list(errors)
+        self.attempts = list(attempts)
+        self.token_usage = dict(token_usage)
+
+
 class PromptAgent:
     def __init__(self, agent_key: str, config: dict[str, Any], project_root: Path, llm_client: Any) -> None:
         self.agent_key = agent_key
@@ -47,6 +66,10 @@ class PromptAgent:
         attempts = []
         token_usage = empty_token_usage()
         max_retries = int(self.config.get("quality_gates", {}).get("max_retries", 2))
+        # Operation extraction is foundational. Give it at least one correction attempt
+        # even when an older agents.yml configured max_retries=0.
+        if self.agent_key == "operation_agent":
+            max_retries = max(max_retries, 1)
         progress_context = progress_context or {}
         previous_errors: list[str] = []
         for attempt_index in range(max_retries + 1):
@@ -81,6 +104,7 @@ class PromptAgent:
             try:
                 content = _extract_message_content(raw)
                 parsed = _parse_json_content(content)
+                parsed = _normalize_common_model_shapes(parsed)
                 errors = [] if _is_dry_run(parsed) else validate_output_schema(parsed, self.prompt.get("output_schema", {}))
                 for validator in extra_validators or []:
                     errors.extend([] if _is_dry_run(parsed) else validator(parsed))
@@ -116,7 +140,13 @@ class PromptAgent:
                 break
 
             if attempt_index == max_retries:
-                raise ValueError(f"{self.name} output failed validation: {'; '.join(errors)}")
+                raise AgentRunError(
+                    f"{self.name} output failed validation: {'; '.join(errors)}",
+                    agent_key=self.agent_key,
+                    errors=errors,
+                    attempts=attempts,
+                    token_usage=token_usage,
+                )
 
             previous_errors = errors
             messages = []
@@ -196,15 +226,162 @@ class PromptAgent:
         return configured
 
 
+
+def _normalize_common_model_shapes(value: Any) -> Any:
+    """Repair only narrow, schema-preserving JSON-shape slips.
+
+    The persisted VulSOR contract stays strict and compact.  This normalizer only
+    removes provider formatting wrappers that carry no semantic information:
+
+    * Operation.locations: [{"line":"L12"}] -> ["L12"]
+    * semantic evidence: ["L12: x", "L13: y"] -> "L12: x\\nL13: y"
+    * evidence items shaped as {"line":"L12","text":"x"} are converted to the
+      same canonical string form.
+
+    Anything more ambiguous is left untouched so the normal validators reject it.
+    """
+    # Stage 3 occasionally wraps the requested raw array in a single `assessments`
+    # property. Unwrap only that exact one-field shape; this is representation-only.
+    if isinstance(value, dict) and set(value) == {"assessments"} and isinstance(value.get("assessments"), list):
+        value = value["assessments"]
+    if isinstance(value, list):
+        if all(isinstance(item, str) for item in value):
+            return [item.strip().lower() for item in value]
+        return value
+    if not isinstance(value, dict):
+        return value
+
+    operations = value.get("operations")
+    if isinstance(operations, list):
+        for operation in operations:
+            if not isinstance(operation, dict):
+                continue
+            locations = operation.get("locations")
+            if not isinstance(locations, list):
+                continue
+            normalized: list[Any] = []
+            changed = False
+            for location in locations:
+                replacement = None
+                if isinstance(location, int) and not isinstance(location, bool) and location > 0:
+                    replacement = f"L{location}"
+                elif isinstance(location, dict) and len(location) == 1:
+                    key, wrapped = next(iter(location.items()))
+                    if key in {"line", "location", "value"}:
+                        if isinstance(wrapped, int) and not isinstance(wrapped, bool) and wrapped > 0:
+                            replacement = f"L{wrapped}"
+                        elif isinstance(wrapped, str):
+                            candidate = wrapped.strip()
+                            if re.fullmatch(r"L[1-9][0-9]*", candidate):
+                                replacement = candidate
+                normalized.append(replacement if replacement is not None else location)
+                changed = changed or replacement is not None
+            # Duplicate locations are a presentation-only defect. Preserve the first
+            # occurrence and source order rather than spending a retry.
+            deduped: list[Any] = []
+            seen: set[str] = set()
+            for location in normalized:
+                key = repr(location)
+                if key in seen:
+                    changed = True
+                    continue
+                seen.add(key)
+                deduped.append(location)
+            if changed:
+                operation["locations"] = deduped
+
+    # Duplicate semantic entities do not change the meaning of a fact. Deduplicate
+    # them deterministically instead of rejecting the whole agent output.
+    for collection_name in ("states", "values", "executions"):
+        records = value.get(collection_name)
+        if not isinstance(records, list):
+            continue
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+            entities = record.get("entities")
+            if isinstance(entities, list):
+                deduped_entities: list[Any] = []
+                seen_entities: set[str] = set()
+                for entity in entities:
+                    key = entity if isinstance(entity, str) else repr(entity)
+                    if key in seen_entities:
+                        continue
+                    seen_entities.add(key)
+                    deduped_entities.append(entity)
+                record["entities"] = deduped_entities
+
+    # Some JSON-capable providers still return evidence as an array even though
+    # the requested schema is a string.  Joining source citations is lossless and
+    # avoids an expensive LLM retry for a purely representational mistake.
+    for collection_name in ("states", "values", "executions"):
+        records = value.get(collection_name)
+        if not isinstance(records, list):
+            continue
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+            evidence = record.get("evidence")
+            if isinstance(evidence, dict):
+                evidence = [evidence]
+            if not isinstance(evidence, list):
+                continue
+            normalized_lines: list[str] = []
+            convertible = True
+            for item in evidence:
+                if isinstance(item, str) and item.strip():
+                    normalized_lines.extend(
+                        line.strip() for line in item.splitlines() if line.strip()
+                    )
+                    continue
+                if isinstance(item, dict):
+                    line_value = item.get("line", item.get("location"))
+                    text_value = item.get("text", item.get("source", item.get("evidence")))
+                    normalized_line = None
+                    if isinstance(line_value, int) and not isinstance(line_value, bool) and line_value > 0:
+                        normalized_line = f"L{line_value}"
+                    elif isinstance(line_value, str) and re.fullmatch(
+                        r"L[1-9][0-9]*", line_value.strip()
+                    ):
+                        normalized_line = line_value.strip()
+                    if normalized_line is not None and isinstance(text_value, str) and text_value.strip():
+                        normalized_lines.append(
+                            f"{normalized_line}: {text_value.strip()}"
+                        )
+                        continue
+                convertible = False
+                break
+            if convertible and normalized_lines:
+                record["evidence"] = "\n".join(normalized_lines)
+    return value
+
 def _parse_json_content(content: str) -> Any:
     try:
         return json.loads(content)
-    except json.JSONDecodeError:
-        start = content.find("{")
-        end = content.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            return json.loads(content[start : end + 1])
-        raise
+    except json.JSONDecodeError as original_error:
+        # A provider can append a second JSON value or short prose despite JSON mode.
+        # If the prefix is a complete valid JSON value, keep that value rather than
+        # retrying the LLM for a non-semantic trailing-format defect.
+        stripped = content.lstrip()
+        try:
+            parsed, end = json.JSONDecoder().raw_decode(stripped)
+            if end > 0:
+                return parsed
+        except json.JSONDecodeError:
+            pass
+        candidates = []
+        object_start, object_end = content.find("{"), content.rfind("}")
+        array_start, array_end = content.find("["), content.rfind("]")
+        if object_start != -1 and object_end > object_start:
+            candidates.append((object_start, object_end + 1))
+        if array_start != -1 and array_end > array_start:
+            candidates.append((array_start, array_end + 1))
+        for start, end in sorted(candidates, key=lambda item: item[0]):
+            try:
+                return json.loads(content[start:end])
+            except json.JSONDecodeError:
+                pass
+        raise original_error
 
 
 def _json_schema_name(agent_key: str) -> str:
@@ -338,12 +515,12 @@ def _should_retry_without_reasoning(errors: list[str]) -> bool:
 
 
 def _retry_token_multiplier(errors: list[str]) -> int:
-    return 1
+    return 2 if _is_empty_length_error(errors) else 1
 
 
 def _is_empty_length_error(errors: list[str]) -> bool:
     return any(
-        "LLM response message content is empty" in error
+        ("LLM response message content is empty" in error or "LLM response is empty" in error)
         and "finish_reason=length" in error
         for error in errors
     )

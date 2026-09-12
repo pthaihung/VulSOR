@@ -5,10 +5,472 @@ import re
 from typing import Any
 
 from .tools.LineLocatorTool import LineLocatorTool
+from .SemanticContract import (
+    COLLECTIONS,
+    evidence_fragments,
+    parse_location,
+    validate_claim_output,
+    validate_operation_references,
+)
 
 
 class QualityGateError(ValueError):
     pass
+
+
+def repair_semantic_claim_output(
+    output: Any, agent_key: str, source_code: str
+) -> list[dict[str, Any]]:
+    """Deterministically recover item-level representation/grounding defects.
+
+    This function never invents semantic claims. It may only canonicalize source
+    anchors/evidence to exact source text or remove an individual ungroundable item.
+    The goal is to prevent one malformed item from turning an otherwise useful
+    semantic view into a whole-sample AnalysisFailure.
+    """
+    events: list[dict[str, Any]] = []
+    if not isinstance(output, dict) or agent_key not in COLLECTIONS:
+        return events
+    collection_name = COLLECTIONS[agent_key]
+    records = output.get(collection_name)
+    if not isinstance(records, list):
+        return events
+    source_lines = source_code.splitlines()
+
+    repaired_records: list[Any] = []
+    for index, item in enumerate(records):
+        if not isinstance(item, dict):
+            repaired_records.append(item)
+            continue
+
+        if agent_key == "operation_agent":
+            expression = item.get("expression")
+            locations = item.get("locations")
+            if not isinstance(expression, str) or not expression.strip() or not isinstance(locations, list):
+                repaired_records.append(item)
+                continue
+            repaired = _repair_operation_locations(expression, locations, source_lines)
+            if repaired is None:
+                events.append({"action": "drop_ungrounded_item", "index": index, "expression": expression})
+                continue
+            if repaired != locations:
+                item["locations"] = repaired
+                events.append({"action": "repair_operation_locations", "index": index, "locations": repaired})
+            repaired_records.append(item)
+            continue
+
+        evidence = item.get("evidence")
+        fragments = evidence_fragments(evidence)
+        if not fragments:
+            repaired_records.append(item)
+            continue
+        canonical_lines: list[str] = []
+        failed = False
+        used_lines: set[int] = set()
+        for claimed_line, fragment in fragments:
+            resolved = _resolve_evidence_fragment(claimed_line, fragment, source_lines, used_lines)
+            if resolved is None:
+                failed = True
+                break
+            used_lines.add(resolved)
+            canonical_lines.append(f"L{resolved}: {source_lines[resolved - 1].strip()}")
+        if failed:
+            events.append({"action": "drop_ungrounded_item", "index": index, "collection": collection_name})
+            continue
+        canonical = "\n".join(canonical_lines)
+        if canonical != evidence:
+            item["evidence"] = canonical
+            events.append({"action": "repair_evidence", "index": index, "collection": collection_name})
+        repaired_records.append(item)
+
+    output[collection_name] = repaired_records
+    return events
+
+
+def _resolve_evidence_fragment(
+    claimed_line: int | None,
+    fragment: str,
+    source_lines: list[str],
+    used_lines: set[int] | None = None,
+) -> int | None:
+    used_lines = used_lines or set()
+    if claimed_line is not None and 1 <= claimed_line <= len(source_lines):
+        if _evidence_line_matches_source(fragment, source_lines[claimed_line - 1]):
+            return claimed_line
+    matches = [
+        i + 1 for i, line in enumerate(source_lines)
+        if _evidence_line_matches_source(fragment, line)
+    ]
+    if not matches:
+        return None
+    if len(matches) == 1:
+        return matches[0]
+    if claimed_line is not None:
+        ranked = sorted((abs(line - claimed_line), line) for line in matches if line not in used_lines)
+        if ranked:
+            # A nearby exact physical-source match is deterministic enough for a
+            # line-anchor correction. For distant ambiguous matches, refuse repair.
+            best_distance, best_line = ranked[0]
+            tied = [line for distance, line in ranked if distance == best_distance]
+            if len(tied) == 1 and best_distance <= 6:
+                return best_line
+    return None
+
+
+def _operation_anchor_token(expression: str) -> str | None:
+    call = re.match(r"\s*([A-Za-z_]\w*)\s*\(", expression)
+    if call:
+        return call.group(1)
+    ids = re.findall(r"[A-Za-z_]\w*", expression)
+    return ids[0] if ids else None
+
+
+def _operation_source_candidates(expression: str, source_lines: list[str]) -> list[int]:
+    token = _operation_anchor_token(expression)
+    is_call = re.match(r"\s*[A-Za-z_]\w*\s*\(", expression) is not None
+    compact_expr = re.sub(r"\s+", "", expression).lower()
+    candidates: list[int] = []
+    for line_no, line in enumerate(source_lines, start=1):
+        compact_line = re.sub(r"\s+", "", line).lower()
+        # For ordinary access expressions, source-wide recovery must anchor on the
+        # physical line containing the expression itself.  This avoids adjacent
+        # lines inheriting a match merely because their logical-statement window
+        # contains the true occurrence.
+        if "..." not in expression and not is_call:
+            if compact_expr in compact_line:
+                candidates.append(line_no)
+            continue
+        if token and token not in line:
+            continue
+        window = _operation_statement_window(source_lines, line_no)
+        if _operation_expression_matches_source(expression, line, window):
+            candidates.append(line_no)
+    return sorted(set(candidates))
+
+
+def _repair_operation_locations(
+    expression: str, locations: list[Any], source_lines: list[str]
+) -> list[str] | None:
+    claimed: list[int] = []
+    all_local = True
+    for location in locations:
+        line_no = parse_location(location)
+        if line_no is None or not (1 <= line_no <= len(source_lines)):
+            all_local = False
+            continue
+        claimed.append(line_no)
+        window = _operation_statement_window(source_lines, line_no)
+        if not _operation_expression_matches_source(expression, source_lines[line_no - 1], window):
+            all_local = False
+    if locations and all_local and len(claimed) == len(locations):
+        return [f"L{line}" for line in sorted(dict.fromkeys(claimed))]
+
+    candidates = _operation_source_candidates(expression, source_lines)
+    if not candidates:
+        return None
+    if not claimed:
+        # Without a usable line anchor, only a unique source occurrence can be
+        # repaired safely. Multiple matches may belong to different path/state
+        # contexts and must not be merged merely to satisfy grounding.
+        return [f"L{candidates[0]}"] if len(candidates) == 1 else None
+
+    assigned: list[int] = []
+    remaining = set(candidates)
+    for target in claimed:
+        if not remaining:
+            break
+        best = min(remaining, key=lambda line: (abs(line - target), line))
+        # Local line drift is common; a unique whole-function occurrence is also
+        # safe to canonicalize even when the reported line is far away.
+        if abs(best - target) <= 12 or len(candidates) == 1:
+            assigned.append(best)
+            remaining.remove(best)
+        else:
+            return None
+    if len(assigned) != len(claimed):
+        return None
+    return [f"L{line}" for line in sorted(dict.fromkeys(assigned))]
+
+
+def validate_semantic_claim_output(output: dict[str, Any], agent_key: str, max_line: int) -> list[str]:
+    """Validate the operation or operation-linked semantic fact contract."""
+    return validate_claim_output(output, agent_key, max_line)
+
+
+def validate_semantic_operation_references(semantic_model: dict[str, Any]) -> list[str]:
+    """Validate explicit links after the four semantic outputs are assembled."""
+    return validate_operation_references(semantic_model)
+
+
+def validate_semantic_claim_grounding(
+    output: Any, agent_key: str, source_code: str
+) -> tuple[list[str], dict[str, dict[str, Any]]]:
+    """Validate compact v4 source grounding without adding fields to model output.
+
+    Validation must never crash on malformed model JSON. Structural mistakes are
+    reported by the schema/contract validator; grounding simply returns a useful
+    error for an invalid top-level/collection shape.
+    """
+    errors: list[str] = []
+    metadata: dict[str, dict[str, Any]] = {}
+    if not isinstance(output, dict):
+        return ["semantic grounding output must be an object"], metadata
+    collection_name = COLLECTIONS[agent_key]
+    collection = output.get(collection_name, [])
+    if not isinstance(collection, list):
+        return [f"$.{collection_name} must be an array for grounding"], metadata
+    source_lines = source_code.splitlines()
+
+    for index, claim in enumerate(collection):
+        if not isinstance(claim, dict):
+            continue
+        ref = f"{agent_key}.{collection_name}[{index}]"
+
+        if agent_key == "operation_agent":
+            expression = claim.get("expression")
+            locations = claim.get("locations", [])
+            matches: list[dict[str, Any]] = []
+            if isinstance(expression, str) and expression.strip():
+                for location in locations if isinstance(locations, list) else []:
+                    line_no = parse_location(location)
+                    matched = False
+                    if line_no is not None and 1 <= line_no <= len(source_lines):
+                        # A selected Operation may be nested inside a multiline source
+                        # statement.  For example, the claimed location can be the first
+                        # physical line of EXIFMultipleValues(...), while the nested
+                        # ReadPropertyUnsignedLong(...) expression appears on the next line.
+                        # Ground against the logical statement containing the claimed line
+                        # rather than requiring the representative expression on that exact
+                        # physical line.
+                        source_statement = _operation_statement_window(
+                            source_lines, line_no
+                        )
+                        matched = _operation_expression_matches_source(
+                            expression, source_lines[line_no - 1], source_statement
+                        )
+                    matches.append(
+                        {
+                            "location": location,
+                            "matched": matched,
+                            "expression": expression,
+                        }
+                    )
+                    if not matched:
+                        errors.append(
+                            f"{ref} expression has no source match near {location}: {expression!r}"
+                        )
+            metadata[ref] = {
+                "expression_matches": matches,
+                "status": "pass" if matches and all(item["matched"] for item in matches) else "retry",
+            }
+            continue
+
+        fragments = evidence_fragments(claim.get("evidence", ""))
+        matches = []
+        for evidence_line, fragment in fragments:
+            if not fragment:
+                continue
+            matched_lines: list[int] = []
+            if evidence_line is not None and 1 <= evidence_line <= len(source_lines):
+                source_line = source_lines[evidence_line - 1]
+                if _evidence_line_matches_source(fragment, source_line):
+                    matched_lines = [evidence_line]
+            # A model can quote the exact physical source text but attach a nearby
+            # line number, especially around `else`/brace boundaries or multiline
+            # statements.  If the anchored line does not match, accept a fallback
+            # only when the canonical fragment has exactly one source-line match in
+            # the whole function. This preserves grounding without allowing a free
+            # nearby-text substitute.
+            if not matched_lines:
+                unique_matches = [
+                    i + 1 for i, candidate in enumerate(source_lines)
+                    if _evidence_line_matches_source(fragment, candidate)
+                ]
+                if len(unique_matches) == 1:
+                    matched_lines = unique_matches
+            matches.append(
+                {
+                    "evidence_line": evidence_line,
+                    "fragment": fragment,
+                    "matched_lines": matched_lines,
+                }
+            )
+            if not matched_lines:
+                errors.append(
+                    f"{ref} evidence fragment has no grounded source-line match: {fragment!r}"
+                )
+        metadata[ref] = {
+            "evidence_matches": matches,
+            "status": "pass" if matches and all(item["matched_lines"] for item in matches) else "retry",
+        }
+    return errors, metadata
+
+
+
+def _operation_statement_window(
+    source_lines: list[str], line_no: int, max_span: int = 12
+) -> str:
+    """Return a compact logical-statement window containing ``line_no``.
+
+    The goal is source grounding, not parsing C. We walk only a small bounded
+    region and stop at obvious statement/block boundaries. This is enough for
+    multiline calls/macros while preventing an expression from being grounded to
+    an unrelated nearby statement.
+    """
+    if line_no < 1 or line_no > len(source_lines):
+        return ""
+
+    index = line_no - 1
+    start = index
+    backward = 0
+    while start > 0 and backward < max_span // 2:
+        previous = source_lines[start - 1].strip()
+        if (
+            previous.endswith(";")
+            or previous.endswith("{")
+            or previous.endswith("}")
+            or previous.startswith("case ")
+            or previous.startswith("default:")
+        ):
+            break
+        start -= 1
+        backward += 1
+
+    end = index
+    forward = 0
+    while end + 1 < len(source_lines) and forward < max_span:
+        current = source_lines[end].strip()
+        if ";" in current:
+            break
+        if end > index and (current.endswith("{") or current.endswith("}")):
+            break
+        end += 1
+        forward += 1
+        if ";" in source_lines[end]:
+            break
+
+    return " ".join(source_lines[start : end + 1])
+
+
+def _operation_expression_matches_source(
+    expression: str, source_line: str, source_window: str
+) -> bool:
+    """Ground a concise/representative Operation expression to its source location.
+
+    ``expression`` may abbreviate irrelevant call arguments with ``...`` and may
+    represent a multiline operation.  The numbered location must still point at a
+    physical line that participates in the operation; nearby text is used only to
+    complete that multiline construct, never as a free substitute for the anchored
+    line.
+    """
+    expr = expression.strip()
+    line = source_line.strip()
+    window = source_window.strip()
+    if not expr or not line or not window:
+        return False
+
+    compact_expr = re.sub(r"\s+", "", expr).lower()
+    compact_line = re.sub(r"\s+", "", line).lower()
+    compact_window = re.sub(r"\s+", "", window).lower()
+
+    if compact_expr in compact_line:
+        return True
+
+    # Multiline/nested operation: the claimed physical line may be the beginning
+    # of the same logical statement while the representative expression appears
+    # on a continuation line.
+    if compact_expr in compact_window:
+        return True
+
+    # Ellipsis is allowed only as an abbreviation of irrelevant call arguments.
+    if "..." in compact_expr:
+        pieces = [re.escape(part) for part in compact_expr.split("...") if part]
+        if pieces and re.search(".*?".join(pieces), compact_window, re.DOTALL):
+            # The anchored physical line must itself participate in the expression.
+            expr_ids = re.findall(r"[A-Za-z_]\w*", expr)
+            line_ids = set(re.findall(r"[A-Za-z_]\w*", line))
+            call_match = re.match(r"\s*([A-Za-z_]\w*)\s*\(", expr)
+            if call_match and call_match.group(1) in line_ids:
+                return True
+            noncallee = [
+                identifier for identifier in expr_ids
+                if not call_match or identifier != call_match.group(1)
+            ]
+            if any(identifier in line_ids for identifier in noncallee):
+                return True
+
+    expr_ids = re.findall(r"[A-Za-z_]\w*", expr)
+    line_ids = set(re.findall(r"[A-Za-z_]\w*", line))
+    window_ids = set(re.findall(r"[A-Za-z_]\w*", window))
+    if not expr_ids or not line_ids:
+        return False
+
+    call_match = re.match(r"\s*([A-Za-z_]\w*)\s*\(", expr)
+    if call_match:
+        callee = call_match.group(1)
+        if callee not in window_ids:
+            return False
+
+        # Exact/compact matching above already accepts faithful multiline calls.
+        # This fallback is only for representative expressions that omit harmless
+        # syntax such as casts/formatting.  Do not accept a call merely because the
+        # callee appears on the anchored line: that allowed a GetNodeAttr call for
+        # one attribute to ground incorrectly to a nearby GetNodeAttr call for a
+        # different attribute.  Require every non-callee identifier carried by the
+        # representative expression to occur in the same logical statement.
+        c_keywords = {
+            "const", "volatile", "signed", "unsigned", "char", "short", "int",
+            "long", "float", "double", "void", "struct", "union", "enum",
+            "sizeof", "return", "if", "else", "for", "while", "do", "switch",
+            "case", "default", "break", "continue", "static", "extern", "register",
+            "auto", "restrict", "true", "false", "null",
+        }
+        other_ids = [
+            identifier for identifier in expr_ids
+            if identifier != callee and identifier.lower() not in c_keywords
+        ]
+        if any(identifier not in window_ids for identifier in other_ids):
+            return False
+
+        # The claimed physical line must participate in this logical operation.
+        return callee in line_ids or any(identifier in line_ids for identifier in other_ids)
+
+    c_keywords = {
+        "const", "volatile", "signed", "unsigned", "char", "short", "int",
+        "long", "float", "double", "void", "struct", "union", "enum",
+        "sizeof", "return", "if", "else", "for", "while", "do", "switch",
+        "case", "default", "break", "continue", "static", "extern", "register",
+        "auto", "restrict", "true", "false", "null",
+    }
+    anchors = [identifier for identifier in expr_ids if identifier.lower() not in c_keywords]
+    return any(anchor in line_ids for anchor in anchors)
+
+def _evidence_line_matches_source(fragment: str, source_line: str) -> bool:
+    """Compare an evidence quote with its anchored source line.
+
+    C macro bodies are a special case: each physical source line commonly ends in
+    a continuation backslash.  Models often omit only that final backslash while
+    reproducing the actual C statement exactly.  Treating this as a grounding
+    failure caused repeated, costly retries on valid evidence.  We therefore
+    canonicalize *only* the physical-line continuation marker plus whitespace/case;
+    all other source tokens still have to match exactly.
+    """
+    return _canonical_evidence_line(fragment) == _canonical_evidence_line(source_line)
+
+
+def _canonical_evidence_line(text: str) -> str:
+    stripped = text.strip()
+    # Ignore only a final preprocessor/macro physical-line continuation marker.
+    # Backslashes inside literals (e.g. '\\0') are preserved.
+    if stripped.endswith("\\"):
+        stripped = stripped[:-1].rstrip()
+    # Evidence frequently quotes the control statement while omitting a source-line
+    # boundary brace, e.g. `else` for `} else {` or `if (x)` for `if (x) {`.
+    # Strip only brace tokens at the physical line boundaries; never braces inside
+    # expressions/initializers.
+    stripped = re.sub(r"^\s*}\s*", "", stripped)
+    stripped = re.sub(r"\s*{\s*$", "", stripped)
+    return re.sub(r"\s+", "", stripped).lower()
 
 
 def validate_output_schema(output: Any, schema: Any, path: str = "$") -> list[str]:
@@ -52,120 +514,6 @@ def validate_line_numbers(output: dict[str, Any], max_line: int) -> list[str]:
                 if line < 1 or line > max_line:
                     errors.append(f"{item_path}.line={line} is outside 1..{max_line}")
     return errors
-
-
-def validate_semantic_fact_contract(output: dict[str, Any], agent_key: str) -> list[str]:
-    expected_prefix = {
-        "operation_agent": "op_",
-        "state_agent": "state_",
-        "value_agent": "value_",
-        "execution_agent": "exec_",
-    }.get(agent_key)
-    if expected_prefix is None:
-        return []
-
-    errors: list[str] = []
-    seen_ids: set[str] = set()
-    for owner_path, owner in _semantic_outputs(output):
-        for collection_name in ("operations", "records"):
-            for index, item in enumerate(owner.get(collection_name, [])):
-                item_path = f"{owner_path}.{collection_name}[{index}]"
-                item_id = item.get("id")
-                if not isinstance(item_id, str) or not item_id.startswith(expected_prefix):
-                    errors.append(f"{item_path}.id must start with {expected_prefix!r}")
-                elif item_id in seen_ids:
-                    errors.append(f"{item_path}.id={item_id!r} is duplicated")
-                else:
-                    seen_ids.add(item_id)
-                if agent_key != "operation_agent":
-                    for key in ("entity", "base_entity"):
-                        value = item.get(key)
-                        if not isinstance(value, str) or not value.strip():
-                            errors.append(f"{item_path}.{key} must be a non-empty string")
-                for key in _required_string_fact_fields(agent_key):
-                    value = item.get(key)
-                    if not isinstance(value, str):
-                        errors.append(f"{item_path}.{key} must be a string")
-                if agent_key == "execution_agent":
-                    target_line = item.get("target_line")
-                    if not isinstance(target_line, (int, float)) or isinstance(target_line, bool):
-                        errors.append(f"{item_path}.target_line must be a number")
-    return errors
-
-
-def validate_nonempty_semantic_output(output: dict[str, Any], agent_key: str, source_code: str) -> list[str]:
-    collection_name = "operations" if agent_key == "operation_agent" else "records"
-    collection = output.get(collection_name)
-    if isinstance(collection, list) and collection:
-        return []
-
-    signal_lines = _semantic_signal_lines(source_code, agent_key)
-    if not signal_lines:
-        return []
-
-    preview = ", ".join(str(line) for line in signal_lines[:8])
-    return [
-        f"$.{collection_name} must not be empty: source contains "
-        f"{len(signal_lines)} high-confidence {agent_key} signal line(s), including line(s) {preview}"
-    ]
-
-
-def _semantic_signal_lines(source_code: str, agent_key: str) -> list[int]:
-    patterns = {
-        "operation_agent": (
-            r"->",
-            r"\b[A-Za-z_]\w*\s*\[[^\]]+\]",
-            r"\b(?:memcpy|memmove|memset|malloc|calloc|realloc|free|strlen|strcpy|strncpy|read|write)\s*\(",
-            r"\(\s*(?:const\s+)?(?:unsigned\s+|signed\s+)?[A-Za-z_]\w*(?:\s+[A-Za-z_]\w*)*\s*\*+\s*\)",
-            r"\b[A-Za-z_]\w*\s*(?:\+\+|--|\+=|-=)",
-        ),
-        "state_agent": (
-            r"\bNULL\b",
-            r"\b(?:malloc|calloc|realloc|free|open|close|lock|unlock|init|destroy|acquire|release)\w*\s*\(",
-            r"\b[A-Za-z_]\w*\s*=\s*(?:NULL|[A-Za-z_]\w*)\s*;",
-        ),
-        "value_agent": (
-            r"\b(?:size|length|count|index|offset|bytes?|rows?|columns?)\w*\b",
-            r"\bsizeof\s*\(",
-            r"(?:<=|>=|==|!=|<<|>>|\+|\-|\*|/|%)",
-            r"\(\s*(?:unsigned|signed|size_t|ssize_t|int|long|short|char|float|double)\b[^)]*\)",
-        ),
-        "execution_agent": (
-            r"\b(?:if|for|while|switch)\s*\(",
-            r"\b(?:return|break|continue|goto)\b",
-            r"\?[^:;]+:",
-        ),
-    }.get(agent_key, ())
-    if not patterns:
-        return []
-
-    cleaned = _strip_comments_and_literals(source_code)
-    return [
-        line_number
-        for line_number, line in enumerate(cleaned.splitlines(), start=1)
-        if any(re.search(pattern, line) for pattern in patterns)
-    ]
-
-
-def _strip_comments_and_literals(source_code: str) -> str:
-    def preserve_newlines(match: re.Match[str]) -> str:
-        return "\n" * match.group(0).count("\n")
-
-    cleaned = re.sub(r"/\*.*?\*/", preserve_newlines, source_code, flags=re.DOTALL)
-    cleaned = re.sub(r"//[^\n]*", "", cleaned)
-    cleaned = re.sub(r'"(?:\\.|[^"\\])*"', '""', cleaned)
-    cleaned = re.sub(r"'(?:\\.|[^'\\])*'", "''", cleaned)
-    return cleaned
-
-
-def _required_string_fact_fields(agent_key: str) -> tuple[str, ...]:
-    fields = {
-        "operation_agent": (),
-        "state_agent": ("access_path", "role", "effect", "target_entity"),
-        "value_agent": ("access_path", "role", "effect", "target_entity", "value_entity"),
-        "execution_agent": ("role", "effect", "target_entity"),
-    }
-    return fields.get(agent_key, ())
 
 
 def _semantic_outputs(output: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:

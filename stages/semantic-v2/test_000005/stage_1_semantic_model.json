@@ -1,0 +1,5198 @@
+{
+  "sample_id": "test_000005",
+  "schema_version": "semantic-claims-v2",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operation_agent": {
+        "type": "json_object",
+        "operations": [
+          {
+            "id": "o1",
+            "location": "L9",
+            "entities": [
+              "EnsureFrameInfo(it)",
+              "nodes"
+            ],
+            "claim": "Allocates a vector of NodeItem pointers and assigns it to the frame info's nodes field.",
+            "evidence": "L9:     EnsureFrameInfo(it)->nodes =\nL10:         absl::make_unique<std::vector<const NodeItem*>>();"
+          },
+          {
+            "id": "o2",
+            "location": "L12",
+            "entities": [
+              "root_frame_info_",
+              "frame_info_"
+            ],
+            "claim": "Retrieves a raw pointer from frame_info_ and stores it in root_frame_info_.",
+            "evidence": "L12:   root_frame_info_ = frame_info_[\"\"].get();"
+          },
+          {
+            "id": "o3",
+            "location": "L14",
+            "entities": [
+              "pending_ids_",
+              "gview_"
+            ],
+            "claim": "Resizes pending_ids_ to the number of nodes in gview_.",
+            "evidence": "L14:   pending_ids_.resize(gview_.num_nodes());"
+          },
+          {
+            "id": "o4",
+            "location": "L32",
+            "entities": [
+              "GetNodeAttr",
+              "n",
+              "send_device"
+            ],
+            "claim": "Reads the send_device attribute from node n into send_device.",
+            "evidence": "L32:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"send_device\", &send_device));"
+          },
+          {
+            "id": "o5",
+            "location": "L33",
+            "entities": [
+              "GetNodeAttr",
+              "n",
+              "recv_device"
+            ],
+            "claim": "Reads the recv_device attribute from node n into recv_device.",
+            "evidence": "L33:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"recv_device\", &recv_device));"
+          },
+          {
+            "id": "o6",
+            "location": "L40",
+            "entities": [
+              "cf_info",
+              "frame_names",
+              "id"
+            ],
+            "claim": "Indexes frame_names with id to obtain a frame name reference.",
+            "evidence": "L40:     const string& frame_name = cf_info.frame_names[id];"
+          },
+          {
+            "id": "o7",
+            "location": "L43",
+            "entities": [
+              "gview_",
+              "id",
+              "item"
+            ],
+            "claim": "Retrieves the NodeItem pointer for node id from gview_.",
+            "evidence": "L43:     NodeItem* item = gview_.node(id);"
+          },
+          {
+            "id": "o8",
+            "location": "L46",
+            "entities": [
+              "item",
+              "frame_info"
+            ],
+            "claim": "Reads frame_info->total_inputs and assigns it to item->input_start.",
+            "evidence": "L46:     item->input_start = frame_info->total_inputs;"
+          },
+          {
+            "id": "o9",
+            "location": "L47",
+            "entities": [
+              "frame_info",
+              "n"
+            ],
+            "claim": "Increments frame_info->total_inputs by n->num_inputs().",
+            "evidence": "L47:     frame_info->total_inputs += n->num_inputs();"
+          },
+          {
+            "id": "o10",
+            "location": "L49",
+            "entities": [
+              "params_",
+              "n",
+              "item"
+            ],
+            "claim": "Creates a kernel for node n and stores it in item->kernel.",
+            "evidence": "L49:     Status s = params_.create_kernel(n->properties(), &item->kernel);"
+          },
+          {
+            "id": "o11",
+            "location": "L51",
+            "entities": [
+              "params_",
+              "item"
+            ],
+            "claim": "Deletes the kernel stored in item->kernel.",
+            "evidence": "L51:       params_.delete_kernel(item->kernel);"
+          },
+          {
+            "id": "o12",
+            "location": "L56",
+            "entities": [
+              "item"
+            ],
+            "claim": "Checks that item->kernel is non-null.",
+            "evidence": "L56:     CHECK(item->kernel);"
+          },
+          {
+            "id": "o13",
+            "location": "L57",
+            "entities": [
+              "item"
+            ],
+            "claim": "Calls AsAsync on item->kernel and compares the result to nullptr.",
+            "evidence": "L57:     item->kernel_is_async = (item->kernel->AsAsync() != nullptr);"
+          },
+          {
+            "id": "o14",
+            "location": "L66",
+            "entities": [
+              "item",
+              "const_tensor"
+            ],
+            "claim": "Calls const_tensor on item->kernel and stores the returned pointer.",
+            "evidence": "L66:     const Tensor* const_tensor = item->kernel->const_tensor();"
+          },
+          {
+            "id": "o15",
+            "location": "L71",
+            "entities": [
+              "const_tensors_",
+              "const_tensor"
+            ],
+            "claim": "Copies the tensor pointed to by const_tensor into const_tensors_.",
+            "evidence": "L71:       const_tensors_.emplace_back(*const_tensor);"
+          },
+          {
+            "id": "o16",
+            "location": "L73",
+            "entities": [
+              "item",
+              "const_tensor"
+            ],
+            "claim": "Assigns the const_tensor pointer to item->const_tensor.",
+            "evidence": "L73:     item->const_tensor = const_tensor;"
+          },
+          {
+            "id": "o17",
+            "location": "L74",
+            "entities": [
+              "item"
+            ],
+            "claim": "Calls type_string_view on item->kernel and compares the result to \"NoOp\".",
+            "evidence": "L74:     item->is_noop = (item->kernel->type_string_view() == \"NoOp\");"
+          },
+          {
+            "id": "o18",
+            "location": "L78",
+            "entities": [
+              "GetNodeAttr",
+              "n",
+              "is_constant_enter"
+            ],
+            "claim": "Reads the is_constant attribute from node n into is_constant_enter.",
+            "evidence": "L78:       TF_RETURN_IF_ERROR(\nL79:           GetNodeAttr(n->attrs(), \"is_constant\", &is_constant_enter));"
+          },
+          {
+            "id": "o19",
+            "location": "L83",
+            "entities": [
+              "GetNodeAttr",
+              "n",
+              "frame_name"
+            ],
+            "claim": "Reads the frame_name attribute from node n into frame_name.",
+            "evidence": "L83:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &frame_name));"
+          },
+          {
+            "id": "o20",
+            "location": "L84",
+            "entities": [
+              "frame_info_",
+              "frame_name",
+              "frame_info"
+            ],
+            "claim": "Indexes frame_info_ with frame_name and retrieves the raw pointer.",
+            "evidence": "L84:       FrameInfo* frame_info = frame_info_[frame_name].get();"
+          },
+          {
+            "id": "o21",
+            "location": "L87",
+            "entities": [
+              "GetNodeAttr",
+              "n",
+              "parallel_iterations"
+            ],
+            "claim": "Reads the parallel_iterations attribute from node n into parallel_iterations.",
+            "evidence": "L87:       TF_RETURN_IF_ERROR(\nL88:           GetNodeAttr(n->attrs(), \"parallel_iterations\", &parallel_iterations));"
+          },
+          {
+            "id": "o22",
+            "location": "L99",
+            "entities": [
+              "enter_frame_info_",
+              "id"
+            ],
+            "claim": "Compares enter_frame_info_.size() to id.",
+            "evidence": "L99:       if (enter_frame_info_.size() <= id) {"
+          },
+          {
+            "id": "o23",
+            "location": "L100",
+            "entities": [
+              "enter_frame_info_",
+              "id"
+            ],
+            "claim": "Resizes enter_frame_info_ to id + 1.",
+            "evidence": "L100:         enter_frame_info_.resize(id + 1);"
+          },
+          {
+            "id": "o24",
+            "location": "L102",
+            "entities": [
+              "enter_frame_info_",
+              "id",
+              "frame_info"
+            ],
+            "claim": "Indexes enter_frame_info_ with id and assigns frame_info.",
+            "evidence": "L102:       enter_frame_info_[id] = frame_info;"
+          },
+          {
+            "id": "o25",
+            "location": "L122",
+            "entities": [
+              "GetMaxPendingCounts",
+              "n",
+              "max_pending",
+              "max_dead"
+            ],
+            "claim": "Calls GetMaxPendingCounts with node n and output parameters max_pending and max_dead.",
+            "evidence": "L122:     GetMaxPendingCounts(n, &max_pending, &max_dead);"
+          },
+          {
+            "id": "o26",
+            "location": "L123",
+            "entities": [
+              "pending_ids_",
+              "id",
+              "frame_info",
+              "max_pending",
+              "max_dead"
+            ],
+            "claim": "Indexes pending_ids_ with id and assigns a handle created from frame_info->pending_counts_layout with max_pending and max_dead.",
+            "evidence": "L123:     pending_ids_[id] =\nL124:         frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead);"
+          },
+          {
+            "id": "o27",
+            "location": "L128",
+            "entities": [
+              "root_nodes_",
+              "item"
+            ],
+            "claim": "Appends item to root_nodes_.",
+            "evidence": "L128:       root_nodes_.push_back(item);"
+          },
+          {
+            "id": "o28",
+            "location": "L132",
+            "entities": [
+              "frame_info",
+              "item"
+            ],
+            "claim": "Appends item to frame_info->nodes.",
+            "evidence": "L132:     frame_info->nodes->push_back(item);"
+          },
+          {
+            "id": "o29",
+            "location": "L135",
+            "entities": [
+              "GetNodeAttr",
+              "n",
+              "enter_name"
+            ],
+            "claim": "Reads the frame_name attribute from node n into enter_name.",
+            "evidence": "L135:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &enter_name));"
+          },
+          {
+            "id": "o30",
+            "location": "L136",
+            "entities": [
+              "EnsureFrameInfo",
+              "enter_name"
+            ],
+            "claim": "Increments the input_count of the frame info for enter_name.",
+            "evidence": "L136:       EnsureFrameInfo(enter_name)->input_count++;"
+          },
+          {
+            "id": "o31",
+            "location": "L140",
+            "entities": [
+              "outputs_required",
+              "n"
+            ],
+            "claim": "Allocates a bool array of size n->num_outputs() and stores it in outputs_required.",
+            "evidence": "L140:     std::unique_ptr<bool[]> outputs_required(new bool[n->num_outputs()]);"
+          },
+          {
+            "id": "o32",
+            "location": "L141",
+            "entities": [
+              "outputs_required",
+              "n"
+            ],
+            "claim": "Fills the outputs_required array from index 0 to n->num_outputs() with false.",
+            "evidence": "L141:     std::fill(&outputs_required[0], &outputs_required[n->num_outputs()], false);"
+          },
+          {
+            "id": "o33",
+            "location": "L142",
+            "entities": [
+              "n",
+              "unused_outputs"
+            ],
+            "claim": "Initializes unused_outputs with n->num_outputs().",
+            "evidence": "L142:     int32_t unused_outputs = n->num_outputs();"
+          },
+          {
+            "id": "o34",
+            "location": "L145",
+            "entities": [
+              "e"
+            ],
+            "claim": "Reads e->src_output().",
+            "evidence": "L145:       if (e->src_output() >= 0) {"
+          },
+          {
+            "id": "o35",
+            "location": "L146",
+            "entities": [
+              "outputs_required",
+              "e"
+            ],
+            "claim": "Indexes outputs_required with e->src_output().",
+            "evidence": "L146:         if (!outputs_required[e->src_output()]) {"
+          },
+          {
+            "id": "o36",
+            "location": "L148",
+            "entities": [
+              "outputs_required",
+              "e"
+            ],
+            "claim": "Indexes outputs_required with e->src_output() and assigns true.",
+            "evidence": "L148:           outputs_required[e->src_output()] = true;"
+          },
+          {
+            "id": "o37",
+            "location": "L153",
+            "entities": [
+              "n"
+            ],
+            "claim": "Iterates i from 0 to n->num_outputs().",
+            "evidence": "L153:       for (int i = 0; i < n->num_outputs(); ++i) {"
+          },
+          {
+            "id": "o38",
+            "location": "L154",
+            "entities": [
+              "outputs_required",
+              "i"
+            ],
+            "claim": "Indexes outputs_required with i.",
+            "evidence": "L154:         if (!outputs_required[i]) {"
+          },
+          {
+            "id": "o39",
+            "location": "L158",
+            "entities": [
+              "item",
+              "outputs_required"
+            ],
+            "claim": "Moves outputs_required into item->outputs_required.",
+            "evidence": "L158:       item->outputs_required = std::move(outputs_required);"
+          },
+          {
+            "id": "o40",
+            "location": "L167",
+            "entities": [
+              "gview_",
+              "id",
+              "item"
+            ],
+            "claim": "Retrieves the NodeItem pointer for node id from gview_.",
+            "evidence": "L167:     NodeItem* item = gview_.node(id);"
+          },
+          {
+            "id": "o41",
+            "location": "L171",
+            "entities": [
+              "gview_",
+              "dst_id",
+              "dst_item"
+            ],
+            "claim": "Retrieves the NodeItem pointer for dst_id from gview_.",
+            "evidence": "L171:       NodeItem* dst_item = gview_.node(dst_id);"
+          },
+          {
+            "id": "o42",
+            "location": "L172",
+            "entities": [
+              "e",
+              "dst_item"
+            ],
+            "claim": "Adds dst_item->input_start to e.input_slot.",
+            "evidence": "L172:       e.input_slot += dst_item->input_start;"
+          }
+        ]
+      },
+      "state_agent": {
+        "type": "json_object",
+        "states": [
+          {
+            "id": "s1",
+            "location": "L9",
+            "entities": [
+              "EnsureFrameInfo(it)->nodes"
+            ],
+            "claim": "The nodes field of the frame info for it is assigned a newly allocated vector of NodeItem pointers.",
+            "evidence": "L9:     EnsureFrameInfo(it)->nodes =\nL10:         absl::make_unique<std::vector<const NodeItem*>>();",
+            "operation_ids": [
+              "o1"
+            ]
+          },
+          {
+            "id": "s2",
+            "location": "L12",
+            "entities": [
+              "root_frame_info_",
+              "frame_info_[\"\"]"
+            ],
+            "claim": "root_frame_info_ is assigned the raw pointer owned by frame_info_[\"\"].",
+            "evidence": "L12:   root_frame_info_ = frame_info_[\"\"].get();",
+            "operation_ids": [
+              "o2"
+            ]
+          },
+          {
+            "id": "s3",
+            "location": "L14",
+            "entities": [
+              "pending_ids_"
+            ],
+            "claim": "pending_ids_ is resized to gview_.num_nodes() elements.",
+            "evidence": "L14:   pending_ids_.resize(gview_.num_nodes());",
+            "operation_ids": [
+              "o3"
+            ]
+          },
+          {
+            "id": "s4",
+            "location": "L43",
+            "entities": [
+              "item",
+              "gview_"
+            ],
+            "claim": "item is assigned the NodeItem pointer returned by gview_.node(id).",
+            "evidence": "L43:     NodeItem* item = gview_.node(id);",
+            "operation_ids": [
+              "o7"
+            ]
+          },
+          {
+            "id": "s5",
+            "location": "L49",
+            "entities": [
+              "item->kernel"
+            ],
+            "claim": "item->kernel is assigned the kernel created by params_.create_kernel.",
+            "evidence": "L49:     Status s = params_.create_kernel(n->properties(), &item->kernel);",
+            "operation_ids": [
+              "o10"
+            ]
+          },
+          {
+            "id": "s6",
+            "location": "L51",
+            "entities": [
+              "item->kernel"
+            ],
+            "claim": "item->kernel is passed to params_.delete_kernel.",
+            "evidence": "L51:       params_.delete_kernel(item->kernel);",
+            "operation_ids": [
+              "o11"
+            ]
+          },
+          {
+            "id": "s7",
+            "location": "L52",
+            "entities": [
+              "item->kernel"
+            ],
+            "claim": "item->kernel is set to nullptr.",
+            "evidence": "L52:       item->kernel = nullptr;",
+            "operation_ids": [
+              "o11"
+            ]
+          },
+          {
+            "id": "s8",
+            "location": "L66",
+            "entities": [
+              "const_tensor",
+              "item->kernel"
+            ],
+            "claim": "const_tensor is assigned the pointer returned by item->kernel->const_tensor().",
+            "evidence": "L66:     const Tensor* const_tensor = item->kernel->const_tensor();",
+            "operation_ids": [
+              "o14"
+            ]
+          },
+          {
+            "id": "s9",
+            "location": "L71",
+            "entities": [
+              "const_tensors_",
+              "const_tensor"
+            ],
+            "claim": "A copy of the tensor pointed to by const_tensor is appended to const_tensors_.",
+            "evidence": "L71:       const_tensors_.emplace_back(*const_tensor);",
+            "operation_ids": [
+              "o15"
+            ]
+          },
+          {
+            "id": "s10",
+            "location": "L73",
+            "entities": [
+              "item->const_tensor",
+              "const_tensor"
+            ],
+            "claim": "item->const_tensor is assigned the const_tensor pointer.",
+            "evidence": "L73:     item->const_tensor = const_tensor;",
+            "operation_ids": [
+              "o16"
+            ]
+          },
+          {
+            "id": "s11",
+            "location": "L84",
+            "entities": [
+              "frame_info",
+              "frame_info_[frame_name]"
+            ],
+            "claim": "frame_info is assigned the raw pointer owned by frame_info_[frame_name].",
+            "evidence": "L84:       FrameInfo* frame_info = frame_info_[frame_name].get();",
+            "operation_ids": [
+              "o20"
+            ]
+          },
+          {
+            "id": "s12",
+            "location": "L100",
+            "entities": [
+              "enter_frame_info_"
+            ],
+            "claim": "enter_frame_info_ is resized to id + 1 elements.",
+            "evidence": "L100:         enter_frame_info_.resize(id + 1);",
+            "operation_ids": [
+              "o23"
+            ]
+          },
+          {
+            "id": "s13",
+            "location": "L102",
+            "entities": [
+              "enter_frame_info_[id]",
+              "frame_info"
+            ],
+            "claim": "enter_frame_info_[id] is assigned the frame_info pointer.",
+            "evidence": "L102:       enter_frame_info_[id] = frame_info;",
+            "operation_ids": [
+              "o24"
+            ]
+          },
+          {
+            "id": "s14",
+            "location": "L123",
+            "entities": [
+              "pending_ids_[id]"
+            ],
+            "claim": "pending_ids_[id] is assigned a handle created by frame_info->pending_counts_layout.CreateHandle.",
+            "evidence": "L123:     pending_ids_[id] =\nL124:         frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead);",
+            "operation_ids": [
+              "o26"
+            ]
+          },
+          {
+            "id": "s15",
+            "location": "L128",
+            "entities": [
+              "root_nodes_",
+              "item"
+            ],
+            "claim": "item is appended to root_nodes_.",
+            "evidence": "L128:       root_nodes_.push_back(item);",
+            "operation_ids": [
+              "o27"
+            ]
+          },
+          {
+            "id": "s16",
+            "location": "L132",
+            "entities": [
+              "frame_info->nodes",
+              "item"
+            ],
+            "claim": "item is appended to frame_info->nodes.",
+            "evidence": "L132:     frame_info->nodes->push_back(item);",
+            "operation_ids": [
+              "o28"
+            ]
+          },
+          {
+            "id": "s17",
+            "location": "L140",
+            "entities": [
+              "outputs_required"
+            ],
+            "claim": "outputs_required is assigned a newly allocated bool array of size n->num_outputs().",
+            "evidence": "L140:     std::unique_ptr<bool[]> outputs_required(new bool[n->num_outputs()]);",
+            "operation_ids": [
+              "o31"
+            ]
+          },
+          {
+            "id": "s18",
+            "location": "L158",
+            "entities": [
+              "item->outputs_required",
+              "outputs_required"
+            ],
+            "claim": "outputs_required is moved into item->outputs_required.",
+            "evidence": "L158:       item->outputs_required = std::move(outputs_required);",
+            "operation_ids": [
+              "o39"
+            ]
+          },
+          {
+            "id": "s19",
+            "location": "L167",
+            "entities": [
+              "item",
+              "gview_"
+            ],
+            "claim": "item is assigned the NodeItem pointer returned by gview_.node(id).",
+            "evidence": "L167:     NodeItem* item = gview_.node(id);",
+            "operation_ids": [
+              "o40"
+            ]
+          },
+          {
+            "id": "s20",
+            "location": "L171",
+            "entities": [
+              "dst_item",
+              "gview_"
+            ],
+            "claim": "dst_item is assigned the NodeItem pointer returned by gview_.node(dst_id).",
+            "evidence": "L171:       NodeItem* dst_item = gview_.node(dst_id);",
+            "operation_ids": [
+              "o41"
+            ]
+          }
+        ]
+      },
+      "value_agent": {
+        "values": [
+          {
+            "id": "v1",
+            "location": "L14",
+            "entities": [
+              "pending_ids_",
+              "gview_.num_nodes()"
+            ],
+            "claim": "pending_ids_ is resized to gview_.num_nodes(), so its valid index range is [0, gview_.num_nodes() - 1].",
+            "evidence": "L14:   pending_ids_.resize(gview_.num_nodes());",
+            "operation_ids": [
+              "o3"
+            ]
+          },
+          {
+            "id": "v2",
+            "location": "L40",
+            "entities": [
+              "cf_info.frame_names",
+              "id"
+            ],
+            "claim": "frame_name is the element of cf_info.frame_names at index id, where id = n->id().",
+            "evidence": "L39:     const int id = n->id();\nL40:     const string& frame_name = cf_info.frame_names[id];",
+            "operation_ids": [
+              "o6"
+            ]
+          },
+          {
+            "id": "v3",
+            "location": "L46",
+            "entities": [
+              "item->input_start",
+              "frame_info->total_inputs"
+            ],
+            "claim": "item->input_start is assigned the current value of frame_info->total_inputs before that total is incremented.",
+            "evidence": "L46:     item->input_start = frame_info->total_inputs;\nL47:     frame_info->total_inputs += n->num_inputs();",
+            "operation_ids": [
+              "o8",
+              "o9"
+            ]
+          },
+          {
+            "id": "v4",
+            "location": "L47",
+            "entities": [
+              "frame_info->total_inputs",
+              "n->num_inputs()"
+            ],
+            "claim": "frame_info->total_inputs is incremented by n->num_inputs().",
+            "evidence": "L47:     frame_info->total_inputs += n->num_inputs();",
+            "operation_ids": [
+              "o9"
+            ]
+          },
+          {
+            "id": "v5",
+            "location": "L100",
+            "entities": [
+              "enter_frame_info_",
+              "id"
+            ],
+            "claim": "enter_frame_info_ is resized to id + 1, so index id becomes valid.",
+            "evidence": "L100:         enter_frame_info_.resize(id + 1);",
+            "operation_ids": [
+              "o23"
+            ]
+          },
+          {
+            "id": "v6",
+            "location": "L102",
+            "entities": [
+              "enter_frame_info_[id]",
+              "frame_info"
+            ],
+            "claim": "enter_frame_info_[id] is assigned the frame_info pointer for the enter node.",
+            "evidence": "L102:       enter_frame_info_[id] = frame_info;",
+            "operation_ids": [
+              "o24"
+            ]
+          },
+          {
+            "id": "v7",
+            "location": "L123",
+            "entities": [
+              "pending_ids_[id]",
+              "max_pending",
+              "max_dead"
+            ],
+            "claim": "pending_ids_[id] is assigned a handle created from frame_info->pending_counts_layout with max_pending and max_dead.",
+            "evidence": "L123:     pending_ids_[id] =\nL124:         frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead);",
+            "operation_ids": [
+              "o26"
+            ]
+          },
+          {
+            "id": "v8",
+            "location": "L140",
+            "entities": [
+              "outputs_required",
+              "n->num_outputs()"
+            ],
+            "claim": "outputs_required points to a bool array of length n->num_outputs().",
+            "evidence": "L140:     std::unique_ptr<bool[]> outputs_required(new bool[n->num_outputs()]);",
+            "operation_ids": [
+              "o31"
+            ]
+          },
+          {
+            "id": "v9",
+            "location": "L141",
+            "entities": [
+              "outputs_required",
+              "n->num_outputs()"
+            ],
+            "claim": "The outputs_required array is filled from index 0 up to but not including n->num_outputs().",
+            "evidence": "L141:     std::fill(&outputs_required[0], &outputs_required[n->num_outputs()], false);",
+            "operation_ids": [
+              "o32"
+            ]
+          },
+          {
+            "id": "v10",
+            "location": "L142",
+            "entities": [
+              "unused_outputs",
+              "n->num_outputs()"
+            ],
+            "claim": "unused_outputs is initialized to n->num_outputs().",
+            "evidence": "L142:     int32_t unused_outputs = n->num_outputs();",
+            "operation_ids": [
+              "o33"
+            ]
+          },
+          {
+            "id": "v11",
+            "location": "L146",
+            "entities": [
+              "outputs_required",
+              "e->src_output()"
+            ],
+            "claim": "outputs_required is indexed by e->src_output(), which is non-negative at this point.",
+            "evidence": "L145:       if (e->src_output() >= 0) {\nL146:         if (!outputs_required[e->src_output()]) {",
+            "operation_ids": [
+              "o34",
+              "o35"
+            ]
+          },
+          {
+            "id": "v12",
+            "location": "L172",
+            "entities": [
+              "e.input_slot",
+              "dst_item->input_start"
+            ],
+            "claim": "e.input_slot is incremented by dst_item->input_start, so the rewritten input_slot equals the original input_slot plus dst_item->input_start.",
+            "evidence": "L172:       e.input_slot += dst_item->input_start;",
+            "operation_ids": [
+              "o42"
+            ]
+          }
+        ]
+      },
+      "execution_agent": {
+        "type": "json_object",
+        "executions": [
+          {
+            "id": "e1",
+            "location": "L9",
+            "entities": [
+              "cf_info.unique_frame_names"
+            ],
+            "claim": "Reaching L9 requires the loop over cf_info.unique_frame_names to have begun, which requires BuildControlFlowInfo at L6 to have succeeded.",
+            "evidence": "L6:   TF_RETURN_IF_ERROR(BuildControlFlowInfo(&graph, &cf_info));\nL8:   for (auto& it : cf_info.unique_frame_names) {",
+            "operation_ids": [
+              "o1"
+            ]
+          },
+          {
+            "id": "e2",
+            "location": "L12",
+            "entities": [],
+            "claim": "Reaching L12 requires the loop over cf_info.unique_frame_names at L8 to have completed.",
+            "evidence": "L8:   for (auto& it : cf_info.unique_frame_names) {\nL12:   root_frame_info_ = frame_info_[\"\"].get();",
+            "operation_ids": [
+              "o2"
+            ]
+          },
+          {
+            "id": "e3",
+            "location": "L14",
+            "entities": [],
+            "claim": "Reaching L14 requires gview_.Initialize at L2 to have succeeded.",
+            "evidence": "L2:   TF_RETURN_IF_ERROR(gview_.Initialize(&graph));\nL14:   pending_ids_.resize(gview_.num_nodes());",
+            "operation_ids": [
+              "o3"
+            ]
+          },
+          {
+            "id": "e4",
+            "location": "L32",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L32 requires n to be a Recv node, since the enclosing branch is entered only when IsRecv(n) is true.",
+            "evidence": "L23:     } else if (IsRecv(n)) {\nL32:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"send_device\", &send_device));",
+            "operation_ids": [
+              "o4"
+            ]
+          },
+          {
+            "id": "e5",
+            "location": "L33",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L33 requires n to be a Recv node and the GetNodeAttr call at L32 to have succeeded.",
+            "evidence": "L23:     } else if (IsRecv(n)) {\nL32:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"send_device\", &send_device));\nL33:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"recv_device\", &recv_device));",
+            "operation_ids": [
+              "o5"
+            ]
+          },
+          {
+            "id": "e6",
+            "location": "L40",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L40 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL40:     const string& frame_name = cf_info.frame_names[id];",
+            "operation_ids": [
+              "o6"
+            ]
+          },
+          {
+            "id": "e7",
+            "location": "L43",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L43 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL43:     NodeItem* item = gview_.node(id);",
+            "operation_ids": [
+              "o7"
+            ]
+          },
+          {
+            "id": "e8",
+            "location": "L46",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L46 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL46:     item->input_start = frame_info->total_inputs;",
+            "operation_ids": [
+              "o8"
+            ]
+          },
+          {
+            "id": "e9",
+            "location": "L47",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L47 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL47:     frame_info->total_inputs += n->num_inputs();",
+            "operation_ids": [
+              "o9"
+            ]
+          },
+          {
+            "id": "e10",
+            "location": "L49",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L49 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL49:     Status s = params_.create_kernel(n->properties(), &item->kernel);",
+            "operation_ids": [
+              "o10"
+            ]
+          },
+          {
+            "id": "e11",
+            "location": "L51",
+            "entities": [],
+            "claim": "Reaching L51 requires the create_kernel call at L49 to have returned a non-ok status.",
+            "evidence": "L49:     Status s = params_.create_kernel(n->properties(), &item->kernel);\nL50:     if (!s.ok()) {\nL51:       params_.delete_kernel(item->kernel);",
+            "operation_ids": [
+              "o11"
+            ]
+          },
+          {
+            "id": "e12",
+            "location": "L56",
+            "entities": [],
+            "claim": "Reaching L56 requires the create_kernel call at L49 to have returned an ok status, since a non-ok status returns at L54.",
+            "evidence": "L50:     if (!s.ok()) {\nL54:       return s;\nL56:     CHECK(item->kernel);",
+            "operation_ids": [
+              "o12"
+            ]
+          },
+          {
+            "id": "e13",
+            "location": "L57",
+            "entities": [],
+            "claim": "Reaching L57 requires the create_kernel call at L49 to have returned an ok status, since a non-ok status returns at L54.",
+            "evidence": "L50:     if (!s.ok()) {\nL54:       return s;\nL57:     item->kernel_is_async = (item->kernel->AsAsync() != nullptr);",
+            "operation_ids": [
+              "o13"
+            ]
+          },
+          {
+            "id": "e14",
+            "location": "L66",
+            "entities": [],
+            "claim": "Reaching L66 requires the create_kernel call at L49 to have returned an ok status, since a non-ok status returns at L54.",
+            "evidence": "L50:     if (!s.ok()) {\nL54:       return s;\nL66:     const Tensor* const_tensor = item->kernel->const_tensor();",
+            "operation_ids": [
+              "o14"
+            ]
+          },
+          {
+            "id": "e15",
+            "location": "L71",
+            "entities": [
+              "const_tensor"
+            ],
+            "claim": "Reaching L71 requires const_tensor to be non-null, since the enclosing branch is entered only when const_tensor is truthy.",
+            "evidence": "L67:     if (const_tensor) {\nL71:       const_tensors_.emplace_back(*const_tensor);",
+            "operation_ids": [
+              "o15"
+            ]
+          },
+          {
+            "id": "e16",
+            "location": "L73",
+            "entities": [],
+            "claim": "Reaching L73 requires the create_kernel call at L49 to have returned an ok status, since a non-ok status returns at L54.",
+            "evidence": "L50:     if (!s.ok()) {\nL54:       return s;\nL73:     item->const_tensor = const_tensor;",
+            "operation_ids": [
+              "o16"
+            ]
+          },
+          {
+            "id": "e17",
+            "location": "L74",
+            "entities": [],
+            "claim": "Reaching L74 requires the create_kernel call at L49 to have returned an ok status, since a non-ok status returns at L54.",
+            "evidence": "L50:     if (!s.ok()) {\nL54:       return s;\nL74:     item->is_noop = (item->kernel->type_string_view() == \"NoOp\");",
+            "operation_ids": [
+              "o17"
+            ]
+          },
+          {
+            "id": "e18",
+            "location": "L78",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L78 requires item->is_enter to be true, since the enclosing branch is entered only when item->is_enter is true.",
+            "evidence": "L76:     if (item->is_enter) {\nL78:       TF_RETURN_IF_ERROR(\nL79:           GetNodeAttr(n->attrs(), \"is_constant\", &is_constant_enter));",
+            "operation_ids": [
+              "o18"
+            ]
+          },
+          {
+            "id": "e19",
+            "location": "L83",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L83 requires item->is_enter to be true and the GetNodeAttr call at L78-L79 to have succeeded.",
+            "evidence": "L76:     if (item->is_enter) {\nL78:       TF_RETURN_IF_ERROR(\nL79:           GetNodeAttr(n->attrs(), \"is_constant\", &is_constant_enter));\nL83:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &frame_name));",
+            "operation_ids": [
+              "o19"
+            ]
+          },
+          {
+            "id": "e20",
+            "location": "L84",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L84 requires item->is_enter to be true and the GetNodeAttr call at L83 to have succeeded.",
+            "evidence": "L76:     if (item->is_enter) {\nL83:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &frame_name));\nL84:       FrameInfo* frame_info = frame_info_[frame_name].get();",
+            "operation_ids": [
+              "o20"
+            ]
+          },
+          {
+            "id": "e21",
+            "location": "L87",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L87 requires item->is_enter to be true and the GetNodeAttr call at L83 to have succeeded.",
+            "evidence": "L76:     if (item->is_enter) {\nL83:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &frame_name));\nL87:       TF_RETURN_IF_ERROR(\nL88:           GetNodeAttr(n->attrs(), \"parallel_iterations\", &parallel_iterations));",
+            "operation_ids": [
+              "o21"
+            ]
+          },
+          {
+            "id": "e22",
+            "location": "L99",
+            "entities": [
+              "id"
+            ],
+            "claim": "Reaching L99 requires item->is_enter to be true and the GetNodeAttr call at L87-L88 to have succeeded.",
+            "evidence": "L76:     if (item->is_enter) {\nL87:       TF_RETURN_IF_ERROR(\nL88:           GetNodeAttr(n->attrs(), \"parallel_iterations\", &parallel_iterations));\nL99:       if (enter_frame_info_.size() <= id) {",
+            "operation_ids": [
+              "o22"
+            ]
+          },
+          {
+            "id": "e23",
+            "location": "L100",
+            "entities": [
+              "id"
+            ],
+            "claim": "Reaching L100 requires enter_frame_info_.size() <= id, since the enclosing branch is entered only when that condition holds.",
+            "evidence": "L99:       if (enter_frame_info_.size() <= id) {\nL100:         enter_frame_info_.resize(id + 1);",
+            "operation_ids": [
+              "o23"
+            ]
+          },
+          {
+            "id": "e24",
+            "location": "L102",
+            "entities": [
+              "id"
+            ],
+            "claim": "Reaching L102 requires item->is_enter to be true and the GetNodeAttr call at L87-L88 to have succeeded.",
+            "evidence": "L76:     if (item->is_enter) {\nL87:       TF_RETURN_IF_ERROR(\nL88:           GetNodeAttr(n->attrs(), \"parallel_iterations\", &parallel_iterations));\nL102:       enter_frame_info_[id] = frame_info;",
+            "operation_ids": [
+              "o24"
+            ]
+          },
+          {
+            "id": "e25",
+            "location": "L122",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L122 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL122:     GetMaxPendingCounts(n, &max_pending, &max_dead);",
+            "operation_ids": [
+              "o25"
+            ]
+          },
+          {
+            "id": "e26",
+            "location": "L123",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L123 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL123:     pending_ids_[id] =\nL124:         frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead);",
+            "operation_ids": [
+              "o26"
+            ]
+          },
+          {
+            "id": "e27",
+            "location": "L128",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L128 requires n->in_edges() to be empty, since the enclosing branch is entered only when that condition holds.",
+            "evidence": "L127:     if (n->in_edges().empty()) {\nL128:       root_nodes_.push_back(item);",
+            "operation_ids": [
+              "o27"
+            ]
+          },
+          {
+            "id": "e28",
+            "location": "L132",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L132 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL132:     frame_info->nodes->push_back(item);",
+            "operation_ids": [
+              "o28"
+            ]
+          },
+          {
+            "id": "e29",
+            "location": "L135",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L135 requires item->is_enter to be true, since the enclosing branch is entered only when item->is_enter is true.",
+            "evidence": "L133:     if (item->is_enter) {\nL135:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &enter_name));",
+            "operation_ids": [
+              "o29"
+            ]
+          },
+          {
+            "id": "e30",
+            "location": "L136",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L136 requires item->is_enter to be true and the GetNodeAttr call at L135 to have succeeded.",
+            "evidence": "L133:     if (item->is_enter) {\nL135:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &enter_name));\nL136:       EnsureFrameInfo(enter_name)->input_count++;",
+            "operation_ids": [
+              "o30"
+            ]
+          },
+          {
+            "id": "e31",
+            "location": "L140",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L140 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL140:     std::unique_ptr<bool[]> outputs_required(new bool[n->num_outputs()]);",
+            "operation_ids": [
+              "o31"
+            ]
+          },
+          {
+            "id": "e32",
+            "location": "L141",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L141 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL141:     std::fill(&outputs_required[0], &outputs_required[n->num_outputs()], false);",
+            "operation_ids": [
+              "o32"
+            ]
+          },
+          {
+            "id": "e33",
+            "location": "L142",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L142 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL142:     int32_t unused_outputs = n->num_outputs();",
+            "operation_ids": [
+              "o33"
+            ]
+          },
+          {
+            "id": "e34",
+            "location": "L145",
+            "entities": [
+              "e"
+            ],
+            "claim": "Reaching L145 requires the edge e to have a non-sink destination, since IsSink(e->dst()) causes continue at L144.",
+            "evidence": "L144:       if (IsSink(e->dst())) continue;\nL145:       if (e->src_output() >= 0) {",
+            "operation_ids": [
+              "o34"
+            ]
+          },
+          {
+            "id": "e35",
+            "location": "L146",
+            "entities": [
+              "e"
+            ],
+            "claim": "Reaching L146 requires e->src_output() >= 0, since the enclosing branch is entered only when that condition holds.",
+            "evidence": "L145:       if (e->src_output() >= 0) {\nL146:         if (!outputs_required[e->src_output()]) {",
+            "operation_ids": [
+              "o35"
+            ]
+          },
+          {
+            "id": "e36",
+            "location": "L148",
+            "entities": [
+              "e"
+            ],
+            "claim": "Reaching L148 requires e->src_output() >= 0 and outputs_required[e->src_output()] to be false.",
+            "evidence": "L145:       if (e->src_output() >= 0) {\nL146:         if (!outputs_required[e->src_output()]) {\nL148:           outputs_required[e->src_output()] = true;",
+            "operation_ids": [
+              "o36"
+            ]
+          },
+          {
+            "id": "e37",
+            "location": "L153",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L153 requires unused_outputs > 0, since the enclosing branch is entered only when that condition holds.",
+            "evidence": "L152:     if (unused_outputs > 0) {\nL153:       for (int i = 0; i < n->num_outputs(); ++i) {",
+            "operation_ids": [
+              "o37"
+            ]
+          },
+          {
+            "id": "e38",
+            "location": "L154",
+            "entities": [
+              "i"
+            ],
+            "claim": "Reaching L154 requires unused_outputs > 0 and i < n->num_outputs().",
+            "evidence": "L152:     if (unused_outputs > 0) {\nL153:       for (int i = 0; i < n->num_outputs(); ++i) {\nL154:         if (!outputs_required[i]) {",
+            "operation_ids": [
+              "o38"
+            ]
+          },
+          {
+            "id": "e39",
+            "location": "L158",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L158 requires unused_outputs > 0, since the enclosing branch is entered only when that condition holds.",
+            "evidence": "L152:     if (unused_outputs > 0) {\nL158:       item->outputs_required = std::move(outputs_required);",
+            "operation_ids": [
+              "o39"
+            ]
+          },
+          {
+            "id": "e40",
+            "location": "L167",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L167 requires n to be a non-sink node, since IsSink(n) causes continue at L165.",
+            "evidence": "L165:     if (IsSink(n)) continue;\nL167:     NodeItem* item = gview_.node(id);",
+            "operation_ids": [
+              "o40"
+            ]
+          },
+          {
+            "id": "e41",
+            "location": "L171",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L171 requires n to be a non-sink node, since IsSink(n) causes continue at L165.",
+            "evidence": "L165:     if (IsSink(n)) continue;\nL171:       NodeItem* dst_item = gview_.node(dst_id);",
+            "operation_ids": [
+              "o41"
+            ]
+          },
+          {
+            "id": "e42",
+            "location": "L172",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L172 requires n to be a non-sink node, since IsSink(n) causes continue at L165.",
+            "evidence": "L165:     if (IsSink(n)) continue;\nL172:       e.input_slot += dst_item->input_start;",
+            "operation_ids": [
+              "o42"
+            ]
+          }
+        ]
+      }
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2616,
+              "output_tokens": 2618,
+              "total_tokens": 5234
+            },
+            "max_tokens": 8192
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2616,
+          "output_tokens": 2618,
+          "total_tokens": 5234
+        },
+        "grounding_by_ref": {
+          "operation_agent.operations[0]": {
+            "claim_line": 9,
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "EnsureFrameInfo(it)->nodes =",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "absl::make_unique<std::vector<const NodeItem*>>();",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "claim_line": 12,
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "root_frame_info_ = frame_info_[\"\"].get();",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "claim_line": 14,
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "pending_ids_.resize(gview_.num_nodes());",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "claim_line": 32,
+            "evidence_matches": [
+              {
+                "evidence_line": 32,
+                "fragment": "TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"send_device\", &send_device));",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "claim_line": 33,
+            "evidence_matches": [
+              {
+                "evidence_line": 33,
+                "fragment": "TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"recv_device\", &recv_device));",
+                "matched_lines": [
+                  33
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "claim_line": 40,
+            "evidence_matches": [
+              {
+                "evidence_line": 40,
+                "fragment": "const string& frame_name = cf_info.frame_names[id];",
+                "matched_lines": [
+                  40
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "claim_line": 43,
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "NodeItem* item = gview_.node(id);",
+                "matched_lines": [
+                  43
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "claim_line": 46,
+            "evidence_matches": [
+              {
+                "evidence_line": 46,
+                "fragment": "item->input_start = frame_info->total_inputs;",
+                "matched_lines": [
+                  46
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "claim_line": 47,
+            "evidence_matches": [
+              {
+                "evidence_line": 47,
+                "fragment": "frame_info->total_inputs += n->num_inputs();",
+                "matched_lines": [
+                  47
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[9]": {
+            "claim_line": 49,
+            "evidence_matches": [
+              {
+                "evidence_line": 49,
+                "fragment": "Status s = params_.create_kernel(n->properties(), &item->kernel);",
+                "matched_lines": [
+                  49
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[10]": {
+            "claim_line": 51,
+            "evidence_matches": [
+              {
+                "evidence_line": 51,
+                "fragment": "params_.delete_kernel(item->kernel);",
+                "matched_lines": [
+                  51
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[11]": {
+            "claim_line": 56,
+            "evidence_matches": [
+              {
+                "evidence_line": 56,
+                "fragment": "CHECK(item->kernel);",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[12]": {
+            "claim_line": 57,
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "item->kernel_is_async = (item->kernel->AsAsync() != nullptr);",
+                "matched_lines": [
+                  57
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[13]": {
+            "claim_line": 66,
+            "evidence_matches": [
+              {
+                "evidence_line": 66,
+                "fragment": "const Tensor* const_tensor = item->kernel->const_tensor();",
+                "matched_lines": [
+                  66
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[14]": {
+            "claim_line": 71,
+            "evidence_matches": [
+              {
+                "evidence_line": 71,
+                "fragment": "const_tensors_.emplace_back(*const_tensor);",
+                "matched_lines": [
+                  71
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[15]": {
+            "claim_line": 73,
+            "evidence_matches": [
+              {
+                "evidence_line": 73,
+                "fragment": "item->const_tensor = const_tensor;",
+                "matched_lines": [
+                  73
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[16]": {
+            "claim_line": 74,
+            "evidence_matches": [
+              {
+                "evidence_line": 74,
+                "fragment": "item->is_noop = (item->kernel->type_string_view() == \"NoOp\");",
+                "matched_lines": [
+                  74
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[17]": {
+            "claim_line": 78,
+            "evidence_matches": [
+              {
+                "evidence_line": 78,
+                "fragment": "TF_RETURN_IF_ERROR(",
+                "matched_lines": [
+                  78
+                ]
+              },
+              {
+                "evidence_line": 79,
+                "fragment": "GetNodeAttr(n->attrs(), \"is_constant\", &is_constant_enter));",
+                "matched_lines": [
+                  79
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[18]": {
+            "claim_line": 83,
+            "evidence_matches": [
+              {
+                "evidence_line": 83,
+                "fragment": "TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &frame_name));",
+                "matched_lines": [
+                  83
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[19]": {
+            "claim_line": 84,
+            "evidence_matches": [
+              {
+                "evidence_line": 84,
+                "fragment": "FrameInfo* frame_info = frame_info_[frame_name].get();",
+                "matched_lines": [
+                  84
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[20]": {
+            "claim_line": 87,
+            "evidence_matches": [
+              {
+                "evidence_line": 87,
+                "fragment": "TF_RETURN_IF_ERROR(",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 88,
+                "fragment": "GetNodeAttr(n->attrs(), \"parallel_iterations\", &parallel_iterations));",
+                "matched_lines": [
+                  88
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[21]": {
+            "claim_line": 99,
+            "evidence_matches": [
+              {
+                "evidence_line": 99,
+                "fragment": "if (enter_frame_info_.size() <= id) {",
+                "matched_lines": [
+                  99
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[22]": {
+            "claim_line": 100,
+            "evidence_matches": [
+              {
+                "evidence_line": 100,
+                "fragment": "enter_frame_info_.resize(id + 1);",
+                "matched_lines": [
+                  100
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[23]": {
+            "claim_line": 102,
+            "evidence_matches": [
+              {
+                "evidence_line": 102,
+                "fragment": "enter_frame_info_[id] = frame_info;",
+                "matched_lines": [
+                  102
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[24]": {
+            "claim_line": 122,
+            "evidence_matches": [
+              {
+                "evidence_line": 122,
+                "fragment": "GetMaxPendingCounts(n, &max_pending, &max_dead);",
+                "matched_lines": [
+                  122
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[25]": {
+            "claim_line": 123,
+            "evidence_matches": [
+              {
+                "evidence_line": 123,
+                "fragment": "pending_ids_[id] =",
+                "matched_lines": [
+                  123
+                ]
+              },
+              {
+                "evidence_line": 124,
+                "fragment": "frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead);",
+                "matched_lines": [
+                  124
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[26]": {
+            "claim_line": 128,
+            "evidence_matches": [
+              {
+                "evidence_line": 128,
+                "fragment": "root_nodes_.push_back(item);",
+                "matched_lines": [
+                  128
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[27]": {
+            "claim_line": 132,
+            "evidence_matches": [
+              {
+                "evidence_line": 132,
+                "fragment": "frame_info->nodes->push_back(item);",
+                "matched_lines": [
+                  132
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[28]": {
+            "claim_line": 135,
+            "evidence_matches": [
+              {
+                "evidence_line": 135,
+                "fragment": "TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &enter_name));",
+                "matched_lines": [
+                  135
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[29]": {
+            "claim_line": 136,
+            "evidence_matches": [
+              {
+                "evidence_line": 136,
+                "fragment": "EnsureFrameInfo(enter_name)->input_count++;",
+                "matched_lines": [
+                  136
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[30]": {
+            "claim_line": 140,
+            "evidence_matches": [
+              {
+                "evidence_line": 140,
+                "fragment": "std::unique_ptr<bool[]> outputs_required(new bool[n->num_outputs()]);",
+                "matched_lines": [
+                  140
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[31]": {
+            "claim_line": 141,
+            "evidence_matches": [
+              {
+                "evidence_line": 141,
+                "fragment": "std::fill(&outputs_required[0], &outputs_required[n->num_outputs()], false);",
+                "matched_lines": [
+                  141
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[32]": {
+            "claim_line": 142,
+            "evidence_matches": [
+              {
+                "evidence_line": 142,
+                "fragment": "int32_t unused_outputs = n->num_outputs();",
+                "matched_lines": [
+                  142
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[33]": {
+            "claim_line": 145,
+            "evidence_matches": [
+              {
+                "evidence_line": 145,
+                "fragment": "if (e->src_output() >= 0) {",
+                "matched_lines": [
+                  145
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[34]": {
+            "claim_line": 146,
+            "evidence_matches": [
+              {
+                "evidence_line": 146,
+                "fragment": "if (!outputs_required[e->src_output()]) {",
+                "matched_lines": [
+                  146
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[35]": {
+            "claim_line": 148,
+            "evidence_matches": [
+              {
+                "evidence_line": 148,
+                "fragment": "outputs_required[e->src_output()] = true;",
+                "matched_lines": [
+                  148
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[36]": {
+            "claim_line": 153,
+            "evidence_matches": [
+              {
+                "evidence_line": 153,
+                "fragment": "for (int i = 0; i < n->num_outputs(); ++i) {",
+                "matched_lines": [
+                  153
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[37]": {
+            "claim_line": 154,
+            "evidence_matches": [
+              {
+                "evidence_line": 154,
+                "fragment": "if (!outputs_required[i]) {",
+                "matched_lines": [
+                  154
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[38]": {
+            "claim_line": 158,
+            "evidence_matches": [
+              {
+                "evidence_line": 158,
+                "fragment": "item->outputs_required = std::move(outputs_required);",
+                "matched_lines": [
+                  158
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[39]": {
+            "claim_line": 167,
+            "evidence_matches": [
+              {
+                "evidence_line": 167,
+                "fragment": "NodeItem* item = gview_.node(id);",
+                "matched_lines": [
+                  167
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[40]": {
+            "claim_line": 171,
+            "evidence_matches": [
+              {
+                "evidence_line": 171,
+                "fragment": "NodeItem* dst_item = gview_.node(dst_id);",
+                "matched_lines": [
+                  171
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[41]": {
+            "claim_line": 172,
+            "evidence_matches": [
+              {
+                "evidence_line": 172,
+                "fragment": "e.input_slot += dst_item->input_start;",
+                "matched_lines": [
+                  172
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        }
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 6066,
+              "output_tokens": 1355,
+              "total_tokens": 7421
+            },
+            "max_tokens": 8192
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 6066,
+          "output_tokens": 1355,
+          "total_tokens": 7421
+        },
+        "grounding_by_ref": {
+          "state_agent.states[0]": {
+            "claim_line": 9,
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "EnsureFrameInfo(it)->nodes =",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "absl::make_unique<std::vector<const NodeItem*>>();",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "claim_line": 12,
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "root_frame_info_ = frame_info_[\"\"].get();",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "claim_line": 14,
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "pending_ids_.resize(gview_.num_nodes());",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "claim_line": 43,
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "NodeItem* item = gview_.node(id);",
+                "matched_lines": [
+                  43
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "claim_line": 49,
+            "evidence_matches": [
+              {
+                "evidence_line": 49,
+                "fragment": "Status s = params_.create_kernel(n->properties(), &item->kernel);",
+                "matched_lines": [
+                  49
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "claim_line": 51,
+            "evidence_matches": [
+              {
+                "evidence_line": 51,
+                "fragment": "params_.delete_kernel(item->kernel);",
+                "matched_lines": [
+                  51
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "claim_line": 52,
+            "evidence_matches": [
+              {
+                "evidence_line": 52,
+                "fragment": "item->kernel = nullptr;",
+                "matched_lines": [
+                  52
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "claim_line": 66,
+            "evidence_matches": [
+              {
+                "evidence_line": 66,
+                "fragment": "const Tensor* const_tensor = item->kernel->const_tensor();",
+                "matched_lines": [
+                  66
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[8]": {
+            "claim_line": 71,
+            "evidence_matches": [
+              {
+                "evidence_line": 71,
+                "fragment": "const_tensors_.emplace_back(*const_tensor);",
+                "matched_lines": [
+                  71
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[9]": {
+            "claim_line": 73,
+            "evidence_matches": [
+              {
+                "evidence_line": 73,
+                "fragment": "item->const_tensor = const_tensor;",
+                "matched_lines": [
+                  73
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[10]": {
+            "claim_line": 84,
+            "evidence_matches": [
+              {
+                "evidence_line": 84,
+                "fragment": "FrameInfo* frame_info = frame_info_[frame_name].get();",
+                "matched_lines": [
+                  84
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[11]": {
+            "claim_line": 100,
+            "evidence_matches": [
+              {
+                "evidence_line": 100,
+                "fragment": "enter_frame_info_.resize(id + 1);",
+                "matched_lines": [
+                  100
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[12]": {
+            "claim_line": 102,
+            "evidence_matches": [
+              {
+                "evidence_line": 102,
+                "fragment": "enter_frame_info_[id] = frame_info;",
+                "matched_lines": [
+                  102
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[13]": {
+            "claim_line": 123,
+            "evidence_matches": [
+              {
+                "evidence_line": 123,
+                "fragment": "pending_ids_[id] =",
+                "matched_lines": [
+                  123
+                ]
+              },
+              {
+                "evidence_line": 124,
+                "fragment": "frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead);",
+                "matched_lines": [
+                  124
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[14]": {
+            "claim_line": 128,
+            "evidence_matches": [
+              {
+                "evidence_line": 128,
+                "fragment": "root_nodes_.push_back(item);",
+                "matched_lines": [
+                  128
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[15]": {
+            "claim_line": 132,
+            "evidence_matches": [
+              {
+                "evidence_line": 132,
+                "fragment": "frame_info->nodes->push_back(item);",
+                "matched_lines": [
+                  132
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[16]": {
+            "claim_line": 140,
+            "evidence_matches": [
+              {
+                "evidence_line": 140,
+                "fragment": "std::unique_ptr<bool[]> outputs_required(new bool[n->num_outputs()]);",
+                "matched_lines": [
+                  140
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[17]": {
+            "claim_line": 158,
+            "evidence_matches": [
+              {
+                "evidence_line": 158,
+                "fragment": "item->outputs_required = std::move(outputs_required);",
+                "matched_lines": [
+                  158
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[18]": {
+            "claim_line": 167,
+            "evidence_matches": [
+              {
+                "evidence_line": 167,
+                "fragment": "NodeItem* item = gview_.node(id);",
+                "matched_lines": [
+                  167
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[19]": {
+            "claim_line": 171,
+            "evidence_matches": [
+              {
+                "evidence_line": 171,
+                "fragment": "NodeItem* dst_item = gview_.node(dst_id);",
+                "matched_lines": [
+                  171
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        }
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "errors": [
+              "$.values is missing",
+              "$.values must be an array"
+            ],
+            "token_usage": {
+              "input_tokens": 6097,
+              "output_tokens": 1060,
+              "total_tokens": 7157
+            },
+            "max_tokens": 8192
+          },
+          {
+            "attempt": 2,
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 7254,
+              "output_tokens": 1012,
+              "total_tokens": 8266
+            },
+            "max_tokens": 8192
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 13351,
+          "output_tokens": 2072,
+          "total_tokens": 15423
+        },
+        "grounding_by_ref": {
+          "value_agent.values[0]": {
+            "claim_line": 14,
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "pending_ids_.resize(gview_.num_nodes());",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "claim_line": 40,
+            "evidence_matches": [
+              {
+                "evidence_line": 39,
+                "fragment": "const int id = n->id();",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "const string& frame_name = cf_info.frame_names[id];",
+                "matched_lines": [
+                  40
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "claim_line": 46,
+            "evidence_matches": [
+              {
+                "evidence_line": 46,
+                "fragment": "item->input_start = frame_info->total_inputs;",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "frame_info->total_inputs += n->num_inputs();",
+                "matched_lines": [
+                  47
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "claim_line": 47,
+            "evidence_matches": [
+              {
+                "evidence_line": 47,
+                "fragment": "frame_info->total_inputs += n->num_inputs();",
+                "matched_lines": [
+                  47
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "claim_line": 100,
+            "evidence_matches": [
+              {
+                "evidence_line": 100,
+                "fragment": "enter_frame_info_.resize(id + 1);",
+                "matched_lines": [
+                  100
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "claim_line": 102,
+            "evidence_matches": [
+              {
+                "evidence_line": 102,
+                "fragment": "enter_frame_info_[id] = frame_info;",
+                "matched_lines": [
+                  102
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "claim_line": 123,
+            "evidence_matches": [
+              {
+                "evidence_line": 123,
+                "fragment": "pending_ids_[id] =",
+                "matched_lines": [
+                  123
+                ]
+              },
+              {
+                "evidence_line": 124,
+                "fragment": "frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead);",
+                "matched_lines": [
+                  124
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "claim_line": 140,
+            "evidence_matches": [
+              {
+                "evidence_line": 140,
+                "fragment": "std::unique_ptr<bool[]> outputs_required(new bool[n->num_outputs()]);",
+                "matched_lines": [
+                  140
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "claim_line": 141,
+            "evidence_matches": [
+              {
+                "evidence_line": 141,
+                "fragment": "std::fill(&outputs_required[0], &outputs_required[n->num_outputs()], false);",
+                "matched_lines": [
+                  141
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "claim_line": 142,
+            "evidence_matches": [
+              {
+                "evidence_line": 142,
+                "fragment": "int32_t unused_outputs = n->num_outputs();",
+                "matched_lines": [
+                  142
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "claim_line": 146,
+            "evidence_matches": [
+              {
+                "evidence_line": 145,
+                "fragment": "if (e->src_output() >= 0) {",
+                "matched_lines": [
+                  145
+                ]
+              },
+              {
+                "evidence_line": 146,
+                "fragment": "if (!outputs_required[e->src_output()]) {",
+                "matched_lines": [
+                  146
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "claim_line": 172,
+            "evidence_matches": [
+              {
+                "evidence_line": 172,
+                "fragment": "e.input_slot += dst_item->input_start;",
+                "matched_lines": [
+                  172
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        }
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 6073,
+              "output_tokens": 4130,
+              "total_tokens": 10203
+            },
+            "max_tokens": 8192
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 6073,
+          "output_tokens": 4130,
+          "total_tokens": 10203
+        },
+        "grounding_by_ref": {
+          "execution_agent.executions[0]": {
+            "claim_line": 9,
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "TF_RETURN_IF_ERROR(BuildControlFlowInfo(&graph, &cf_info));",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": "for (auto& it : cf_info.unique_frame_names) {",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "claim_line": 12,
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "for (auto& it : cf_info.unique_frame_names) {",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "root_frame_info_ = frame_info_[\"\"].get();",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "claim_line": 14,
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "TF_RETURN_IF_ERROR(gview_.Initialize(&graph));",
+                "matched_lines": [
+                  2
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "pending_ids_.resize(gview_.num_nodes());",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "claim_line": 32,
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "} else if (IsRecv(n)) {",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"send_device\", &send_device));",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "claim_line": 33,
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "} else if (IsRecv(n)) {",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"send_device\", &send_device));",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"recv_device\", &recv_device));",
+                "matched_lines": [
+                  33
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "claim_line": 40,
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "if (IsSink(n)) continue;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "const string& frame_name = cf_info.frame_names[id];",
+                "matched_lines": [
+                  40
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "claim_line": 43,
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "if (IsSink(n)) continue;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "NodeItem* item = gview_.node(id);",
+                "matched_lines": [
+                  43
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "claim_line": 46,
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "if (IsSink(n)) continue;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "item->input_start = frame_info->total_inputs;",
+                "matched_lines": [
+                  46
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "claim_line": 47,
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "if (IsSink(n)) continue;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "frame_info->total_inputs += n->num_inputs();",
+                "matched_lines": [
+                  47
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "claim_line": 49,
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "if (IsSink(n)) continue;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "Status s = params_.create_kernel(n->properties(), &item->kernel);",
+                "matched_lines": [
+                  49
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[10]": {
+            "claim_line": 51,
+            "evidence_matches": [
+              {
+                "evidence_line": 49,
+                "fragment": "Status s = params_.create_kernel(n->properties(), &item->kernel);",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "if (!s.ok()) {",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "params_.delete_kernel(item->kernel);",
+                "matched_lines": [
+                  51
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[11]": {
+            "claim_line": 56,
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "if (!s.ok()) {",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "return s;",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "CHECK(item->kernel);",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[12]": {
+            "claim_line": 57,
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "if (!s.ok()) {",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "return s;",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "item->kernel_is_async = (item->kernel->AsAsync() != nullptr);",
+                "matched_lines": [
+                  57
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[13]": {
+            "claim_line": 66,
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "if (!s.ok()) {",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "return s;",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 66,
+                "fragment": "const Tensor* const_tensor = item->kernel->const_tensor();",
+                "matched_lines": [
+                  66
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[14]": {
+            "claim_line": 71,
+            "evidence_matches": [
+              {
+                "evidence_line": 67,
+                "fragment": "if (const_tensor) {",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 71,
+                "fragment": "const_tensors_.emplace_back(*const_tensor);",
+                "matched_lines": [
+                  71
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[15]": {
+            "claim_line": 73,
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "if (!s.ok()) {",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "return s;",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 73,
+                "fragment": "item->const_tensor = const_tensor;",
+                "matched_lines": [
+                  73
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[16]": {
+            "claim_line": 74,
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "if (!s.ok()) {",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "return s;",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 74,
+                "fragment": "item->is_noop = (item->kernel->type_string_view() == \"NoOp\");",
+                "matched_lines": [
+                  74
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[17]": {
+            "claim_line": 78,
+            "evidence_matches": [
+              {
+                "evidence_line": 76,
+                "fragment": "if (item->is_enter) {",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 78,
+                "fragment": "TF_RETURN_IF_ERROR(",
+                "matched_lines": [
+                  78
+                ]
+              },
+              {
+                "evidence_line": 79,
+                "fragment": "GetNodeAttr(n->attrs(), \"is_constant\", &is_constant_enter));",
+                "matched_lines": [
+                  79
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[18]": {
+            "claim_line": 83,
+            "evidence_matches": [
+              {
+                "evidence_line": 76,
+                "fragment": "if (item->is_enter) {",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 78,
+                "fragment": "TF_RETURN_IF_ERROR(",
+                "matched_lines": [
+                  78
+                ]
+              },
+              {
+                "evidence_line": 79,
+                "fragment": "GetNodeAttr(n->attrs(), \"is_constant\", &is_constant_enter));",
+                "matched_lines": [
+                  79
+                ]
+              },
+              {
+                "evidence_line": 83,
+                "fragment": "TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &frame_name));",
+                "matched_lines": [
+                  83
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[19]": {
+            "claim_line": 84,
+            "evidence_matches": [
+              {
+                "evidence_line": 76,
+                "fragment": "if (item->is_enter) {",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 83,
+                "fragment": "TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &frame_name));",
+                "matched_lines": [
+                  83
+                ]
+              },
+              {
+                "evidence_line": 84,
+                "fragment": "FrameInfo* frame_info = frame_info_[frame_name].get();",
+                "matched_lines": [
+                  84
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[20]": {
+            "claim_line": 87,
+            "evidence_matches": [
+              {
+                "evidence_line": 76,
+                "fragment": "if (item->is_enter) {",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 83,
+                "fragment": "TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &frame_name));",
+                "matched_lines": [
+                  83
+                ]
+              },
+              {
+                "evidence_line": 87,
+                "fragment": "TF_RETURN_IF_ERROR(",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 88,
+                "fragment": "GetNodeAttr(n->attrs(), \"parallel_iterations\", &parallel_iterations));",
+                "matched_lines": [
+                  88
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[21]": {
+            "claim_line": 99,
+            "evidence_matches": [
+              {
+                "evidence_line": 76,
+                "fragment": "if (item->is_enter) {",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 87,
+                "fragment": "TF_RETURN_IF_ERROR(",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 88,
+                "fragment": "GetNodeAttr(n->attrs(), \"parallel_iterations\", &parallel_iterations));",
+                "matched_lines": [
+                  88
+                ]
+              },
+              {
+                "evidence_line": 99,
+                "fragment": "if (enter_frame_info_.size() <= id) {",
+                "matched_lines": [
+                  99
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[22]": {
+            "claim_line": 100,
+            "evidence_matches": [
+              {
+                "evidence_line": 99,
+                "fragment": "if (enter_frame_info_.size() <= id) {",
+                "matched_lines": [
+                  99
+                ]
+              },
+              {
+                "evidence_line": 100,
+                "fragment": "enter_frame_info_.resize(id + 1);",
+                "matched_lines": [
+                  100
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[23]": {
+            "claim_line": 102,
+            "evidence_matches": [
+              {
+                "evidence_line": 76,
+                "fragment": "if (item->is_enter) {",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 87,
+                "fragment": "TF_RETURN_IF_ERROR(",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 88,
+                "fragment": "GetNodeAttr(n->attrs(), \"parallel_iterations\", &parallel_iterations));",
+                "matched_lines": [
+                  88
+                ]
+              },
+              {
+                "evidence_line": 102,
+                "fragment": "enter_frame_info_[id] = frame_info;",
+                "matched_lines": [
+                  102
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[24]": {
+            "claim_line": 122,
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "if (IsSink(n)) continue;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 122,
+                "fragment": "GetMaxPendingCounts(n, &max_pending, &max_dead);",
+                "matched_lines": [
+                  122
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[25]": {
+            "claim_line": 123,
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "if (IsSink(n)) continue;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 123,
+                "fragment": "pending_ids_[id] =",
+                "matched_lines": [
+                  123
+                ]
+              },
+              {
+                "evidence_line": 124,
+                "fragment": "frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead);",
+                "matched_lines": [
+                  124
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[26]": {
+            "claim_line": 128,
+            "evidence_matches": [
+              {
+                "evidence_line": 127,
+                "fragment": "if (n->in_edges().empty()) {",
+                "matched_lines": [
+                  127
+                ]
+              },
+              {
+                "evidence_line": 128,
+                "fragment": "root_nodes_.push_back(item);",
+                "matched_lines": [
+                  128
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[27]": {
+            "claim_line": 132,
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "if (IsSink(n)) continue;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 132,
+                "fragment": "frame_info->nodes->push_back(item);",
+                "matched_lines": [
+                  132
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[28]": {
+            "claim_line": 135,
+            "evidence_matches": [
+              {
+                "evidence_line": 133,
+                "fragment": "if (item->is_enter) {",
+                "matched_lines": [
+                  133
+                ]
+              },
+              {
+                "evidence_line": 135,
+                "fragment": "TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &enter_name));",
+                "matched_lines": [
+                  135
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[29]": {
+            "claim_line": 136,
+            "evidence_matches": [
+              {
+                "evidence_line": 133,
+                "fragment": "if (item->is_enter) {",
+                "matched_lines": [
+                  133
+                ]
+              },
+              {
+                "evidence_line": 135,
+                "fragment": "TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &enter_name));",
+                "matched_lines": [
+                  135
+                ]
+              },
+              {
+                "evidence_line": 136,
+                "fragment": "EnsureFrameInfo(enter_name)->input_count++;",
+                "matched_lines": [
+                  136
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[30]": {
+            "claim_line": 140,
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "if (IsSink(n)) continue;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 140,
+                "fragment": "std::unique_ptr<bool[]> outputs_required(new bool[n->num_outputs()]);",
+                "matched_lines": [
+                  140
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[31]": {
+            "claim_line": 141,
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "if (IsSink(n)) continue;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 141,
+                "fragment": "std::fill(&outputs_required[0], &outputs_required[n->num_outputs()], false);",
+                "matched_lines": [
+                  141
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[32]": {
+            "claim_line": 142,
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "if (IsSink(n)) continue;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 142,
+                "fragment": "int32_t unused_outputs = n->num_outputs();",
+                "matched_lines": [
+                  142
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[33]": {
+            "claim_line": 145,
+            "evidence_matches": [
+              {
+                "evidence_line": 144,
+                "fragment": "if (IsSink(e->dst())) continue;",
+                "matched_lines": [
+                  144
+                ]
+              },
+              {
+                "evidence_line": 145,
+                "fragment": "if (e->src_output() >= 0) {",
+                "matched_lines": [
+                  145
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[34]": {
+            "claim_line": 146,
+            "evidence_matches": [
+              {
+                "evidence_line": 145,
+                "fragment": "if (e->src_output() >= 0) {",
+                "matched_lines": [
+                  145
+                ]
+              },
+              {
+                "evidence_line": 146,
+                "fragment": "if (!outputs_required[e->src_output()]) {",
+                "matched_lines": [
+                  146
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[35]": {
+            "claim_line": 148,
+            "evidence_matches": [
+              {
+                "evidence_line": 145,
+                "fragment": "if (e->src_output() >= 0) {",
+                "matched_lines": [
+                  145
+                ]
+              },
+              {
+                "evidence_line": 146,
+                "fragment": "if (!outputs_required[e->src_output()]) {",
+                "matched_lines": [
+                  146
+                ]
+              },
+              {
+                "evidence_line": 148,
+                "fragment": "outputs_required[e->src_output()] = true;",
+                "matched_lines": [
+                  148
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[36]": {
+            "claim_line": 153,
+            "evidence_matches": [
+              {
+                "evidence_line": 152,
+                "fragment": "if (unused_outputs > 0) {",
+                "matched_lines": [
+                  152
+                ]
+              },
+              {
+                "evidence_line": 153,
+                "fragment": "for (int i = 0; i < n->num_outputs(); ++i) {",
+                "matched_lines": [
+                  153
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[37]": {
+            "claim_line": 154,
+            "evidence_matches": [
+              {
+                "evidence_line": 152,
+                "fragment": "if (unused_outputs > 0) {",
+                "matched_lines": [
+                  152
+                ]
+              },
+              {
+                "evidence_line": 153,
+                "fragment": "for (int i = 0; i < n->num_outputs(); ++i) {",
+                "matched_lines": [
+                  153
+                ]
+              },
+              {
+                "evidence_line": 154,
+                "fragment": "if (!outputs_required[i]) {",
+                "matched_lines": [
+                  154
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[38]": {
+            "claim_line": 158,
+            "evidence_matches": [
+              {
+                "evidence_line": 152,
+                "fragment": "if (unused_outputs > 0) {",
+                "matched_lines": [
+                  152
+                ]
+              },
+              {
+                "evidence_line": 158,
+                "fragment": "item->outputs_required = std::move(outputs_required);",
+                "matched_lines": [
+                  158
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[39]": {
+            "claim_line": 167,
+            "evidence_matches": [
+              {
+                "evidence_line": 165,
+                "fragment": "if (IsSink(n)) continue;",
+                "matched_lines": [
+                  165
+                ]
+              },
+              {
+                "evidence_line": 167,
+                "fragment": "NodeItem* item = gview_.node(id);",
+                "matched_lines": [
+                  167
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[40]": {
+            "claim_line": 171,
+            "evidence_matches": [
+              {
+                "evidence_line": 165,
+                "fragment": "if (IsSink(n)) continue;",
+                "matched_lines": [
+                  165
+                ]
+              },
+              {
+                "evidence_line": 171,
+                "fragment": "NodeItem* dst_item = gview_.node(dst_id);",
+                "matched_lines": [
+                  171
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[41]": {
+            "claim_line": 172,
+            "evidence_matches": [
+              {
+                "evidence_line": 165,
+                "fragment": "if (IsSink(n)) continue;",
+                "matched_lines": [
+                  165
+                ]
+              },
+              {
+                "evidence_line": 172,
+                "fragment": "e.input_slot += dst_item->input_start;",
+                "matched_lines": [
+                  172
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        }
+      }
+    },
+    "operation_contexts": [
+      {
+        "operation_id": "o1",
+        "operation": {
+          "id": "o1",
+          "location": "L9",
+          "entities": [
+            "EnsureFrameInfo(it)",
+            "nodes"
+          ],
+          "claim": "Allocates a vector of NodeItem pointers and assigns it to the frame info's nodes field.",
+          "evidence": "L9:     EnsureFrameInfo(it)->nodes =\nL10:         absl::make_unique<std::vector<const NodeItem*>>();"
+        },
+        "state_facts": [
+          {
+            "id": "s1",
+            "location": "L9",
+            "entities": [
+              "EnsureFrameInfo(it)->nodes"
+            ],
+            "claim": "The nodes field of the frame info for it is assigned a newly allocated vector of NodeItem pointers.",
+            "evidence": "L9:     EnsureFrameInfo(it)->nodes =\nL10:         absl::make_unique<std::vector<const NodeItem*>>();",
+            "operation_ids": [
+              "o1"
+            ]
+          }
+        ],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e1",
+            "location": "L9",
+            "entities": [
+              "cf_info.unique_frame_names"
+            ],
+            "claim": "Reaching L9 requires the loop over cf_info.unique_frame_names to have begun, which requires BuildControlFlowInfo at L6 to have succeeded.",
+            "evidence": "L6:   TF_RETURN_IF_ERROR(BuildControlFlowInfo(&graph, &cf_info));\nL8:   for (auto& it : cf_info.unique_frame_names) {",
+            "operation_ids": [
+              "o1"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o2",
+        "operation": {
+          "id": "o2",
+          "location": "L12",
+          "entities": [
+            "root_frame_info_",
+            "frame_info_"
+          ],
+          "claim": "Retrieves a raw pointer from frame_info_ and stores it in root_frame_info_.",
+          "evidence": "L12:   root_frame_info_ = frame_info_[\"\"].get();"
+        },
+        "state_facts": [
+          {
+            "id": "s2",
+            "location": "L12",
+            "entities": [
+              "root_frame_info_",
+              "frame_info_[\"\"]"
+            ],
+            "claim": "root_frame_info_ is assigned the raw pointer owned by frame_info_[\"\"].",
+            "evidence": "L12:   root_frame_info_ = frame_info_[\"\"].get();",
+            "operation_ids": [
+              "o2"
+            ]
+          }
+        ],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e2",
+            "location": "L12",
+            "entities": [],
+            "claim": "Reaching L12 requires the loop over cf_info.unique_frame_names at L8 to have completed.",
+            "evidence": "L8:   for (auto& it : cf_info.unique_frame_names) {\nL12:   root_frame_info_ = frame_info_[\"\"].get();",
+            "operation_ids": [
+              "o2"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o3",
+        "operation": {
+          "id": "o3",
+          "location": "L14",
+          "entities": [
+            "pending_ids_",
+            "gview_"
+          ],
+          "claim": "Resizes pending_ids_ to the number of nodes in gview_.",
+          "evidence": "L14:   pending_ids_.resize(gview_.num_nodes());"
+        },
+        "state_facts": [
+          {
+            "id": "s3",
+            "location": "L14",
+            "entities": [
+              "pending_ids_"
+            ],
+            "claim": "pending_ids_ is resized to gview_.num_nodes() elements.",
+            "evidence": "L14:   pending_ids_.resize(gview_.num_nodes());",
+            "operation_ids": [
+              "o3"
+            ]
+          }
+        ],
+        "value_facts": [
+          {
+            "id": "v1",
+            "location": "L14",
+            "entities": [
+              "pending_ids_",
+              "gview_.num_nodes()"
+            ],
+            "claim": "pending_ids_ is resized to gview_.num_nodes(), so its valid index range is [0, gview_.num_nodes() - 1].",
+            "evidence": "L14:   pending_ids_.resize(gview_.num_nodes());",
+            "operation_ids": [
+              "o3"
+            ]
+          }
+        ],
+        "execution_facts": [
+          {
+            "id": "e3",
+            "location": "L14",
+            "entities": [],
+            "claim": "Reaching L14 requires gview_.Initialize at L2 to have succeeded.",
+            "evidence": "L2:   TF_RETURN_IF_ERROR(gview_.Initialize(&graph));\nL14:   pending_ids_.resize(gview_.num_nodes());",
+            "operation_ids": [
+              "o3"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o4",
+        "operation": {
+          "id": "o4",
+          "location": "L32",
+          "entities": [
+            "GetNodeAttr",
+            "n",
+            "send_device"
+          ],
+          "claim": "Reads the send_device attribute from node n into send_device.",
+          "evidence": "L32:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"send_device\", &send_device));"
+        },
+        "state_facts": [],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e4",
+            "location": "L32",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L32 requires n to be a Recv node, since the enclosing branch is entered only when IsRecv(n) is true.",
+            "evidence": "L23:     } else if (IsRecv(n)) {\nL32:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"send_device\", &send_device));",
+            "operation_ids": [
+              "o4"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o5",
+        "operation": {
+          "id": "o5",
+          "location": "L33",
+          "entities": [
+            "GetNodeAttr",
+            "n",
+            "recv_device"
+          ],
+          "claim": "Reads the recv_device attribute from node n into recv_device.",
+          "evidence": "L33:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"recv_device\", &recv_device));"
+        },
+        "state_facts": [],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e5",
+            "location": "L33",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L33 requires n to be a Recv node and the GetNodeAttr call at L32 to have succeeded.",
+            "evidence": "L23:     } else if (IsRecv(n)) {\nL32:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"send_device\", &send_device));\nL33:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"recv_device\", &recv_device));",
+            "operation_ids": [
+              "o5"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o6",
+        "operation": {
+          "id": "o6",
+          "location": "L40",
+          "entities": [
+            "cf_info",
+            "frame_names",
+            "id"
+          ],
+          "claim": "Indexes frame_names with id to obtain a frame name reference.",
+          "evidence": "L40:     const string& frame_name = cf_info.frame_names[id];"
+        },
+        "state_facts": [],
+        "value_facts": [
+          {
+            "id": "v2",
+            "location": "L40",
+            "entities": [
+              "cf_info.frame_names",
+              "id"
+            ],
+            "claim": "frame_name is the element of cf_info.frame_names at index id, where id = n->id().",
+            "evidence": "L39:     const int id = n->id();\nL40:     const string& frame_name = cf_info.frame_names[id];",
+            "operation_ids": [
+              "o6"
+            ]
+          }
+        ],
+        "execution_facts": [
+          {
+            "id": "e6",
+            "location": "L40",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L40 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL40:     const string& frame_name = cf_info.frame_names[id];",
+            "operation_ids": [
+              "o6"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o7",
+        "operation": {
+          "id": "o7",
+          "location": "L43",
+          "entities": [
+            "gview_",
+            "id",
+            "item"
+          ],
+          "claim": "Retrieves the NodeItem pointer for node id from gview_.",
+          "evidence": "L43:     NodeItem* item = gview_.node(id);"
+        },
+        "state_facts": [
+          {
+            "id": "s4",
+            "location": "L43",
+            "entities": [
+              "item",
+              "gview_"
+            ],
+            "claim": "item is assigned the NodeItem pointer returned by gview_.node(id).",
+            "evidence": "L43:     NodeItem* item = gview_.node(id);",
+            "operation_ids": [
+              "o7"
+            ]
+          }
+        ],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e7",
+            "location": "L43",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L43 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL43:     NodeItem* item = gview_.node(id);",
+            "operation_ids": [
+              "o7"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o8",
+        "operation": {
+          "id": "o8",
+          "location": "L46",
+          "entities": [
+            "item",
+            "frame_info"
+          ],
+          "claim": "Reads frame_info->total_inputs and assigns it to item->input_start.",
+          "evidence": "L46:     item->input_start = frame_info->total_inputs;"
+        },
+        "state_facts": [],
+        "value_facts": [
+          {
+            "id": "v3",
+            "location": "L46",
+            "entities": [
+              "item->input_start",
+              "frame_info->total_inputs"
+            ],
+            "claim": "item->input_start is assigned the current value of frame_info->total_inputs before that total is incremented.",
+            "evidence": "L46:     item->input_start = frame_info->total_inputs;\nL47:     frame_info->total_inputs += n->num_inputs();",
+            "operation_ids": [
+              "o8",
+              "o9"
+            ]
+          }
+        ],
+        "execution_facts": [
+          {
+            "id": "e8",
+            "location": "L46",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L46 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL46:     item->input_start = frame_info->total_inputs;",
+            "operation_ids": [
+              "o8"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o9",
+        "operation": {
+          "id": "o9",
+          "location": "L47",
+          "entities": [
+            "frame_info",
+            "n"
+          ],
+          "claim": "Increments frame_info->total_inputs by n->num_inputs().",
+          "evidence": "L47:     frame_info->total_inputs += n->num_inputs();"
+        },
+        "state_facts": [],
+        "value_facts": [
+          {
+            "id": "v3",
+            "location": "L46",
+            "entities": [
+              "item->input_start",
+              "frame_info->total_inputs"
+            ],
+            "claim": "item->input_start is assigned the current value of frame_info->total_inputs before that total is incremented.",
+            "evidence": "L46:     item->input_start = frame_info->total_inputs;\nL47:     frame_info->total_inputs += n->num_inputs();",
+            "operation_ids": [
+              "o8",
+              "o9"
+            ]
+          },
+          {
+            "id": "v4",
+            "location": "L47",
+            "entities": [
+              "frame_info->total_inputs",
+              "n->num_inputs()"
+            ],
+            "claim": "frame_info->total_inputs is incremented by n->num_inputs().",
+            "evidence": "L47:     frame_info->total_inputs += n->num_inputs();",
+            "operation_ids": [
+              "o9"
+            ]
+          }
+        ],
+        "execution_facts": [
+          {
+            "id": "e9",
+            "location": "L47",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L47 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL47:     frame_info->total_inputs += n->num_inputs();",
+            "operation_ids": [
+              "o9"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o10",
+        "operation": {
+          "id": "o10",
+          "location": "L49",
+          "entities": [
+            "params_",
+            "n",
+            "item"
+          ],
+          "claim": "Creates a kernel for node n and stores it in item->kernel.",
+          "evidence": "L49:     Status s = params_.create_kernel(n->properties(), &item->kernel);"
+        },
+        "state_facts": [
+          {
+            "id": "s5",
+            "location": "L49",
+            "entities": [
+              "item->kernel"
+            ],
+            "claim": "item->kernel is assigned the kernel created by params_.create_kernel.",
+            "evidence": "L49:     Status s = params_.create_kernel(n->properties(), &item->kernel);",
+            "operation_ids": [
+              "o10"
+            ]
+          }
+        ],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e10",
+            "location": "L49",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L49 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL49:     Status s = params_.create_kernel(n->properties(), &item->kernel);",
+            "operation_ids": [
+              "o10"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o11",
+        "operation": {
+          "id": "o11",
+          "location": "L51",
+          "entities": [
+            "params_",
+            "item"
+          ],
+          "claim": "Deletes the kernel stored in item->kernel.",
+          "evidence": "L51:       params_.delete_kernel(item->kernel);"
+        },
+        "state_facts": [
+          {
+            "id": "s6",
+            "location": "L51",
+            "entities": [
+              "item->kernel"
+            ],
+            "claim": "item->kernel is passed to params_.delete_kernel.",
+            "evidence": "L51:       params_.delete_kernel(item->kernel);",
+            "operation_ids": [
+              "o11"
+            ]
+          },
+          {
+            "id": "s7",
+            "location": "L52",
+            "entities": [
+              "item->kernel"
+            ],
+            "claim": "item->kernel is set to nullptr.",
+            "evidence": "L52:       item->kernel = nullptr;",
+            "operation_ids": [
+              "o11"
+            ]
+          }
+        ],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e11",
+            "location": "L51",
+            "entities": [],
+            "claim": "Reaching L51 requires the create_kernel call at L49 to have returned a non-ok status.",
+            "evidence": "L49:     Status s = params_.create_kernel(n->properties(), &item->kernel);\nL50:     if (!s.ok()) {\nL51:       params_.delete_kernel(item->kernel);",
+            "operation_ids": [
+              "o11"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o12",
+        "operation": {
+          "id": "o12",
+          "location": "L56",
+          "entities": [
+            "item"
+          ],
+          "claim": "Checks that item->kernel is non-null.",
+          "evidence": "L56:     CHECK(item->kernel);"
+        },
+        "state_facts": [],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e12",
+            "location": "L56",
+            "entities": [],
+            "claim": "Reaching L56 requires the create_kernel call at L49 to have returned an ok status, since a non-ok status returns at L54.",
+            "evidence": "L50:     if (!s.ok()) {\nL54:       return s;\nL56:     CHECK(item->kernel);",
+            "operation_ids": [
+              "o12"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o13",
+        "operation": {
+          "id": "o13",
+          "location": "L57",
+          "entities": [
+            "item"
+          ],
+          "claim": "Calls AsAsync on item->kernel and compares the result to nullptr.",
+          "evidence": "L57:     item->kernel_is_async = (item->kernel->AsAsync() != nullptr);"
+        },
+        "state_facts": [],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e13",
+            "location": "L57",
+            "entities": [],
+            "claim": "Reaching L57 requires the create_kernel call at L49 to have returned an ok status, since a non-ok status returns at L54.",
+            "evidence": "L50:     if (!s.ok()) {\nL54:       return s;\nL57:     item->kernel_is_async = (item->kernel->AsAsync() != nullptr);",
+            "operation_ids": [
+              "o13"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o14",
+        "operation": {
+          "id": "o14",
+          "location": "L66",
+          "entities": [
+            "item",
+            "const_tensor"
+          ],
+          "claim": "Calls const_tensor on item->kernel and stores the returned pointer.",
+          "evidence": "L66:     const Tensor* const_tensor = item->kernel->const_tensor();"
+        },
+        "state_facts": [
+          {
+            "id": "s8",
+            "location": "L66",
+            "entities": [
+              "const_tensor",
+              "item->kernel"
+            ],
+            "claim": "const_tensor is assigned the pointer returned by item->kernel->const_tensor().",
+            "evidence": "L66:     const Tensor* const_tensor = item->kernel->const_tensor();",
+            "operation_ids": [
+              "o14"
+            ]
+          }
+        ],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e14",
+            "location": "L66",
+            "entities": [],
+            "claim": "Reaching L66 requires the create_kernel call at L49 to have returned an ok status, since a non-ok status returns at L54.",
+            "evidence": "L50:     if (!s.ok()) {\nL54:       return s;\nL66:     const Tensor* const_tensor = item->kernel->const_tensor();",
+            "operation_ids": [
+              "o14"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o15",
+        "operation": {
+          "id": "o15",
+          "location": "L71",
+          "entities": [
+            "const_tensors_",
+            "const_tensor"
+          ],
+          "claim": "Copies the tensor pointed to by const_tensor into const_tensors_.",
+          "evidence": "L71:       const_tensors_.emplace_back(*const_tensor);"
+        },
+        "state_facts": [
+          {
+            "id": "s9",
+            "location": "L71",
+            "entities": [
+              "const_tensors_",
+              "const_tensor"
+            ],
+            "claim": "A copy of the tensor pointed to by const_tensor is appended to const_tensors_.",
+            "evidence": "L71:       const_tensors_.emplace_back(*const_tensor);",
+            "operation_ids": [
+              "o15"
+            ]
+          }
+        ],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e15",
+            "location": "L71",
+            "entities": [
+              "const_tensor"
+            ],
+            "claim": "Reaching L71 requires const_tensor to be non-null, since the enclosing branch is entered only when const_tensor is truthy.",
+            "evidence": "L67:     if (const_tensor) {\nL71:       const_tensors_.emplace_back(*const_tensor);",
+            "operation_ids": [
+              "o15"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o16",
+        "operation": {
+          "id": "o16",
+          "location": "L73",
+          "entities": [
+            "item",
+            "const_tensor"
+          ],
+          "claim": "Assigns the const_tensor pointer to item->const_tensor.",
+          "evidence": "L73:     item->const_tensor = const_tensor;"
+        },
+        "state_facts": [
+          {
+            "id": "s10",
+            "location": "L73",
+            "entities": [
+              "item->const_tensor",
+              "const_tensor"
+            ],
+            "claim": "item->const_tensor is assigned the const_tensor pointer.",
+            "evidence": "L73:     item->const_tensor = const_tensor;",
+            "operation_ids": [
+              "o16"
+            ]
+          }
+        ],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e16",
+            "location": "L73",
+            "entities": [],
+            "claim": "Reaching L73 requires the create_kernel call at L49 to have returned an ok status, since a non-ok status returns at L54.",
+            "evidence": "L50:     if (!s.ok()) {\nL54:       return s;\nL73:     item->const_tensor = const_tensor;",
+            "operation_ids": [
+              "o16"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o17",
+        "operation": {
+          "id": "o17",
+          "location": "L74",
+          "entities": [
+            "item"
+          ],
+          "claim": "Calls type_string_view on item->kernel and compares the result to \"NoOp\".",
+          "evidence": "L74:     item->is_noop = (item->kernel->type_string_view() == \"NoOp\");"
+        },
+        "state_facts": [],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e17",
+            "location": "L74",
+            "entities": [],
+            "claim": "Reaching L74 requires the create_kernel call at L49 to have returned an ok status, since a non-ok status returns at L54.",
+            "evidence": "L50:     if (!s.ok()) {\nL54:       return s;\nL74:     item->is_noop = (item->kernel->type_string_view() == \"NoOp\");",
+            "operation_ids": [
+              "o17"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o18",
+        "operation": {
+          "id": "o18",
+          "location": "L78",
+          "entities": [
+            "GetNodeAttr",
+            "n",
+            "is_constant_enter"
+          ],
+          "claim": "Reads the is_constant attribute from node n into is_constant_enter.",
+          "evidence": "L78:       TF_RETURN_IF_ERROR(\nL79:           GetNodeAttr(n->attrs(), \"is_constant\", &is_constant_enter));"
+        },
+        "state_facts": [],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e18",
+            "location": "L78",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L78 requires item->is_enter to be true, since the enclosing branch is entered only when item->is_enter is true.",
+            "evidence": "L76:     if (item->is_enter) {\nL78:       TF_RETURN_IF_ERROR(\nL79:           GetNodeAttr(n->attrs(), \"is_constant\", &is_constant_enter));",
+            "operation_ids": [
+              "o18"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o19",
+        "operation": {
+          "id": "o19",
+          "location": "L83",
+          "entities": [
+            "GetNodeAttr",
+            "n",
+            "frame_name"
+          ],
+          "claim": "Reads the frame_name attribute from node n into frame_name.",
+          "evidence": "L83:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &frame_name));"
+        },
+        "state_facts": [],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e19",
+            "location": "L83",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L83 requires item->is_enter to be true and the GetNodeAttr call at L78-L79 to have succeeded.",
+            "evidence": "L76:     if (item->is_enter) {\nL78:       TF_RETURN_IF_ERROR(\nL79:           GetNodeAttr(n->attrs(), \"is_constant\", &is_constant_enter));\nL83:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &frame_name));",
+            "operation_ids": [
+              "o19"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o20",
+        "operation": {
+          "id": "o20",
+          "location": "L84",
+          "entities": [
+            "frame_info_",
+            "frame_name",
+            "frame_info"
+          ],
+          "claim": "Indexes frame_info_ with frame_name and retrieves the raw pointer.",
+          "evidence": "L84:       FrameInfo* frame_info = frame_info_[frame_name].get();"
+        },
+        "state_facts": [
+          {
+            "id": "s11",
+            "location": "L84",
+            "entities": [
+              "frame_info",
+              "frame_info_[frame_name]"
+            ],
+            "claim": "frame_info is assigned the raw pointer owned by frame_info_[frame_name].",
+            "evidence": "L84:       FrameInfo* frame_info = frame_info_[frame_name].get();",
+            "operation_ids": [
+              "o20"
+            ]
+          }
+        ],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e20",
+            "location": "L84",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L84 requires item->is_enter to be true and the GetNodeAttr call at L83 to have succeeded.",
+            "evidence": "L76:     if (item->is_enter) {\nL83:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &frame_name));\nL84:       FrameInfo* frame_info = frame_info_[frame_name].get();",
+            "operation_ids": [
+              "o20"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o21",
+        "operation": {
+          "id": "o21",
+          "location": "L87",
+          "entities": [
+            "GetNodeAttr",
+            "n",
+            "parallel_iterations"
+          ],
+          "claim": "Reads the parallel_iterations attribute from node n into parallel_iterations.",
+          "evidence": "L87:       TF_RETURN_IF_ERROR(\nL88:           GetNodeAttr(n->attrs(), \"parallel_iterations\", &parallel_iterations));"
+        },
+        "state_facts": [],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e21",
+            "location": "L87",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L87 requires item->is_enter to be true and the GetNodeAttr call at L83 to have succeeded.",
+            "evidence": "L76:     if (item->is_enter) {\nL83:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &frame_name));\nL87:       TF_RETURN_IF_ERROR(\nL88:           GetNodeAttr(n->attrs(), \"parallel_iterations\", &parallel_iterations));",
+            "operation_ids": [
+              "o21"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o22",
+        "operation": {
+          "id": "o22",
+          "location": "L99",
+          "entities": [
+            "enter_frame_info_",
+            "id"
+          ],
+          "claim": "Compares enter_frame_info_.size() to id.",
+          "evidence": "L99:       if (enter_frame_info_.size() <= id) {"
+        },
+        "state_facts": [],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e22",
+            "location": "L99",
+            "entities": [
+              "id"
+            ],
+            "claim": "Reaching L99 requires item->is_enter to be true and the GetNodeAttr call at L87-L88 to have succeeded.",
+            "evidence": "L76:     if (item->is_enter) {\nL87:       TF_RETURN_IF_ERROR(\nL88:           GetNodeAttr(n->attrs(), \"parallel_iterations\", &parallel_iterations));\nL99:       if (enter_frame_info_.size() <= id) {",
+            "operation_ids": [
+              "o22"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o23",
+        "operation": {
+          "id": "o23",
+          "location": "L100",
+          "entities": [
+            "enter_frame_info_",
+            "id"
+          ],
+          "claim": "Resizes enter_frame_info_ to id + 1.",
+          "evidence": "L100:         enter_frame_info_.resize(id + 1);"
+        },
+        "state_facts": [
+          {
+            "id": "s12",
+            "location": "L100",
+            "entities": [
+              "enter_frame_info_"
+            ],
+            "claim": "enter_frame_info_ is resized to id + 1 elements.",
+            "evidence": "L100:         enter_frame_info_.resize(id + 1);",
+            "operation_ids": [
+              "o23"
+            ]
+          }
+        ],
+        "value_facts": [
+          {
+            "id": "v5",
+            "location": "L100",
+            "entities": [
+              "enter_frame_info_",
+              "id"
+            ],
+            "claim": "enter_frame_info_ is resized to id + 1, so index id becomes valid.",
+            "evidence": "L100:         enter_frame_info_.resize(id + 1);",
+            "operation_ids": [
+              "o23"
+            ]
+          }
+        ],
+        "execution_facts": [
+          {
+            "id": "e23",
+            "location": "L100",
+            "entities": [
+              "id"
+            ],
+            "claim": "Reaching L100 requires enter_frame_info_.size() <= id, since the enclosing branch is entered only when that condition holds.",
+            "evidence": "L99:       if (enter_frame_info_.size() <= id) {\nL100:         enter_frame_info_.resize(id + 1);",
+            "operation_ids": [
+              "o23"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o24",
+        "operation": {
+          "id": "o24",
+          "location": "L102",
+          "entities": [
+            "enter_frame_info_",
+            "id",
+            "frame_info"
+          ],
+          "claim": "Indexes enter_frame_info_ with id and assigns frame_info.",
+          "evidence": "L102:       enter_frame_info_[id] = frame_info;"
+        },
+        "state_facts": [
+          {
+            "id": "s13",
+            "location": "L102",
+            "entities": [
+              "enter_frame_info_[id]",
+              "frame_info"
+            ],
+            "claim": "enter_frame_info_[id] is assigned the frame_info pointer.",
+            "evidence": "L102:       enter_frame_info_[id] = frame_info;",
+            "operation_ids": [
+              "o24"
+            ]
+          }
+        ],
+        "value_facts": [
+          {
+            "id": "v6",
+            "location": "L102",
+            "entities": [
+              "enter_frame_info_[id]",
+              "frame_info"
+            ],
+            "claim": "enter_frame_info_[id] is assigned the frame_info pointer for the enter node.",
+            "evidence": "L102:       enter_frame_info_[id] = frame_info;",
+            "operation_ids": [
+              "o24"
+            ]
+          }
+        ],
+        "execution_facts": [
+          {
+            "id": "e24",
+            "location": "L102",
+            "entities": [
+              "id"
+            ],
+            "claim": "Reaching L102 requires item->is_enter to be true and the GetNodeAttr call at L87-L88 to have succeeded.",
+            "evidence": "L76:     if (item->is_enter) {\nL87:       TF_RETURN_IF_ERROR(\nL88:           GetNodeAttr(n->attrs(), \"parallel_iterations\", &parallel_iterations));\nL102:       enter_frame_info_[id] = frame_info;",
+            "operation_ids": [
+              "o24"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o25",
+        "operation": {
+          "id": "o25",
+          "location": "L122",
+          "entities": [
+            "GetMaxPendingCounts",
+            "n",
+            "max_pending",
+            "max_dead"
+          ],
+          "claim": "Calls GetMaxPendingCounts with node n and output parameters max_pending and max_dead.",
+          "evidence": "L122:     GetMaxPendingCounts(n, &max_pending, &max_dead);"
+        },
+        "state_facts": [],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e25",
+            "location": "L122",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L122 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL122:     GetMaxPendingCounts(n, &max_pending, &max_dead);",
+            "operation_ids": [
+              "o25"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o26",
+        "operation": {
+          "id": "o26",
+          "location": "L123",
+          "entities": [
+            "pending_ids_",
+            "id",
+            "frame_info",
+            "max_pending",
+            "max_dead"
+          ],
+          "claim": "Indexes pending_ids_ with id and assigns a handle created from frame_info->pending_counts_layout with max_pending and max_dead.",
+          "evidence": "L123:     pending_ids_[id] =\nL124:         frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead);"
+        },
+        "state_facts": [
+          {
+            "id": "s14",
+            "location": "L123",
+            "entities": [
+              "pending_ids_[id]"
+            ],
+            "claim": "pending_ids_[id] is assigned a handle created by frame_info->pending_counts_layout.CreateHandle.",
+            "evidence": "L123:     pending_ids_[id] =\nL124:         frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead);",
+            "operation_ids": [
+              "o26"
+            ]
+          }
+        ],
+        "value_facts": [
+          {
+            "id": "v7",
+            "location": "L123",
+            "entities": [
+              "pending_ids_[id]",
+              "max_pending",
+              "max_dead"
+            ],
+            "claim": "pending_ids_[id] is assigned a handle created from frame_info->pending_counts_layout with max_pending and max_dead.",
+            "evidence": "L123:     pending_ids_[id] =\nL124:         frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead);",
+            "operation_ids": [
+              "o26"
+            ]
+          }
+        ],
+        "execution_facts": [
+          {
+            "id": "e26",
+            "location": "L123",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L123 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL123:     pending_ids_[id] =\nL124:         frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead);",
+            "operation_ids": [
+              "o26"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o27",
+        "operation": {
+          "id": "o27",
+          "location": "L128",
+          "entities": [
+            "root_nodes_",
+            "item"
+          ],
+          "claim": "Appends item to root_nodes_.",
+          "evidence": "L128:       root_nodes_.push_back(item);"
+        },
+        "state_facts": [
+          {
+            "id": "s15",
+            "location": "L128",
+            "entities": [
+              "root_nodes_",
+              "item"
+            ],
+            "claim": "item is appended to root_nodes_.",
+            "evidence": "L128:       root_nodes_.push_back(item);",
+            "operation_ids": [
+              "o27"
+            ]
+          }
+        ],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e27",
+            "location": "L128",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L128 requires n->in_edges() to be empty, since the enclosing branch is entered only when that condition holds.",
+            "evidence": "L127:     if (n->in_edges().empty()) {\nL128:       root_nodes_.push_back(item);",
+            "operation_ids": [
+              "o27"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o28",
+        "operation": {
+          "id": "o28",
+          "location": "L132",
+          "entities": [
+            "frame_info",
+            "item"
+          ],
+          "claim": "Appends item to frame_info->nodes.",
+          "evidence": "L132:     frame_info->nodes->push_back(item);"
+        },
+        "state_facts": [
+          {
+            "id": "s16",
+            "location": "L132",
+            "entities": [
+              "frame_info->nodes",
+              "item"
+            ],
+            "claim": "item is appended to frame_info->nodes.",
+            "evidence": "L132:     frame_info->nodes->push_back(item);",
+            "operation_ids": [
+              "o28"
+            ]
+          }
+        ],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e28",
+            "location": "L132",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L132 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL132:     frame_info->nodes->push_back(item);",
+            "operation_ids": [
+              "o28"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o29",
+        "operation": {
+          "id": "o29",
+          "location": "L135",
+          "entities": [
+            "GetNodeAttr",
+            "n",
+            "enter_name"
+          ],
+          "claim": "Reads the frame_name attribute from node n into enter_name.",
+          "evidence": "L135:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &enter_name));"
+        },
+        "state_facts": [],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e29",
+            "location": "L135",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L135 requires item->is_enter to be true, since the enclosing branch is entered only when item->is_enter is true.",
+            "evidence": "L133:     if (item->is_enter) {\nL135:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &enter_name));",
+            "operation_ids": [
+              "o29"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o30",
+        "operation": {
+          "id": "o30",
+          "location": "L136",
+          "entities": [
+            "EnsureFrameInfo",
+            "enter_name"
+          ],
+          "claim": "Increments the input_count of the frame info for enter_name.",
+          "evidence": "L136:       EnsureFrameInfo(enter_name)->input_count++;"
+        },
+        "state_facts": [],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e30",
+            "location": "L136",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L136 requires item->is_enter to be true and the GetNodeAttr call at L135 to have succeeded.",
+            "evidence": "L133:     if (item->is_enter) {\nL135:       TF_RETURN_IF_ERROR(GetNodeAttr(n->attrs(), \"frame_name\", &enter_name));\nL136:       EnsureFrameInfo(enter_name)->input_count++;",
+            "operation_ids": [
+              "o30"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o31",
+        "operation": {
+          "id": "o31",
+          "location": "L140",
+          "entities": [
+            "outputs_required",
+            "n"
+          ],
+          "claim": "Allocates a bool array of size n->num_outputs() and stores it in outputs_required.",
+          "evidence": "L140:     std::unique_ptr<bool[]> outputs_required(new bool[n->num_outputs()]);"
+        },
+        "state_facts": [
+          {
+            "id": "s17",
+            "location": "L140",
+            "entities": [
+              "outputs_required"
+            ],
+            "claim": "outputs_required is assigned a newly allocated bool array of size n->num_outputs().",
+            "evidence": "L140:     std::unique_ptr<bool[]> outputs_required(new bool[n->num_outputs()]);",
+            "operation_ids": [
+              "o31"
+            ]
+          }
+        ],
+        "value_facts": [
+          {
+            "id": "v8",
+            "location": "L140",
+            "entities": [
+              "outputs_required",
+              "n->num_outputs()"
+            ],
+            "claim": "outputs_required points to a bool array of length n->num_outputs().",
+            "evidence": "L140:     std::unique_ptr<bool[]> outputs_required(new bool[n->num_outputs()]);",
+            "operation_ids": [
+              "o31"
+            ]
+          }
+        ],
+        "execution_facts": [
+          {
+            "id": "e31",
+            "location": "L140",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L140 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL140:     std::unique_ptr<bool[]> outputs_required(new bool[n->num_outputs()]);",
+            "operation_ids": [
+              "o31"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o32",
+        "operation": {
+          "id": "o32",
+          "location": "L141",
+          "entities": [
+            "outputs_required",
+            "n"
+          ],
+          "claim": "Fills the outputs_required array from index 0 to n->num_outputs() with false.",
+          "evidence": "L141:     std::fill(&outputs_required[0], &outputs_required[n->num_outputs()], false);"
+        },
+        "state_facts": [],
+        "value_facts": [
+          {
+            "id": "v9",
+            "location": "L141",
+            "entities": [
+              "outputs_required",
+              "n->num_outputs()"
+            ],
+            "claim": "The outputs_required array is filled from index 0 up to but not including n->num_outputs().",
+            "evidence": "L141:     std::fill(&outputs_required[0], &outputs_required[n->num_outputs()], false);",
+            "operation_ids": [
+              "o32"
+            ]
+          }
+        ],
+        "execution_facts": [
+          {
+            "id": "e32",
+            "location": "L141",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L141 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL141:     std::fill(&outputs_required[0], &outputs_required[n->num_outputs()], false);",
+            "operation_ids": [
+              "o32"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o33",
+        "operation": {
+          "id": "o33",
+          "location": "L142",
+          "entities": [
+            "n",
+            "unused_outputs"
+          ],
+          "claim": "Initializes unused_outputs with n->num_outputs().",
+          "evidence": "L142:     int32_t unused_outputs = n->num_outputs();"
+        },
+        "state_facts": [],
+        "value_facts": [
+          {
+            "id": "v10",
+            "location": "L142",
+            "entities": [
+              "unused_outputs",
+              "n->num_outputs()"
+            ],
+            "claim": "unused_outputs is initialized to n->num_outputs().",
+            "evidence": "L142:     int32_t unused_outputs = n->num_outputs();",
+            "operation_ids": [
+              "o33"
+            ]
+          }
+        ],
+        "execution_facts": [
+          {
+            "id": "e33",
+            "location": "L142",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L142 requires n to be a non-sink node, since IsSink(n) causes continue at L20.",
+            "evidence": "L20:     if (IsSink(n)) continue;\nL142:     int32_t unused_outputs = n->num_outputs();",
+            "operation_ids": [
+              "o33"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o34",
+        "operation": {
+          "id": "o34",
+          "location": "L145",
+          "entities": [
+            "e"
+          ],
+          "claim": "Reads e->src_output().",
+          "evidence": "L145:       if (e->src_output() >= 0) {"
+        },
+        "state_facts": [],
+        "value_facts": [
+          {
+            "id": "v11",
+            "location": "L146",
+            "entities": [
+              "outputs_required",
+              "e->src_output()"
+            ],
+            "claim": "outputs_required is indexed by e->src_output(), which is non-negative at this point.",
+            "evidence": "L145:       if (e->src_output() >= 0) {\nL146:         if (!outputs_required[e->src_output()]) {",
+            "operation_ids": [
+              "o34",
+              "o35"
+            ]
+          }
+        ],
+        "execution_facts": [
+          {
+            "id": "e34",
+            "location": "L145",
+            "entities": [
+              "e"
+            ],
+            "claim": "Reaching L145 requires the edge e to have a non-sink destination, since IsSink(e->dst()) causes continue at L144.",
+            "evidence": "L144:       if (IsSink(e->dst())) continue;\nL145:       if (e->src_output() >= 0) {",
+            "operation_ids": [
+              "o34"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o35",
+        "operation": {
+          "id": "o35",
+          "location": "L146",
+          "entities": [
+            "outputs_required",
+            "e"
+          ],
+          "claim": "Indexes outputs_required with e->src_output().",
+          "evidence": "L146:         if (!outputs_required[e->src_output()]) {"
+        },
+        "state_facts": [],
+        "value_facts": [
+          {
+            "id": "v11",
+            "location": "L146",
+            "entities": [
+              "outputs_required",
+              "e->src_output()"
+            ],
+            "claim": "outputs_required is indexed by e->src_output(), which is non-negative at this point.",
+            "evidence": "L145:       if (e->src_output() >= 0) {\nL146:         if (!outputs_required[e->src_output()]) {",
+            "operation_ids": [
+              "o34",
+              "o35"
+            ]
+          }
+        ],
+        "execution_facts": [
+          {
+            "id": "e35",
+            "location": "L146",
+            "entities": [
+              "e"
+            ],
+            "claim": "Reaching L146 requires e->src_output() >= 0, since the enclosing branch is entered only when that condition holds.",
+            "evidence": "L145:       if (e->src_output() >= 0) {\nL146:         if (!outputs_required[e->src_output()]) {",
+            "operation_ids": [
+              "o35"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o36",
+        "operation": {
+          "id": "o36",
+          "location": "L148",
+          "entities": [
+            "outputs_required",
+            "e"
+          ],
+          "claim": "Indexes outputs_required with e->src_output() and assigns true.",
+          "evidence": "L148:           outputs_required[e->src_output()] = true;"
+        },
+        "state_facts": [],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e36",
+            "location": "L148",
+            "entities": [
+              "e"
+            ],
+            "claim": "Reaching L148 requires e->src_output() >= 0 and outputs_required[e->src_output()] to be false.",
+            "evidence": "L145:       if (e->src_output() >= 0) {\nL146:         if (!outputs_required[e->src_output()]) {\nL148:           outputs_required[e->src_output()] = true;",
+            "operation_ids": [
+              "o36"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o37",
+        "operation": {
+          "id": "o37",
+          "location": "L153",
+          "entities": [
+            "n"
+          ],
+          "claim": "Iterates i from 0 to n->num_outputs().",
+          "evidence": "L153:       for (int i = 0; i < n->num_outputs(); ++i) {"
+        },
+        "state_facts": [],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e37",
+            "location": "L153",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L153 requires unused_outputs > 0, since the enclosing branch is entered only when that condition holds.",
+            "evidence": "L152:     if (unused_outputs > 0) {\nL153:       for (int i = 0; i < n->num_outputs(); ++i) {",
+            "operation_ids": [
+              "o37"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o38",
+        "operation": {
+          "id": "o38",
+          "location": "L154",
+          "entities": [
+            "outputs_required",
+            "i"
+          ],
+          "claim": "Indexes outputs_required with i.",
+          "evidence": "L154:         if (!outputs_required[i]) {"
+        },
+        "state_facts": [],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e38",
+            "location": "L154",
+            "entities": [
+              "i"
+            ],
+            "claim": "Reaching L154 requires unused_outputs > 0 and i < n->num_outputs().",
+            "evidence": "L152:     if (unused_outputs > 0) {\nL153:       for (int i = 0; i < n->num_outputs(); ++i) {\nL154:         if (!outputs_required[i]) {",
+            "operation_ids": [
+              "o38"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o39",
+        "operation": {
+          "id": "o39",
+          "location": "L158",
+          "entities": [
+            "item",
+            "outputs_required"
+          ],
+          "claim": "Moves outputs_required into item->outputs_required.",
+          "evidence": "L158:       item->outputs_required = std::move(outputs_required);"
+        },
+        "state_facts": [
+          {
+            "id": "s18",
+            "location": "L158",
+            "entities": [
+              "item->outputs_required",
+              "outputs_required"
+            ],
+            "claim": "outputs_required is moved into item->outputs_required.",
+            "evidence": "L158:       item->outputs_required = std::move(outputs_required);",
+            "operation_ids": [
+              "o39"
+            ]
+          }
+        ],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e39",
+            "location": "L158",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L158 requires unused_outputs > 0, since the enclosing branch is entered only when that condition holds.",
+            "evidence": "L152:     if (unused_outputs > 0) {\nL158:       item->outputs_required = std::move(outputs_required);",
+            "operation_ids": [
+              "o39"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o40",
+        "operation": {
+          "id": "o40",
+          "location": "L167",
+          "entities": [
+            "gview_",
+            "id",
+            "item"
+          ],
+          "claim": "Retrieves the NodeItem pointer for node id from gview_.",
+          "evidence": "L167:     NodeItem* item = gview_.node(id);"
+        },
+        "state_facts": [
+          {
+            "id": "s19",
+            "location": "L167",
+            "entities": [
+              "item",
+              "gview_"
+            ],
+            "claim": "item is assigned the NodeItem pointer returned by gview_.node(id).",
+            "evidence": "L167:     NodeItem* item = gview_.node(id);",
+            "operation_ids": [
+              "o40"
+            ]
+          }
+        ],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e40",
+            "location": "L167",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L167 requires n to be a non-sink node, since IsSink(n) causes continue at L165.",
+            "evidence": "L165:     if (IsSink(n)) continue;\nL167:     NodeItem* item = gview_.node(id);",
+            "operation_ids": [
+              "o40"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o41",
+        "operation": {
+          "id": "o41",
+          "location": "L171",
+          "entities": [
+            "gview_",
+            "dst_id",
+            "dst_item"
+          ],
+          "claim": "Retrieves the NodeItem pointer for dst_id from gview_.",
+          "evidence": "L171:       NodeItem* dst_item = gview_.node(dst_id);"
+        },
+        "state_facts": [
+          {
+            "id": "s20",
+            "location": "L171",
+            "entities": [
+              "dst_item",
+              "gview_"
+            ],
+            "claim": "dst_item is assigned the NodeItem pointer returned by gview_.node(dst_id).",
+            "evidence": "L171:       NodeItem* dst_item = gview_.node(dst_id);",
+            "operation_ids": [
+              "o41"
+            ]
+          }
+        ],
+        "value_facts": [],
+        "execution_facts": [
+          {
+            "id": "e41",
+            "location": "L171",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L171 requires n to be a non-sink node, since IsSink(n) causes continue at L165.",
+            "evidence": "L165:     if (IsSink(n)) continue;\nL171:       NodeItem* dst_item = gview_.node(dst_id);",
+            "operation_ids": [
+              "o41"
+            ]
+          }
+        ]
+      },
+      {
+        "operation_id": "o42",
+        "operation": {
+          "id": "o42",
+          "location": "L172",
+          "entities": [
+            "e",
+            "dst_item"
+          ],
+          "claim": "Adds dst_item->input_start to e.input_slot.",
+          "evidence": "L172:       e.input_slot += dst_item->input_start;"
+        },
+        "state_facts": [],
+        "value_facts": [
+          {
+            "id": "v12",
+            "location": "L172",
+            "entities": [
+              "e.input_slot",
+              "dst_item->input_start"
+            ],
+            "claim": "e.input_slot is incremented by dst_item->input_start, so the rewritten input_slot equals the original input_slot plus dst_item->input_start.",
+            "evidence": "L172:       e.input_slot += dst_item->input_start;",
+            "operation_ids": [
+              "o42"
+            ]
+          }
+        ],
+        "execution_facts": [
+          {
+            "id": "e42",
+            "location": "L172",
+            "entities": [
+              "n"
+            ],
+            "claim": "Reaching L172 requires n to be a non-sink node, since IsSink(n) causes continue at L165.",
+            "evidence": "L165:     if (IsSink(n)) continue;\nL172:       e.input_slot += dst_item->input_start;",
+            "operation_ids": [
+              "o42"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "split_agents",
+    "grounding_summary": {
+      "records": 116,
+      "pass": 116,
+      "warning": 0,
+      "retry": 0,
+      "missing": 0
+    },
+    "schema_version": "semantic-claims-v2"
+  },
+  "token_usage": {
+    "input_tokens": 28106,
+    "output_tokens": 10175,
+    "total_tokens": 38281
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v2",
+    "artifact_version": 3,
+    "stage": "semantic_model",
+    "sample_id": "test_000005",
+    "split": "test",
+    "source_hash": "01fe115d7b961a8afcff6daad5874b34cd48902e327705f6c9701b3f3df2d293",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "36a13f31fa7ce74ebfbd589a461eb7ca18c87870bee0a12d33f877f13f114c09"
+  }
+}

@@ -51,7 +51,13 @@ class OpenAICompatibleClient:
         }
         if isinstance(response_format, dict):
             if response_format.get("type") == "json_schema":
-                payload["response_format"] = {"type": "json_object"}
+                json_schema = response_format.get("json_schema", {})
+                root_schema = json_schema.get("schema", {}) if isinstance(json_schema, dict) else {}
+                # Many OpenAI-compatible providers only support json_object mode.
+                # Do not force that mode for a top-level array (Stage 3); client-side
+                # schema validation will enforce the raw array contract instead.
+                if not (isinstance(root_schema, dict) and root_schema.get("type") == "array"):
+                    payload["response_format"] = {"type": "json_object"}
             else:
                 payload["response_format"] = response_format
         elif response_format == "json":
@@ -213,8 +219,9 @@ class DryRunClient:
     def chat_completion(self, messages: list[LLMMessage], **kwargs: Any) -> dict[str, Any]:
         user_prompt = messages[-1].content if messages else ""
         content = dry_run_content(kwargs.get("response_format"))
-        content["dry_run"] = True
-        content["prompt_preview"] = user_prompt[:2000]
+        if isinstance(content, dict):
+            content["dry_run"] = True
+            content["prompt_preview"] = user_prompt[:2000]
         return {
             "choices": [
                 {
@@ -226,7 +233,7 @@ class DryRunClient:
         }
 
 
-def dry_run_content(response_format: Any) -> dict[str, Any]:
+def dry_run_content(response_format: Any) -> Any:
     if not isinstance(response_format, dict):
         return {}
     if response_format.get("type") != "json_schema":
@@ -236,7 +243,7 @@ def dry_run_content(response_format: Any) -> dict[str, Any]:
         return {}
     schema = json_schema.get("schema")
     default_value = default_json_value(schema)
-    return default_value if isinstance(default_value, dict) else {}
+    return default_value if isinstance(default_value, (dict, list)) else {}
 
 
 def default_json_value(schema: Any) -> Any:

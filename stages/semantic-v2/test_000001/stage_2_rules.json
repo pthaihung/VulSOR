@@ -1,0 +1,168 @@
+{
+  "sample_id": "test_000001",
+  "schema_version": "semantic-claims-v2",
+  "stage": "rules",
+  "agent_key": "obligation_reasoner",
+  "output": {
+    "rules": [
+      {
+        "id": "obligation_1",
+        "cluster_id": "cluster_3",
+        "operation_id": "o3",
+        "coverage_category": "out-of-bounds",
+        "safety_requirement": "must ensure length >= 2 before writing buffer[length-2]",
+        "applicable_condition": "always",
+        "link_confidence": "unlinked",
+        "evidence_refs": [
+          "operation_agent.operations[2]"
+        ],
+        "note": "Null terminator write at index length-2 requires length >= 2."
+      },
+      {
+        "id": "obligation_2",
+        "cluster_id": "cluster_4",
+        "operation_id": "o4",
+        "coverage_category": "unchecked-api-failure",
+        "safety_requirement": "must check that AcquireString(buffer) returns non-NULL before using value",
+        "applicable_condition": "always",
+        "link_confidence": "unlinked",
+        "evidence_refs": [
+          "operation_agent.operations[3]"
+        ],
+        "note": "Allocation result assigned to value without a linked null check."
+      },
+      {
+        "id": "obligation_3",
+        "cluster_id": "cluster_7",
+        "operation_id": "o7",
+        "coverage_category": "out-of-bounds",
+        "safety_requirement": "must ensure exif points to at least one readable byte before ReadPropertyByte dereferences it",
+        "applicable_condition": "when the EXIF signature scan loop is entered",
+        "link_confidence": "strong",
+        "evidence_refs": [
+          "operation_agent.operations[6]",
+          "execution_agent.executions[9]",
+          "state_agent.states[2]",
+          "execution_agent.executions[8]"
+        ],
+        "note": "ReadPropertyByte advances exif and decrements length; loop condition length != 0 and prior length >= 6 guard are linked."
+      },
+      {
+        "id": "obligation_4",
+        "cluster_id": "cluster_8",
+        "operation_id": "o8",
+        "coverage_category": "out-of-bounds",
+        "safety_requirement": "must ensure exif+4 through exif+7 are within the EXIF buffer before ReadPropertySignedLong reads them",
+        "applicable_condition": "when reading the signed long offset from exif+4",
+        "link_confidence": "strong",
+        "evidence_refs": [
+          "operation_agent.operations[7]",
+          "execution_agent.executions[12]",
+          "value_agent.values[11]"
+        ],
+        "note": "Reads four bytes at exif+4; linked facts only establish exif+2 signature check, not that exif+4..exif+7 are in bounds."
+      },
+      {
+        "id": "obligation_5",
+        "cluster_id": "cluster_9",
+        "operation_id": "o9",
+        "coverage_category": "out-of-bounds",
+        "safety_requirement": "must ensure directory points to at least two readable bytes before ReadPropertyUnsignedShort reads directory",
+        "applicable_condition": "when the IFD entry-count read is reached",
+        "link_confidence": "weak",
+        "evidence_refs": [
+          "operation_agent.operations[8]",
+          "execution_agent.executions[14]",
+          "value_agent.values[14]",
+          "state_agent.states[3]"
+        ],
+        "note": "Directory bound check allows directory <= exif+length-2, which may leave fewer than two bytes for the unsigned short read."
+      },
+      {
+        "id": "obligation_6",
+        "cluster_id": "cluster_10",
+        "operation_id": "o10",
+        "coverage_category": "out-of-bounds",
+        "safety_requirement": "must ensure directory+12*entry+2 does not exceed the EXIF buffer before dereferencing q",
+        "applicable_condition": "when computing q for an IFD entry",
+        "link_confidence": "strong",
+        "evidence_refs": [
+          "operation_agent.operations[9]",
+          "execution_agent.executions[15]",
+          "value_agent.values[16]"
+        ],
+        "note": "q is computed before the q > exif+length-12 break check; the check occurs after pointer arithmetic."
+      },
+      {
+        "id": "obligation_7",
+        "cluster_id": "cluster_11",
+        "operation_id": "o11",
+        "coverage_category": "integer-overflow",
+        "safety_requirement": "must ensure components * tag_bytes[format] does not overflow size_t before number_bytes is used for allocation or copying",
+        "applicable_condition": "when components and tag_bytes[format] are multiplied",
+        "link_confidence": "strong",
+        "evidence_refs": [
+          "operation_agent.operations[10]",
+          "value_agent.values[19]",
+          "execution_agent.executions[17]",
+          "execution_agent.executions[16]"
+        ],
+        "note": "components is checked non-negative and format is bounded, but the multiplication itself is not checked for overflow."
+      },
+      {
+        "id": "obligation_8",
+        "cluster_id": "cluster_12",
+        "operation_id": "o12",
+        "coverage_category": "unchecked-api-failure",
+        "safety_requirement": "must check that AcquireQuantumMemory returns non-NULL before using value",
+        "applicable_condition": "when allocating number_bytes+1 bytes for value",
+        "link_confidence": "strong",
+        "evidence_refs": [
+          "operation_agent.operations[11]",
+          "state_agent.states[9]",
+          "state_agent.states[10]",
+          "value_agent.values[19]"
+        ],
+        "note": "Allocation result is assigned to value; linked state shows a later non-NULL branch but not a failure-path check."
+      }
+    ]
+  },
+  "quality_gate": {
+    "status": "passed",
+    "attempts": [
+      {
+        "attempt": 1,
+        "errors": [],
+        "token_usage": {
+          "input_tokens": 4637,
+          "output_tokens": 1080,
+          "total_tokens": 5717
+        },
+        "max_tokens": 8192
+      }
+    ],
+    "token_usage": {
+      "input_tokens": 4637,
+      "output_tokens": 1080,
+      "total_tokens": 5717
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4637,
+    "output_tokens": 1080,
+    "total_tokens": 5717
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v2",
+    "artifact_version": 2,
+    "stage": "rules",
+    "sample_id": "test_000001",
+    "split": "test",
+    "source_hash": "bb82458bd3eaf9db3243170666c06071e2e9c31970b85bdeace273e92c5dba29",
+    "upstream_hashes": {
+      "semantic_model": "9fc164be2400c0beedd0b4bcff4f54143f5f6221bf56dc9786feecd1348e30a6",
+      "context_links": "49d63afb309ea833eb8073a4e66b34f14bb88e3fb32e5ddc5b38fa9038b5d57e"
+    },
+    "pipeline_fingerprint": "da786a3813704fa75cc1e3b1a0483d139e9c7ae7963f1aea0cd9029b3177aee8"
+  }
+}
