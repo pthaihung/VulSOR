@@ -1,0 +1,2523 @@
+{
+  "sample_id": "test_000174",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L5",
+            "L6",
+            "L18",
+            "L22"
+          ],
+          "expression": "input.dim_size(ndims - 1)",
+          "claim": "reads a tensor dimension at an index derived from the tensor rank"
+        },
+        {
+          "locations": [
+            "L33"
+          ],
+          "expression": "context->forward_input_or_allocate_output({1}, 0, rhs.shape(), &output)",
+          "claim": "allocates or forwards an output tensor with the given shape"
+        },
+        {
+          "locations": [
+            "L55",
+            "L63",
+            "L79",
+            "L131"
+          ],
+          "expression": "solver->allocate_scoped_tensor(...)",
+          "claim": "allocates a scoped tensor with the given shape"
+        },
+        {
+          "locations": [
+            "L67",
+            "L68",
+            "L69"
+          ],
+          "expression": "device.memcpy(input_copy.flat<Scalar>().data(), input.flat<Scalar>().data(), input.NumElements() * sizeof(Scalar))",
+          "claim": "copies a number of bytes between device buffers"
+        },
+        {
+          "locations": [
+            "L87",
+            "L150",
+            "L153"
+          ],
+          "expression": "solver->GetScratchSpace<uint8>(sizeof(Scalar*) * batch_size, ...)",
+          "claim": "allocates scratch space of the given byte size"
+        },
+        {
+          "locations": [
+            "L105"
+          ],
+          "expression": "solver->GetrfBatched(n, input_copy_ptrs_base, n, pivots_mat.data(), &dev_info.back(), batch_size)",
+          "claim": "performs batched LU factorization on the given matrices"
+        },
+        {
+          "locations": [
+            "L115",
+            "L116"
+          ],
+          "expression": "solver->Getrf(n, n, &input_copy_reshaped(batch, 0, 0), n, &pivots_mat(batch, 0), &dev_info.back()(batch))",
+          "claim": "performs LU factorization on the given matrix"
+        },
+        {
+          "locations": [
+            "L138",
+            "L139",
+            "L140"
+          ],
+          "expression": "device.memcpy(transposed_rhs.flat<Scalar>().data(), rhs.flat<Scalar>().data(), rhs.NumElements() * sizeof(Scalar))",
+          "claim": "copies a number of bytes between device buffers"
+        },
+        {
+          "locations": [
+            "L171"
+          ],
+          "expression": "solver->GetrsBatched(adjoint_ ? CUBLAS_OP_C : CUBLAS_OP_T, n, nrhs, input_copy_ptrs_base, n, pivots_mat.data(), transposed_rhs_ptrs_base, n, &host_info, batch_size)",
+          "claim": "solves batched linear systems using the given factors"
+        },
+        {
+          "locations": [
+            "L187",
+            "L188",
+            "L189",
+            "L190"
+          ],
+          "expression": "solver->Getrs(adjoint_ ? CUBLAS_OP_C : CUBLAS_OP_T, n, nrhs, &input_copy_reshaped(batch, 0, 0), n, &pivots_mat(batch, 0), &transposed_rhs_reshaped(batch, 0, 0), n, &dev_info.back()(batch))",
+          "claim": "solves a linear system using the given factors"
+        },
+        {
+          "locations": [
+            "L201",
+            "L202",
+            "L203"
+          ],
+          "expression": "device.memcpy(output->flat<Scalar>().data(), transposed_rhs.flat<Scalar>().data(), transposed_rhs.NumElements() * sizeof(Scalar))",
+          "claim": "copies a number of bytes between device buffers"
+        },
+        {
+          "locations": [
+            "L218"
+          ],
+          "expression": "host_infos[0].data()[i]",
+          "claim": "reads an element from a host info buffer at an index"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "input"
+          ],
+          "claim": "input refers to the tensor object at context input index 0.",
+          "evidence": "L2: const Tensor& input = context->input(0);"
+        },
+        {
+          "entities": [
+            "rhs"
+          ],
+          "claim": "rhs refers to the tensor object at context input index 1.",
+          "evidence": "L3: const Tensor& rhs = context->input(1);"
+        },
+        {
+          "entities": [
+            "output"
+          ],
+          "claim": "output is a Tensor pointer allocated by forward_input_or_allocate_output with rhs.shape(), potentially forwarding input index 1.",
+          "evidence": "L30: Tensor* output;\nL31: OP_REQUIRES_OK_ASYNC(\nL33: context->forward_input_or_allocate_output({1}, 0, rhs.shape(), &output),"
+        },
+        {
+          "entities": [
+            "solver"
+          ],
+          "claim": "solver owns a heap-allocated CudaSolver object via unique_ptr.",
+          "evidence": "L44: std::unique_ptr<CudaSolver> solver(new CudaSolver(context));"
+        },
+        {
+          "entities": [
+            "input_copy"
+          ],
+          "claim": "input_copy is a scoped tensor allocated by the solver; in the adjoint case it is allocated with input.shape(), and in the non-adjoint case it may forward input index 0 or be allocated with input.shape().",
+          "evidence": "L48: Tensor input_copy;\nL53: OP_REQUIRES_OK_ASYNC(\nL55: solver->allocate_scoped_tensor(DataTypeToEnum<Scalar>::value,\nL56: input.shape(), &input_copy),\nL61: OP_REQUIRES_OK_ASYNC(\nL63: solver->forward_input_or_allocate_scoped_tensor(\nL64: {0}, DataTypeToEnum<Scalar>::value, input.shape(), &input_copy),"
+        },
+        {
+          "entities": [
+            "input_copy",
+            "input"
+          ],
+          "claim": "input_copy may share its buffer with input when the non-adjoint path forwards input index 0; otherwise input_copy receives a copy of input data.",
+          "evidence": "L63: solver->forward_input_or_allocate_scoped_tensor(\nL64: {0}, DataTypeToEnum<Scalar>::value, input.shape(), &input_copy),\nL66: if (!input.SharesBufferWith(input_copy)) {\nL67: device.memcpy(input_copy.flat<Scalar>().data(),\nL68: input.flat<Scalar>().data(),\nL69: input.NumElements() * sizeof(Scalar));"
+        },
+        {
+          "entities": [
+            "input_copy_reshaped"
+          ],
+          "claim": "input_copy_reshaped is a flat_inner_dims view over input_copy storage.",
+          "evidence": "L72: auto input_copy_reshaped = input_copy.template flat_inner_dims<Scalar, 3>();"
+        },
+        {
+          "entities": [
+            "pivots"
+          ],
+          "claim": "pivots is a scoped tensor allocated by the solver with shape {batch_size, n}.",
+          "evidence": "L76: Tensor pivots;\nL77: OP_REQUIRES_OK_ASYNC(\nL79: solver->allocate_scoped_tensor(DataTypeToEnum<int>::value,\nL80: TensorShape{batch_size, n}, &pivots),"
+        },
+        {
+          "entities": [
+            "pivots_mat"
+          ],
+          "claim": "pivots_mat is a matrix<int> view over pivots storage.",
+          "evidence": "L82: auto pivots_mat = pivots.template matrix<int>();"
+        },
+        {
+          "entities": [
+            "input_copy_ptrs"
+          ],
+          "claim": "input_copy_ptrs is host scratch space for an array of Scalar pointers sized for batch_size.",
+          "evidence": "L87: auto input_copy_ptrs = solver->GetScratchSpace<uint8>(\nL88: sizeof(Scalar*) * batch_size, \"input_copt_ptrs\",\nL89: /* on_host */ true);"
+        },
+        {
+          "entities": [
+            "input_copy_ptrs_base"
+          ],
+          "claim": "input_copy_ptrs_base is a reinterpret_cast of input_copy_ptrs mutable_data to const Scalar**; each element is set to the address of input_copy_reshaped(batch, 0, 0).",
+          "evidence": "L96: const Scalar** input_copy_ptrs_base =\nL97: reinterpret_cast<const Scalar**>(input_copy_ptrs.mutable_data());\nL99: input_copy_ptrs_base[batch] = &input_copy_reshaped(batch, 0, 0);"
+        },
+        {
+          "entities": [
+            "transposed_rhs"
+          ],
+          "claim": "transposed_rhs is a scoped tensor allocated by the solver with transposed_rhs_shape.",
+          "evidence": "L128: Tensor transposed_rhs;\nL129: OP_REQUIRES_OK_ASYNC(\nL131: solver->allocate_scoped_tensor(DataTypeToEnum<Scalar>::value,\nL132: transposed_rhs_shape, &transposed_rhs),"
+        },
+        {
+          "entities": [
+            "transposed_rhs",
+            "rhs"
+          ],
+          "claim": "transposed_rhs receives either a transpose of rhs or a memcpy of rhs data.",
+          "evidence": "L135: OP_REQUIRES_OK_ASYNC(\nL136: context, DoMatrixTranspose(device, rhs, &transposed_rhs), done);\nL138: device.memcpy(transposed_rhs.flat<Scalar>().data(),\nL139: rhs.flat<Scalar>().data(),\nL140: rhs.NumElements() * sizeof(Scalar));"
+        },
+        {
+          "entities": [
+            "input_copy_ptr_array"
+          ],
+          "claim": "input_copy_ptr_array is host scratch space for an array of Scalar pointers sized for batch_size.",
+          "evidence": "L150: auto input_copy_ptr_array = solver->GetScratchSpace<uint8>(\nL151: sizeof(Scalar*) * batch_size, \"input_copy_ptr_array\",\nL152: /* on_host */ true);"
+        },
+        {
+          "entities": [
+            "transposed_rhs_ptr_array"
+          ],
+          "claim": "transposed_rhs_ptr_array is host scratch space for an array of Scalar pointers sized for batch_size.",
+          "evidence": "L153: auto transposed_rhs_ptr_array = solver->GetScratchSpace<uint8>(\nL154: sizeof(Scalar*) * batch_size, \"transposed_rhs_ptr_array\",\nL155: /* on_host */ true);"
+        },
+        {
+          "entities": [
+            "transposed_rhs_reshaped"
+          ],
+          "claim": "transposed_rhs_reshaped is a flat_inner_dims view over transposed_rhs storage.",
+          "evidence": "L156: auto transposed_rhs_reshaped =\nL157: transposed_rhs.template flat_inner_dims<Scalar, 3>();"
+        },
+        {
+          "entities": [
+            "input_copy_ptrs_base",
+            "transposed_rhs_ptrs_base"
+          ],
+          "claim": "input_copy_ptrs_base and transposed_rhs_ptrs_base are reinterpret_cast pointer arrays whose elements are set to addresses of input_copy_reshaped and transposed_rhs_reshaped batch slices.",
+          "evidence": "L159: const Scalar** input_copy_ptrs_base =\nL160: reinterpret_cast<const Scalar**>(input_copy_ptr_array.mutable_data());\nL161: const Scalar** transposed_rhs_ptrs_base =\nL162: reinterpret_cast<const Scalar**>(\nL163: transposed_rhs_ptr_array.mutable_data());\nL165: input_copy_ptrs_base[batch] = &input_copy_reshaped(batch, 0, 0);\nL166: transposed_rhs_ptrs_base[batch] = &transposed_rhs_reshaped(batch, 0, 0);"
+        },
+        {
+          "entities": [
+            "output",
+            "transposed_rhs"
+          ],
+          "claim": "output receives either a transpose of transposed_rhs or a memcpy of transposed_rhs data.",
+          "evidence": "L198: OP_REQUIRES_OK_ASYNC(\nL199: context, DoMatrixTranspose(device, transposed_rhs, output), done);\nL201: device.memcpy(output->flat<Scalar>().data(),\nL202: transposed_rhs.flat<Scalar>().data(),\nL203: transposed_rhs.NumElements() * sizeof(Scalar));"
+        },
+        {
+          "entities": [
+            "solver"
+          ],
+          "claim": "solver ownership is transferred to CheckLapackInfoAndDeleteSolverAsync, which deletes the solver asynchronously after checking Lapack info.",
+          "evidence": "L225: CudaSolver::CheckLapackInfoAndDeleteSolverAsync(std::move(solver), dev_info,\nL226: std::move(info_checker));"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "ndims",
+            "input.dims()"
+          ],
+          "claim": "ndims is the rank of input; ndims >= 2 is required before indexing ndims - 1 and ndims - 2.",
+          "evidence": "L4: const int ndims = input.dims();\nL9: context, ndims >= 2,"
+        },
+        {
+          "entities": [
+            "n",
+            "input.dim_size(ndims - 1)"
+          ],
+          "claim": "n is the last dimension size of input.",
+          "evidence": "L5: const int64 n = input.dim_size(ndims - 1);"
+        },
+        {
+          "entities": [
+            "nrhs",
+            "rhs.dim_size(ndims - 1)"
+          ],
+          "claim": "nrhs is the last dimension size of rhs.",
+          "evidence": "L6: const int64 nrhs = rhs.dim_size(ndims - 1);"
+        },
+        {
+          "entities": [
+            "input.dim_size(ndims - 2)",
+            "n"
+          ],
+          "claim": "input.dim_size(ndims - 2) must equal n, so input matrices are square.",
+          "evidence": "L18: context, input.dim_size(ndims - 2) == n,"
+        },
+        {
+          "entities": [
+            "rhs.dim_size(ndims - 2)",
+            "n"
+          ],
+          "claim": "rhs.dim_size(ndims - 2) must equal n, so rhs has the same number of rows as input.",
+          "evidence": "L22: OP_REQUIRES_ASYNC(context, rhs.dim_size(ndims - 2) == n,"
+        },
+        {
+          "entities": [
+            "input.NumElements()",
+            "rhs.NumElements()"
+          ],
+          "claim": "If either input or rhs has zero elements, the function returns early before any solver allocation or kernel launch.",
+          "evidence": "L38: if (input.NumElements() == 0 || rhs.NumElements() == 0) {"
+        },
+        {
+          "entities": [
+            "input_copy",
+            "input.shape()"
+          ],
+          "claim": "input_copy is allocated with the same shape as input.",
+          "evidence": "L55: solver->allocate_scoped_tensor(DataTypeToEnum<Scalar>::value,\nL56: input.shape(), &input_copy),"
+        },
+        {
+          "entities": [
+            "input_copy",
+            "input.NumElements()",
+            "sizeof(Scalar)"
+          ],
+          "claim": "When input_copy does not share input's buffer, input.NumElements() * sizeof(Scalar) bytes are copied from input to input_copy.",
+          "evidence": "L66: if (!input.SharesBufferWith(input_copy)) {\nL67: device.memcpy(input_copy.flat<Scalar>().data(),\nL68: input.flat<Scalar>().data(),\nL69: input.NumElements() * sizeof(Scalar));"
+        },
+        {
+          "entities": [
+            "batch_size",
+            "input_copy_reshaped.dimension(0)"
+          ],
+          "claim": "batch_size is the first dimension of input_copy reshaped to inner dims of 3.",
+          "evidence": "L72: auto input_copy_reshaped = input_copy.template flat_inner_dims<Scalar, 3>();\nL73: const int64 batch_size = input_copy_reshaped.dimension(0);"
+        },
+        {
+          "entities": [
+            "pivots",
+            "batch_size",
+            "n"
+          ],
+          "claim": "pivots is allocated with shape {batch_size, n}.",
+          "evidence": "L79: solver->allocate_scoped_tensor(DataTypeToEnum<int>::value,\nL80: TensorShape{batch_size, n}, &pivots),"
+        },
+        {
+          "entities": [
+            "input_copy_ptrs",
+            "sizeof(Scalar*)",
+            "batch_size"
+          ],
+          "claim": "input_copy_ptrs scratch space is allocated with size sizeof(Scalar*) * batch_size.",
+          "evidence": "L87: auto input_copy_ptrs = solver->GetScratchSpace<uint8>(\nL88: sizeof(Scalar*) * batch_size, \"input_copt_ptrs\","
+        },
+        {
+          "entities": [
+            "use_batched_solver",
+            "n",
+            "batch_size"
+          ],
+          "claim": "use_batched_solver is true when n <= 128 * batch_size.",
+          "evidence": "L90: const int kMaxMatrixSizeToBatchSizeRatio = 128;\nL91: const bool use_batched_solver =\nL92: n <= kMaxMatrixSizeToBatchSizeRatio * batch_size;"
+        },
+        {
+          "entities": [
+            "input_copy_ptrs_base",
+            "input_copy_ptrs.mutable_data()"
+          ],
+          "claim": "input_copy_ptrs_base is a reinterpret_cast of input_copy_ptrs.mutable_data() to const Scalar**.",
+          "evidence": "L96: const Scalar** input_copy_ptrs_base =\nL97: reinterpret_cast<const Scalar**>(input_copy_ptrs.mutable_data());"
+        },
+        {
+          "entities": [
+            "input_copy_ptrs_base",
+            "batch",
+            "input_copy_reshaped"
+          ],
+          "claim": "For each batch in [0, batch_size), input_copy_ptrs_base[batch] is set to the address of input_copy_reshaped(batch, 0, 0).",
+          "evidence": "L98: for (int batch = 0; batch < batch_size; ++batch) {\nL99: input_copy_ptrs_base[batch] = &input_copy_reshaped(batch, 0, 0);"
+        },
+        {
+          "entities": [
+            "transposed_rhs_shape",
+            "rhs.shape()",
+            "nrhs",
+            "n"
+          ],
+          "claim": "transposed_rhs_shape is rhs.shape() with the last two dims removed, then nrhs and n appended.",
+          "evidence": "L124: TensorShape transposed_rhs_shape(rhs.shape());\nL125: transposed_rhs_shape.RemoveLastDims(2);\nL126: transposed_rhs_shape.AddDim(nrhs);\nL127: transposed_rhs_shape.AddDim(n);"
+        },
+        {
+          "entities": [
+            "transposed_rhs",
+            "transposed_rhs_shape"
+          ],
+          "claim": "transposed_rhs is allocated with shape transposed_rhs_shape.",
+          "evidence": "L131: solver->allocate_scoped_tensor(DataTypeToEnum<Scalar>::value,\nL132: transposed_rhs_shape, &transposed_rhs),"
+        },
+        {
+          "entities": [
+            "rhs.NumElements()",
+            "sizeof(Scalar)"
+          ],
+          "claim": "When nrhs <= 1, rhs.NumElements() * sizeof(Scalar) bytes are copied from rhs to transposed_rhs.",
+          "evidence": "L138: device.memcpy(transposed_rhs.flat<Scalar>().data(),\nL139: rhs.flat<Scalar>().data(),\nL140: rhs.NumElements() * sizeof(Scalar));"
+        },
+        {
+          "entities": [
+            "input_copy_ptr_array",
+            "sizeof(Scalar*)",
+            "batch_size"
+          ],
+          "claim": "input_copy_ptr_array scratch space is allocated with size sizeof(Scalar*) * batch_size.",
+          "evidence": "L150: auto input_copy_ptr_array = solver->GetScratchSpace<uint8>(\nL151: sizeof(Scalar*) * batch_size, \"input_copy_ptr_array\","
+        },
+        {
+          "entities": [
+            "transposed_rhs_ptr_array",
+            "sizeof(Scalar*)",
+            "batch_size"
+          ],
+          "claim": "transposed_rhs_ptr_array scratch space is allocated with size sizeof(Scalar*) * batch_size.",
+          "evidence": "L153: auto transposed_rhs_ptr_array = solver->GetScratchSpace<uint8>(\nL154: sizeof(Scalar*) * batch_size, \"transposed_rhs_ptr_array\","
+        },
+        {
+          "entities": [
+            "transposed_rhs_reshaped",
+            "transposed_rhs"
+          ],
+          "claim": "transposed_rhs_reshaped is transposed_rhs reshaped to inner dims of 3.",
+          "evidence": "L156: auto transposed_rhs_reshaped =\nL157: transposed_rhs.template flat_inner_dims<Scalar, 3>();"
+        },
+        {
+          "entities": [
+            "input_copy_ptrs_base",
+            "input_copy_ptr_array.mutable_data()"
+          ],
+          "claim": "input_copy_ptrs_base is a reinterpret_cast of input_copy_ptr_array.mutable_data() to const Scalar**.",
+          "evidence": "L159: const Scalar** input_copy_ptrs_base =\nL160: reinterpret_cast<const Scalar**>(input_copy_ptr_array.mutable_data());"
+        },
+        {
+          "entities": [
+            "transposed_rhs_ptrs_base",
+            "transposed_rhs_ptr_array.mutable_data()"
+          ],
+          "claim": "transposed_rhs_ptrs_base is a reinterpret_cast of transposed_rhs_ptr_array.mutable_data() to const Scalar**.",
+          "evidence": "L161: const Scalar** transposed_rhs_ptrs_base =\nL162: reinterpret_cast<const Scalar**>(\nL163: transposed_rhs_ptr_array.mutable_data());"
+        },
+        {
+          "entities": [
+            "input_copy_ptrs_base",
+            "transposed_rhs_ptrs_base",
+            "batch",
+            "input_copy_reshaped",
+            "transposed_rhs_reshaped"
+          ],
+          "claim": "For each batch in [0, batch_size), input_copy_ptrs_base[batch] and transposed_rhs_ptrs_base[batch] are set to the addresses of input_copy_reshaped(batch, 0, 0) and transposed_rhs_reshaped(batch, 0, 0), respectively.",
+          "evidence": "L164: for (int batch = 0; batch < batch_size; ++batch) {\nL165: input_copy_ptrs_base[batch] = &input_copy_reshaped(batch, 0, 0);\nL166: transposed_rhs_ptrs_base[batch] = &transposed_rhs_reshaped(batch, 0, 0);"
+        },
+        {
+          "entities": [
+            "transposed_rhs.NumElements()",
+            "sizeof(Scalar)"
+          ],
+          "claim": "When nrhs <= 1, transposed_rhs.NumElements() * sizeof(Scalar) bytes are copied from transposed_rhs to output.",
+          "evidence": "L201: device.memcpy(output->flat<Scalar>().data(),\nL202: transposed_rhs.flat<Scalar>().data(),\nL203: transposed_rhs.NumElements() * sizeof(Scalar));"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "ndims",
+            "input.dims()"
+          ],
+          "claim": "continuing past the first check implies ndims >= 2",
+          "evidence": "L8: OP_REQUIRES_ASYNC(\nL9: context, ndims >= 2,"
+        },
+        {
+          "entities": [
+            "rhs.dims()",
+            "ndims"
+          ],
+          "claim": "continuing past the second check implies rhs.dims() == ndims",
+          "evidence": "L12: OP_REQUIRES_ASYNC(context, rhs.dims() == ndims,"
+        },
+        {
+          "entities": [
+            "input.dim_size(ndims - 2)",
+            "n"
+          ],
+          "claim": "continuing past the third check implies input.dim_size(ndims - 2) == n",
+          "evidence": "L17: OP_REQUIRES_ASYNC(\nL18: context, input.dim_size(ndims - 2) == n,"
+        },
+        {
+          "entities": [
+            "rhs.dim_size(ndims - 2)",
+            "n"
+          ],
+          "claim": "continuing past the fourth check implies rhs.dim_size(ndims - 2) == n",
+          "evidence": "L22: OP_REQUIRES_ASYNC(context, rhs.dim_size(ndims - 2) == n,"
+        },
+        {
+          "entities": [
+            "input.NumElements()",
+            "rhs.NumElements()"
+          ],
+          "claim": "continuing past the empty-input early return implies input.NumElements() != 0 and rhs.NumElements() != 0",
+          "evidence": "L38: if (input.NumElements() == 0 || rhs.NumElements() == 0) {\nL39: done();\nL40: return;\nL41: }"
+        },
+        {
+          "entities": [
+            "input_copy",
+            "input"
+          ],
+          "claim": "in the non-adjoint branch, if input_copy does not share the input buffer, input_copy is filled by memcpy of input.NumElements() scalars",
+          "evidence": "L66: if (!input.SharesBufferWith(input_copy)) {\nL67: device.memcpy(input_copy.flat<Scalar>().data(),\nL68: input.flat<Scalar>().data(),\nL69: input.NumElements() * sizeof(Scalar));\nL70: }"
+        },
+        {
+          "entities": [
+            "batch_size",
+            "input_copy_reshaped"
+          ],
+          "claim": "batch_size is the first dimension of input_copy_reshaped",
+          "evidence": "L72: auto input_copy_reshaped = input_copy.template flat_inner_dims<Scalar, 3>();\nL73: const int64 batch_size = input_copy_reshaped.dimension(0);"
+        },
+        {
+          "entities": [
+            "use_batched_solver",
+            "n",
+            "batch_size"
+          ],
+          "claim": "use_batched_solver is true iff n <= 128 * batch_size",
+          "evidence": "L90: const int kMaxMatrixSizeToBatchSizeRatio = 128;\nL91: const bool use_batched_solver =\nL92: n <= kMaxMatrixSizeToBatchSizeRatio * batch_size;"
+        },
+        {
+          "entities": [
+            "input_copy_ptrs_base",
+            "batch_size",
+            "input_copy_reshaped"
+          ],
+          "claim": "in the batched branch, each input_copy_ptrs_base[batch] for 0 <= batch < batch_size points to input_copy_reshaped(batch, 0, 0)",
+          "evidence": "L96: const Scalar** input_copy_ptrs_base =\nL97: reinterpret_cast<const Scalar**>(input_copy_ptrs.mutable_data());\nL98: for (int batch = 0; batch < batch_size; ++batch) {\nL99: input_copy_ptrs_base[batch] = &input_copy_reshaped(batch, 0, 0);\nL100: }"
+        },
+        {
+          "entities": [
+            "transposed_rhs_shape",
+            "rhs.shape()",
+            "nrhs",
+            "n"
+          ],
+          "claim": "transposed_rhs_shape is rhs.shape() with the last two dims removed and then nrhs and n appended",
+          "evidence": "L124: TensorShape transposed_rhs_shape(rhs.shape());\nL125: transposed_rhs_shape.RemoveLastDims(2);\nL126: transposed_rhs_shape.AddDim(nrhs);\nL127: transposed_rhs_shape.AddDim(n);"
+        },
+        {
+          "entities": [
+            "transposed_rhs",
+            "rhs"
+          ],
+          "claim": "if nrhs <= 1, transposed_rhs is filled by memcpy of rhs.NumElements() scalars",
+          "evidence": "L134: if (nrhs > 1) {\nL135: OP_REQUIRES_OK_ASYNC(\nL136: context, DoMatrixTranspose(device, rhs, &transposed_rhs), done);\nL137: } else {\nL138: device.memcpy(transposed_rhs.flat<Scalar>().data(),\nL139: rhs.flat<Scalar>().data(),\nL140: rhs.NumElements() * sizeof(Scalar));\nL141: }"
+        },
+        {
+          "entities": [
+            "input_copy_ptrs_base",
+            "transposed_rhs_ptrs_base",
+            "batch_size",
+            "input_copy_reshaped",
+            "transposed_rhs_reshaped"
+          ],
+          "claim": "in the batched solve branch, for 0 <= batch < batch_size, input_copy_ptrs_base[batch] points to input_copy_reshaped(batch, 0, 0) and transposed_rhs_ptrs_base[batch] points to transposed_rhs_reshaped(batch, 0, 0)",
+          "evidence": "L159: const Scalar** input_copy_ptrs_base =\nL160: reinterpret_cast<const Scalar**>(input_copy_ptr_array.mutable_data());\nL161: const Scalar** transposed_rhs_ptrs_base =\nL162: reinterpret_cast<const Scalar**>(\nL163: transposed_rhs_ptr_array.mutable_data());\nL164: for (int batch = 0; batch < batch_size; ++batch) {\nL165: input_copy_ptrs_base[batch] = &input_copy_reshaped(batch, 0, 0);\nL166: transposed_rhs_ptrs_base[batch] = &transposed_rhs_reshaped(batch, 0, 0);\nL167: }"
+        },
+        {
+          "entities": [
+            "host_info"
+          ],
+          "claim": "continuing past the batched getrs check implies host_info == 0",
+          "evidence": "L176: OP_REQUIRES_ASYNC(\nL177: context, host_info == 0,"
+        },
+        {
+          "entities": [
+            "output",
+            "transposed_rhs"
+          ],
+          "claim": "if nrhs <= 1, output is filled by memcpy of transposed_rhs.NumElements() scalars",
+          "evidence": "L197: if (nrhs > 1) {\nL198: OP_REQUIRES_OK_ASYNC(\nL199: context, DoMatrixTranspose(device, transposed_rhs, output), done);\nL200: } else {\nL201: device.memcpy(output->flat<Scalar>().data(),\nL202: transposed_rhs.flat<Scalar>().data(),\nL203: transposed_rhs.NumElements() * sizeof(Scalar));\nL204: }"
+        },
+        {
+          "entities": [
+            "host_infos[0].data()[i]"
+          ],
+          "claim": "in the info checker, when status is not ok and is InvalidArgument and host_infos is nonempty, continuing past the loop check implies host_infos[0].data()[i] <= 0 for each i in [0, host_infos[0].size())",
+          "evidence": "L213: if (!status.ok() && errors::IsInvalidArgument(status) &&\nL214: !host_infos.empty()) {\nL215: for (int i = 0; i < host_infos[0].size(); ++i) {\nL218: OP_REQUIRES_ASYNC(context, host_infos[0].data()[i] <= 0,\nL219: errors::InvalidArgument(kErrMsg), done);\nL220: }\nL221: }"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 5289,
+              "output_tokens": 861,
+              "total_tokens": 6150
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 5289,
+          "output_tokens": 861,
+          "total_tokens": 6150
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L5",
+                "matched": true,
+                "expression": "input.dim_size(ndims - 1)"
+              },
+              {
+                "location": "L6",
+                "matched": true,
+                "expression": "input.dim_size(ndims - 1)"
+              },
+              {
+                "location": "L18",
+                "matched": true,
+                "expression": "input.dim_size(ndims - 1)"
+              },
+              {
+                "location": "L22",
+                "matched": true,
+                "expression": "input.dim_size(ndims - 1)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L33",
+                "matched": true,
+                "expression": "context->forward_input_or_allocate_output({1}, 0, rhs.shape(), &output)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L55",
+                "matched": true,
+                "expression": "solver->allocate_scoped_tensor(...)"
+              },
+              {
+                "location": "L63",
+                "matched": true,
+                "expression": "solver->allocate_scoped_tensor(...)"
+              },
+              {
+                "location": "L79",
+                "matched": true,
+                "expression": "solver->allocate_scoped_tensor(...)"
+              },
+              {
+                "location": "L131",
+                "matched": true,
+                "expression": "solver->allocate_scoped_tensor(...)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L67",
+                "matched": true,
+                "expression": "device.memcpy(input_copy.flat<Scalar>().data(), input.flat<Scalar>().data(), input.NumElements() * sizeof(Scalar))"
+              },
+              {
+                "location": "L68",
+                "matched": true,
+                "expression": "device.memcpy(input_copy.flat<Scalar>().data(), input.flat<Scalar>().data(), input.NumElements() * sizeof(Scalar))"
+              },
+              {
+                "location": "L69",
+                "matched": true,
+                "expression": "device.memcpy(input_copy.flat<Scalar>().data(), input.flat<Scalar>().data(), input.NumElements() * sizeof(Scalar))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L87",
+                "matched": true,
+                "expression": "solver->GetScratchSpace<uint8>(sizeof(Scalar*) * batch_size, ...)"
+              },
+              {
+                "location": "L150",
+                "matched": true,
+                "expression": "solver->GetScratchSpace<uint8>(sizeof(Scalar*) * batch_size, ...)"
+              },
+              {
+                "location": "L153",
+                "matched": true,
+                "expression": "solver->GetScratchSpace<uint8>(sizeof(Scalar*) * batch_size, ...)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L105",
+                "matched": true,
+                "expression": "solver->GetrfBatched(n, input_copy_ptrs_base, n, pivots_mat.data(), &dev_info.back(), batch_size)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L115",
+                "matched": true,
+                "expression": "solver->Getrf(n, n, &input_copy_reshaped(batch, 0, 0), n, &pivots_mat(batch, 0), &dev_info.back()(batch))"
+              },
+              {
+                "location": "L116",
+                "matched": true,
+                "expression": "solver->Getrf(n, n, &input_copy_reshaped(batch, 0, 0), n, &pivots_mat(batch, 0), &dev_info.back()(batch))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L138",
+                "matched": true,
+                "expression": "device.memcpy(transposed_rhs.flat<Scalar>().data(), rhs.flat<Scalar>().data(), rhs.NumElements() * sizeof(Scalar))"
+              },
+              {
+                "location": "L139",
+                "matched": true,
+                "expression": "device.memcpy(transposed_rhs.flat<Scalar>().data(), rhs.flat<Scalar>().data(), rhs.NumElements() * sizeof(Scalar))"
+              },
+              {
+                "location": "L140",
+                "matched": true,
+                "expression": "device.memcpy(transposed_rhs.flat<Scalar>().data(), rhs.flat<Scalar>().data(), rhs.NumElements() * sizeof(Scalar))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L171",
+                "matched": true,
+                "expression": "solver->GetrsBatched(adjoint_ ? CUBLAS_OP_C : CUBLAS_OP_T, n, nrhs, input_copy_ptrs_base, n, pivots_mat.data(), transposed_rhs_ptrs_base, n, &host_info, batch_size)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[9]": {
+            "expression_matches": [
+              {
+                "location": "L187",
+                "matched": true,
+                "expression": "solver->Getrs(adjoint_ ? CUBLAS_OP_C : CUBLAS_OP_T, n, nrhs, &input_copy_reshaped(batch, 0, 0), n, &pivots_mat(batch, 0), &transposed_rhs_reshaped(batch, 0, 0), n, &dev_info.back()(batch))"
+              },
+              {
+                "location": "L188",
+                "matched": true,
+                "expression": "solver->Getrs(adjoint_ ? CUBLAS_OP_C : CUBLAS_OP_T, n, nrhs, &input_copy_reshaped(batch, 0, 0), n, &pivots_mat(batch, 0), &transposed_rhs_reshaped(batch, 0, 0), n, &dev_info.back()(batch))"
+              },
+              {
+                "location": "L189",
+                "matched": true,
+                "expression": "solver->Getrs(adjoint_ ? CUBLAS_OP_C : CUBLAS_OP_T, n, nrhs, &input_copy_reshaped(batch, 0, 0), n, &pivots_mat(batch, 0), &transposed_rhs_reshaped(batch, 0, 0), n, &dev_info.back()(batch))"
+              },
+              {
+                "location": "L190",
+                "matched": true,
+                "expression": "solver->Getrs(adjoint_ ? CUBLAS_OP_C : CUBLAS_OP_T, n, nrhs, &input_copy_reshaped(batch, 0, 0), n, &pivots_mat(batch, 0), &transposed_rhs_reshaped(batch, 0, 0), n, &dev_info.back()(batch))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[10]": {
+            "expression_matches": [
+              {
+                "location": "L201",
+                "matched": true,
+                "expression": "device.memcpy(output->flat<Scalar>().data(), transposed_rhs.flat<Scalar>().data(), transposed_rhs.NumElements() * sizeof(Scalar))"
+              },
+              {
+                "location": "L202",
+                "matched": true,
+                "expression": "device.memcpy(output->flat<Scalar>().data(), transposed_rhs.flat<Scalar>().data(), transposed_rhs.NumElements() * sizeof(Scalar))"
+              },
+              {
+                "location": "L203",
+                "matched": true,
+                "expression": "device.memcpy(output->flat<Scalar>().data(), transposed_rhs.flat<Scalar>().data(), transposed_rhs.NumElements() * sizeof(Scalar))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[11]": {
+            "expression_matches": [
+              {
+                "location": "L218",
+                "matched": true,
+                "expression": "host_infos[0].data()[i]"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 5,
+            "expression": "input_copy_ptrs_base[batch] = &input_copy_reshaped(batch, 0, 0)"
+          },
+          {
+            "action": "drop_ungrounded_item",
+            "index": 9,
+            "expression": "input_copy_ptrs_base[batch] = &input_copy_reshaped(batch, 0, 0)"
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3892,
+              "output_tokens": 1978,
+              "total_tokens": 5870
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3892,
+          "output_tokens": 1978,
+          "total_tokens": 5870
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "const Tensor& input = context->input(0);",
+                "matched_lines": [
+                  2
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "const Tensor& rhs = context->input(1);",
+                "matched_lines": [
+                  3
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 30,
+                "fragment": "Tensor* output;",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "OP_REQUIRES_OK_ASYNC(",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "context->forward_input_or_allocate_output({1}, 0, rhs.shape(), &output),",
+                "matched_lines": [
+                  33
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "std::unique_ptr<CudaSolver> solver(new CudaSolver(context));",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 48,
+                "fragment": "Tensor input_copy;",
+                "matched_lines": [
+                  48
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "OP_REQUIRES_OK_ASYNC(",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "solver->allocate_scoped_tensor(DataTypeToEnum<Scalar>::value,",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "input.shape(), &input_copy),",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "OP_REQUIRES_OK_ASYNC(",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "solver->forward_input_or_allocate_scoped_tensor(",
+                "matched_lines": [
+                  63
+                ]
+              },
+              {
+                "evidence_line": 64,
+                "fragment": "{0}, DataTypeToEnum<Scalar>::value, input.shape(), &input_copy),",
+                "matched_lines": [
+                  64
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 63,
+                "fragment": "solver->forward_input_or_allocate_scoped_tensor(",
+                "matched_lines": [
+                  63
+                ]
+              },
+              {
+                "evidence_line": 64,
+                "fragment": "{0}, DataTypeToEnum<Scalar>::value, input.shape(), &input_copy),",
+                "matched_lines": [
+                  64
+                ]
+              },
+              {
+                "evidence_line": 66,
+                "fragment": "if (!input.SharesBufferWith(input_copy)) {",
+                "matched_lines": [
+                  66
+                ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "device.memcpy(input_copy.flat<Scalar>().data(),",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "input.flat<Scalar>().data(),",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "input.NumElements() * sizeof(Scalar));",
+                "matched_lines": [
+                  69
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 72,
+                "fragment": "auto input_copy_reshaped = input_copy.template flat_inner_dims<Scalar, 3>();",
+                "matched_lines": [
+                  72
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 76,
+                "fragment": "Tensor pivots;",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 77,
+                "fragment": "OP_REQUIRES_OK_ASYNC(",
+                "matched_lines": [
+                  77
+                ]
+              },
+              {
+                "evidence_line": 79,
+                "fragment": "solver->allocate_scoped_tensor(DataTypeToEnum<int>::value,",
+                "matched_lines": [
+                  79
+                ]
+              },
+              {
+                "evidence_line": 80,
+                "fragment": "TensorShape{batch_size, n}, &pivots),",
+                "matched_lines": [
+                  80
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 82,
+                "fragment": "auto pivots_mat = pivots.template matrix<int>();",
+                "matched_lines": [
+                  82
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 87,
+                "fragment": "auto input_copy_ptrs = solver->GetScratchSpace<uint8>(",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 88,
+                "fragment": "sizeof(Scalar*) * batch_size, \"input_copt_ptrs\",",
+                "matched_lines": [
+                  88
+                ]
+              },
+              {
+                "evidence_line": 89,
+                "fragment": "/* on_host */ true);",
+                "matched_lines": [
+                  89
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 96,
+                "fragment": "const Scalar** input_copy_ptrs_base =",
+                "matched_lines": [
+                  96
+                ]
+              },
+              {
+                "evidence_line": 97,
+                "fragment": "reinterpret_cast<const Scalar**>(input_copy_ptrs.mutable_data());",
+                "matched_lines": [
+                  97
+                ]
+              },
+              {
+                "evidence_line": 99,
+                "fragment": "input_copy_ptrs_base[batch] = &input_copy_reshaped(batch, 0, 0);",
+                "matched_lines": [
+                  99
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 128,
+                "fragment": "Tensor transposed_rhs;",
+                "matched_lines": [
+                  128
+                ]
+              },
+              {
+                "evidence_line": 129,
+                "fragment": "OP_REQUIRES_OK_ASYNC(",
+                "matched_lines": [
+                  129
+                ]
+              },
+              {
+                "evidence_line": 131,
+                "fragment": "solver->allocate_scoped_tensor(DataTypeToEnum<Scalar>::value,",
+                "matched_lines": [
+                  131
+                ]
+              },
+              {
+                "evidence_line": 132,
+                "fragment": "transposed_rhs_shape, &transposed_rhs),",
+                "matched_lines": [
+                  132
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 135,
+                "fragment": "OP_REQUIRES_OK_ASYNC(",
+                "matched_lines": [
+                  135
+                ]
+              },
+              {
+                "evidence_line": 136,
+                "fragment": "context, DoMatrixTranspose(device, rhs, &transposed_rhs), done);",
+                "matched_lines": [
+                  136
+                ]
+              },
+              {
+                "evidence_line": 138,
+                "fragment": "device.memcpy(transposed_rhs.flat<Scalar>().data(),",
+                "matched_lines": [
+                  138
+                ]
+              },
+              {
+                "evidence_line": 139,
+                "fragment": "rhs.flat<Scalar>().data(),",
+                "matched_lines": [
+                  139
+                ]
+              },
+              {
+                "evidence_line": 140,
+                "fragment": "rhs.NumElements() * sizeof(Scalar));",
+                "matched_lines": [
+                  140
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 150,
+                "fragment": "auto input_copy_ptr_array = solver->GetScratchSpace<uint8>(",
+                "matched_lines": [
+                  150
+                ]
+              },
+              {
+                "evidence_line": 151,
+                "fragment": "sizeof(Scalar*) * batch_size, \"input_copy_ptr_array\",",
+                "matched_lines": [
+                  151
+                ]
+              },
+              {
+                "evidence_line": 152,
+                "fragment": "/* on_host */ true);",
+                "matched_lines": [
+                  152
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 153,
+                "fragment": "auto transposed_rhs_ptr_array = solver->GetScratchSpace<uint8>(",
+                "matched_lines": [
+                  153
+                ]
+              },
+              {
+                "evidence_line": 154,
+                "fragment": "sizeof(Scalar*) * batch_size, \"transposed_rhs_ptr_array\",",
+                "matched_lines": [
+                  154
+                ]
+              },
+              {
+                "evidence_line": 155,
+                "fragment": "/* on_host */ true);",
+                "matched_lines": [
+                  155
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[15]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 156,
+                "fragment": "auto transposed_rhs_reshaped =",
+                "matched_lines": [
+                  156
+                ]
+              },
+              {
+                "evidence_line": 157,
+                "fragment": "transposed_rhs.template flat_inner_dims<Scalar, 3>();",
+                "matched_lines": [
+                  157
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[16]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 159,
+                "fragment": "const Scalar** input_copy_ptrs_base =",
+                "matched_lines": [
+                  159
+                ]
+              },
+              {
+                "evidence_line": 160,
+                "fragment": "reinterpret_cast<const Scalar**>(input_copy_ptr_array.mutable_data());",
+                "matched_lines": [
+                  160
+                ]
+              },
+              {
+                "evidence_line": 161,
+                "fragment": "const Scalar** transposed_rhs_ptrs_base =",
+                "matched_lines": [
+                  161
+                ]
+              },
+              {
+                "evidence_line": 162,
+                "fragment": "reinterpret_cast<const Scalar**>(",
+                "matched_lines": [
+                  162
+                ]
+              },
+              {
+                "evidence_line": 163,
+                "fragment": "transposed_rhs_ptr_array.mutable_data());",
+                "matched_lines": [
+                  163
+                ]
+              },
+              {
+                "evidence_line": 165,
+                "fragment": "input_copy_ptrs_base[batch] = &input_copy_reshaped(batch, 0, 0);",
+                "matched_lines": [
+                  165
+                ]
+              },
+              {
+                "evidence_line": 166,
+                "fragment": "transposed_rhs_ptrs_base[batch] = &transposed_rhs_reshaped(batch, 0, 0);",
+                "matched_lines": [
+                  166
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[17]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 198,
+                "fragment": "OP_REQUIRES_OK_ASYNC(",
+                "matched_lines": [
+                  198
+                ]
+              },
+              {
+                "evidence_line": 199,
+                "fragment": "context, DoMatrixTranspose(device, transposed_rhs, output), done);",
+                "matched_lines": [
+                  199
+                ]
+              },
+              {
+                "evidence_line": 201,
+                "fragment": "device.memcpy(output->flat<Scalar>().data(),",
+                "matched_lines": [
+                  201
+                ]
+              },
+              {
+                "evidence_line": 202,
+                "fragment": "transposed_rhs.flat<Scalar>().data(),",
+                "matched_lines": [
+                  202
+                ]
+              },
+              {
+                "evidence_line": 203,
+                "fragment": "transposed_rhs.NumElements() * sizeof(Scalar));",
+                "matched_lines": [
+                  203
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[18]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 225,
+                "fragment": "CudaSolver::CheckLapackInfoAndDeleteSolverAsync(std::move(solver), dev_info,",
+                "matched_lines": [
+                  225
+                ]
+              },
+              {
+                "evidence_line": 226,
+                "fragment": "std::move(info_checker));",
+                "matched_lines": [
+                  226
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 4080,
+              "output_tokens": 2332,
+              "total_tokens": 6412
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 4080,
+          "output_tokens": 2332,
+          "total_tokens": 6412
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "const int ndims = input.dims();",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "context, ndims >= 2,",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "const int64 n = input.dim_size(ndims - 1);",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "const int64 nrhs = rhs.dim_size(ndims - 1);",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "context, input.dim_size(ndims - 2) == n,",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 22,
+                "fragment": "OP_REQUIRES_ASYNC(context, rhs.dim_size(ndims - 2) == n,",
+                "matched_lines": [
+                  22
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 38,
+                "fragment": "if (input.NumElements() == 0 || rhs.NumElements() == 0) {",
+                "matched_lines": [
+                  38
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 55,
+                "fragment": "solver->allocate_scoped_tensor(DataTypeToEnum<Scalar>::value,",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "input.shape(), &input_copy),",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 66,
+                "fragment": "if (!input.SharesBufferWith(input_copy)) {",
+                "matched_lines": [
+                  66
+                ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "device.memcpy(input_copy.flat<Scalar>().data(),",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "input.flat<Scalar>().data(),",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "input.NumElements() * sizeof(Scalar));",
+                "matched_lines": [
+                  69
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 72,
+                "fragment": "auto input_copy_reshaped = input_copy.template flat_inner_dims<Scalar, 3>();",
+                "matched_lines": [
+                  72
+                ]
+              },
+              {
+                "evidence_line": 73,
+                "fragment": "const int64 batch_size = input_copy_reshaped.dimension(0);",
+                "matched_lines": [
+                  73
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 79,
+                "fragment": "solver->allocate_scoped_tensor(DataTypeToEnum<int>::value,",
+                "matched_lines": [
+                  79
+                ]
+              },
+              {
+                "evidence_line": 80,
+                "fragment": "TensorShape{batch_size, n}, &pivots),",
+                "matched_lines": [
+                  80
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 87,
+                "fragment": "auto input_copy_ptrs = solver->GetScratchSpace<uint8>(",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 88,
+                "fragment": "sizeof(Scalar*) * batch_size, \"input_copt_ptrs\",",
+                "matched_lines": [
+                  88
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 90,
+                "fragment": "const int kMaxMatrixSizeToBatchSizeRatio = 128;",
+                "matched_lines": [
+                  90
+                ]
+              },
+              {
+                "evidence_line": 91,
+                "fragment": "const bool use_batched_solver =",
+                "matched_lines": [
+                  91
+                ]
+              },
+              {
+                "evidence_line": 92,
+                "fragment": "n <= kMaxMatrixSizeToBatchSizeRatio * batch_size;",
+                "matched_lines": [
+                  92
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 96,
+                "fragment": "const Scalar** input_copy_ptrs_base =",
+                "matched_lines": [
+                  96
+                ]
+              },
+              {
+                "evidence_line": 97,
+                "fragment": "reinterpret_cast<const Scalar**>(input_copy_ptrs.mutable_data());",
+                "matched_lines": [
+                  97
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 98,
+                "fragment": "for (int batch = 0; batch < batch_size; ++batch) {",
+                "matched_lines": [
+                  98
+                ]
+              },
+              {
+                "evidence_line": 99,
+                "fragment": "input_copy_ptrs_base[batch] = &input_copy_reshaped(batch, 0, 0);",
+                "matched_lines": [
+                  99
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 124,
+                "fragment": "TensorShape transposed_rhs_shape(rhs.shape());",
+                "matched_lines": [
+                  124
+                ]
+              },
+              {
+                "evidence_line": 125,
+                "fragment": "transposed_rhs_shape.RemoveLastDims(2);",
+                "matched_lines": [
+                  125
+                ]
+              },
+              {
+                "evidence_line": 126,
+                "fragment": "transposed_rhs_shape.AddDim(nrhs);",
+                "matched_lines": [
+                  126
+                ]
+              },
+              {
+                "evidence_line": 127,
+                "fragment": "transposed_rhs_shape.AddDim(n);",
+                "matched_lines": [
+                  127
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[15]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 131,
+                "fragment": "solver->allocate_scoped_tensor(DataTypeToEnum<Scalar>::value,",
+                "matched_lines": [
+                  131
+                ]
+              },
+              {
+                "evidence_line": 132,
+                "fragment": "transposed_rhs_shape, &transposed_rhs),",
+                "matched_lines": [
+                  132
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[16]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 138,
+                "fragment": "device.memcpy(transposed_rhs.flat<Scalar>().data(),",
+                "matched_lines": [
+                  138
+                ]
+              },
+              {
+                "evidence_line": 139,
+                "fragment": "rhs.flat<Scalar>().data(),",
+                "matched_lines": [
+                  139
+                ]
+              },
+              {
+                "evidence_line": 140,
+                "fragment": "rhs.NumElements() * sizeof(Scalar));",
+                "matched_lines": [
+                  140
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[17]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 150,
+                "fragment": "auto input_copy_ptr_array = solver->GetScratchSpace<uint8>(",
+                "matched_lines": [
+                  150
+                ]
+              },
+              {
+                "evidence_line": 151,
+                "fragment": "sizeof(Scalar*) * batch_size, \"input_copy_ptr_array\",",
+                "matched_lines": [
+                  151
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[18]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 153,
+                "fragment": "auto transposed_rhs_ptr_array = solver->GetScratchSpace<uint8>(",
+                "matched_lines": [
+                  153
+                ]
+              },
+              {
+                "evidence_line": 154,
+                "fragment": "sizeof(Scalar*) * batch_size, \"transposed_rhs_ptr_array\",",
+                "matched_lines": [
+                  154
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[19]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 156,
+                "fragment": "auto transposed_rhs_reshaped =",
+                "matched_lines": [
+                  156
+                ]
+              },
+              {
+                "evidence_line": 157,
+                "fragment": "transposed_rhs.template flat_inner_dims<Scalar, 3>();",
+                "matched_lines": [
+                  157
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[20]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 159,
+                "fragment": "const Scalar** input_copy_ptrs_base =",
+                "matched_lines": [
+                  159
+                ]
+              },
+              {
+                "evidence_line": 160,
+                "fragment": "reinterpret_cast<const Scalar**>(input_copy_ptr_array.mutable_data());",
+                "matched_lines": [
+                  160
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[21]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 161,
+                "fragment": "const Scalar** transposed_rhs_ptrs_base =",
+                "matched_lines": [
+                  161
+                ]
+              },
+              {
+                "evidence_line": 162,
+                "fragment": "reinterpret_cast<const Scalar**>(",
+                "matched_lines": [
+                  162
+                ]
+              },
+              {
+                "evidence_line": 163,
+                "fragment": "transposed_rhs_ptr_array.mutable_data());",
+                "matched_lines": [
+                  163
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[22]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 164,
+                "fragment": "for (int batch = 0; batch < batch_size; ++batch) {",
+                "matched_lines": [
+                  164
+                ]
+              },
+              {
+                "evidence_line": 165,
+                "fragment": "input_copy_ptrs_base[batch] = &input_copy_reshaped(batch, 0, 0);",
+                "matched_lines": [
+                  165
+                ]
+              },
+              {
+                "evidence_line": 166,
+                "fragment": "transposed_rhs_ptrs_base[batch] = &transposed_rhs_reshaped(batch, 0, 0);",
+                "matched_lines": [
+                  166
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[23]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 201,
+                "fragment": "device.memcpy(output->flat<Scalar>().data(),",
+                "matched_lines": [
+                  201
+                ]
+              },
+              {
+                "evidence_line": 202,
+                "fragment": "transposed_rhs.flat<Scalar>().data(),",
+                "matched_lines": [
+                  202
+                ]
+              },
+              {
+                "evidence_line": 203,
+                "fragment": "transposed_rhs.NumElements() * sizeof(Scalar));",
+                "matched_lines": [
+                  203
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3760,
+              "output_tokens": 1809,
+              "total_tokens": 5569
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3760,
+          "output_tokens": 1809,
+          "total_tokens": 5569
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "OP_REQUIRES_ASYNC(",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "context, ndims >= 2,",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "OP_REQUIRES_ASYNC(context, rhs.dims() == ndims,",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "OP_REQUIRES_ASYNC(",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "context, input.dim_size(ndims - 2) == n,",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 22,
+                "fragment": "OP_REQUIRES_ASYNC(context, rhs.dim_size(ndims - 2) == n,",
+                "matched_lines": [
+                  22
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 38,
+                "fragment": "if (input.NumElements() == 0 || rhs.NumElements() == 0) {",
+                "matched_lines": [
+                  38
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "done();",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "return;",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "}",
+                "matched_lines": [
+                  41
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 66,
+                "fragment": "if (!input.SharesBufferWith(input_copy)) {",
+                "matched_lines": [
+                  66
+                ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "device.memcpy(input_copy.flat<Scalar>().data(),",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "input.flat<Scalar>().data(),",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "input.NumElements() * sizeof(Scalar));",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "}",
+                "matched_lines": [
+                  70
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 72,
+                "fragment": "auto input_copy_reshaped = input_copy.template flat_inner_dims<Scalar, 3>();",
+                "matched_lines": [
+                  72
+                ]
+              },
+              {
+                "evidence_line": 73,
+                "fragment": "const int64 batch_size = input_copy_reshaped.dimension(0);",
+                "matched_lines": [
+                  73
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 90,
+                "fragment": "const int kMaxMatrixSizeToBatchSizeRatio = 128;",
+                "matched_lines": [
+                  90
+                ]
+              },
+              {
+                "evidence_line": 91,
+                "fragment": "const bool use_batched_solver =",
+                "matched_lines": [
+                  91
+                ]
+              },
+              {
+                "evidence_line": 92,
+                "fragment": "n <= kMaxMatrixSizeToBatchSizeRatio * batch_size;",
+                "matched_lines": [
+                  92
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 96,
+                "fragment": "const Scalar** input_copy_ptrs_base =",
+                "matched_lines": [
+                  96
+                ]
+              },
+              {
+                "evidence_line": 97,
+                "fragment": "reinterpret_cast<const Scalar**>(input_copy_ptrs.mutable_data());",
+                "matched_lines": [
+                  97
+                ]
+              },
+              {
+                "evidence_line": 98,
+                "fragment": "for (int batch = 0; batch < batch_size; ++batch) {",
+                "matched_lines": [
+                  98
+                ]
+              },
+              {
+                "evidence_line": 99,
+                "fragment": "input_copy_ptrs_base[batch] = &input_copy_reshaped(batch, 0, 0);",
+                "matched_lines": [
+                  99
+                ]
+              },
+              {
+                "evidence_line": 100,
+                "fragment": "}",
+                "matched_lines": [
+                  100
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 124,
+                "fragment": "TensorShape transposed_rhs_shape(rhs.shape());",
+                "matched_lines": [
+                  124
+                ]
+              },
+              {
+                "evidence_line": 125,
+                "fragment": "transposed_rhs_shape.RemoveLastDims(2);",
+                "matched_lines": [
+                  125
+                ]
+              },
+              {
+                "evidence_line": 126,
+                "fragment": "transposed_rhs_shape.AddDim(nrhs);",
+                "matched_lines": [
+                  126
+                ]
+              },
+              {
+                "evidence_line": 127,
+                "fragment": "transposed_rhs_shape.AddDim(n);",
+                "matched_lines": [
+                  127
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 134,
+                "fragment": "if (nrhs > 1) {",
+                "matched_lines": [
+                  134
+                ]
+              },
+              {
+                "evidence_line": 135,
+                "fragment": "OP_REQUIRES_OK_ASYNC(",
+                "matched_lines": [
+                  135
+                ]
+              },
+              {
+                "evidence_line": 136,
+                "fragment": "context, DoMatrixTranspose(device, rhs, &transposed_rhs), done);",
+                "matched_lines": [
+                  136
+                ]
+              },
+              {
+                "evidence_line": 137,
+                "fragment": "} else {",
+                "matched_lines": [
+                  137
+                ]
+              },
+              {
+                "evidence_line": 138,
+                "fragment": "device.memcpy(transposed_rhs.flat<Scalar>().data(),",
+                "matched_lines": [
+                  138
+                ]
+              },
+              {
+                "evidence_line": 139,
+                "fragment": "rhs.flat<Scalar>().data(),",
+                "matched_lines": [
+                  139
+                ]
+              },
+              {
+                "evidence_line": 140,
+                "fragment": "rhs.NumElements() * sizeof(Scalar));",
+                "matched_lines": [
+                  140
+                ]
+              },
+              {
+                "evidence_line": 141,
+                "fragment": "}",
+                "matched_lines": [
+                  141
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 159,
+                "fragment": "const Scalar** input_copy_ptrs_base =",
+                "matched_lines": [
+                  159
+                ]
+              },
+              {
+                "evidence_line": 160,
+                "fragment": "reinterpret_cast<const Scalar**>(input_copy_ptr_array.mutable_data());",
+                "matched_lines": [
+                  160
+                ]
+              },
+              {
+                "evidence_line": 161,
+                "fragment": "const Scalar** transposed_rhs_ptrs_base =",
+                "matched_lines": [
+                  161
+                ]
+              },
+              {
+                "evidence_line": 162,
+                "fragment": "reinterpret_cast<const Scalar**>(",
+                "matched_lines": [
+                  162
+                ]
+              },
+              {
+                "evidence_line": 163,
+                "fragment": "transposed_rhs_ptr_array.mutable_data());",
+                "matched_lines": [
+                  163
+                ]
+              },
+              {
+                "evidence_line": 164,
+                "fragment": "for (int batch = 0; batch < batch_size; ++batch) {",
+                "matched_lines": [
+                  164
+                ]
+              },
+              {
+                "evidence_line": 165,
+                "fragment": "input_copy_ptrs_base[batch] = &input_copy_reshaped(batch, 0, 0);",
+                "matched_lines": [
+                  165
+                ]
+              },
+              {
+                "evidence_line": 166,
+                "fragment": "transposed_rhs_ptrs_base[batch] = &transposed_rhs_reshaped(batch, 0, 0);",
+                "matched_lines": [
+                  166
+                ]
+              },
+              {
+                "evidence_line": 167,
+                "fragment": "}",
+                "matched_lines": [
+                  167
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 176,
+                "fragment": "OP_REQUIRES_ASYNC(",
+                "matched_lines": [
+                  176
+                ]
+              },
+              {
+                "evidence_line": 177,
+                "fragment": "context, host_info == 0,",
+                "matched_lines": [
+                  177
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 197,
+                "fragment": "if (nrhs > 1) {",
+                "matched_lines": [
+                  197
+                ]
+              },
+              {
+                "evidence_line": 198,
+                "fragment": "OP_REQUIRES_OK_ASYNC(",
+                "matched_lines": [
+                  198
+                ]
+              },
+              {
+                "evidence_line": 199,
+                "fragment": "context, DoMatrixTranspose(device, transposed_rhs, output), done);",
+                "matched_lines": [
+                  199
+                ]
+              },
+              {
+                "evidence_line": 200,
+                "fragment": "} else {",
+                "matched_lines": [
+                  200
+                ]
+              },
+              {
+                "evidence_line": 201,
+                "fragment": "device.memcpy(output->flat<Scalar>().data(),",
+                "matched_lines": [
+                  201
+                ]
+              },
+              {
+                "evidence_line": 202,
+                "fragment": "transposed_rhs.flat<Scalar>().data(),",
+                "matched_lines": [
+                  202
+                ]
+              },
+              {
+                "evidence_line": 203,
+                "fragment": "transposed_rhs.NumElements() * sizeof(Scalar));",
+                "matched_lines": [
+                  203
+                ]
+              },
+              {
+                "evidence_line": 204,
+                "fragment": "}",
+                "matched_lines": [
+                  204
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 213,
+                "fragment": "if (!status.ok() && errors::IsInvalidArgument(status) &&",
+                "matched_lines": [
+                  213
+                ]
+              },
+              {
+                "evidence_line": 214,
+                "fragment": "!host_infos.empty()) {",
+                "matched_lines": [
+                  214
+                ]
+              },
+              {
+                "evidence_line": 215,
+                "fragment": "for (int i = 0; i < host_infos[0].size(); ++i) {",
+                "matched_lines": [
+                  215
+                ]
+              },
+              {
+                "evidence_line": 218,
+                "fragment": "OP_REQUIRES_ASYNC(context, host_infos[0].data()[i] <= 0,",
+                "matched_lines": [
+                  218
+                ]
+              },
+              {
+                "evidence_line": 219,
+                "fragment": "errors::InvalidArgument(kErrMsg), done);",
+                "matched_lines": [
+                  219
+                ]
+              },
+              {
+                "evidence_line": 220,
+                "fragment": "}",
+                "matched_lines": [
+                  220
+                ]
+              },
+              {
+                "evidence_line": 221,
+                "fragment": "}",
+                "matched_lines": [
+                  221
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 12,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 13,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 14,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 12,
+      "states": 19,
+      "values": 24,
+      "executions": 15
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 17021,
+    "output_tokens": 6980,
+    "total_tokens": 24001
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000174",
+    "split": "test",
+    "source_hash": "0bbcff27f85b842329c570e99ff49406503a31176f7d16312a664ae7df5d25ca",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

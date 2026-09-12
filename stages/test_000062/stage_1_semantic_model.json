@@ -1,0 +1,695 @@
+{
+  "sample_id": "test_000062",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L9"
+          ],
+          "expression": "dtypes.size() < size_t{1}",
+          "claim": "compare the size of dtypes against one"
+        },
+        {
+          "locations": [
+            "L12"
+          ],
+          "expression": "result_.nodes.size()",
+          "claim": "read the size of result_.nodes"
+        },
+        {
+          "locations": [
+            "L16"
+          ],
+          "expression": "dtypes[i]",
+          "claim": "index into dtypes at i"
+        },
+        {
+          "locations": [
+            "L18"
+          ],
+          "expression": "dtypes[i]",
+          "claim": "index into dtypes at i"
+        },
+        {
+          "locations": [
+            "L25"
+          ],
+          "expression": "dtypes[i]",
+          "claim": "index into dtypes at i"
+        },
+        {
+          "locations": [
+            "L30"
+          ],
+          "expression": "dtypes[i]",
+          "claim": "index into dtypes at i"
+        },
+        {
+          "locations": [
+            "L41"
+          ],
+          "expression": "dtypes[i]",
+          "claim": "index into dtypes at i"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "gnode"
+          ],
+          "claim": "gnode points to a NodeDef object added to the graph via AddNode(name).",
+          "evidence": "L24: NodeDef* gnode = AddNode(name);"
+        },
+        {
+          "entities": [
+            "gnode"
+          ],
+          "claim": "gnode's op is set to kDeviceArgOp when ints_on_device and dtype is DT_INT32, otherwise to kArgOp.",
+          "evidence": "L25: if (ints_on_device && dtypes[i] == DataType::DT_INT32) {\nL26: gnode->set_op(FunctionLibraryDefinition::kDeviceArgOp);\nL27: } else {\nL28: gnode->set_op(FunctionLibraryDefinition::kArgOp);"
+        },
+        {
+          "entities": [
+            "gnode"
+          ],
+          "claim": "gnode has attribute \"T\" set to dtype.",
+          "evidence": "L31: AddAttr(\"T\", dtype, gnode);"
+        },
+        {
+          "entities": [
+            "gnode"
+          ],
+          "claim": "gnode has attribute \"index\" set to arg_index.",
+          "evidence": "L32: AddAttr(\"index\", arg_index, gnode);"
+        },
+        {
+          "entities": [
+            "gnode"
+          ],
+          "claim": "gnode has attribute \"_resource_arg_unique_id\" set to resource_arg_unique_id when resource_arg_unique_id >= 0.",
+          "evidence": "L33: if (resource_arg_unique_id >= 0) {\nL34: AddAttr(\"_resource_arg_unique_id\", resource_arg_unique_id, gnode);"
+        },
+        {
+          "entities": [
+            "gnode",
+            "arg_attrs"
+          ],
+          "claim": "gnode's mutable attribute map receives each attribute from arg_attrs when arg_attrs is non-NULL.",
+          "evidence": "L36: if (arg_attrs) {\nL37: for (const auto& arg_attr : arg_attrs->attr()) {\nL38: AddAttr(arg_attr.first, arg_attr.second, gnode->mutable_attr());"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "dtypes.size()",
+            "i",
+            "arg_index"
+          ],
+          "claim": "The loop iterates i from 0 while i < dtypes.size(), creating dtypes.size() nodes; arg_index starts at result_.nodes.size() and is incremented once per iteration, so after the loop arg_index equals initial result_.nodes.size() + dtypes.size().",
+          "evidence": "L12: int arg_index = result_.nodes.size();\nL16: for (size_t i = 0; i < dtypes.size(); ++i) {\nL42: ++arg_index;"
+        },
+        {
+          "entities": [
+            "dtypes.size()"
+          ],
+          "claim": "dtypes.size() is required to be at least 1 before the loop.",
+          "evidence": "L9: if (dtypes.size() < size_t{1}) {\nL10: return errors::Internal(\"Expected a list of at least one dtype\");"
+        },
+        {
+          "entities": [
+            "i",
+            "dtypes.size()"
+          ],
+          "claim": "The condition dtypes.size() > 1 controls whether the node name is suffixed with the current index i.",
+          "evidence": "L21: if (dtypes.size() > 1) {\nL22: strings::StrAppend(&name, \"_\", i);"
+        },
+        {
+          "entities": [
+            "resource_arg_unique_id"
+          ],
+          "claim": "The attribute _resource_arg_unique_id is added only when resource_arg_unique_id >= 0.",
+          "evidence": "L33: if (resource_arg_unique_id >= 0) {\nL34: AddAttr(\"_resource_arg_unique_id\", resource_arg_unique_id, gnode);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "dtypes.size()"
+          ],
+          "claim": "continuing past the size check implies dtypes.size() >= 1",
+          "evidence": "L9: if (dtypes.size() < size_t{1}) {\nL10: return errors::Internal(\"Expected a list of at least one dtype\");"
+        },
+        {
+          "entities": [
+            "i",
+            "dtypes.size()"
+          ],
+          "claim": "inside the loop body, 0 <= i < dtypes.size()",
+          "evidence": "L16: for (size_t i = 0; i < dtypes.size(); ++i) {"
+        },
+        {
+          "entities": [
+            "dtypes.size()",
+            "name"
+          ],
+          "claim": "the name suffix is appended only when dtypes.size() > 1",
+          "evidence": "L21: if (dtypes.size() > 1) {\nL22: strings::StrAppend(&name, \"_\", i);"
+        },
+        {
+          "entities": [
+            "resource_arg_unique_id"
+          ],
+          "claim": "the _resource_arg_unique_id attribute is added only when resource_arg_unique_id >= 0",
+          "evidence": "L33: if (resource_arg_unique_id >= 0) {\nL34: AddAttr(\"_resource_arg_unique_id\", resource_arg_unique_id, gnode);"
+        },
+        {
+          "entities": [
+            "arg_attrs"
+          ],
+          "claim": "arg_attrs is dereferenced only when non-null",
+          "evidence": "L36: if (arg_attrs) {\nL37: for (const auto& arg_attr : arg_attrs->attr()) {"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2604,
+              "output_tokens": 183,
+              "total_tokens": 2787
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2604,
+          "output_tokens": 183,
+          "total_tokens": 2787
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L9",
+                "matched": true,
+                "expression": "dtypes.size() < size_t{1}"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L12",
+                "matched": true,
+                "expression": "result_.nodes.size()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L16",
+                "matched": true,
+                "expression": "dtypes[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L18",
+                "matched": true,
+                "expression": "dtypes[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L25",
+                "matched": true,
+                "expression": "dtypes[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L30",
+                "matched": true,
+                "expression": "dtypes[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L41",
+                "matched": true,
+                "expression": "dtypes[i]"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1207,
+              "output_tokens": 430,
+              "total_tokens": 1637
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1207,
+          "output_tokens": 430,
+          "total_tokens": 1637
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 24,
+                "fragment": "NodeDef* gnode = AddNode(name);",
+                "matched_lines": [
+                  24
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 25,
+                "fragment": "if (ints_on_device && dtypes[i] == DataType::DT_INT32) {",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "gnode->set_op(FunctionLibraryDefinition::kDeviceArgOp);",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "} else {",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "gnode->set_op(FunctionLibraryDefinition::kArgOp);",
+                "matched_lines": [
+                  28
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 31,
+                "fragment": "AddAttr(\"T\", dtype, gnode);",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 32,
+                "fragment": "AddAttr(\"index\", arg_index, gnode);",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 33,
+                "fragment": "if (resource_arg_unique_id >= 0) {",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "AddAttr(\"_resource_arg_unique_id\", resource_arg_unique_id, gnode);",
+                "matched_lines": [
+                  34
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 36,
+                "fragment": "if (arg_attrs) {",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "for (const auto& arg_attr : arg_attrs->attr()) {",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 38,
+                "fragment": "AddAttr(arg_attr.first, arg_attr.second, gnode->mutable_attr());",
+                "matched_lines": [
+                  38
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1395,
+              "output_tokens": 340,
+              "total_tokens": 1735
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1395,
+          "output_tokens": 340,
+          "total_tokens": 1735
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "int arg_index = result_.nodes.size();",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "for (size_t i = 0; i < dtypes.size(); ++i) {",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 42,
+                "fragment": "++arg_index;",
+                "matched_lines": [
+                  42
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "if (dtypes.size() < size_t{1}) {",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "return errors::Internal(\"Expected a list of at least one dtype\");",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 21,
+                "fragment": "if (dtypes.size() > 1) {",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "strings::StrAppend(&name, \"_\", i);",
+                "matched_lines": [
+                  22
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 33,
+                "fragment": "if (resource_arg_unique_id >= 0) {",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "AddAttr(\"_resource_arg_unique_id\", resource_arg_unique_id, gnode);",
+                "matched_lines": [
+                  34
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1075,
+              "output_tokens": 348,
+              "total_tokens": 1423
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1075,
+          "output_tokens": 348,
+          "total_tokens": 1423
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "if (dtypes.size() < size_t{1}) {",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "return errors::Internal(\"Expected a list of at least one dtype\");",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "for (size_t i = 0; i < dtypes.size(); ++i) {",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 21,
+                "fragment": "if (dtypes.size() > 1) {",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "strings::StrAppend(&name, \"_\", i);",
+                "matched_lines": [
+                  22
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 33,
+                "fragment": "if (resource_arg_unique_id >= 0) {",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "AddAttr(\"_resource_arg_unique_id\", resource_arg_unique_id, gnode);",
+                "matched_lines": [
+                  34
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 36,
+                "fragment": "if (arg_attrs) {",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "for (const auto& arg_attr : arg_attrs->attr()) {",
+                "matched_lines": [
+                  37
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 7,
+      "states": 6,
+      "values": 4,
+      "executions": 5
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 6281,
+    "output_tokens": 1301,
+    "total_tokens": 7582
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000062",
+    "split": "test",
+    "source_hash": "0d77a3df253f42221a7e1f2f183824008edc271de92ffdaa97744a86416b368f",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

@@ -1,0 +1,1691 @@
+{
+  "sample_id": "test_000193",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L71",
+            "L87",
+            "L88",
+            "L116",
+            "L120",
+            "L123",
+            "L130",
+            "L154",
+            "L158",
+            "L161",
+            "L194",
+            "L198",
+            "L202",
+            "L248",
+            "L251"
+          ],
+          "expression": "pat->data[i][...]",
+          "claim": "accessing pattern data through a cached DivPattern pointer at row i and column offsets"
+        },
+        {
+          "locations": [
+            "L65"
+          ],
+          "expression": "e->song.chanShow[j]",
+          "claim": "indexing channel visibility array with loop index j"
+        },
+        {
+          "locations": [
+            "L114"
+          ],
+          "expression": "e->song.chanCollapse[j]",
+          "claim": "indexing channel collapse array with loop index j"
+        },
+        {
+          "locations": [
+            "L186"
+          ],
+          "expression": "e->song.pat[j].effectRows",
+          "claim": "indexing pattern array with channel index j"
+        },
+        {
+          "locations": [
+            "L205"
+          ],
+          "expression": "fxColors[data]",
+          "claim": "indexing effect color table with effect byte data"
+        },
+        {
+          "locations": [
+            "L223"
+          ],
+          "expression": "extFxColors[data-0xe0]",
+          "claim": "indexing extended effect color table with effect byte data"
+        },
+        {
+          "locations": [
+            "L162"
+          ],
+          "expression": "volColors[volColor]",
+          "claim": "indexing volume color table with computed volume color"
+        },
+        {
+          "locations": [
+            "L19",
+            "L20",
+            "L21",
+            "L23",
+            "L24",
+            "L25",
+            "L27",
+            "L28",
+            "L29",
+            "L34",
+            "L36",
+            "L38",
+            "L40",
+            "L45",
+            "L47",
+            "L49",
+            "L51",
+            "L94",
+            "L95",
+            "L96",
+            "L101",
+            "L121",
+            "L125",
+            "L127",
+            "L134",
+            "L135",
+            "L136",
+            "L141",
+            "L166",
+            "L167",
+            "L168",
+            "L173",
+            "L200",
+            "L205",
+            "L207",
+            "L209",
+            "L211",
+            "L213",
+            "L215",
+            "L217",
+            "L219",
+            "L221",
+            "L229",
+            "L230",
+            "L231",
+            "L236",
+            "L255",
+            "L256",
+            "L257",
+            "L262"
+          ],
+          "expression": "uiColors[...]",
+          "claim": "indexing UI color table with color identifiers"
+        },
+        {
+          "locations": [
+            "L66",
+            "L73",
+            "L280"
+          ],
+          "expression": "patChanX[j]",
+          "claim": "writing channel X position into array at index j or chans"
+        },
+        {
+          "locations": [
+            "L87",
+            "L118",
+            "L130",
+            "L155",
+            "L161",
+            "L195",
+            "L199",
+            "L203",
+            "L249",
+            "L251"
+          ],
+          "expression": "sprintf(id, ...)",
+          "claim": "writing formatted text into fixed-size static buffer id"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "id"
+          ],
+          "claim": "id is a static char buffer of size 32 used for formatting selectable labels.",
+          "evidence": "L2: static char id[32];"
+        },
+        {
+          "entities": [
+            "pat"
+          ],
+          "claim": "pat is a pointer to a DivPattern obtained from patCache[j] for the current channel j.",
+          "evidence": "L71: const DivPattern* pat=patCache[j];"
+        },
+        {
+          "entities": [
+            "pat",
+            "patCache"
+          ],
+          "claim": "pat aliases the DivPattern object stored in patCache[j]; its data array is accessed for note, instrument, volume, and effect fields.",
+          "evidence": "L71: const DivPattern* pat=patCache[j];\nL87: sprintf(id,\"%s##PN_%d_%d\",noteName(pat->data[i][0],pat->data[i][1]),i,j);\nL116: if (pat->data[i][2]==-1) {\nL154: if (pat->data[i][3]==-1) {\nL194: if (pat->data[i][index]==-1) {"
+        },
+        {
+          "entities": [
+            "e",
+            "e->song.ins"
+          ],
+          "claim": "e->song.ins is an array of instrument pointers indexed by pat->data[i][2] when the instrument index is within [0, e->song.insLen).",
+          "evidence": "L120: if (pat->data[i][2]<0 || pat->data[i][2]>=e->song.insLen) {\nL123: DivInstrumentType t=e->song.ins[pat->data[i][2]]->type;"
+        },
+        {
+          "entities": [
+            "e",
+            "e->song.pat"
+          ],
+          "claim": "e->song.pat[j] is a pattern object whose effectRows field bounds the effect loop for channel j.",
+          "evidence": "L186: for (int k=0; k<e->song.pat[j].effectRows; k++) {"
+        },
+        {
+          "entities": [
+            "patChanX"
+          ],
+          "claim": "patChanX[j] is assigned the current cursor X position for each visible channel j, and patChanX[chans] is assigned after the channel loop.",
+          "evidence": "L66: patChanX[j]=ImGui::GetCursorPosX();\nL73: patChanX[j]=ImGui::GetCursorPosX();\nL280: patChanX[chans]=ImGui::GetCursorPosX();"
+        },
+        {
+          "entities": [
+            "demandX"
+          ],
+          "claim": "demandX is assigned the current cursor X position when a cursor cell is rendered.",
+          "evidence": "L98: demandX=ImGui::GetCursorPosX();\nL138: demandX=ImGui::GetCursorPosX();\nL170: demandX=ImGui::GetCursorPosX();\nL233: demandX=ImGui::GetCursorPosX();\nL259: demandX=ImGui::GetCursorPosX();"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "i",
+            "e->song.patLen"
+          ],
+          "claim": "Row index i is validated to be in [0, e->song.patLen) before any pat->data[i] access.",
+          "evidence": "L15: if (i<0 || i>=e->song.patLen) {\nL16: return;"
+        },
+        {
+          "entities": [
+            "ord",
+            "e->song.ordersLen"
+          ],
+          "claim": "Order index ord is validated to be in [0, e->song.ordersLen) before use.",
+          "evidence": "L12: if (ord<0 || ord>=e->song.ordersLen) {\nL13: return;"
+        },
+        {
+          "entities": [
+            "j",
+            "chans",
+            "patCache",
+            "e->song.chanShow"
+          ],
+          "claim": "Column loop index j runs from 0 to chans-1, and patCache[j] and e->song.chanShow[j] are indexed within that range.",
+          "evidence": "L63: for (int j=0; j<chans; j++) {\nL65: if (!e->song.chanShow[j]) {\nL71: const DivPattern* pat=patCache[j];"
+        },
+        {
+          "entities": [
+            "j32",
+            "sel1XSum",
+            "sel2XSum"
+          ],
+          "claim": "j32 is j*32, and selection comparisons use j32, j32+1, j32+2 against sel1XSum/sel2XSum.",
+          "evidence": "L78: int j32=j*32;\nL79: bool selectedNote=selectedRow && (j32>=sel1XSum && j32<=sel2XSum);\nL80: bool selectedIns=selectedRow && (j32+1>=sel1XSum && j32+1<=sel2XSum);\nL81: bool selectedVol=selectedRow && (j32+2>=sel1XSum && j32+2<=sel2XSum);"
+        },
+        {
+          "entities": [
+            "k",
+            "e->song.pat[j].effectRows",
+            "index"
+          ],
+          "claim": "Effect loop index k runs from 0 to e->song.pat[j].effectRows-1, and index=4+(k<<1) is used to access pat->data[i][index] and pat->data[i][index+1].",
+          "evidence": "L186: for (int k=0; k<e->song.pat[j].effectRows; k++) {\nL187: int index=4+(k<<1);\nL194: if (pat->data[i][index]==-1) {\nL248: if (pat->data[i][index+1]==-1) {"
+        },
+        {
+          "entities": [
+            "pat->data[i][2]",
+            "e->song.insLen"
+          ],
+          "claim": "Instrument value pat->data[i][2] is checked against [0, e->song.insLen) before indexing e->song.ins.",
+          "evidence": "L120: if (pat->data[i][2]<0 || pat->data[i][2]>=e->song.insLen) {\nL123: DivInstrumentType t=e->song.ins[pat->data[i][2]]->type;"
+        },
+        {
+          "entities": [
+            "pat->data[i][3]",
+            "chanVolMax",
+            "volColor"
+          ],
+          "claim": "volColor is computed as (pat->data[i][3]*127)/chanVolMax, then clamped to [0,127] before indexing volColors.",
+          "evidence": "L69: int chanVolMax=e->getMaxVolumeChan(j);\nL70: if (chanVolMax<1) chanVolMax=1;\nL158: int volColor=(pat->data[i][3]*127)/chanVolMax;\nL159: if (volColor>127) volColor=127;\nL160: if (volColor<0) volColor=0;\nL162: ImGui::PushStyleColor(ImGuiCol_Text,volColors[volColor]);"
+        },
+        {
+          "entities": [
+            "pat->data[i][index]",
+            "data"
+          ],
+          "claim": "data is the unsigned char conversion of pat->data[i][index], used for fxColors[data] and extFxColors[data-0xe0] indexing.",
+          "evidence": "L202: const unsigned char data=pat->data[i][index];\nL205: ImGui::PushStyleColor(ImGuiCol_Text,uiColors[fxColors[data]]);\nL223: ImGui::PushStyleColor(ImGuiCol_Text,uiColors[extFxColors[data-0xe0]]);"
+        },
+        {
+          "entities": [
+            "id",
+            "i",
+            "j",
+            "k"
+          ],
+          "claim": "id is a static char[32] buffer written by sprintf with format strings containing i, j, and k.",
+          "evidence": "L2: static char id[32];\nL87: sprintf(id,\"%s##PN_%d_%d\",noteName(pat->data[i][0],pat->data[i][1]),i,j);\nL195: sprintf(id,\"..##PE%d_%d_%d\",k,i,j);"
+        },
+        {
+          "entities": [
+            "patChanX",
+            "chans"
+          ],
+          "claim": "patChanX is indexed by j in the loop and by chans after the loop.",
+          "evidence": "L66: patChanX[j]=ImGui::GetCursorPosX();\nL73: patChanX[j]=ImGui::GetCursorPosX();\nL280: patChanX[chans]=ImGui::GetCursorPosX();"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "i"
+          ],
+          "claim": "continuing past the visibility check implies cursorPosY >= -lineHeight and cursorPosY <= window height",
+          "evidence": "L8: if (cursorPosY<-lineHeight || cursorPosY>ImGui::GetWindowSize().y) {\nL9: return;"
+        },
+        {
+          "entities": [
+            "ord"
+          ],
+          "claim": "continuing past the order check implies 0 <= ord < e->song.ordersLen",
+          "evidence": "L12: if (ord<0 || ord>=e->song.ordersLen) {\nL13: return;"
+        },
+        {
+          "entities": [
+            "i"
+          ],
+          "claim": "continuing past the pattern-length check implies 0 <= i < e->song.patLen",
+          "evidence": "L15: if (i<0 || i>=e->song.patLen) {\nL16: return;"
+        },
+        {
+          "entities": [
+            "j",
+            "chans"
+          ],
+          "claim": "inside the column loop, j is in [0, chans)",
+          "evidence": "L63: for (int j=0; j<chans; j++) {"
+        },
+        {
+          "entities": [
+            "chanVolMax"
+          ],
+          "claim": "after the clamp, chanVolMax >= 1",
+          "evidence": "L69: int chanVolMax=e->getMaxVolumeChan(j);\nL70: if (chanVolMax<1) chanVolMax=1;"
+        },
+        {
+          "entities": [
+            "volColor"
+          ],
+          "claim": "after clamping, 0 <= volColor <= 127",
+          "evidence": "L158: int volColor=(pat->data[i][3]*127)/chanVolMax;\nL159: if (volColor>127) volColor=127;\nL160: if (volColor<0) volColor=0;"
+        },
+        {
+          "entities": [
+            "k",
+            "e->song.pat[j].effectRows"
+          ],
+          "claim": "inside the effects loop, k is in [0, e->song.pat[j].effectRows)",
+          "evidence": "L186: for (int k=0; k<e->song.pat[j].effectRows; k++) {"
+        },
+        {
+          "entities": [
+            "index"
+          ],
+          "claim": "inside the effects loop, index = 4 + 2*k",
+          "evidence": "L187: int index=4+(k<<1);"
+        },
+        {
+          "entities": [
+            "pat->data[i][index]"
+          ],
+          "claim": "in the effect-value branch, pat->data[i][index] is not -1",
+          "evidence": "L194: if (pat->data[i][index]==-1) {\nL197: } else {"
+        },
+        {
+          "entities": [
+            "data"
+          ],
+          "claim": "in the valid-effect branch, data = pat->data[i][index] and data <= 0xff",
+          "evidence": "L198: if (pat->data[i][index]>0xff) {\nL201: } else {\nL202: const unsigned char data=pat->data[i][index];"
+        },
+        {
+          "entities": [
+            "data"
+          ],
+          "claim": "in the final effect-color branch, data >= 0xe0",
+          "evidence": "L222: } else {\nL223: ImGui::PushStyleColor(ImGuiCol_Text,uiColors[extFxColors[data-0xe0]]);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 7018,
+              "output_tokens": 535,
+              "total_tokens": 7553
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 7018,
+          "output_tokens": 535,
+          "total_tokens": 7553
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L71",
+                "matched": true,
+                "expression": "pat->data[i][...]"
+              },
+              {
+                "location": "L87",
+                "matched": true,
+                "expression": "pat->data[i][...]"
+              },
+              {
+                "location": "L88",
+                "matched": true,
+                "expression": "pat->data[i][...]"
+              },
+              {
+                "location": "L116",
+                "matched": true,
+                "expression": "pat->data[i][...]"
+              },
+              {
+                "location": "L120",
+                "matched": true,
+                "expression": "pat->data[i][...]"
+              },
+              {
+                "location": "L123",
+                "matched": true,
+                "expression": "pat->data[i][...]"
+              },
+              {
+                "location": "L130",
+                "matched": true,
+                "expression": "pat->data[i][...]"
+              },
+              {
+                "location": "L154",
+                "matched": true,
+                "expression": "pat->data[i][...]"
+              },
+              {
+                "location": "L158",
+                "matched": true,
+                "expression": "pat->data[i][...]"
+              },
+              {
+                "location": "L161",
+                "matched": true,
+                "expression": "pat->data[i][...]"
+              },
+              {
+                "location": "L194",
+                "matched": true,
+                "expression": "pat->data[i][...]"
+              },
+              {
+                "location": "L198",
+                "matched": true,
+                "expression": "pat->data[i][...]"
+              },
+              {
+                "location": "L202",
+                "matched": true,
+                "expression": "pat->data[i][...]"
+              },
+              {
+                "location": "L248",
+                "matched": true,
+                "expression": "pat->data[i][...]"
+              },
+              {
+                "location": "L251",
+                "matched": true,
+                "expression": "pat->data[i][...]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L65",
+                "matched": true,
+                "expression": "e->song.chanShow[j]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L114",
+                "matched": true,
+                "expression": "e->song.chanCollapse[j]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L186",
+                "matched": true,
+                "expression": "e->song.pat[j].effectRows"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L205",
+                "matched": true,
+                "expression": "fxColors[data]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L223",
+                "matched": true,
+                "expression": "extFxColors[data-0xe0]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L162",
+                "matched": true,
+                "expression": "volColors[volColor]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L19",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L20",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L21",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L23",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L24",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L25",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L27",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L28",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L29",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L34",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L36",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L38",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L40",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L45",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L47",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L49",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L51",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L94",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L95",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L96",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L101",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L121",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L125",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L127",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L134",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L135",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L136",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L141",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L166",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L167",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L168",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L173",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L200",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L205",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L207",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L209",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L211",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L213",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L215",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L217",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L219",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L221",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L229",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L230",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L231",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L236",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L255",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L256",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L257",
+                "matched": true,
+                "expression": "uiColors[...]"
+              },
+              {
+                "location": "L262",
+                "matched": true,
+                "expression": "uiColors[...]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L66",
+                "matched": true,
+                "expression": "patChanX[j]"
+              },
+              {
+                "location": "L73",
+                "matched": true,
+                "expression": "patChanX[j]"
+              },
+              {
+                "location": "L280",
+                "matched": true,
+                "expression": "patChanX[j]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[9]": {
+            "expression_matches": [
+              {
+                "location": "L87",
+                "matched": true,
+                "expression": "sprintf(id, ...)"
+              },
+              {
+                "location": "L118",
+                "matched": true,
+                "expression": "sprintf(id, ...)"
+              },
+              {
+                "location": "L130",
+                "matched": true,
+                "expression": "sprintf(id, ...)"
+              },
+              {
+                "location": "L155",
+                "matched": true,
+                "expression": "sprintf(id, ...)"
+              },
+              {
+                "location": "L161",
+                "matched": true,
+                "expression": "sprintf(id, ...)"
+              },
+              {
+                "location": "L195",
+                "matched": true,
+                "expression": "sprintf(id, ...)"
+              },
+              {
+                "location": "L199",
+                "matched": true,
+                "expression": "sprintf(id, ...)"
+              },
+              {
+                "location": "L203",
+                "matched": true,
+                "expression": "sprintf(id, ...)"
+              },
+              {
+                "location": "L249",
+                "matched": true,
+                "expression": "sprintf(id, ...)"
+              },
+              {
+                "location": "L251",
+                "matched": true,
+                "expression": "sprintf(id, ...)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_operation_locations",
+            "index": 7,
+            "locations": [
+              "L19",
+              "L20",
+              "L21",
+              "L23",
+              "L24",
+              "L25",
+              "L27",
+              "L28",
+              "L29",
+              "L34",
+              "L36",
+              "L38",
+              "L40",
+              "L45",
+              "L47",
+              "L49",
+              "L51",
+              "L94",
+              "L95",
+              "L96",
+              "L101",
+              "L121",
+              "L125",
+              "L127",
+              "L134",
+              "L135",
+              "L136",
+              "L141",
+              "L166",
+              "L167",
+              "L168",
+              "L173",
+              "L200",
+              "L205",
+              "L207",
+              "L209",
+              "L211",
+              "L213",
+              "L215",
+              "L217",
+              "L219",
+              "L221",
+              "L229",
+              "L230",
+              "L231",
+              "L236",
+              "L255",
+              "L256",
+              "L257",
+              "L262"
+            ]
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 5621,
+              "output_tokens": 662,
+              "total_tokens": 6283
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 5621,
+          "output_tokens": 662,
+          "total_tokens": 6283
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "static char id[32];",
+                "matched_lines": [
+                  2
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 71,
+                "fragment": "const DivPattern* pat=patCache[j];",
+                "matched_lines": [
+                  71
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 71,
+                "fragment": "const DivPattern* pat=patCache[j];",
+                "matched_lines": [
+                  71
+                ]
+              },
+              {
+                "evidence_line": 87,
+                "fragment": "sprintf(id,\"%s##PN_%d_%d\",noteName(pat->data[i][0],pat->data[i][1]),i,j);",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 116,
+                "fragment": "if (pat->data[i][2]==-1) {",
+                "matched_lines": [
+                  116
+                ]
+              },
+              {
+                "evidence_line": 154,
+                "fragment": "if (pat->data[i][3]==-1) {",
+                "matched_lines": [
+                  154
+                ]
+              },
+              {
+                "evidence_line": 194,
+                "fragment": "if (pat->data[i][index]==-1) {",
+                "matched_lines": [
+                  194
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 120,
+                "fragment": "if (pat->data[i][2]<0 || pat->data[i][2]>=e->song.insLen) {",
+                "matched_lines": [
+                  120
+                ]
+              },
+              {
+                "evidence_line": 123,
+                "fragment": "DivInstrumentType t=e->song.ins[pat->data[i][2]]->type;",
+                "matched_lines": [
+                  123
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 186,
+                "fragment": "for (int k=0; k<e->song.pat[j].effectRows; k++) {",
+                "matched_lines": [
+                  186
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 66,
+                "fragment": "patChanX[j]=ImGui::GetCursorPosX();",
+                "matched_lines": [
+                  66
+                ]
+              },
+              {
+                "evidence_line": 73,
+                "fragment": "patChanX[j]=ImGui::GetCursorPosX();",
+                "matched_lines": [
+                  73
+                ]
+              },
+              {
+                "evidence_line": 280,
+                "fragment": "patChanX[chans]=ImGui::GetCursorPosX();",
+                "matched_lines": [
+                  280
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 98,
+                "fragment": "demandX=ImGui::GetCursorPosX();",
+                "matched_lines": [
+                  98
+                ]
+              },
+              {
+                "evidence_line": 138,
+                "fragment": "demandX=ImGui::GetCursorPosX();",
+                "matched_lines": [
+                  138
+                ]
+              },
+              {
+                "evidence_line": 170,
+                "fragment": "demandX=ImGui::GetCursorPosX();",
+                "matched_lines": [
+                  170
+                ]
+              },
+              {
+                "evidence_line": 233,
+                "fragment": "demandX=ImGui::GetCursorPosX();",
+                "matched_lines": [
+                  233
+                ]
+              },
+              {
+                "evidence_line": 259,
+                "fragment": "demandX=ImGui::GetCursorPosX();",
+                "matched_lines": [
+                  259
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 5809,
+              "output_tokens": 1179,
+              "total_tokens": 6988
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 5809,
+          "output_tokens": 1179,
+          "total_tokens": 6988
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "if (i<0 || i>=e->song.patLen) {",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "return;",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "if (ord<0 || ord>=e->song.ordersLen) {",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "return;",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 63,
+                "fragment": "for (int j=0; j<chans; j++) {",
+                "matched_lines": [
+                  63
+                ]
+              },
+              {
+                "evidence_line": 65,
+                "fragment": "if (!e->song.chanShow[j]) {",
+                "matched_lines": [
+                  65
+                ]
+              },
+              {
+                "evidence_line": 71,
+                "fragment": "const DivPattern* pat=patCache[j];",
+                "matched_lines": [
+                  71
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 78,
+                "fragment": "int j32=j*32;",
+                "matched_lines": [
+                  78
+                ]
+              },
+              {
+                "evidence_line": 79,
+                "fragment": "bool selectedNote=selectedRow && (j32>=sel1XSum && j32<=sel2XSum);",
+                "matched_lines": [
+                  79
+                ]
+              },
+              {
+                "evidence_line": 80,
+                "fragment": "bool selectedIns=selectedRow && (j32+1>=sel1XSum && j32+1<=sel2XSum);",
+                "matched_lines": [
+                  80
+                ]
+              },
+              {
+                "evidence_line": 81,
+                "fragment": "bool selectedVol=selectedRow && (j32+2>=sel1XSum && j32+2<=sel2XSum);",
+                "matched_lines": [
+                  81
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 186,
+                "fragment": "for (int k=0; k<e->song.pat[j].effectRows; k++) {",
+                "matched_lines": [
+                  186
+                ]
+              },
+              {
+                "evidence_line": 187,
+                "fragment": "int index=4+(k<<1);",
+                "matched_lines": [
+                  187
+                ]
+              },
+              {
+                "evidence_line": 194,
+                "fragment": "if (pat->data[i][index]==-1) {",
+                "matched_lines": [
+                  194
+                ]
+              },
+              {
+                "evidence_line": 248,
+                "fragment": "if (pat->data[i][index+1]==-1) {",
+                "matched_lines": [
+                  248
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 120,
+                "fragment": "if (pat->data[i][2]<0 || pat->data[i][2]>=e->song.insLen) {",
+                "matched_lines": [
+                  120
+                ]
+              },
+              {
+                "evidence_line": 123,
+                "fragment": "DivInstrumentType t=e->song.ins[pat->data[i][2]]->type;",
+                "matched_lines": [
+                  123
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 69,
+                "fragment": "int chanVolMax=e->getMaxVolumeChan(j);",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "if (chanVolMax<1) chanVolMax=1;",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 158,
+                "fragment": "int volColor=(pat->data[i][3]*127)/chanVolMax;",
+                "matched_lines": [
+                  158
+                ]
+              },
+              {
+                "evidence_line": 159,
+                "fragment": "if (volColor>127) volColor=127;",
+                "matched_lines": [
+                  159
+                ]
+              },
+              {
+                "evidence_line": 160,
+                "fragment": "if (volColor<0) volColor=0;",
+                "matched_lines": [
+                  160
+                ]
+              },
+              {
+                "evidence_line": 162,
+                "fragment": "ImGui::PushStyleColor(ImGuiCol_Text,volColors[volColor]);",
+                "matched_lines": [
+                  162
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 202,
+                "fragment": "const unsigned char data=pat->data[i][index];",
+                "matched_lines": [
+                  202
+                ]
+              },
+              {
+                "evidence_line": 205,
+                "fragment": "ImGui::PushStyleColor(ImGuiCol_Text,uiColors[fxColors[data]]);",
+                "matched_lines": [
+                  205
+                ]
+              },
+              {
+                "evidence_line": 223,
+                "fragment": "ImGui::PushStyleColor(ImGuiCol_Text,uiColors[extFxColors[data-0xe0]]);",
+                "matched_lines": [
+                  223
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "static char id[32];",
+                "matched_lines": [
+                  2
+                ]
+              },
+              {
+                "evidence_line": 87,
+                "fragment": "sprintf(id,\"%s##PN_%d_%d\",noteName(pat->data[i][0],pat->data[i][1]),i,j);",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 195,
+                "fragment": "sprintf(id,\"..##PE%d_%d_%d\",k,i,j);",
+                "matched_lines": [
+                  195
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 66,
+                "fragment": "patChanX[j]=ImGui::GetCursorPosX();",
+                "matched_lines": [
+                  66
+                ]
+              },
+              {
+                "evidence_line": 73,
+                "fragment": "patChanX[j]=ImGui::GetCursorPosX();",
+                "matched_lines": [
+                  73
+                ]
+              },
+              {
+                "evidence_line": 280,
+                "fragment": "patChanX[chans]=ImGui::GetCursorPosX();",
+                "matched_lines": [
+                  280
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 5489,
+              "output_tokens": 666,
+              "total_tokens": 6155
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 5489,
+          "output_tokens": 666,
+          "total_tokens": 6155
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (cursorPosY<-lineHeight || cursorPosY>ImGui::GetWindowSize().y) {",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "return;",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "if (ord<0 || ord>=e->song.ordersLen) {",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "return;",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "if (i<0 || i>=e->song.patLen) {",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "return;",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 63,
+                "fragment": "for (int j=0; j<chans; j++) {",
+                "matched_lines": [
+                  63
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 69,
+                "fragment": "int chanVolMax=e->getMaxVolumeChan(j);",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "if (chanVolMax<1) chanVolMax=1;",
+                "matched_lines": [
+                  70
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 158,
+                "fragment": "int volColor=(pat->data[i][3]*127)/chanVolMax;",
+                "matched_lines": [
+                  158
+                ]
+              },
+              {
+                "evidence_line": 159,
+                "fragment": "if (volColor>127) volColor=127;",
+                "matched_lines": [
+                  159
+                ]
+              },
+              {
+                "evidence_line": 160,
+                "fragment": "if (volColor<0) volColor=0;",
+                "matched_lines": [
+                  160
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 186,
+                "fragment": "for (int k=0; k<e->song.pat[j].effectRows; k++) {",
+                "matched_lines": [
+                  186
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 187,
+                "fragment": "int index=4+(k<<1);",
+                "matched_lines": [
+                  187
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 194,
+                "fragment": "if (pat->data[i][index]==-1) {",
+                "matched_lines": [
+                  194
+                ]
+              },
+              {
+                "evidence_line": 197,
+                "fragment": "} else {",
+                "matched_lines": [
+                  197
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 198,
+                "fragment": "if (pat->data[i][index]>0xff) {",
+                "matched_lines": [
+                  198
+                ]
+              },
+              {
+                "evidence_line": 201,
+                "fragment": "} else {",
+                "matched_lines": [
+                  201
+                ]
+              },
+              {
+                "evidence_line": 202,
+                "fragment": "const unsigned char data=pat->data[i][index];",
+                "matched_lines": [
+                  202
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 222,
+                "fragment": "} else {",
+                "matched_lines": [
+                  222
+                ]
+              },
+              {
+                "evidence_line": 223,
+                "fragment": "ImGui::PushStyleColor(ImGuiCol_Text,uiColors[extFxColors[data-0xe0]]);",
+                "matched_lines": [
+                  223
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 10,
+      "states": 7,
+      "values": 10,
+      "executions": 11
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 23937,
+    "output_tokens": 3042,
+    "total_tokens": 26979
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000193",
+    "split": "test",
+    "source_hash": "8490b79bd87e7b5bcad71749f9331c85698e90a41007da14bb12a4be335075ae",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

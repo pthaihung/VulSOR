@@ -10,52 +10,77 @@
             "L12"
           ],
           "expression": "frame_info_[\"\"]",
-          "claim": "lookup of an empty-string key in the frame_info_ map, consuming the map's key/value storage under the precondition that the key exists"
+          "claim": "indexing a map with a string key to obtain a frame info pointer"
         },
         {
           "locations": [
             "L40"
           ],
           "expression": "cf_info.frame_names[id]",
-          "claim": "indexed access into the frame_names vector using node id, consuming the vector storage under the precondition that id is within bounds"
+          "claim": "indexing a vector by node id to read the frame name"
         },
         {
           "locations": [
-            "L43",
-            "L167",
-            "L171"
+            "L43"
           ],
           "expression": "gview_.node(id)",
-          "claim": "indexed access into the graph view's node storage using a node id, consuming the node array under the precondition that id is within bounds"
+          "claim": "accessing a node item by node id"
         },
         {
           "locations": [
             "L47"
           ],
           "expression": "n->num_inputs()",
-          "claim": "read of the node's input count used to advance the frame's total input count, consuming node metadata under the precondition that the node is valid"
+          "claim": "reading the input count of a node"
         },
         {
           "locations": [
-            "L66",
-            "L73"
+            "L49"
+          ],
+          "expression": "params_.create_kernel(n->properties(), &item->kernel)",
+          "claim": "creating a kernel via the supplied project callback contract"
+        },
+        {
+          "locations": [
+            "L51"
+          ],
+          "expression": "params_.delete_kernel(item->kernel)",
+          "claim": "deleting a kernel via the supplied project callback contract"
+        },
+        {
+          "locations": [
+            "L57"
+          ],
+          "expression": "item->kernel->AsAsync()",
+          "claim": "calling a virtual method on the kernel pointer"
+        },
+        {
+          "locations": [
+            "L66"
           ],
           "expression": "item->kernel->const_tensor()",
-          "claim": "dereference of the kernel pointer and invocation of its const_tensor accessor, consuming the kernel object under the precondition that the kernel pointer is non-null"
+          "claim": "calling a virtual method on the kernel pointer"
         },
         {
           "locations": [
             "L71"
           ],
           "expression": "const_tensors_.emplace_back(*const_tensor)",
-          "claim": "dereference of the const_tensor pointer to copy the tensor into the container, consuming the tensor object under the precondition that the pointer is non-null"
+          "claim": "copying the constant tensor into a container"
+        },
+        {
+          "locations": [
+            "L74"
+          ],
+          "expression": "item->kernel->type_string_view()",
+          "claim": "calling a virtual method on the kernel pointer"
         },
         {
           "locations": [
             "L84"
           ],
           "expression": "frame_info_[frame_name].get()",
-          "claim": "lookup of a frame name in the frame_info_ map and dereference of the resulting unique_ptr, consuming the map entry under the precondition that the key exists and the pointer is non-null"
+          "claim": "indexing a map with a frame name to obtain a frame info pointer"
         },
         {
           "locations": [
@@ -63,14 +88,14 @@
             "L100"
           ],
           "expression": "enter_frame_info_.resize(id + 1)",
-          "claim": "resize of the enter_frame_info_ vector to accommodate index id, consuming the vector's storage under the precondition that the requested size is representable and allocation succeeds"
+          "claim": "resizing a vector to accommodate an index"
         },
         {
           "locations": [
             "L102"
           ],
           "expression": "enter_frame_info_[id] = frame_info",
-          "claim": "indexed write into the enter_frame_info_ vector at position id, consuming the vector storage under the precondition that id is within bounds"
+          "claim": "writing a frame info pointer at an index"
         },
         {
           "locations": [
@@ -78,28 +103,35 @@
             "L124"
           ],
           "expression": "pending_ids_[id] = frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead)",
-          "claim": "indexed write into the pending_ids_ vector at position id, consuming the vector storage under the precondition that id is within bounds"
+          "claim": "writing a pending-count handle at a node id index"
+        },
+        {
+          "locations": [
+            "L128"
+          ],
+          "expression": "root_nodes_.push_back(item)",
+          "claim": "appending a node item to a vector"
         },
         {
           "locations": [
             "L132"
           ],
           "expression": "frame_info->nodes->push_back(item)",
-          "claim": "dereference of the frame_info nodes pointer and push_back into the vector, consuming the vector storage under the precondition that the pointer is non-null"
+          "claim": "appending a node item to a vector"
         },
         {
           "locations": [
             "L140"
           ],
           "expression": "new bool[n->num_outputs()]",
-          "claim": "allocation of a bool array sized by the node's output count, consuming heap memory under the precondition that the size is valid and allocation succeeds"
+          "claim": "allocating an array sized by the node output count"
         },
         {
           "locations": [
             "L141"
           ],
           "expression": "std::fill(&outputs_required[0], &outputs_required[n->num_outputs()], false)",
-          "claim": "fill of the outputs_required array over the range [0, num_outputs), consuming the array storage under the precondition that the range is within the allocated array"
+          "claim": "filling the allocated output-required array over its full extent"
         },
         {
           "locations": [
@@ -107,28 +139,42 @@
             "L148"
           ],
           "expression": "outputs_required[e->src_output()]",
-          "claim": "indexed read and write into the outputs_required array using an edge's source output index, consuming the array storage under the precondition that the index is within bounds"
+          "claim": "indexing the output-required array by an edge source output"
         },
         {
           "locations": [
             "L154"
           ],
           "expression": "outputs_required[i]",
-          "claim": "indexed read into the outputs_required array at loop index i, consuming the array storage under the precondition that i is within bounds"
+          "claim": "indexing the output-required array by output index"
         },
         {
           "locations": [
-            "L169"
+            "L158"
           ],
-          "expression": "item->mutable_output_edges()",
-          "claim": "access to the mutable output edges container of a node item, consuming the container under the precondition that the item is valid"
+          "expression": "item->outputs_required = std::move(outputs_required)",
+          "claim": "moving the output-required array into the node item"
+        },
+        {
+          "locations": [
+            "L167"
+          ],
+          "expression": "gview_.node(id)",
+          "claim": "accessing a node item by node id"
+        },
+        {
+          "locations": [
+            "L171"
+          ],
+          "expression": "gview_.node(dst_id)",
+          "claim": "accessing a destination node item by id"
         },
         {
           "locations": [
             "L172"
           ],
           "expression": "e.input_slot += dst_item->input_start",
-          "claim": "read-modify-write of the input_slot field of an edge info, consuming the edge info object under the precondition that the edge info is valid"
+          "claim": "adding the destination input start to an edge input slot"
         }
       ],
       "states": [
@@ -136,7 +182,7 @@
           "entities": [
             "gview_"
           ],
-          "claim": "gview_ is initialized from the graph and provides node lookup for the executor state.",
+          "claim": "gview_ is initialized from the graph and provides node storage accessed via gview_.node(id).",
           "evidence": "L2: TF_RETURN_IF_ERROR(gview_.Initialize(&graph));"
         },
         {
@@ -144,14 +190,14 @@
             "cf_info"
           ],
           "claim": "cf_info is populated with control-flow frame information for the graph.",
-          "evidence": "L5: ControlFlowInfo cf_info;\nL6: TF_RETURN_IF_ERROR(BuildControlFlowInfo(&graph, &cf_info));"
+          "evidence": "L6: TF_RETURN_IF_ERROR(BuildControlFlowInfo(&graph, &cf_info));"
         },
         {
           "entities": [
             "frame_info_",
             "root_frame_info_"
           ],
-          "claim": "root_frame_info_ points to the FrameInfo object owned by frame_info_ for the empty frame name.",
+          "claim": "root_frame_info_ points to the FrameInfo object owned by frame_info_ under the empty frame name.",
           "evidence": "L12: root_frame_info_ = frame_info_[\"\"].get();"
         },
         {
@@ -187,26 +233,18 @@
         },
         {
           "entities": [
-            "frame_info",
-            "frame_info_"
-          ],
-          "claim": "For an Enter node, frame_info points to the FrameInfo owned by frame_info_ for the node's frame_name.",
-          "evidence": "L84: FrameInfo* frame_info = frame_info_[frame_name].get();"
-        },
-        {
-          "entities": [
             "enter_frame_info_",
             "frame_info"
           ],
-          "claim": "enter_frame_info_[id] is set to the FrameInfo pointer for the Enter node.",
+          "claim": "For an Enter node, enter_frame_info_ is resized as needed and enter_frame_info_[id] points to the FrameInfo for the node's frame_name.",
           "evidence": "L99: if (enter_frame_info_.size() <= id) {\nL100: enter_frame_info_.resize(id + 1);\nL102: enter_frame_info_[id] = frame_info;"
         },
         {
           "entities": [
             "pending_ids_",
-            "frame_info"
+            "frame_info->pending_counts_layout"
           ],
-          "claim": "pending_ids_[id] holds a pending-counts handle allocated from the frame's pending_counts_layout.",
+          "claim": "pending_ids_[id] is assigned a handle created by frame_info->pending_counts_layout.",
           "evidence": "L123: pending_ids_[id] =\nL124: frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead);"
         },
         {
@@ -214,7 +252,7 @@
             "root_nodes_",
             "item"
           ],
-          "claim": "item is added to root_nodes_ when the node has no input edges.",
+          "claim": "item is appended to root_nodes_ when the node has no input edges.",
           "evidence": "L127: if (n->in_edges().empty()) {\nL128: root_nodes_.push_back(item);"
         },
         {
@@ -222,7 +260,7 @@
             "frame_info->nodes",
             "item"
           ],
-          "claim": "item is appended to the frame's nodes vector.",
+          "claim": "item is appended to the FrameInfo's nodes vector.",
           "evidence": "L132: frame_info->nodes->push_back(item);"
         },
         {
@@ -230,23 +268,23 @@
             "item->outputs_required",
             "outputs_required"
           ],
-          "claim": "item->outputs_required takes ownership of the outputs_required array when some outputs are unused.",
+          "claim": "When some outputs are unused, item->outputs_required takes ownership of the outputs_required array.",
           "evidence": "L158: item->outputs_required = std::move(outputs_required);"
         },
         {
           "entities": [
             "e.input_slot",
-            "dst_item"
+            "dst_item->input_start"
           ],
           "claim": "Each output edge's input_slot is rewritten to refer directly to the destination node's input location.",
-          "evidence": "L169: for (EdgeInfo& e : item->mutable_output_edges()) {\nL171: NodeItem* dst_item = gview_.node(dst_id);\nL172: e.input_slot += dst_item->input_start;"
+          "evidence": "L172: e.input_slot += dst_item->input_start;"
         },
         {
           "entities": [
             "gview_",
             "params_.device"
           ],
-          "claim": "gview_ is configured with allocation attributes for the device.",
+          "claim": "gview_ allocation attributes are set from the graph and params_.device.",
           "evidence": "L179: return gview_.SetAllocAttrs(&graph, params_.device);"
         }
       ],
@@ -265,13 +303,13 @@
             "n->id()",
             "pending_ids_"
           ],
-          "claim": "id is n->id(), used as an index into pending_ids_ and cf_info.frame_names.",
-          "evidence": "L39: const int id = n->id();\nL40: const string& frame_name = cf_info.frame_names[id];\nL123: pending_ids_[id] ="
+          "claim": "id is n->id(), and pending_ids_[id] is indexed using this id.",
+          "evidence": "L39: const int id = n->id();\nL123: pending_ids_[id] ="
         },
         {
           "entities": [
-            "item->input_start",
             "frame_info->total_inputs",
+            "item->input_start",
             "n->num_inputs()"
           ],
           "claim": "item->input_start is assigned the current frame_info->total_inputs, then frame_info->total_inputs is incremented by n->num_inputs().",
@@ -282,7 +320,7 @@
             "e.input_slot",
             "dst_item->input_start"
           ],
-          "claim": "Each output edge's input_slot is rewritten by adding dst_item->input_start.",
+          "claim": "Each EdgeInfo::input_slot is rewritten by adding dst_item->input_start to it.",
           "evidence": "L172: e.input_slot += dst_item->input_start;"
         },
         {
@@ -290,7 +328,7 @@
             "enter_frame_info_",
             "id"
           ],
-          "claim": "enter_frame_info_ is resized to id + 1 when its size is <= id, then indexed at id.",
+          "claim": "enter_frame_info_ is resized to id + 1 when its size is <= id, then enter_frame_info_[id] is assigned.",
           "evidence": "L99: if (enter_frame_info_.size() <= id) {\nL100: enter_frame_info_.resize(id + 1);\nL102: enter_frame_info_[id] = frame_info;"
         },
         {
@@ -298,8 +336,16 @@
             "outputs_required",
             "n->num_outputs()"
           ],
-          "claim": "outputs_required is allocated as a bool array of n->num_outputs() elements and filled over [0, n->num_outputs()).",
-          "evidence": "L140: std::unique_ptr<bool[]> outputs_required(new bool[n->num_outputs()]);\nL141: std::fill(&outputs_required[0], &outputs_required[n->num_outputs()], false);"
+          "claim": "outputs_required is allocated as a bool array of length n->num_outputs().",
+          "evidence": "L140: std::unique_ptr<bool[]> outputs_required(new bool[n->num_outputs()]);"
+        },
+        {
+          "entities": [
+            "outputs_required",
+            "n->num_outputs()"
+          ],
+          "claim": "outputs_required is filled over the range [0, n->num_outputs()).",
+          "evidence": "L141: std::fill(&outputs_required[0], &outputs_required[n->num_outputs()], false);"
         },
         {
           "entities": [
@@ -314,16 +360,15 @@
             "outputs_required",
             "e->src_output()"
           ],
-          "claim": "outputs_required is indexed by e->src_output() only when e->src_output() >= 0.",
+          "claim": "outputs_required is indexed by e->src_output() when e->src_output() >= 0.",
           "evidence": "L145: if (e->src_output() >= 0) {\nL146: if (!outputs_required[e->src_output()]) {\nL148: outputs_required[e->src_output()] = true;"
         },
         {
           "entities": [
             "outputs_required",
-            "i",
             "n->num_outputs()"
           ],
-          "claim": "outputs_required is indexed by i in the loop bounded by i < n->num_outputs().",
+          "claim": "outputs_required is indexed by i for i in [0, n->num_outputs()).",
           "evidence": "L153: for (int i = 0; i < n->num_outputs(); ++i) {\nL154: if (!outputs_required[i]) {"
         },
         {
@@ -332,44 +377,72 @@
             "max_dead",
             "pending_ids_[id]"
           ],
-          "claim": "GetMaxPendingCounts sets max_pending and max_dead, which are passed to CreateHandle for pending_ids_[id].",
+          "claim": "pending_ids_[id] is created from max_pending and max_dead returned by GetMaxPendingCounts.",
           "evidence": "L121: size_t max_pending, max_dead;\nL122: GetMaxPendingCounts(n, &max_pending, &max_dead);\nL123: pending_ids_[id] =\nL124: frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead);"
         }
       ],
       "executions": [
         {
           "entities": [
+            "item->kernel"
+          ],
+          "claim": "If create_kernel fails, item->kernel is deleted and set to nullptr before returning the error status.",
+          "evidence": "L49: Status s = params_.create_kernel(n->properties(), &item->kernel);\nL50: if (!s.ok()) {\nL51: params_.delete_kernel(item->kernel);\nL52: item->kernel = nullptr;\nL53: s = AttachDef(s, *n);\nL54: return s;"
+        },
+        {
+          "entities": [
+            "item->kernel"
+          ],
+          "claim": "Continuing past the create_kernel check implies item->kernel is non-null.",
+          "evidence": "L49: Status s = params_.create_kernel(n->properties(), &item->kernel);\nL50: if (!s.ok()) {\nL56: CHECK(item->kernel);"
+        },
+        {
+          "entities": [
             "outputs_required",
             "e->src_output()",
             "n->num_outputs()"
           ],
-          "claim": "For each output edge with src_output >= 0, src_output is a valid index into outputs_required (size n->num_outputs())",
+          "claim": "outputs_required is allocated with n->num_outputs() elements, and e->src_output() is only used as an index when it is >= 0.",
           "evidence": "L140: std::unique_ptr<bool[]> outputs_required(new bool[n->num_outputs()]);\nL145: if (e->src_output() >= 0) {\nL146: if (!outputs_required[e->src_output()]) {"
         },
         {
           "entities": [
-            "i",
             "outputs_required",
+            "i",
             "n->num_outputs()"
           ],
-          "claim": "In the unused-outputs loop, i ranges over [0, n->num_outputs()) and indexes outputs_required",
-          "evidence": "L153: for (int i = 0; i < n->num_outputs(); ++i) {\nL154: if (!outputs_required[i]) {"
+          "claim": "When unused_outputs > 0, the loop over i is bounded by n->num_outputs(), matching the allocation size of outputs_required.",
+          "evidence": "L140: std::unique_ptr<bool[]> outputs_required(new bool[n->num_outputs()]);\nL152: if (unused_outputs > 0) {\nL153: for (int i = 0; i < n->num_outputs(); ++i) {\nL154: if (!outputs_required[i]) {"
         },
         {
           "entities": [
-            "id",
-            "enter_frame_info_"
+            "enter_frame_info_",
+            "id"
           ],
-          "claim": "enter_frame_info_ is resized to at least id+1 before indexing at id",
-          "evidence": "L99: if (enter_frame_info_.size() <= id) {\nL100: enter_frame_info_.resize(id + 1);\nL102: enter_frame_info_[id] = frame_info;"
+          "claim": "enter_frame_info_ is resized to at least id + 1 before enter_frame_info_[id] is assigned.",
+          "evidence": "L99: if (enter_frame_info_.size() <= id) {\nL100: enter_frame_info_.resize(id + 1);\nL101: }\nL102: enter_frame_info_[id] = frame_info;"
         },
         {
           "entities": [
-            "id",
-            "pending_ids_"
+            "pending_ids_",
+            "id"
           ],
-          "claim": "pending_ids_ has size gview_.num_nodes(), and id is a node id from graph.nodes(), so pending_ids_[id] is in bounds",
-          "evidence": "L14: pending_ids_.resize(gview_.num_nodes());\nL39: const int id = n->id();\nL123: pending_ids_[id] ="
+          "claim": "pending_ids_ is resized to gview_.num_nodes() before pending_ids_[id] is assigned for a node id.",
+          "evidence": "L14: pending_ids_.resize(gview_.num_nodes());\nL39: const int id = n->id();\nL123: pending_ids_[id] =\nL124: frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead);"
+        },
+        {
+          "entities": [
+            "frame_info"
+          ],
+          "claim": "frame_info is obtained from EnsureFrameInfo(frame_name) before its total_inputs and nodes members are used.",
+          "evidence": "L41: FrameInfo* frame_info = EnsureFrameInfo(frame_name);\nL46: item->input_start = frame_info->total_inputs;\nL47: frame_info->total_inputs += n->num_inputs();\nL132: frame_info->nodes->push_back(item);"
+        },
+        {
+          "entities": [
+            "frame_info"
+          ],
+          "claim": "For an Enter node, frame_info is looked up from frame_info_[frame_name] and its parallel_iterations is checked before being updated.",
+          "evidence": "L84: FrameInfo* frame_info = frame_info_[frame_name].get();\nL90: if (frame_info->parallel_iterations == -1) {\nL91: frame_info->parallel_iterations = parallel_iterations;\nL92: } else if (frame_info->parallel_iterations != parallel_iterations) {"
         }
       ]
     },
@@ -383,8 +456,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 4345,
-              "output_tokens": 925,
-              "total_tokens": 5270
+              "output_tokens": 819,
+              "total_tokens": 5164
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -392,8 +465,8 @@
         ],
         "token_usage": {
           "input_tokens": 4345,
-          "output_tokens": 925,
-          "total_tokens": 5270
+          "output_tokens": 819,
+          "total_tokens": 5164
         },
         "grounding": {
           "operation_agent.operations[0]": {
@@ -422,16 +495,6 @@
                 "location": "L43",
                 "matched": true,
                 "expression": "gview_.node(id)"
-              },
-              {
-                "location": "L167",
-                "matched": true,
-                "expression": "gview_.node(id)"
-              },
-              {
-                "location": "L171",
-                "matched": true,
-                "expression": "gview_.node(id)"
               }
             ],
             "status": "pass"
@@ -449,19 +512,44 @@
           "operation_agent.operations[4]": {
             "expression_matches": [
               {
-                "location": "L66",
+                "location": "L49",
                 "matched": true,
-                "expression": "item->kernel->const_tensor()"
-              },
+                "expression": "params_.create_kernel(n->properties(), &item->kernel)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
               {
-                "location": "L73",
+                "location": "L51",
+                "matched": true,
+                "expression": "params_.delete_kernel(item->kernel)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L57",
+                "matched": true,
+                "expression": "item->kernel->AsAsync()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L66",
                 "matched": true,
                 "expression": "item->kernel->const_tensor()"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[5]": {
+          "operation_agent.operations[8]": {
             "expression_matches": [
               {
                 "location": "L71",
@@ -471,7 +559,17 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[6]": {
+          "operation_agent.operations[9]": {
+            "expression_matches": [
+              {
+                "location": "L74",
+                "matched": true,
+                "expression": "item->kernel->type_string_view()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[10]": {
             "expression_matches": [
               {
                 "location": "L84",
@@ -481,7 +579,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[7]": {
+          "operation_agent.operations[11]": {
             "expression_matches": [
               {
                 "location": "L99",
@@ -496,7 +594,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[8]": {
+          "operation_agent.operations[12]": {
             "expression_matches": [
               {
                 "location": "L102",
@@ -506,7 +604,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[9]": {
+          "operation_agent.operations[13]": {
             "expression_matches": [
               {
                 "location": "L123",
@@ -521,7 +619,17 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[10]": {
+          "operation_agent.operations[14]": {
+            "expression_matches": [
+              {
+                "location": "L128",
+                "matched": true,
+                "expression": "root_nodes_.push_back(item)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[15]": {
             "expression_matches": [
               {
                 "location": "L132",
@@ -531,7 +639,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[11]": {
+          "operation_agent.operations[16]": {
             "expression_matches": [
               {
                 "location": "L140",
@@ -541,7 +649,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[12]": {
+          "operation_agent.operations[17]": {
             "expression_matches": [
               {
                 "location": "L141",
@@ -551,7 +659,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[13]": {
+          "operation_agent.operations[18]": {
             "expression_matches": [
               {
                 "location": "L146",
@@ -566,7 +674,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[14]": {
+          "operation_agent.operations[19]": {
             "expression_matches": [
               {
                 "location": "L154",
@@ -576,17 +684,37 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[15]": {
+          "operation_agent.operations[20]": {
             "expression_matches": [
               {
-                "location": "L169",
+                "location": "L158",
                 "matched": true,
-                "expression": "item->mutable_output_edges()"
+                "expression": "item->outputs_required = std::move(outputs_required)"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[16]": {
+          "operation_agent.operations[21]": {
+            "expression_matches": [
+              {
+                "location": "L167",
+                "matched": true,
+                "expression": "gview_.node(id)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[22]": {
+            "expression_matches": [
+              {
+                "location": "L171",
+                "matched": true,
+                "expression": "gview_.node(dst_id)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[23]": {
             "expression_matches": [
               {
                 "location": "L172",
@@ -608,8 +736,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 2948,
-              "output_tokens": 987,
-              "total_tokens": 3935
+              "output_tokens": 908,
+              "total_tokens": 3856
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -617,8 +745,8 @@
         ],
         "token_usage": {
           "input_tokens": 2948,
-          "output_tokens": 987,
-          "total_tokens": 3935
+          "output_tokens": 908,
+          "total_tokens": 3856
         },
         "grounding": {
           "state_agent.states[0]": {
@@ -635,13 +763,6 @@
           },
           "state_agent.states[1]": {
             "evidence_matches": [
-              {
-                "evidence_line": 5,
-                "fragment": "ControlFlowInfo cf_info;",
-                "matched_lines": [
-                  5
-                ]
-              },
               {
                 "evidence_line": 6,
                 "fragment": "TF_RETURN_IF_ERROR(BuildControlFlowInfo(&graph, &cf_info));",
@@ -743,18 +864,6 @@
           "state_agent.states[7]": {
             "evidence_matches": [
               {
-                "evidence_line": 84,
-                "fragment": "FrameInfo* frame_info = frame_info_[frame_name].get();",
-                "matched_lines": [
-                  84
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "state_agent.states[8]": {
-            "evidence_matches": [
-              {
                 "evidence_line": 99,
                 "fragment": "if (enter_frame_info_.size() <= id) {",
                 "matched_lines": [
@@ -778,7 +887,7 @@
             ],
             "status": "pass"
           },
-          "state_agent.states[9]": {
+          "state_agent.states[8]": {
             "evidence_matches": [
               {
                 "evidence_line": 123,
@@ -797,7 +906,7 @@
             ],
             "status": "pass"
           },
-          "state_agent.states[10]": {
+          "state_agent.states[9]": {
             "evidence_matches": [
               {
                 "evidence_line": 127,
@@ -816,7 +925,7 @@
             ],
             "status": "pass"
           },
-          "state_agent.states[11]": {
+          "state_agent.states[10]": {
             "evidence_matches": [
               {
                 "evidence_line": 132,
@@ -828,7 +937,7 @@
             ],
             "status": "pass"
           },
-          "state_agent.states[12]": {
+          "state_agent.states[11]": {
             "evidence_matches": [
               {
                 "evidence_line": 158,
@@ -840,22 +949,8 @@
             ],
             "status": "pass"
           },
-          "state_agent.states[13]": {
+          "state_agent.states[12]": {
             "evidence_matches": [
-              {
-                "evidence_line": 169,
-                "fragment": "for (EdgeInfo& e : item->mutable_output_edges()) {",
-                "matched_lines": [
-                  169
-                ]
-              },
-              {
-                "evidence_line": 171,
-                "fragment": "NodeItem* dst_item = gview_.node(dst_id);",
-                "matched_lines": [
-                  171
-                ]
-              },
               {
                 "evidence_line": 172,
                 "fragment": "e.input_slot += dst_item->input_start;",
@@ -866,7 +961,7 @@
             ],
             "status": "pass"
           },
-          "state_agent.states[14]": {
+          "state_agent.states[13]": {
             "evidence_matches": [
               {
                 "evidence_line": 179,
@@ -949,11 +1044,6 @@
             "action": "repair_evidence",
             "index": 13,
             "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 14,
-            "collection": "states"
           }
         ]
       },
@@ -966,8 +1056,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 3136,
-              "output_tokens": 887,
-              "total_tokens": 4023
+              "output_tokens": 897,
+              "total_tokens": 4033
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -975,8 +1065,8 @@
         ],
         "token_usage": {
           "input_tokens": 3136,
-          "output_tokens": 887,
-          "total_tokens": 4023
+          "output_tokens": 897,
+          "total_tokens": 4033
         },
         "grounding": {
           "value_agent.values[0]": {
@@ -998,13 +1088,6 @@
                 "fragment": "const int id = n->id();",
                 "matched_lines": [
                   39
-                ]
-              },
-              {
-                "evidence_line": 40,
-                "fragment": "const string& frame_name = cf_info.frame_names[id];",
-                "matched_lines": [
-                  40
                 ]
               },
               {
@@ -1082,7 +1165,12 @@
                 "matched_lines": [
                   140
                 ]
-              },
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
               {
                 "evidence_line": 141,
                 "fragment": "std::fill(&outputs_required[0], &outputs_required[n->num_outputs()], false);",
@@ -1093,7 +1181,7 @@
             ],
             "status": "pass"
           },
-          "value_agent.values[6]": {
+          "value_agent.values[7]": {
             "evidence_matches": [
               {
                 "evidence_line": 142,
@@ -1112,7 +1200,7 @@
             ],
             "status": "pass"
           },
-          "value_agent.values[7]": {
+          "value_agent.values[8]": {
             "evidence_matches": [
               {
                 "evidence_line": 145,
@@ -1138,7 +1226,7 @@
             ],
             "status": "pass"
           },
-          "value_agent.values[8]": {
+          "value_agent.values[9]": {
             "evidence_matches": [
               {
                 "evidence_line": 153,
@@ -1157,7 +1245,7 @@
             ],
             "status": "pass"
           },
-          "value_agent.values[9]": {
+          "value_agent.values[10]": {
             "evidence_matches": [
               {
                 "evidence_line": 121,
@@ -1241,6 +1329,11 @@
             "action": "repair_evidence",
             "index": 9,
             "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "values"
           }
         ]
       },
@@ -1253,8 +1346,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 2816,
-              "output_tokens": 394,
-              "total_tokens": 3210
+              "output_tokens": 838,
+              "total_tokens": 3654
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -1262,11 +1355,84 @@
         ],
         "token_usage": {
           "input_tokens": 2816,
-          "output_tokens": 394,
-          "total_tokens": 3210
+          "output_tokens": 838,
+          "total_tokens": 3654
         },
         "grounding": {
           "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 49,
+                "fragment": "Status s = params_.create_kernel(n->properties(), &item->kernel);",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "if (!s.ok()) {",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "params_.delete_kernel(item->kernel);",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "item->kernel = nullptr;",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "s = AttachDef(s, *n);",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "return s;",
+                "matched_lines": [
+                  54
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 49,
+                "fragment": "Status s = params_.create_kernel(n->properties(), &item->kernel);",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "if (!s.ok()) {",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "CHECK(item->kernel);",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
             "evidence_matches": [
               {
                 "evidence_line": 140,
@@ -1292,8 +1458,22 @@
             ],
             "status": "pass"
           },
-          "execution_agent.executions[1]": {
+          "execution_agent.executions[3]": {
             "evidence_matches": [
+              {
+                "evidence_line": 140,
+                "fragment": "std::unique_ptr<bool[]> outputs_required(new bool[n->num_outputs()]);",
+                "matched_lines": [
+                  140
+                ]
+              },
+              {
+                "evidence_line": 152,
+                "fragment": "if (unused_outputs > 0) {",
+                "matched_lines": [
+                  152
+                ]
+              },
               {
                 "evidence_line": 153,
                 "fragment": "for (int i = 0; i < n->num_outputs(); ++i) {",
@@ -1311,7 +1491,7 @@
             ],
             "status": "pass"
           },
-          "execution_agent.executions[2]": {
+          "execution_agent.executions[4]": {
             "evidence_matches": [
               {
                 "evidence_line": 99,
@@ -1328,6 +1508,13 @@
                 ]
               },
               {
+                "evidence_line": 101,
+                "fragment": "}",
+                "matched_lines": [
+                  101
+                ]
+              },
+              {
                 "evidence_line": 102,
                 "fragment": "enter_frame_info_[id] = frame_info;",
                 "matched_lines": [
@@ -1337,7 +1524,7 @@
             ],
             "status": "pass"
           },
-          "execution_agent.executions[3]": {
+          "execution_agent.executions[5]": {
             "evidence_matches": [
               {
                 "evidence_line": 14,
@@ -1359,6 +1546,79 @@
                 "matched_lines": [
                   123
                 ]
+              },
+              {
+                "evidence_line": 124,
+                "fragment": "frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead);",
+                "matched_lines": [
+                  124
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 41,
+                "fragment": "FrameInfo* frame_info = EnsureFrameInfo(frame_name);",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "item->input_start = frame_info->total_inputs;",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "frame_info->total_inputs += n->num_inputs();",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 132,
+                "fragment": "frame_info->nodes->push_back(item);",
+                "matched_lines": [
+                  132
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 84,
+                "fragment": "FrameInfo* frame_info = frame_info_[frame_name].get();",
+                "matched_lines": [
+                  84
+                ]
+              },
+              {
+                "evidence_line": 90,
+                "fragment": "if (frame_info->parallel_iterations == -1) {",
+                "matched_lines": [
+                  90
+                ]
+              },
+              {
+                "evidence_line": 91,
+                "fragment": "frame_info->parallel_iterations = parallel_iterations;",
+                "matched_lines": [
+                  91
+                ]
+              },
+              {
+                "evidence_line": 92,
+                "fragment": "} else if (frame_info->parallel_iterations != parallel_iterations) {",
+                "matched_lines": [
+                  92
+                ]
               }
             ],
             "status": "pass"
@@ -1373,10 +1633,10 @@
     "agent_count": 4,
     "mode": "independent_global_views",
     "counts": {
-      "operations": 17,
-      "states": 15,
-      "values": 10,
-      "executions": 4
+      "operations": 24,
+      "states": 14,
+      "values": 11,
+      "executions": 8
     },
     "schema_version": "semantic-claims-v4.13",
     "operation_normalization": {
@@ -1385,8 +1645,8 @@
   },
   "token_usage": {
     "input_tokens": 13245,
-    "output_tokens": 3193,
-    "total_tokens": 16438
+    "output_tokens": 3462,
+    "total_tokens": 16707
   },
   "artifact_metadata": {
     "schema_version": "semantic-claims-v4.13",

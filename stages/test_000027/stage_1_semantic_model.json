@@ -1,0 +1,882 @@
+{
+  "sample_id": "test_000027",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L76",
+            "L77",
+            "L78",
+            "L79"
+          ],
+          "expression": "explicit_paddings[2], explicit_paddings[3], explicit_paddings[4], explicit_paddings[5]",
+          "claim": "Indexed accesses into the explicit_paddings vector."
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "input_shuffled"
+          ],
+          "claim": "input_shuffled is allocated as a temporary tensor via ctx->allocate_temp and is initialized by the shuffle assignment from input.",
+          "evidence": "L35: Tensor input_shuffled;\nL36: OP_REQUIRES_OK(\nL37: ctx, ctx->allocate_temp(input.dtype(), TensorShape(post_shuffle(input)),\nL38: &input_shuffled));\nL39: input_shuffled.tensor<T, 5>().device(device, on_shuffled) =\nL40: input.shaped<T, 5>(pre_shuffle(input)).shuffle(shuffle);"
+        },
+        {
+          "entities": [
+            "filter_shuffled"
+          ],
+          "claim": "filter_shuffled is allocated as a temporary tensor via ctx->allocate_temp and is initialized by the shuffle assignment from filter.",
+          "evidence": "L43: Tensor filter_shuffled;\nL44: OP_REQUIRES_OK(ctx, ctx->allocate_temp(filter.dtype(),\nL45: TensorShape(post_shuffle(filter)),\nL46: &filter_shuffled));\nL47: filter_shuffled.tensor<T, 5>().device(device, on_shuffled) =\nL48: filter.shaped<T, 5>(pre_shuffle(filter)).shuffle(shuffle);"
+        },
+        {
+          "entities": [
+            "output_shuffled"
+          ],
+          "claim": "output_shuffled is allocated as a temporary tensor via ctx->allocate_temp and is written by the group convolution loop.",
+          "evidence": "L54: Tensor output_shuffled;\nL55: OP_REQUIRES_OK(ctx, ctx->allocate_temp(output->dtype(),\nL56: TensorShape(post_shuffle(*output)),\nL57: &output_shuffled));\nL70: auto output_slice = output_shuffled.tensor<T, 5>().template chip<0>(i);"
+        },
+        {
+          "entities": [
+            "input_shuffled",
+            "input_slice"
+          ],
+          "claim": "input_slice is a chip view into input_shuffled along group dimension 0.",
+          "evidence": "L68: auto input_slice = input_shuffled.tensor<T, 5>().template chip<0>(i);"
+        },
+        {
+          "entities": [
+            "filter_shuffled",
+            "filter_slice"
+          ],
+          "claim": "filter_slice is a chip view into filter_shuffled along group dimension 0.",
+          "evidence": "L69: auto filter_slice = filter_shuffled.tensor<T, 5>().template chip<0>(i);"
+        },
+        {
+          "entities": [
+            "output_shuffled",
+            "output_slice"
+          ],
+          "claim": "output_slice is a chip view into output_shuffled along group dimension 0.",
+          "evidence": "L70: auto output_slice = output_shuffled.tensor<T, 5>().template chip<0>(i);"
+        },
+        {
+          "entities": [
+            "output",
+            "output_shuffled"
+          ],
+          "claim": "output is written from output_shuffled via a shaped view of output after the convolution loop.",
+          "evidence": "L90: output->shaped<T, 5>(pre_shuffle(*output)).device(device) =\nL91: output_shuffled.tensor<T, 5>().shuffle(rev_shuffle);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "in_depth",
+            "patch_depth",
+            "num_groups"
+          ],
+          "claim": "num_groups = in_depth / patch_depth, where in_depth = input.dim_size(3) and patch_depth = filter.dim_size(2); integer division.",
+          "evidence": "L10: const int64_t in_depth = input.dim_size(3);\nL11: const int64_t patch_depth = filter.dim_size(2);\nL12: const int64_t num_groups = in_depth / patch_depth;"
+        },
+        {
+          "entities": [
+            "pre_shuffle",
+            "num_groups"
+          ],
+          "claim": "pre_shuffle returns dims {d0, d1, d2, num_groups, d3/num_groups}, so the last dimension is tensor.dim_size(3) divided by num_groups.",
+          "evidence": "L18: auto pre_shuffle = [&](const Tensor& tensor) -> std::array<int64, 5> {\nL19: return {tensor.dim_size(0), tensor.dim_size(1), tensor.dim_size(2),\nL20: num_groups, tensor.dim_size(3) / num_groups};"
+        },
+        {
+          "entities": [
+            "post_shuffle",
+            "num_groups"
+          ],
+          "claim": "post_shuffle returns dims {num_groups, d0, d1, d2, d3/num_groups}, so the last dimension is tensor.dim_size(3) divided by num_groups.",
+          "evidence": "L24: auto post_shuffle = [&](const Tensor& tensor) -> std::array<int64, 5> {\nL25: return {num_groups, tensor.dim_size(0), tensor.dim_size(1),\nL26: tensor.dim_size(2), tensor.dim_size(3) / num_groups};"
+        },
+        {
+          "entities": [
+            "input_shuffled",
+            "post_shuffle",
+            "input"
+          ],
+          "claim": "input_shuffled is allocated with TensorShape(post_shuffle(input)), a 5-D shape whose leading dim is num_groups.",
+          "evidence": "L37: ctx, ctx->allocate_temp(input.dtype(), TensorShape(post_shuffle(input)),\nL38: &input_shuffled));"
+        },
+        {
+          "entities": [
+            "filter_shuffled",
+            "post_shuffle",
+            "filter"
+          ],
+          "claim": "filter_shuffled is allocated with TensorShape(post_shuffle(filter)), a 5-D shape whose leading dim is num_groups.",
+          "evidence": "L44: OP_REQUIRES_OK(ctx, ctx->allocate_temp(filter.dtype(),\nL45: TensorShape(post_shuffle(filter)),\nL46: &filter_shuffled));"
+        },
+        {
+          "entities": [
+            "output_shuffled",
+            "post_shuffle",
+            "output"
+          ],
+          "claim": "output_shuffled is allocated with TensorShape(post_shuffle(*output)), a 5-D shape whose leading dim is num_groups.",
+          "evidence": "L55: OP_REQUIRES_OK(ctx, ctx->allocate_temp(output->dtype(),\nL56: TensorShape(post_shuffle(*output)),\nL57: &output_shuffled));"
+        },
+        {
+          "entities": [
+            "i",
+            "num_groups",
+            "input_slice",
+            "filter_slice",
+            "output_slice"
+          ],
+          "claim": "Loop index i ranges over [0, num_groups); chip<0>(i) selects the i-th group slice along the leading dimension of each shuffled 5-D tensor.",
+          "evidence": "L59: for (int64_t i = 0; i < num_groups; ++i) {\nL68: auto input_slice = input_shuffled.tensor<T, 5>().template chip<0>(i);\nL69: auto filter_slice = filter_shuffled.tensor<T, 5>().template chip<0>(i);\nL70: auto output_slice = output_shuffled.tensor<T, 5>().template chip<0>(i);"
+        },
+        {
+          "entities": [
+            "explicit_paddings"
+          ],
+          "claim": "explicit_paddings elements 2,3,4,5 are cast to int and passed as padding values; the vector must have at least 6 elements for these accesses.",
+          "evidence": "L76: static_cast<int>(explicit_paddings[2]),\nL77: static_cast<int>(explicit_paddings[3]),\nL78: static_cast<int>(explicit_paddings[4]),\nL79: static_cast<int>(explicit_paddings[5]));"
+        },
+        {
+          "entities": [
+            "output",
+            "pre_shuffle",
+            "output_shuffled"
+          ],
+          "claim": "output is reshaped via pre_shuffle(*output) to 5-D for the reverse shuffle assignment from output_shuffled.",
+          "evidence": "L90: output->shaped<T, 5>(pre_shuffle(*output)).device(device) =\nL91: output_shuffled.tensor<T, 5>().shuffle(rev_shuffle);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "i",
+            "num_groups"
+          ],
+          "claim": "Loop body executes only while 0 <= i < num_groups; chip<0>(i) is therefore within the leading group dimension of the shuffled tensors.",
+          "evidence": "L59: for (int64_t i = 0; i < num_groups; ++i) {\nL68: auto input_slice = input_shuffled.tensor<T, 5>().template chip<0>(i);\nL69: auto filter_slice = filter_shuffled.tensor<T, 5>().template chip<0>(i);\nL70: auto output_slice = output_shuffled.tensor<T, 5>().template chip<0>(i);"
+        },
+        {
+          "entities": [
+            "explicit_paddings"
+          ],
+          "claim": "The explicit_paddings[2..5] accesses execute only when padding == EXPLICIT.",
+          "evidence": "L72: if (padding == EXPLICIT) {\nL76: static_cast<int>(explicit_paddings[2]),\nL77: static_cast<int>(explicit_paddings[3]),\nL78: static_cast<int>(explicit_paddings[4]),\nL79: static_cast<int>(explicit_paddings[5]));"
+        },
+        {
+          "entities": [
+            "num_groups",
+            "in_depth",
+            "patch_depth"
+          ],
+          "claim": "num_groups is in_depth / patch_depth, so the loop bound and the group-dimension divisions in pre_shuffle/post_shuffle depend on patch_depth being nonzero.",
+          "evidence": "L10: const int64_t in_depth = input.dim_size(3);\nL11: const int64_t patch_depth = filter.dim_size(2);\nL12: const int64_t num_groups = in_depth / patch_depth;\nL20: num_groups, tensor.dim_size(3) / num_groups};\nL26: tensor.dim_size(2), tensor.dim_size(3) / num_groups};"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3360,
+              "output_tokens": 245,
+              "total_tokens": 3605
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3360,
+          "output_tokens": 245,
+          "total_tokens": 3605
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L76",
+                "matched": true,
+                "expression": "explicit_paddings[2], explicit_paddings[3], explicit_paddings[4], explicit_paddings[5]"
+              },
+              {
+                "location": "L77",
+                "matched": true,
+                "expression": "explicit_paddings[2], explicit_paddings[3], explicit_paddings[4], explicit_paddings[5]"
+              },
+              {
+                "location": "L78",
+                "matched": true,
+                "expression": "explicit_paddings[2], explicit_paddings[3], explicit_paddings[4], explicit_paddings[5]"
+              },
+              {
+                "location": "L79",
+                "matched": true,
+                "expression": "explicit_paddings[2], explicit_paddings[3], explicit_paddings[4], explicit_paddings[5]"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 0,
+            "expression": "input.dim_size(3), filter.dim_size(2), tensor.dim_size(...), input.shaped<T,5>(...), filter.shaped<T,5>(...), output->shaped<T,5>(...), input_shuffled.tensor<T,5>().chip<0>(i), filter_shuffled.tensor<T,5>().chip<0>(i), output_shuffled.tensor<T,5>().chip<0>(i)"
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1963,
+              "output_tokens": 686,
+              "total_tokens": 2649
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1963,
+          "output_tokens": 686,
+          "total_tokens": 2649
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 35,
+                "fragment": "Tensor input_shuffled;",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "OP_REQUIRES_OK(",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "ctx, ctx->allocate_temp(input.dtype(), TensorShape(post_shuffle(input)),",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 38,
+                "fragment": "&input_shuffled));",
+                "matched_lines": [
+                  38
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "input_shuffled.tensor<T, 5>().device(device, on_shuffled) =",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "input.shaped<T, 5>(pre_shuffle(input)).shuffle(shuffle);",
+                "matched_lines": [
+                  40
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "Tensor filter_shuffled;",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->allocate_temp(filter.dtype(),",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "TensorShape(post_shuffle(filter)),",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "&filter_shuffled));",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "filter_shuffled.tensor<T, 5>().device(device, on_shuffled) =",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "filter.shaped<T, 5>(pre_shuffle(filter)).shuffle(shuffle);",
+                "matched_lines": [
+                  48
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 54,
+                "fragment": "Tensor output_shuffled;",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->allocate_temp(output->dtype(),",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "TensorShape(post_shuffle(*output)),",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "&output_shuffled));",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "auto output_slice = output_shuffled.tensor<T, 5>().template chip<0>(i);",
+                "matched_lines": [
+                  70
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 68,
+                "fragment": "auto input_slice = input_shuffled.tensor<T, 5>().template chip<0>(i);",
+                "matched_lines": [
+                  68
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 69,
+                "fragment": "auto filter_slice = filter_shuffled.tensor<T, 5>().template chip<0>(i);",
+                "matched_lines": [
+                  69
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 70,
+                "fragment": "auto output_slice = output_shuffled.tensor<T, 5>().template chip<0>(i);",
+                "matched_lines": [
+                  70
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 90,
+                "fragment": "output->shaped<T, 5>(pre_shuffle(*output)).device(device) =",
+                "matched_lines": [
+                  90
+                ]
+              },
+              {
+                "evidence_line": 91,
+                "fragment": "output_shuffled.tensor<T, 5>().shuffle(rev_shuffle);",
+                "matched_lines": [
+                  91
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2151,
+              "output_tokens": 1099,
+              "total_tokens": 3250
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2151,
+          "output_tokens": 1099,
+          "total_tokens": 3250
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "const int64_t in_depth = input.dim_size(3);",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "const int64_t patch_depth = filter.dim_size(2);",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "const int64_t num_groups = in_depth / patch_depth;",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "auto pre_shuffle = [&](const Tensor& tensor) -> std::array<int64, 5> {",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "return {tensor.dim_size(0), tensor.dim_size(1), tensor.dim_size(2),",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "num_groups, tensor.dim_size(3) / num_groups};",
+                "matched_lines": [
+                  20
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 24,
+                "fragment": "auto post_shuffle = [&](const Tensor& tensor) -> std::array<int64, 5> {",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "return {num_groups, tensor.dim_size(0), tensor.dim_size(1),",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "tensor.dim_size(2), tensor.dim_size(3) / num_groups};",
+                "matched_lines": [
+                  26
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 37,
+                "fragment": "ctx, ctx->allocate_temp(input.dtype(), TensorShape(post_shuffle(input)),",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 38,
+                "fragment": "&input_shuffled));",
+                "matched_lines": [
+                  38
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->allocate_temp(filter.dtype(),",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "TensorShape(post_shuffle(filter)),",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "&filter_shuffled));",
+                "matched_lines": [
+                  46
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 55,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->allocate_temp(output->dtype(),",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "TensorShape(post_shuffle(*output)),",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "&output_shuffled));",
+                "matched_lines": [
+                  57
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 59,
+                "fragment": "for (int64_t i = 0; i < num_groups; ++i) {",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "auto input_slice = input_shuffled.tensor<T, 5>().template chip<0>(i);",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "auto filter_slice = filter_shuffled.tensor<T, 5>().template chip<0>(i);",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "auto output_slice = output_shuffled.tensor<T, 5>().template chip<0>(i);",
+                "matched_lines": [
+                  70
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 76,
+                "fragment": "static_cast<int>(explicit_paddings[2]),",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 77,
+                "fragment": "static_cast<int>(explicit_paddings[3]),",
+                "matched_lines": [
+                  77
+                ]
+              },
+              {
+                "evidence_line": 78,
+                "fragment": "static_cast<int>(explicit_paddings[4]),",
+                "matched_lines": [
+                  78
+                ]
+              },
+              {
+                "evidence_line": 79,
+                "fragment": "static_cast<int>(explicit_paddings[5]));",
+                "matched_lines": [
+                  79
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 90,
+                "fragment": "output->shaped<T, 5>(pre_shuffle(*output)).device(device) =",
+                "matched_lines": [
+                  90
+                ]
+              },
+              {
+                "evidence_line": 91,
+                "fragment": "output_shuffled.tensor<T, 5>().shuffle(rev_shuffle);",
+                "matched_lines": [
+                  91
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1831,
+              "output_tokens": 428,
+              "total_tokens": 2259
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1831,
+          "output_tokens": 428,
+          "total_tokens": 2259
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 59,
+                "fragment": "for (int64_t i = 0; i < num_groups; ++i) {",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "auto input_slice = input_shuffled.tensor<T, 5>().template chip<0>(i);",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "auto filter_slice = filter_shuffled.tensor<T, 5>().template chip<0>(i);",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "auto output_slice = output_shuffled.tensor<T, 5>().template chip<0>(i);",
+                "matched_lines": [
+                  70
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 72,
+                "fragment": "if (padding == EXPLICIT) {",
+                "matched_lines": [
+                  72
+                ]
+              },
+              {
+                "evidence_line": 76,
+                "fragment": "static_cast<int>(explicit_paddings[2]),",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 77,
+                "fragment": "static_cast<int>(explicit_paddings[3]),",
+                "matched_lines": [
+                  77
+                ]
+              },
+              {
+                "evidence_line": 78,
+                "fragment": "static_cast<int>(explicit_paddings[4]),",
+                "matched_lines": [
+                  78
+                ]
+              },
+              {
+                "evidence_line": 79,
+                "fragment": "static_cast<int>(explicit_paddings[5]));",
+                "matched_lines": [
+                  79
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "const int64_t in_depth = input.dim_size(3);",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "const int64_t patch_depth = filter.dim_size(2);",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "const int64_t num_groups = in_depth / patch_depth;",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "num_groups, tensor.dim_size(3) / num_groups};",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "tensor.dim_size(2), tensor.dim_size(3) / num_groups};",
+                "matched_lines": [
+                  26
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 1,
+      "states": 7,
+      "values": 9,
+      "executions": 3
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 9305,
+    "output_tokens": 2458,
+    "total_tokens": 11763
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000027",
+    "split": "test",
+    "source_hash": "43dc0ea4e0d10c0952bc698bca935aa928c4dce6ef1c8b4f182217c77cf4106e",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

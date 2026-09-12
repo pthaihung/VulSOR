@@ -1,0 +1,584 @@
+{
+  "sample_id": "test_000133",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L31"
+          ],
+          "expression": "pvPortMalloc( sizeof( Queue_t ) + xQueueSizeInBytes )",
+          "claim": "Allocate a memory block of the computed size, requiring the size to be valid for the allocator."
+        },
+        {
+          "locations": [
+            "L37",
+            "L38"
+          ],
+          "expression": "pucQueueStorage = ( uint8_t * ) pxNewQueue; pucQueueStorage += sizeof( Queue_t )",
+          "claim": "Compute a pointer into the allocated queue block past the Queue_t structure, requiring the allocation to be large enough to contain that structure."
+        },
+        {
+          "locations": [
+            "L45"
+          ],
+          "expression": "pxNewQueue->ucStaticallyAllocated = pdFALSE",
+          "claim": "Write through the allocated queue pointer, requiring the pointer to reference a valid Queue_t object."
+        },
+        {
+          "locations": [
+            "L49"
+          ],
+          "expression": "prvInitialiseNewQueue( uxQueueLength, uxItemSize, pucQueueStorage, ucQueueType, pxNewQueue )",
+          "claim": "Initialize the newly allocated queue using the queue length, item size, storage pointer, and queue pointer."
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "pxNewQueue"
+          ],
+          "claim": "pxNewQueue is assigned the result of pvPortMalloc(sizeof(Queue_t) + xQueueSizeInBytes), establishing a dynamically allocated storage region when non-NULL.",
+          "evidence": "L31: pxNewQueue = ( Queue_t * ) pvPortMalloc( sizeof( Queue_t ) + xQueueSizeInBytes ); /*lint !e9087 !e9079 see comment above. */"
+        },
+        {
+          "entities": [
+            "pxNewQueue"
+          ],
+          "claim": "pxNewQueue is explicitly checked against NULL; the non-NULL branch establishes that pxNewQueue refers to the allocated queue storage region.",
+          "evidence": "L33: if( pxNewQueue != NULL )"
+        },
+        {
+          "entities": [
+            "pucQueueStorage",
+            "pxNewQueue"
+          ],
+          "claim": "pucQueueStorage is initialized from pxNewQueue as a byte pointer to the start of the allocated region.",
+          "evidence": "L37: pucQueueStorage = ( uint8_t * ) pxNewQueue;"
+        },
+        {
+          "entities": [
+            "pucQueueStorage",
+            "pxNewQueue"
+          ],
+          "claim": "pucQueueStorage is advanced by sizeof(Queue_t), preserving provenance to the interior storage region within the pxNewQueue allocation.",
+          "evidence": "L38: pucQueueStorage += sizeof( Queue_t ); /*lint !e9016 Pointer arithmetic allowed on char types, especially when it assists conveying intent. */"
+        },
+        {
+          "entities": [
+            "pxNewQueue"
+          ],
+          "claim": "pxNewQueue->ucStaticallyAllocated is set to pdFALSE, marking the dynamically allocated queue as not statically allocated.",
+          "evidence": "L45: pxNewQueue->ucStaticallyAllocated = pdFALSE;"
+        },
+        {
+          "entities": [
+            "pucQueueStorage",
+            "pxNewQueue"
+          ],
+          "claim": "pucQueueStorage and pxNewQueue are passed to prvInitialiseNewQueue, consuming the interior storage pointer and the allocated queue object.",
+          "evidence": "L49: prvInitialiseNewQueue( uxQueueLength, uxItemSize, pucQueueStorage, ucQueueType, pxNewQueue );"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "uxQueueLength",
+            "uxItemSize",
+            "xQueueSizeInBytes"
+          ],
+          "claim": "xQueueSizeInBytes is the size_t product of uxQueueLength and uxItemSize, computed with the multiplication performed in UBaseType_t then cast to size_t.",
+          "evidence": "L14: xQueueSizeInBytes = ( size_t ) ( uxQueueLength * uxItemSize ); /*lint !e961 MISRA exception as the casts are only redundant for some ports. */"
+        },
+        {
+          "entities": [
+            "uxQueueLength",
+            "uxItemSize",
+            "xQueueSizeInBytes"
+          ],
+          "claim": "The multiplication is asserted non-overflowing by requiring uxItemSize == 0 or uxQueueLength == xQueueSizeInBytes / uxItemSize.",
+          "evidence": "L17: configASSERT( ( uxItemSize == 0 ) || ( uxQueueLength == ( xQueueSizeInBytes / uxItemSize ) ) );"
+        },
+        {
+          "entities": [
+            "sizeof(Queue_t)",
+            "xQueueSizeInBytes"
+          ],
+          "claim": "The allocation size is sizeof(Queue_t) + xQueueSizeInBytes, asserted not to wrap by requiring the sum to exceed xQueueSizeInBytes.",
+          "evidence": "L20: configASSERT( ( sizeof( Queue_t ) + xQueueSizeInBytes ) >  xQueueSizeInBytes );\nL31: pxNewQueue = ( Queue_t * ) pvPortMalloc( sizeof( Queue_t ) + xQueueSizeInBytes ); /*lint !e9087 !e9079 see comment above. */"
+        },
+        {
+          "entities": [
+            "pucQueueStorage",
+            "pxNewQueue",
+            "sizeof(Queue_t)"
+          ],
+          "claim": "pucQueueStorage is set to the byte address of pxNewQueue advanced by sizeof(Queue_t), so it points past the Queue_t structure within the same allocation.",
+          "evidence": "L37: pucQueueStorage = ( uint8_t * ) pxNewQueue;\nL38: pucQueueStorage += sizeof( Queue_t ); /*lint !e9016 Pointer arithmetic allowed on char types, especially when it assists conveying intent. */"
+        },
+        {
+          "entities": [
+            "pucQueueStorage",
+            "uxQueueLength",
+            "uxItemSize"
+          ],
+          "claim": "pucQueueStorage is passed as the storage area for uxQueueLength items of uxItemSize bytes.",
+          "evidence": "L49: prvInitialiseNewQueue( uxQueueLength, uxItemSize, pucQueueStorage, ucQueueType, pxNewQueue );"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "uxQueueLength"
+          ],
+          "claim": "configASSERT requires uxQueueLength > 0 before any allocation or size computation proceeds.",
+          "evidence": "L9: configASSERT( uxQueueLength > ( UBaseType_t ) 0 );"
+        },
+        {
+          "entities": [
+            "xQueueSizeInBytes",
+            "uxQueueLength",
+            "uxItemSize"
+          ],
+          "claim": "xQueueSizeInBytes is the product uxQueueLength * uxItemSize, and configASSERT requires that when uxItemSize != 0, xQueueSizeInBytes / uxItemSize == uxQueueLength, excluding multiplication overflow.",
+          "evidence": "L14: xQueueSizeInBytes = ( size_t ) ( uxQueueLength * uxItemSize ); /*lint !e961 MISRA exception as the casts are only redundant for some ports. */\nL17: configASSERT( ( uxItemSize == 0 ) || ( uxQueueLength == ( xQueueSizeInBytes / uxItemSize ) ) );"
+        },
+        {
+          "entities": [
+            "xQueueSizeInBytes"
+          ],
+          "claim": "configASSERT requires sizeof(Queue_t) + xQueueSizeInBytes > xQueueSizeInBytes, excluding addition overflow before pvPortMalloc.",
+          "evidence": "L20: configASSERT( ( sizeof( Queue_t ) + xQueueSizeInBytes ) >  xQueueSizeInBytes );"
+        },
+        {
+          "entities": [
+            "pxNewQueue",
+            "pucQueueStorage"
+          ],
+          "claim": "pucQueueStorage is derived from pxNewQueue only when pxNewQueue != NULL, and points sizeof(Queue_t) bytes past the start of the allocated block.",
+          "evidence": "L33: if( pxNewQueue != NULL )\nL37: pucQueueStorage = ( uint8_t * ) pxNewQueue;\nL38: pucQueueStorage += sizeof( Queue_t ); /*lint !e9016 Pointer arithmetic allowed on char types, especially when it assists conveying intent. */"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2820,
+              "output_tokens": 230,
+              "total_tokens": 3050
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2820,
+          "output_tokens": 230,
+          "total_tokens": 3050
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L31",
+                "matched": true,
+                "expression": "pvPortMalloc( sizeof( Queue_t ) + xQueueSizeInBytes )"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L37",
+                "matched": true,
+                "expression": "pucQueueStorage = ( uint8_t * ) pxNewQueue; pucQueueStorage += sizeof( Queue_t )"
+              },
+              {
+                "location": "L38",
+                "matched": true,
+                "expression": "pucQueueStorage = ( uint8_t * ) pxNewQueue; pucQueueStorage += sizeof( Queue_t )"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L45",
+                "matched": true,
+                "expression": "pxNewQueue->ucStaticallyAllocated = pdFALSE"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L49",
+                "matched": true,
+                "expression": "prvInitialiseNewQueue( uxQueueLength, uxItemSize, pucQueueStorage, ucQueueType, pxNewQueue )"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1423,
+              "output_tokens": 444,
+              "total_tokens": 1867
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1423,
+          "output_tokens": 444,
+          "total_tokens": 1867
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 31,
+                "fragment": "pxNewQueue = ( Queue_t * ) pvPortMalloc( sizeof( Queue_t ) + xQueueSizeInBytes ); /*lint !e9087 !e9079 see comment above. */",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 33,
+                "fragment": "if( pxNewQueue != NULL )",
+                "matched_lines": [
+                  33
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 37,
+                "fragment": "pucQueueStorage = ( uint8_t * ) pxNewQueue;",
+                "matched_lines": [
+                  37
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 38,
+                "fragment": "pucQueueStorage += sizeof( Queue_t ); /*lint !e9016 Pointer arithmetic allowed on char types, especially when it assists conveying intent. */",
+                "matched_lines": [
+                  38
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 45,
+                "fragment": "pxNewQueue->ucStaticallyAllocated = pdFALSE;",
+                "matched_lines": [
+                  45
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 49,
+                "fragment": "prvInitialiseNewQueue( uxQueueLength, uxItemSize, pucQueueStorage, ucQueueType, pxNewQueue );",
+                "matched_lines": [
+                  49
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1611,
+              "output_tokens": 538,
+              "total_tokens": 2149
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1611,
+          "output_tokens": 538,
+          "total_tokens": 2149
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "xQueueSizeInBytes = ( size_t ) ( uxQueueLength * uxItemSize ); /*lint !e961 MISRA exception as the casts are only redundant for some ports. */",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "configASSERT( ( uxItemSize == 0 ) || ( uxQueueLength == ( xQueueSizeInBytes / uxItemSize ) ) );",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "configASSERT( ( sizeof( Queue_t ) + xQueueSizeInBytes ) >  xQueueSizeInBytes );",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "pxNewQueue = ( Queue_t * ) pvPortMalloc( sizeof( Queue_t ) + xQueueSizeInBytes ); /*lint !e9087 !e9079 see comment above. */",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 37,
+                "fragment": "pucQueueStorage = ( uint8_t * ) pxNewQueue;",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 38,
+                "fragment": "pucQueueStorage += sizeof( Queue_t ); /*lint !e9016 Pointer arithmetic allowed on char types, especially when it assists conveying intent. */",
+                "matched_lines": [
+                  38
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 49,
+                "fragment": "prvInitialiseNewQueue( uxQueueLength, uxItemSize, pucQueueStorage, ucQueueType, pxNewQueue );",
+                "matched_lines": [
+                  49
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1291,
+              "output_tokens": 437,
+              "total_tokens": 1728
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1291,
+          "output_tokens": 437,
+          "total_tokens": 1728
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "configASSERT( uxQueueLength > ( UBaseType_t ) 0 );",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "xQueueSizeInBytes = ( size_t ) ( uxQueueLength * uxItemSize ); /*lint !e961 MISRA exception as the casts are only redundant for some ports. */",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "configASSERT( ( uxItemSize == 0 ) || ( uxQueueLength == ( xQueueSizeInBytes / uxItemSize ) ) );",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "configASSERT( ( sizeof( Queue_t ) + xQueueSizeInBytes ) >  xQueueSizeInBytes );",
+                "matched_lines": [
+                  20
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 33,
+                "fragment": "if( pxNewQueue != NULL )",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "pucQueueStorage = ( uint8_t * ) pxNewQueue;",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 38,
+                "fragment": "pucQueueStorage += sizeof( Queue_t ); /*lint !e9016 Pointer arithmetic allowed on char types, especially when it assists conveying intent. */",
+                "matched_lines": [
+                  38
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 4,
+      "states": 6,
+      "values": 5,
+      "executions": 4
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 7145,
+    "output_tokens": 1649,
+    "total_tokens": 8794
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000133",
+    "split": "test",
+    "source_hash": "04ba5ebee4da63b2e33da813cae75634182c895037fd2d5be7a30e01b8dcaee8",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

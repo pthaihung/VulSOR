@@ -11,7 +11,7 @@
         ],
         "expression": "d_inode(parent)",
         "requirements": [
-          "parent must designate a valid dentry with an associated inode"
+          "parent must designate a live dentry whose inode field is accessible"
         ]
       },
       {
@@ -20,7 +20,7 @@
         ],
         "expression": "alloc_nfs_open_context(file_dentry(filp), filp->f_mode, filp)",
         "requirements": [
-          "filp must designate a valid file"
+          "filp must designate a live file object whose f_mode field is accessible"
         ]
       },
       {
@@ -29,7 +29,7 @@
         ],
         "expression": "filemap_write_and_wait(inode->i_mapping)",
         "requirements": [
-          "inode->i_mapping must designate a valid address_space mapping"
+          "inode must designate a live inode whose i_mapping field is accessible"
         ]
       },
       {
@@ -38,9 +38,9 @@
         ],
         "expression": "NFS_PROTO(dir)->open_context(dir, ctx, openflags, &attr, NULL)",
         "requirements": [
-          "dir must designate a valid inode whose NFS protocol operations are available",
+          "dir must designate a live inode whose NFS protocol operations are accessible",
           "ctx must designate a valid NFS open context",
-          "attr must designate a writable struct iattr object"
+          "attr must designate a writable attribute structure"
         ]
       },
       {
@@ -49,27 +49,7 @@
         ],
         "expression": "d_inode(dentry)",
         "requirements": [
-          "dentry must designate a valid dentry with an associated inode"
-        ]
-      },
-      {
-        "locations": [
-          "L64"
-        ],
-        "expression": "nfs_file_set_open_context(filp, ctx)",
-        "requirements": [
-          "filp must designate a valid file",
-          "ctx must designate a valid NFS open context"
-        ]
-      },
-      {
-        "locations": [
-          "L65"
-        ],
-        "expression": "nfs_fscache_open_file(inode, filp)",
-        "requirements": [
-          "inode must designate a valid inode",
-          "filp must designate a valid file"
+          "dentry must designate a live dentry whose inode field is accessible"
         ]
       },
       {
@@ -78,7 +58,7 @@
         ],
         "expression": "put_nfs_open_context(ctx)",
         "requirements": [
-          "ctx must designate a valid NFS open context reference"
+          "ctx must designate an NFS open context that has not already been released"
         ]
       },
       {
@@ -87,16 +67,7 @@
         ],
         "expression": "dput(parent)",
         "requirements": [
-          "parent must designate a valid dentry reference"
-        ]
-      },
-      {
-        "locations": [
-          "L75"
-        ],
-        "expression": "d_drop(dentry)",
-        "requirements": [
-          "dentry must designate a valid dentry"
+          "parent must designate a live dentry that holds a reference to be released"
         ]
       }
     ]
@@ -109,29 +80,29 @@
         "retry_mode": "initial",
         "errors": [],
         "token_usage": {
-          "input_tokens": 2278,
-          "output_tokens": 403,
-          "total_tokens": 2681
+          "input_tokens": 2074,
+          "output_tokens": 305,
+          "total_tokens": 2379
         },
         "max_tokens": 8192,
         "serialization_prefix_recovered": false
       }
     ],
     "token_usage": {
-      "input_tokens": 2278,
-      "output_tokens": 403,
-      "total_tokens": 2681
+      "input_tokens": 2074,
+      "output_tokens": 305,
+      "total_tokens": 2379
     },
     "safety_relevance_filter": {
-      "input_operation_groups": 10,
-      "kept_obligations": 10,
+      "input_operation_groups": 7,
+      "kept_obligations": 7,
       "filtered_non_safety_candidates": 0
     }
   },
   "token_usage": {
-    "input_tokens": 2278,
-    "output_tokens": 403,
-    "total_tokens": 2681
+    "input_tokens": 2074,
+    "output_tokens": 305,
+    "total_tokens": 2379
   },
   "artifact_metadata": {
     "schema_version": "semantic-claims-v4.13",
@@ -141,7 +112,7 @@
     "split": "test",
     "source_hash": "267c51c8e3dbbe1518f4f99075e997952ab0b6cfcba95cf99f4ca7c7a4dd5535",
     "upstream_hashes": {
-      "semantic_model": "7d544391149d443074e94dbd040c407f6046cbd343316f0f0b866d889627f05a"
+      "semantic_model": "ac8341378d8c74d46d4b721fc78941629b7bd550be634f9251b540055f8a0689"
     },
     "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
   }

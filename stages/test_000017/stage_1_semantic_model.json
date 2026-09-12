@@ -39,28 +39,28 @@
           "entities": [
             "input_indices"
           ],
-          "claim": "input_indices is bound to the tensor named \"sparse_indices\" from the context.",
+          "claim": "input_indices is initialized to the tensor obtained from context input \"sparse_indices\".",
           "evidence": "L7: OP_REQUIRES_OK(context, context->input(\"sparse_indices\", &input_indices));"
         },
         {
           "entities": [
             "input_values"
           ],
-          "claim": "input_values is bound to the tensor named \"sparse_values\" from the context.",
+          "claim": "input_values is initialized to the tensor obtained from context input \"sparse_values\".",
           "evidence": "L8: OP_REQUIRES_OK(context, context->input(\"sparse_values\", &input_values));"
         },
         {
           "entities": [
             "input_shape"
           ],
-          "claim": "input_shape is bound to the tensor named \"sparse_shape\" from the context.",
+          "claim": "input_shape is initialized to the tensor obtained from context input \"sparse_shape\".",
           "evidence": "L9: OP_REQUIRES_OK(context, context->input(\"sparse_shape\", &input_shape));"
         },
         {
           "entities": [
             "map"
           ],
-          "claim": "map is bound to the SparseTensorsMap obtained from GetMap with is_writing=true.",
+          "claim": "map is initialized to the SparseTensorsMap obtained from GetMap with is_writing true.",
           "evidence": "L10: OP_REQUIRES_OK(context, GetMap(context, true /* is_writing */, &map));"
         },
         {
@@ -74,21 +74,21 @@
           "entities": [
             "tensor_input_shape"
           ],
-          "claim": "tensor_input_shape is constructed from input_shape_vec via TensorShape::BuildTensorShape.",
+          "claim": "tensor_input_shape is built from input_shape_vec.",
           "evidence": "L49: TensorShape tensor_input_shape;\nL50: OP_REQUIRES_OK(context, TensorShape::BuildTensorShape(input_shape_vec,\nL51: &tensor_input_shape));"
         },
         {
           "entities": [
             "input_st"
           ],
-          "claim": "input_st is a SparseTensor created from input_indices, input_values, tensor_input_shape, and std_order.",
+          "claim": "input_st is created as a SparseTensor from input_indices, input_values, tensor_input_shape, and std_order.",
           "evidence": "L54: SparseTensor input_st;\nL55: OP_REQUIRES_OK(context, SparseTensor::Create(*input_indices, *input_values,\nL56: tensor_input_shape, std_order,\nL57: &input_st));"
         },
         {
           "entities": [
             "sparse_handles"
           ],
-          "claim": "sparse_handles is a DT_INT64 tensor of shape {N}.",
+          "claim": "sparse_handles is a newly allocated DT_INT64 tensor of shape {N}.",
           "evidence": "L61: Tensor sparse_handles(DT_INT64, TensorShape({N}));"
         },
         {
@@ -102,7 +102,7 @@
           "entities": [
             "output_shape"
           ],
-          "claim": "output_shape is constructed from input_shape_vec.data() + 1 with length input_shape->NumElements() - 1.",
+          "claim": "output_shape is built from input_shape_vec.data() + 1 with length input_shape->NumElements() - 1.",
           "evidence": "L68: TensorShape output_shape;\nL69: OP_REQUIRES_OK(context, TensorShapeUtils::MakeShape(\nL70: input_shape_vec.data() + 1,\nL71: input_shape->NumElements() - 1, &output_shape));"
         },
         {
@@ -116,14 +116,14 @@
           "entities": [
             "output_indices"
           ],
-          "claim": "output_indices is a DT_INT64 tensor of shape {num_entries, rank - 1}.",
+          "claim": "output_indices is a newly allocated DT_INT64 tensor of shape {num_entries, rank - 1}.",
           "evidence": "L89: Tensor output_indices = Tensor(DT_INT64, {num_entries, rank - 1});"
         },
         {
           "entities": [
             "output_values"
           ],
-          "claim": "output_values is a tensor of DataTypeToEnum<T>::value with shape {num_entries}.",
+          "claim": "output_values is a newly allocated tensor of type T with shape {num_entries}.",
           "evidence": "L90: Tensor output_values = Tensor(DataTypeToEnum<T>::value, {num_entries});"
         },
         {
@@ -144,67 +144,60 @@
           "entities": [
             "st_i"
           ],
-          "claim": "st_i is a SparseTensor created from output_indices, output_values, and output_shape.",
+          "claim": "st_i is created as a SparseTensor from output_indices, output_values, and output_shape.",
           "evidence": "L102: SparseTensor st_i;\nL103: OP_REQUIRES_OK(context,\nL104: SparseTensor::Create(output_indices, output_values,\nL105: output_shape, &st_i));"
         },
         {
           "entities": [
-            "map",
-            "st_i",
             "handle"
           ],
-          "claim": "st_i is added to map, producing handle.",
+          "claim": "handle is set by map->AddSparseTensor for st_i.",
           "evidence": "L106: int64_t handle;\nL107: OP_REQUIRES_OK(context, map->AddSparseTensor(context, st_i, &handle));"
         },
         {
           "entities": [
-            "sparse_handles_t",
-            "handle"
+            "sparse_handles_t"
           ],
-          "claim": "sparse_handles_t(b) is assigned handle.",
+          "claim": "sparse_handles_t(b) is assigned the handle returned by map->AddSparseTensor for st_i.",
           "evidence": "L108: sparse_handles_t(b) = handle;"
         },
         {
           "entities": [
             "empty_indices"
           ],
-          "claim": "empty_indices is a DT_INT64 tensor of shape {0, rank - 1}.",
+          "claim": "empty_indices is a newly allocated DT_INT64 tensor of shape {0, rank - 1}.",
           "evidence": "L114: Tensor empty_indices(DT_INT64, {0, rank - 1});"
         },
         {
           "entities": [
             "empty_values"
           ],
-          "claim": "empty_values is a tensor of DataTypeToEnum<T>::value with shape {0}.",
+          "claim": "empty_values is a newly allocated tensor of type T with shape {0}.",
           "evidence": "L115: Tensor empty_values(DataTypeToEnum<T>::value, {0});"
         },
         {
           "entities": [
             "empty_st"
           ],
-          "claim": "empty_st is a SparseTensor created from empty_indices, empty_values, and output_shape.",
+          "claim": "empty_st is created as a SparseTensor from empty_indices, empty_values, and output_shape.",
           "evidence": "L116: SparseTensor empty_st;\nL117: OP_REQUIRES_OK(context, SparseTensor::Create(empty_indices, empty_values,\nL118: output_shape, &empty_st));"
         },
         {
           "entities": [
-            "map",
-            "empty_st",
             "handle"
           ],
-          "claim": "empty_st is added to map, producing handle.",
+          "claim": "handle is set by map->AddSparseTensor for empty_st.",
           "evidence": "L123: int64_t handle;\nL124: OP_REQUIRES_OK(context,\nL125: map->AddSparseTensor(context, empty_st, &handle));"
         },
         {
           "entities": [
-            "sparse_handles_t",
-            "handle"
+            "sparse_handles_t"
           ],
-          "claim": "sparse_handles_t(b) is assigned handle for skipped batch entries.",
+          "claim": "sparse_handles_t(b) is assigned the handle returned by map->AddSparseTensor for empty_st.",
           "evidence": "L126: sparse_handles_t(b) = handle;"
         },
         {
           "entities": [
-            "context",
             "sparse_handles"
           ],
           "claim": "sparse_handles is set as output 0 of context.",
@@ -251,17 +244,8 @@
             "indices",
             "rank"
           ],
-          "claim": "output_indices_t is indexed at (i, d-1) for i in [0, num_entries) and d in [1, rank), matching the allocated shape {num_entries, rank - 1}.",
+          "claim": "output_indices_t is indexed as (i, d-1) for i in [0, num_entries) and d in [1, rank), matching the {num_entries, rank-1} shape of output_indices.",
           "evidence": "L89: Tensor output_indices = Tensor(DT_INT64, {num_entries, rank - 1});\nL95: for (int i = 0; i < num_entries; ++i) {\nL96: for (int d = 1; d < rank; ++d) {\nL97: output_indices_t(i, d - 1) = indices(i, d);"
-        },
-        {
-          "entities": [
-            "output_values_t",
-            "values",
-            "num_entries"
-          ],
-          "claim": "output_values_t is indexed at i for i in [0, num_entries), matching the allocated length num_entries.",
-          "evidence": "L90: Tensor output_values = Tensor(DataTypeToEnum<T>::value, {num_entries});\nL95: for (int i = 0; i < num_entries; ++i) {\nL99: output_values_t(i) = values(i);"
         },
         {
           "entities": [
@@ -269,23 +253,17 @@
             "b",
             "N"
           ],
-          "claim": "sparse_handles_t is indexed by b, which is constrained to 0 <= b < N, matching the tensor length N.",
-          "evidence": "L61: Tensor sparse_handles(DT_INT64, TensorShape({N}));\nL80: context, b > -1 && b < N,\nL108: sparse_handles_t(b) = handle;"
+          "claim": "sparse_handles_t is indexed by b, where b is constrained to -1 < b < N, and sparse_handles_t has length N.",
+          "evidence": "L61: Tensor sparse_handles(DT_INT64, TensorShape({N}));\nL62: auto sparse_handles_t = sparse_handles.vec<int64_t>();\nL80: context, b > -1 && b < N,\nL108: sparse_handles_t(b) = handle;"
         },
         {
           "entities": [
             "empty_indices",
+            "empty_values",
             "rank"
           ],
-          "claim": "empty_indices has shape {0, rank - 1}, so its second dimension is rank - 1.",
-          "evidence": "L114: Tensor empty_indices(DT_INT64, {0, rank - 1});"
-        },
-        {
-          "entities": [
-            "empty_values"
-          ],
-          "claim": "empty_values has length 0.",
-          "evidence": "L115: Tensor empty_values(DataTypeToEnum<T>::value, {0});"
+          "claim": "empty_indices has shape {0, rank - 1} and empty_values has shape {0}, so both have zero entries.",
+          "evidence": "L114: Tensor empty_indices(DT_INT64, {0, rank - 1});\nL115: Tensor empty_values(DataTypeToEnum<T>::value, {0});"
         },
         {
           "entities": [
@@ -293,8 +271,8 @@
             "N",
             "sparse_handles_t"
           ],
-          "claim": "the gap-filling loop indexes sparse_handles_t(b) for b in [0, N), matching the tensor length N.",
-          "evidence": "L120: for (int64_t b = 0; b < N; ++b) {\nL126: sparse_handles_t(b) = handle;"
+          "claim": "the gap-filling loop iterates b from 0 to N-1 and writes sparse_handles_t(b) for unvisited b, staying within the length-N sparse_handles_t.",
+          "evidence": "L120: for (int64_t b = 0; b < N; ++b) {\nL122: if (visited.find(b) == visited.end()) {\nL126: sparse_handles_t(b) = handle;"
         }
       ],
       "executions": [
@@ -325,11 +303,10 @@
         {
           "entities": [
             "b",
-            "N",
-            "sparse_handles_t"
+            "N"
           ],
-          "claim": "in the gap-filling loop, b ranges over 0 <= b < N and only unvisited b are written to sparse_handles_t(b)",
-          "evidence": "L120: for (int64_t b = 0; b < N; ++b) {\nL122: if (visited.find(b) == visited.end()) {\nL126: sparse_handles_t(b) = handle;"
+          "claim": "the gap-filling loop iterates b from 0 to N-1",
+          "evidence": "L120: for (int64_t b = 0; b < N; ++b) {"
         }
       ]
     },
@@ -408,8 +385,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 2307,
-              "output_tokens": 1516,
-              "total_tokens": 3823
+              "output_tokens": 1557,
+              "total_tokens": 3864
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -417,8 +394,8 @@
         ],
         "token_usage": {
           "input_tokens": 2307,
-          "output_tokens": 1516,
-          "total_tokens": 3823
+          "output_tokens": 1557,
+          "total_tokens": 3864
         },
         "grounding": {
           "state_agent.states[0]": {
@@ -822,128 +799,7 @@
             "status": "pass"
           }
         },
-        "item_recovery": [
-          {
-            "action": "repair_evidence",
-            "index": 0,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 1,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 2,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 3,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 4,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 5,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 6,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 7,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 8,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 9,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 10,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 11,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 12,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 13,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 14,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 15,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 16,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 17,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 18,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 19,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 20,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 21,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 22,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 23,
-            "collection": "states"
-          }
-        ]
+        "item_recovery": []
       },
       "value_agent": {
         "status": "passed",
@@ -954,8 +810,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 2495,
-              "output_tokens": 942,
-              "total_tokens": 3437
+              "output_tokens": 883,
+              "total_tokens": 3378
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -963,8 +819,8 @@
         ],
         "token_usage": {
           "input_tokens": 2495,
-          "output_tokens": 942,
-          "total_tokens": 3437
+          "output_tokens": 883,
+          "total_tokens": 3378
         },
         "grounding": {
           "value_agent.values[0]": {
@@ -1107,36 +963,17 @@
           "value_agent.values[5]": {
             "evidence_matches": [
               {
-                "evidence_line": 90,
-                "fragment": "Tensor output_values = Tensor(DataTypeToEnum<T>::value, {num_entries});",
-                "matched_lines": [
-                  90
-                ]
-              },
-              {
-                "evidence_line": 95,
-                "fragment": "for (int i = 0; i < num_entries; ++i) {",
-                "matched_lines": [
-                  95
-                ]
-              },
-              {
-                "evidence_line": 99,
-                "fragment": "output_values_t(i) = values(i);",
-                "matched_lines": [
-                  99
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "value_agent.values[6]": {
-            "evidence_matches": [
-              {
                 "evidence_line": 61,
                 "fragment": "Tensor sparse_handles(DT_INT64, TensorShape({N}));",
                 "matched_lines": [
                   61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "auto sparse_handles_t = sparse_handles.vec<int64_t>();",
+                "matched_lines": [
+                  62
                 ]
               },
               {
@@ -1156,7 +993,7 @@
             ],
             "status": "pass"
           },
-          "value_agent.values[7]": {
+          "value_agent.values[6]": {
             "evidence_matches": [
               {
                 "evidence_line": 114,
@@ -1164,12 +1001,7 @@
                 "matched_lines": [
                   114
                 ]
-              }
-            ],
-            "status": "pass"
-          },
-          "value_agent.values[8]": {
-            "evidence_matches": [
+              },
               {
                 "evidence_line": 115,
                 "fragment": "Tensor empty_values(DataTypeToEnum<T>::value, {0});",
@@ -1180,13 +1012,20 @@
             ],
             "status": "pass"
           },
-          "value_agent.values[9]": {
+          "value_agent.values[7]": {
             "evidence_matches": [
               {
                 "evidence_line": 120,
                 "fragment": "for (int64_t b = 0; b < N; ++b) {",
                 "matched_lines": [
                   120
+                ]
+              },
+              {
+                "evidence_line": 122,
+                "fragment": "if (visited.find(b) == visited.end()) {",
+                "matched_lines": [
+                  122
                 ]
               },
               {
@@ -1211,8 +1050,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 2175,
-              "output_tokens": 403,
-              "total_tokens": 2578
+              "output_tokens": 351,
+              "total_tokens": 2526
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -1220,8 +1059,8 @@
         ],
         "token_usage": {
           "input_tokens": 2175,
-          "output_tokens": 403,
-          "total_tokens": 2578
+          "output_tokens": 351,
+          "total_tokens": 2526
         },
         "grounding": {
           "execution_agent.executions[0]": {
@@ -1296,20 +1135,6 @@
                 "matched_lines": [
                   120
                 ]
-              },
-              {
-                "evidence_line": 122,
-                "fragment": "if (visited.find(b) == visited.end()) {",
-                "matched_lines": [
-                  122
-                ]
-              },
-              {
-                "evidence_line": 126,
-                "fragment": "sparse_handles_t(b) = handle;",
-                "matched_lines": [
-                  126
-                ]
               }
             ],
             "status": "pass"
@@ -1326,7 +1151,7 @@
     "counts": {
       "operations": 4,
       "states": 24,
-      "values": 10,
+      "values": 8,
       "executions": 4
     },
     "schema_version": "semantic-claims-v4.13",
@@ -1336,8 +1161,8 @@
   },
   "token_usage": {
     "input_tokens": 10681,
-    "output_tokens": 3027,
-    "total_tokens": 13708
+    "output_tokens": 2957,
+    "total_tokens": 13638
   },
   "artifact_metadata": {
     "schema_version": "semantic-claims-v4.13",

@@ -1,0 +1,319 @@
+{
+  "sample_id": "test_000104",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L11"
+          ],
+          "expression": "IsSwitch(*input_node)",
+          "claim": "Dereference of input_node, which may be null if graph.GetNode returned no node for the tensor id."
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "graph",
+            "input_node"
+          ],
+          "claim": "input_node is a pointer to a NodeDef obtained from graph.GetNode(tensor_id.node()); its provenance is the graph's node storage and it may be null if no such node exists.",
+          "evidence": "L10: NodeDef* input_node = graph.GetNode(tensor_id.node());"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "node.input_size()"
+          ],
+          "claim": "The number of inputs of node is compared against 0; the branch is taken only when input_size() > 0.",
+          "evidence": "L4: node.input_size() > 0) {"
+        },
+        {
+          "entities": [
+            "node.input(0)"
+          ],
+          "claim": "node.input(0) is accessed only under the condition node.input_size() > 0, so index 0 is within the input count.",
+          "evidence": "L4: node.input_size() > 0) {\nL5: TensorId tensor_id = ParseTensorName(node.input(0));"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "node.input(0)",
+            "tensor_id"
+          ],
+          "claim": "Reaching the ParseTensorName call implies node.input_size() > 0, so node.input(0) is a valid input index.",
+          "evidence": "L3: if ((IsIdentity(node) || IsIdentityNSingleInput(node)) &&\nL4: node.input_size() > 0) {\nL5: TensorId tensor_id = ParseTensorName(node.input(0));"
+        },
+        {
+          "entities": [
+            "input_node"
+          ],
+          "claim": "Reaching the dereference IsSwitch(*input_node) implies graph.GetNode(tensor_id.node()) returned a non-null pointer.",
+          "evidence": "L10: NodeDef* input_node = graph.GetNode(tensor_id.node());\nL11: return IsSwitch(*input_node);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2111,
+              "output_tokens": 47,
+              "total_tokens": 2158
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2111,
+          "output_tokens": 47,
+          "total_tokens": 2158
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L11",
+                "matched": true,
+                "expression": "IsSwitch(*input_node)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 714,
+              "output_tokens": 83,
+              "total_tokens": 797
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 714,
+          "output_tokens": 83,
+          "total_tokens": 797
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "NodeDef* input_node = graph.GetNode(tensor_id.node());",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 902,
+              "output_tokens": 142,
+              "total_tokens": 1044
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 902,
+          "output_tokens": 142,
+          "total_tokens": 1044
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "node.input_size() > 0) {",
+                "matched_lines": [
+                  4
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "node.input_size() > 0) {",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 5,
+                "fragment": "TensorId tensor_id = ParseTensorName(node.input(0));",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 582,
+              "output_tokens": 193,
+              "total_tokens": 775
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 582,
+          "output_tokens": 193,
+          "total_tokens": 775
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "if ((IsIdentity(node) || IsIdentityNSingleInput(node)) &&",
+                "matched_lines": [
+                  3
+                ]
+              },
+              {
+                "evidence_line": 4,
+                "fragment": "node.input_size() > 0) {",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 5,
+                "fragment": "TensorId tensor_id = ParseTensorName(node.input(0));",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "NodeDef* input_node = graph.GetNode(tensor_id.node());",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "return IsSwitch(*input_node);",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 1,
+      "states": 1,
+      "values": 2,
+      "executions": 2
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4309,
+    "output_tokens": 465,
+    "total_tokens": 4774
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000104",
+    "split": "test",
+    "source_hash": "e37b2efe4f3035a3dcab462e6d775961c68974f9a472e8129b1f031cc88ba7b8",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

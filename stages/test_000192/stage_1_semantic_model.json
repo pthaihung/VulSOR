@@ -1,0 +1,1167 @@
+{
+  "sample_id": "test_000192",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L65",
+            "L66",
+            "L114",
+            "L186"
+          ],
+          "expression": "e->song.chanShow[j]",
+          "claim": "indexed access into the channel visibility array using channel index j"
+        },
+        {
+          "locations": [
+            "L123"
+          ],
+          "expression": "e->song.ins[pat->data[i][2]]->type",
+          "claim": "indexed access into the instrument array followed by member dereference using an instrument index read from pattern data"
+        },
+        {
+          "locations": [
+            "L162"
+          ],
+          "expression": "volColors[volColor]",
+          "claim": "indexed access into the volume color table using a computed volume color index"
+        },
+        {
+          "locations": [
+            "L200"
+          ],
+          "expression": "fxColors[pat->data[i][index]]",
+          "claim": "indexed access into the effect color table using an effect value read from pattern data"
+        },
+        {
+          "locations": [
+            "L218"
+          ],
+          "expression": "extFxColors[pat->data[i][index]-0xe0]",
+          "claim": "indexed access into the extended effect color table using an effect value offset read from pattern data"
+        },
+        {
+          "locations": [
+            "L274"
+          ],
+          "expression": "patChanX[chans]",
+          "claim": "indexed write into the channel position array using the channel count as index"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "id"
+          ],
+          "claim": "id is a static char buffer of size 32 that persists across calls and is written by sprintf before being passed to ImGui::Selectable.",
+          "evidence": "L2: static char id[32];\nL87: sprintf(id,\"%s##PN_%d_%d\",noteName(pat->data[i][0],pat->data[i][1]),i,j);\nL97: ImGui::Selectable(id,true,ImGuiSelectableFlags_NoPadWithHalfSpacing,threeChars);"
+        },
+        {
+          "entities": [
+            "patCache",
+            "pat"
+          ],
+          "claim": "pat is initialized from patCache[j] and points to the DivPattern object for channel j; pat->data is accessed for note, instrument, volume, and effect fields.",
+          "evidence": "L71: const DivPattern* pat=patCache[j];\nL87: sprintf(id,\"%s##PN_%d_%d\",noteName(pat->data[i][0],pat->data[i][1]),i,j);\nL116: if (pat->data[i][2]==-1) {\nL154: if (pat->data[i][3]==-1) {\nL194: if (pat->data[i][index]==-1) {"
+        },
+        {
+          "entities": [
+            "e",
+            "e->song.ins",
+            "pat"
+          ],
+          "claim": "When pat->data[i][2] is a valid instrument index, e->song.ins[pat->data[i][2]] is dereferenced to obtain the instrument type.",
+          "evidence": "L120: if (pat->data[i][2]<0 || pat->data[i][2]>=e->song.insLen) {\nL123: DivInstrumentType t=e->song.ins[pat->data[i][2]]->type;"
+        },
+        {
+          "entities": [
+            "e",
+            "e->song.pat",
+            "pat"
+          ],
+          "claim": "The effect loop iterates k from 0 to e->song.pat[j].effectRows-1, and pat->data[i][index] and pat->data[i][index+1] are accessed for each effect.",
+          "evidence": "L186: for (int k=0; k<e->song.pat[j].effectRows; k++) {\nL187: int index=4+(k<<1);\nL194: if (pat->data[i][index]==-1) {\nL242: if (pat->data[i][index+1]==-1) {"
+        },
+        {
+          "entities": [
+            "patChanX"
+          ],
+          "claim": "patChanX[j] is assigned the current cursor X position for each channel j, and patChanX[chans] is assigned after the loop.",
+          "evidence": "L66: patChanX[j]=ImGui::GetCursorPosX();\nL73: patChanX[j]=ImGui::GetCursorPosX();\nL274: patChanX[chans]=ImGui::GetCursorPosX();"
+        },
+        {
+          "entities": [
+            "isPushing"
+          ],
+          "claim": "isPushing is set to true when a style color is pushed in the non-overflow-highlight branch, and is set to false if no color is pushed; it is used to decide whether to pop a style color at the end.",
+          "evidence": "L43: isPushing=true;\nL53: isPushing=false;\nL270: if (isPushing) {\nL271: ImGui::PopStyleColor();"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "i",
+            "e->song.patLen"
+          ],
+          "claim": "Row index i is validated to be in [0, e->song.patLen) before any pattern data access.",
+          "evidence": "L15: if (i<0 || i>=e->song.patLen) {\nL16: return;"
+        },
+        {
+          "entities": [
+            "ord",
+            "e->song.ordersLen"
+          ],
+          "claim": "Order index ord is validated to be in [0, e->song.ordersLen) before use.",
+          "evidence": "L12: if (ord<0 || ord>=e->song.ordersLen) {\nL13: return;"
+        },
+        {
+          "entities": [
+            "j",
+            "chans",
+            "patCache",
+            "e->song.chanShow"
+          ],
+          "claim": "Column loop index j ranges over [0, chans), and patCache[j] is accessed only for j in that range.",
+          "evidence": "L63: for (int j=0; j<chans; j++) {\nL71: const DivPattern* pat=patCache[j];"
+        },
+        {
+          "entities": [
+            "j32",
+            "sel1XSum",
+            "sel2XSum"
+          ],
+          "claim": "j32 is computed as j*32, and selection comparisons use j32, j32+1, j32+2 against sel1XSum/sel2XSum.",
+          "evidence": "L78: int j32=j*32;\nL79: bool selectedNote=selectedRow && (j32>=sel1XSum && j32<=sel2XSum);\nL80: bool selectedIns=selectedRow && (j32+1>=sel1XSum && j32+1<=sel2XSum);\nL81: bool selectedVol=selectedRow && (j32+2>=sel1XSum && j32+2<=sel2XSum);"
+        },
+        {
+          "entities": [
+            "sel1XSum",
+            "sel1.xCoarse",
+            "sel1.xFine"
+          ],
+          "claim": "sel1XSum is computed as sel1.xCoarse*32+sel1.xFine.",
+          "evidence": "L76: int sel1XSum=sel1.xCoarse*32+sel1.xFine;"
+        },
+        {
+          "entities": [
+            "sel2XSum",
+            "sel2.xCoarse",
+            "sel2.xFine"
+          ],
+          "claim": "sel2XSum is computed as sel2.xCoarse*32+sel2.xFine.",
+          "evidence": "L77: int sel2XSum=sel2.xCoarse*32+sel2.xFine;"
+        },
+        {
+          "entities": [
+            "k",
+            "e->song.pat[j].effectRows",
+            "index"
+          ],
+          "claim": "Effect loop index k ranges over [0, e->song.pat[j].effectRows), and index is computed as 4+(k<<1).",
+          "evidence": "L186: for (int k=0; k<e->song.pat[j].effectRows; k++) {\nL187: int index=4+(k<<1);"
+        },
+        {
+          "entities": [
+            "pat->data[i][index]",
+            "index",
+            "pat->data[i][index+1]"
+          ],
+          "claim": "Effect and effect-value accesses use pat->data[i][index] and pat->data[i][index+1] with index derived from k.",
+          "evidence": "L194: if (pat->data[i][index]==-1) {\nL242: if (pat->data[i][index+1]==-1) {"
+        },
+        {
+          "entities": [
+            "pat->data[i][2]",
+            "e->song.insLen"
+          ],
+          "claim": "Instrument index pat->data[i][2] is checked against e->song.insLen before indexing e->song.ins.",
+          "evidence": "L120: if (pat->data[i][2]<0 || pat->data[i][2]>=e->song.insLen) {\nL123: DivInstrumentType t=e->song.ins[pat->data[i][2]]->type;"
+        },
+        {
+          "entities": [
+            "volColor",
+            "pat->data[i][3]",
+            "chanVolMax"
+          ],
+          "claim": "volColor is computed as (pat->data[i][3]*127)/chanVolMax and clamped to [0,127] before indexing volColors.",
+          "evidence": "L158: int volColor=(pat->data[i][3]*127)/chanVolMax;\nL159: if (volColor>127) volColor=127;\nL160: if (volColor<0) volColor=0;\nL162: ImGui::PushStyleColor(ImGuiCol_Text,volColors[volColor]);"
+        },
+        {
+          "entities": [
+            "chanVolMax",
+            "e->getMaxVolumeChan(j)"
+          ],
+          "claim": "chanVolMax is set from e->getMaxVolumeChan(j) and forced to at least 1.",
+          "evidence": "L69: int chanVolMax=e->getMaxVolumeChan(j);\nL70: if (chanVolMax<1) chanVolMax=1;"
+        },
+        {
+          "entities": [
+            "pat->data[i][index]",
+            "fxColors",
+            "extFxColors"
+          ],
+          "claim": "Effect byte pat->data[i][index] is used to index fxColors when <0x10 and extFxColors when >=0xe0 with offset -0xe0.",
+          "evidence": "L199: if (pat->data[i][index]<0x10) {\nL200: ImGui::PushStyleColor(ImGuiCol_Text,uiColors[fxColors[pat->data[i][index]]]);\nL218: ImGui::PushStyleColor(ImGuiCol_Text,uiColors[extFxColors[pat->data[i][index]-0xe0]]);"
+        },
+        {
+          "entities": [
+            "id",
+            "i",
+            "j",
+            "k"
+          ],
+          "claim": "id is a static char[32] buffer written by sprintf with format strings containing i, j, and k.",
+          "evidence": "L2: static char id[32];\nL87: sprintf(id,\"%s##PN_%d_%d\",noteName(pat->data[i][0],pat->data[i][1]),i,j);\nL195: sprintf(id,\"..##PE%d_%d_%d\",k,i,j);"
+        },
+        {
+          "entities": [
+            "patChanX",
+            "chans",
+            "j"
+          ],
+          "claim": "patChanX is indexed by j in [0, chans) and by chans at the end.",
+          "evidence": "L66: patChanX[j]=ImGui::GetCursorPosX();\nL73: patChanX[j]=ImGui::GetCursorPosX();\nL274: patChanX[chans]=ImGui::GetCursorPosX();"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "i"
+          ],
+          "claim": "continuing past the visibility check implies cursorPosY >= -lineHeight and cursorPosY <= window height",
+          "evidence": "L8: if (cursorPosY<-lineHeight || cursorPosY>ImGui::GetWindowSize().y) {\nL9: return;"
+        },
+        {
+          "entities": [
+            "ord"
+          ],
+          "claim": "continuing past the order-range check implies 0 <= ord < e->song.ordersLen",
+          "evidence": "L12: if (ord<0 || ord>=e->song.ordersLen) {\nL13: return;"
+        },
+        {
+          "entities": [
+            "i"
+          ],
+          "claim": "continuing past the pattern-row-range check implies 0 <= i < e->song.patLen",
+          "evidence": "L15: if (i<0 || i>=e->song.patLen) {\nL16: return;"
+        },
+        {
+          "entities": [
+            "j",
+            "chans"
+          ],
+          "claim": "inside the column loop, j is in [0, chans)",
+          "evidence": "L63: for (int j=0; j<chans; j++) {"
+        },
+        {
+          "entities": [
+            "chanVolMax"
+          ],
+          "claim": "after the clamp, chanVolMax >= 1",
+          "evidence": "L69: int chanVolMax=e->getMaxVolumeChan(j);\nL70: if (chanVolMax<1) chanVolMax=1;"
+        },
+        {
+          "entities": [
+            "volColor"
+          ],
+          "claim": "after clamping, 0 <= volColor <= 127",
+          "evidence": "L158: int volColor=(pat->data[i][3]*127)/chanVolMax;\nL159: if (volColor>127) volColor=127;\nL160: if (volColor<0) volColor=0;"
+        },
+        {
+          "entities": [
+            "k",
+            "e->song.pat[j].effectRows"
+          ],
+          "claim": "inside the effects loop, k is in [0, e->song.pat[j].effectRows)",
+          "evidence": "L186: for (int k=0; k<e->song.pat[j].effectRows; k++) {"
+        },
+        {
+          "entities": [
+            "index"
+          ],
+          "claim": "inside the effects loop, index = 4 + 2*k",
+          "evidence": "L187: int index=4+(k<<1);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 6981,
+              "output_tokens": 387,
+              "total_tokens": 7368
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 6981,
+          "output_tokens": 387,
+          "total_tokens": 7368
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L65",
+                "matched": true,
+                "expression": "e->song.chanShow[j]"
+              },
+              {
+                "location": "L66",
+                "matched": true,
+                "expression": "e->song.chanShow[j]"
+              },
+              {
+                "location": "L114",
+                "matched": true,
+                "expression": "e->song.chanShow[j]"
+              },
+              {
+                "location": "L186",
+                "matched": true,
+                "expression": "e->song.chanShow[j]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L123",
+                "matched": true,
+                "expression": "e->song.ins[pat->data[i][2]]->type"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L162",
+                "matched": true,
+                "expression": "volColors[volColor]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L200",
+                "matched": true,
+                "expression": "fxColors[pat->data[i][index]]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L218",
+                "matched": true,
+                "expression": "extFxColors[pat->data[i][index]-0xe0]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L274",
+                "matched": true,
+                "expression": "patChanX[chans]"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 0,
+            "expression": "pat->data[i][index]"
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 5584,
+              "output_tokens": 761,
+              "total_tokens": 6345
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 5584,
+          "output_tokens": 761,
+          "total_tokens": 6345
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "static char id[32];",
+                "matched_lines": [
+                  2
+                ]
+              },
+              {
+                "evidence_line": 87,
+                "fragment": "sprintf(id,\"%s##PN_%d_%d\",noteName(pat->data[i][0],pat->data[i][1]),i,j);",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 97,
+                "fragment": "ImGui::Selectable(id,true,ImGuiSelectableFlags_NoPadWithHalfSpacing,threeChars);",
+                "matched_lines": [
+                  97
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 71,
+                "fragment": "const DivPattern* pat=patCache[j];",
+                "matched_lines": [
+                  71
+                ]
+              },
+              {
+                "evidence_line": 87,
+                "fragment": "sprintf(id,\"%s##PN_%d_%d\",noteName(pat->data[i][0],pat->data[i][1]),i,j);",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 116,
+                "fragment": "if (pat->data[i][2]==-1) {",
+                "matched_lines": [
+                  116
+                ]
+              },
+              {
+                "evidence_line": 154,
+                "fragment": "if (pat->data[i][3]==-1) {",
+                "matched_lines": [
+                  154
+                ]
+              },
+              {
+                "evidence_line": 194,
+                "fragment": "if (pat->data[i][index]==-1) {",
+                "matched_lines": [
+                  194
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 120,
+                "fragment": "if (pat->data[i][2]<0 || pat->data[i][2]>=e->song.insLen) {",
+                "matched_lines": [
+                  120
+                ]
+              },
+              {
+                "evidence_line": 123,
+                "fragment": "DivInstrumentType t=e->song.ins[pat->data[i][2]]->type;",
+                "matched_lines": [
+                  123
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 186,
+                "fragment": "for (int k=0; k<e->song.pat[j].effectRows; k++) {",
+                "matched_lines": [
+                  186
+                ]
+              },
+              {
+                "evidence_line": 187,
+                "fragment": "int index=4+(k<<1);",
+                "matched_lines": [
+                  187
+                ]
+              },
+              {
+                "evidence_line": 194,
+                "fragment": "if (pat->data[i][index]==-1) {",
+                "matched_lines": [
+                  194
+                ]
+              },
+              {
+                "evidence_line": 242,
+                "fragment": "if (pat->data[i][index+1]==-1) {",
+                "matched_lines": [
+                  242
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 66,
+                "fragment": "patChanX[j]=ImGui::GetCursorPosX();",
+                "matched_lines": [
+                  66
+                ]
+              },
+              {
+                "evidence_line": 73,
+                "fragment": "patChanX[j]=ImGui::GetCursorPosX();",
+                "matched_lines": [
+                  73
+                ]
+              },
+              {
+                "evidence_line": 274,
+                "fragment": "patChanX[chans]=ImGui::GetCursorPosX();",
+                "matched_lines": [
+                  274
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "isPushing=true;",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "isPushing=false;",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 270,
+                "fragment": "if (isPushing) {",
+                "matched_lines": [
+                  270
+                ]
+              },
+              {
+                "evidence_line": 271,
+                "fragment": "ImGui::PopStyleColor();",
+                "matched_lines": [
+                  271
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 5772,
+              "output_tokens": 1400,
+              "total_tokens": 7172
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 5772,
+          "output_tokens": 1400,
+          "total_tokens": 7172
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "if (i<0 || i>=e->song.patLen) {",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "return;",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "if (ord<0 || ord>=e->song.ordersLen) {",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "return;",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 63,
+                "fragment": "for (int j=0; j<chans; j++) {",
+                "matched_lines": [
+                  63
+                ]
+              },
+              {
+                "evidence_line": 71,
+                "fragment": "const DivPattern* pat=patCache[j];",
+                "matched_lines": [
+                  71
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 78,
+                "fragment": "int j32=j*32;",
+                "matched_lines": [
+                  78
+                ]
+              },
+              {
+                "evidence_line": 79,
+                "fragment": "bool selectedNote=selectedRow && (j32>=sel1XSum && j32<=sel2XSum);",
+                "matched_lines": [
+                  79
+                ]
+              },
+              {
+                "evidence_line": 80,
+                "fragment": "bool selectedIns=selectedRow && (j32+1>=sel1XSum && j32+1<=sel2XSum);",
+                "matched_lines": [
+                  80
+                ]
+              },
+              {
+                "evidence_line": 81,
+                "fragment": "bool selectedVol=selectedRow && (j32+2>=sel1XSum && j32+2<=sel2XSum);",
+                "matched_lines": [
+                  81
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 76,
+                "fragment": "int sel1XSum=sel1.xCoarse*32+sel1.xFine;",
+                "matched_lines": [
+                  76
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 77,
+                "fragment": "int sel2XSum=sel2.xCoarse*32+sel2.xFine;",
+                "matched_lines": [
+                  77
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 186,
+                "fragment": "for (int k=0; k<e->song.pat[j].effectRows; k++) {",
+                "matched_lines": [
+                  186
+                ]
+              },
+              {
+                "evidence_line": 187,
+                "fragment": "int index=4+(k<<1);",
+                "matched_lines": [
+                  187
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 194,
+                "fragment": "if (pat->data[i][index]==-1) {",
+                "matched_lines": [
+                  194
+                ]
+              },
+              {
+                "evidence_line": 242,
+                "fragment": "if (pat->data[i][index+1]==-1) {",
+                "matched_lines": [
+                  242
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 120,
+                "fragment": "if (pat->data[i][2]<0 || pat->data[i][2]>=e->song.insLen) {",
+                "matched_lines": [
+                  120
+                ]
+              },
+              {
+                "evidence_line": 123,
+                "fragment": "DivInstrumentType t=e->song.ins[pat->data[i][2]]->type;",
+                "matched_lines": [
+                  123
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 158,
+                "fragment": "int volColor=(pat->data[i][3]*127)/chanVolMax;",
+                "matched_lines": [
+                  158
+                ]
+              },
+              {
+                "evidence_line": 159,
+                "fragment": "if (volColor>127) volColor=127;",
+                "matched_lines": [
+                  159
+                ]
+              },
+              {
+                "evidence_line": 160,
+                "fragment": "if (volColor<0) volColor=0;",
+                "matched_lines": [
+                  160
+                ]
+              },
+              {
+                "evidence_line": 162,
+                "fragment": "ImGui::PushStyleColor(ImGuiCol_Text,volColors[volColor]);",
+                "matched_lines": [
+                  162
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 69,
+                "fragment": "int chanVolMax=e->getMaxVolumeChan(j);",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "if (chanVolMax<1) chanVolMax=1;",
+                "matched_lines": [
+                  70
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 199,
+                "fragment": "if (pat->data[i][index]<0x10) {",
+                "matched_lines": [
+                  199
+                ]
+              },
+              {
+                "evidence_line": 200,
+                "fragment": "ImGui::PushStyleColor(ImGuiCol_Text,uiColors[fxColors[pat->data[i][index]]]);",
+                "matched_lines": [
+                  200
+                ]
+              },
+              {
+                "evidence_line": 218,
+                "fragment": "ImGui::PushStyleColor(ImGuiCol_Text,uiColors[extFxColors[pat->data[i][index]-0xe0]]);",
+                "matched_lines": [
+                  218
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "static char id[32];",
+                "matched_lines": [
+                  2
+                ]
+              },
+              {
+                "evidence_line": 87,
+                "fragment": "sprintf(id,\"%s##PN_%d_%d\",noteName(pat->data[i][0],pat->data[i][1]),i,j);",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 195,
+                "fragment": "sprintf(id,\"..##PE%d_%d_%d\",k,i,j);",
+                "matched_lines": [
+                  195
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 66,
+                "fragment": "patChanX[j]=ImGui::GetCursorPosX();",
+                "matched_lines": [
+                  66
+                ]
+              },
+              {
+                "evidence_line": 73,
+                "fragment": "patChanX[j]=ImGui::GetCursorPosX();",
+                "matched_lines": [
+                  73
+                ]
+              },
+              {
+                "evidence_line": 274,
+                "fragment": "patChanX[chans]=ImGui::GetCursorPosX();",
+                "matched_lines": [
+                  274
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 5452,
+              "output_tokens": 474,
+              "total_tokens": 5926
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 5452,
+          "output_tokens": 474,
+          "total_tokens": 5926
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (cursorPosY<-lineHeight || cursorPosY>ImGui::GetWindowSize().y) {",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "return;",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "if (ord<0 || ord>=e->song.ordersLen) {",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "return;",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "if (i<0 || i>=e->song.patLen) {",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "return;",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 63,
+                "fragment": "for (int j=0; j<chans; j++) {",
+                "matched_lines": [
+                  63
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 69,
+                "fragment": "int chanVolMax=e->getMaxVolumeChan(j);",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "if (chanVolMax<1) chanVolMax=1;",
+                "matched_lines": [
+                  70
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 158,
+                "fragment": "int volColor=(pat->data[i][3]*127)/chanVolMax;",
+                "matched_lines": [
+                  158
+                ]
+              },
+              {
+                "evidence_line": 159,
+                "fragment": "if (volColor>127) volColor=127;",
+                "matched_lines": [
+                  159
+                ]
+              },
+              {
+                "evidence_line": 160,
+                "fragment": "if (volColor<0) volColor=0;",
+                "matched_lines": [
+                  160
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 186,
+                "fragment": "for (int k=0; k<e->song.pat[j].effectRows; k++) {",
+                "matched_lines": [
+                  186
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 187,
+                "fragment": "int index=4+(k<<1);",
+                "matched_lines": [
+                  187
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 6,
+      "states": 6,
+      "values": 14,
+      "executions": 8
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 23789,
+    "output_tokens": 3022,
+    "total_tokens": 26811
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000192",
+    "split": "test",
+    "source_hash": "59e201b145ea3a7d0496b2b58ded3d7350270922705111375a17764589e3818b",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

@@ -1,0 +1,1637 @@
+{
+  "sample_id": "test_000065",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L115"
+          ],
+          "expression": "*p++=(char) c",
+          "claim": "write through pointer p into command buffer"
+        },
+        {
+          "locations": [
+            "L119"
+          ],
+          "expression": "*p='\\0'",
+          "claim": "write through pointer p into command buffer"
+        },
+        {
+          "locations": [
+            "L131",
+            "L134",
+            "L142",
+            "L145"
+          ],
+          "expression": "sscanf(command, ...)",
+          "claim": "parse formatted input from command buffer into bounds fields"
+        },
+        {
+          "locations": [
+            "L153",
+            "L154"
+          ],
+          "expression": "(size_t)CastDoubleToLong(floor(bounds.x2-bounds.x1+0.5))",
+          "claim": "convert floating-point value to integer size"
+        },
+        {
+          "locations": [
+            "L192",
+            "L193"
+          ],
+          "expression": "(size_t) floor(page.width*image->resolution.x/delta.x+0.5)",
+          "claim": "convert floating-point value to integer size"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "image"
+          ],
+          "claim": "image is an acquired Image object; OpenBlob establishes an open blob on it, and it is destroyed on failure paths before return.",
+          "evidence": "L63: image=AcquireImage(image_info,exception);\nL64: status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);\nL67: image=DestroyImageList(image);\nL75: image=DestroyImageList(image);"
+        },
+        {
+          "entities": [
+            "input_filename"
+          ],
+          "claim": "input_filename is established as a unique symbolic link resource by AcquireUniqueSymbolicLink and is later relinquished.",
+          "evidence": "L70: status=AcquireUniqueSymbolicLink(image_info->filename,input_filename);\nL225: (void) RelinquishUniqueFileResource(input_filename);"
+        },
+        {
+          "entities": [
+            "p",
+            "command"
+          ],
+          "claim": "p is initialized to point to the command buffer and is reset to command after each token is terminated.",
+          "evidence": "L107: p=command;\nL120: p=command;"
+        },
+        {
+          "entities": [
+            "read_info"
+          ],
+          "claim": "read_info is a cloned ImageInfo; its filename is replaced with a unique filename resource that is later relinquished, and read_info is destroyed.",
+          "evidence": "L197: read_info=CloneImageInfo(image_info);\nL213: (void) AcquireUniqueFilename(read_info->filename);\nL224: (void) RelinquishUniqueFileResource(read_info->filename);\nL226: read_info=DestroyImageInfo(read_info);"
+        },
+        {
+          "entities": [
+            "density",
+            "options"
+          ],
+          "claim": "density and options are acquired strings that are destroyed after use.",
+          "evidence": "L186: density=AcquireString(\"\");\nL187: options=AcquireString(\"\");\nL219: options=DestroyString(options);\nL220: density=DestroyString(density);"
+        },
+        {
+          "entities": [
+            "image"
+          ],
+          "claim": "image is destroyed before read_info is cloned and before the delegate command is run.",
+          "evidence": "L196: image=DestroyImage(image);"
+        },
+        {
+          "entities": [
+            "image"
+          ],
+          "claim": "image is reassigned from ReadImage; if NULL, a reader exception is thrown.",
+          "evidence": "L223: image=ReadImage(read_info,exception);\nL227: if (image == (Image *) NULL)\nL228: ThrowReaderException(DelegateError,\"PCLDelegateFailed\");"
+        },
+        {
+          "entities": [
+            "image",
+            "cmyk_image"
+          ],
+          "claim": "If image->magick is BMP, ConsolidateCMYKImages may produce cmyk_image; when non-NULL, the original image list is destroyed and image is replaced by cmyk_image.",
+          "evidence": "L229: if (LocaleCompare(image->magick,\"BMP\") == 0)\nL234: cmyk_image=ConsolidateCMYKImages(image,exception);\nL235: if (cmyk_image != (Image *) NULL)\nL237: image=DestroyImageList(image);\nL238: image=cmyk_image;"
+        },
+        {
+          "entities": [
+            "image",
+            "next_image"
+          ],
+          "claim": "The image list is traversed via SyncNextImageInList; image is advanced to next_image while next_image is non-NULL.",
+          "evidence": "L252: next_image=SyncNextImageInList(image);\nL253: if (next_image != (Image *) NULL)\nL254: image=next_image;"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "command",
+            "p",
+            "MagickPathExtent"
+          ],
+          "claim": "p is initialized to command and advanced by one byte per stored character; the buffer is bounded by MagickPathExtent, and the loop continues only while (p-command) < MagickPathExtent-1, so p-command is the current byte count in command.",
+          "evidence": "L106: (void) memset(command,0,sizeof(command));\nL107: p=command;\nL115: *p++=(char) c;\nL117: ((size_t) (p-command) < (MagickPathExtent-1)))"
+        },
+        {
+          "entities": [
+            "command",
+            "p"
+          ],
+          "claim": "After a delimiter or full buffer, *p is set to '\\0' and p is reset to command, so command is NUL-terminated before string parsing.",
+          "evidence": "L119: *p='\\0';\nL120: p=command;"
+        },
+        {
+          "entities": [
+            "count",
+            "bounds.x1",
+            "bounds.y1",
+            "bounds.x2",
+            "bounds.y2"
+          ],
+          "claim": "count is assigned the number of successfully scanned fields from sscanf into bounds.x1, bounds.y1, bounds.x2, bounds.y2; only count == 4 is treated as a complete box.",
+          "evidence": "L131: count=(ssize_t) sscanf(command,\"CropBox [%lf %lf %lf %lf\",\nL132: &bounds.x1,&bounds.y1,&bounds.x2,&bounds.y2);\nL133: if (count != 4)\nL142: count=(ssize_t) sscanf(command,\"MediaBox [%lf %lf %lf %lf\",\nL143: &bounds.x1,&bounds.y1,&bounds.x2,&bounds.y2);\nL148: if (count != 4)"
+        },
+        {
+          "entities": [
+            "width",
+            "bounds.x2",
+            "bounds.x1"
+          ],
+          "claim": "width is computed as (size_t)CastDoubleToLong(floor(bounds.x2-bounds.x1+0.5)), converting the floating-point box width to size_t.",
+          "evidence": "L153: width=(size_t)CastDoubleToLong(floor(bounds.x2-bounds.x1+0.5));"
+        },
+        {
+          "entities": [
+            "height",
+            "bounds.y2",
+            "bounds.y1"
+          ],
+          "claim": "height is computed as (size_t)CastDoubleToLong(floor(bounds.y2-bounds.y1+0.5)), converting the floating-point box height to size_t.",
+          "evidence": "L154: height=(size_t)CastDoubleToLong(floor(bounds.y2-bounds.y1+0.5));"
+        },
+        {
+          "entities": [
+            "page.width",
+            "width"
+          ],
+          "claim": "page.width is updated to width only when width is greater than the current page.width.",
+          "evidence": "L155: if (width > page.width)\nL156: page.width=width;"
+        },
+        {
+          "entities": [
+            "page.height",
+            "height"
+          ],
+          "claim": "page.height is updated to height only when height is greater than the current page.height.",
+          "evidence": "L157: if (height > page.height)\nL158: page.height=height;"
+        },
+        {
+          "entities": [
+            "page.width",
+            "page.height"
+          ],
+          "claim": "If page.width or page.height is zero, page is parsed from PSPageGeometry; if image_info->page is non-NULL, page is parsed from image_info->page.",
+          "evidence": "L164: if ((page.width == 0) || (page.height == 0))\nL165: (void) ParseAbsoluteGeometry(PSPageGeometry,&page);\nL166: if (image_info->page != (char *) NULL)\nL167: (void) ParseAbsoluteGeometry(image_info->page,&page);"
+        },
+        {
+          "entities": [
+            "page.width",
+            "page.height",
+            "image->resolution.x",
+            "image->resolution.y",
+            "delta.x",
+            "delta.y"
+          ],
+          "claim": "page.width and page.height are rescaled by image resolution divided by delta, using floor(x+0.5) and cast to size_t.",
+          "evidence": "L192: page.width=(size_t) floor(page.width*image->resolution.x/delta.x+0.5);\nL193: page.height=(size_t) floor(page.height*image->resolution.y/delta.y+0.5);"
+        },
+        {
+          "entities": [
+            "geometry",
+            "page.width",
+            "page.height"
+          ],
+          "claim": "geometry is formatted as \"%.20gx%.20g\" from page.width and page.height cast to double.",
+          "evidence": "L168: (void) FormatLocaleString(geometry,MagickPathExtent,\"%.20gx%.20g\",(double)\nL169: page.width,(double) page.height);"
+        },
+        {
+          "entities": [
+            "options",
+            "page.width",
+            "page.height"
+          ],
+          "claim": "options is formatted as \"-g%.20gx%.20g \" from page.width and page.height cast to double.",
+          "evidence": "L194: (void) FormatLocaleString(options,MagickPathExtent,\"-g%.20gx%.20g \",(double)\nL195: page.width,(double) page.height);"
+        },
+        {
+          "entities": [
+            "density",
+            "image->resolution.x",
+            "image->resolution.y"
+          ],
+          "claim": "density is formatted as \"%gx%g\" from image->resolution.x and image->resolution.y.",
+          "evidence": "L188: (void) FormatLocaleString(density,MagickPathExtent,\"%gx%g\",\nL189: image->resolution.x,image->resolution.y);"
+        },
+        {
+          "entities": [
+            "command",
+            "delegate_info",
+            "density",
+            "options",
+            "read_info->filename",
+            "input_filename"
+          ],
+          "claim": "command is formatted with GetDelegateCommands(delegate_info) and arguments including antialias-derived 4 or 1, density, options, read_info->filename, and input_filename.",
+          "evidence": "L214: (void) FormatLocaleString(command,MagickPathExtent,\nL215: GetDelegateCommands(delegate_info),\nL216: read_info->antialias != MagickFalse ? 4 : 1,\nL217: read_info->antialias != MagickFalse ? 4 : 1,density,options,\nL218: read_info->filename,input_filename);"
+        },
+        {
+          "entities": [
+            "image->magick_columns",
+            "image->magick_rows",
+            "image->columns",
+            "image->rows",
+            "image->resolution.x",
+            "image->resolution.y"
+          ],
+          "claim": "When image_info->ping is true, image->magick_columns, image->magick_rows, image->columns, and image->rows are multiplied by image->resolution.x/2.0 or image->resolution.y/2.0.",
+          "evidence": "L247: image->magick_columns*=image->resolution.x/2.0;\nL248: image->magick_rows*=image->resolution.y/2.0;\nL249: image->columns*=image->resolution.x/2.0;\nL250: image->rows*=image->resolution.y/2.0;"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "c",
+            "p",
+            "command"
+          ],
+          "claim": "Loop continues while ReadBlobByte returns non-EOF; if image_info->page is non-NULL, the loop body skips all parsing and continues to the next byte.",
+          "evidence": "L108: for (c=ReadBlobByte(image); c != EOF; c=ReadBlobByte(image))\nL110: if (image_info->page != (char *) NULL)\nL111: continue;"
+        },
+        {
+          "entities": [
+            "p",
+            "command",
+            "c"
+          ],
+          "claim": "After appending c to command, the loop continues without parsing unless c is '/' or '\\n' or the command buffer is full (p-command >= MagickPathExtent-1).",
+          "evidence": "L115: *p++=(char) c;\nL116: if ((c != (int) '/') && (c != '\\n') &&\nL117: ((size_t) (p-command) < (MagickPathExtent-1)))\nL118: continue;"
+        },
+        {
+          "entities": [
+            "count",
+            "bounds"
+          ],
+          "claim": "count is set to the number of successfully scanned CropBox or MediaBox values; if count != 4, the loop continues without updating page dimensions.",
+          "evidence": "L131: count=(ssize_t) sscanf(command,\"CropBox [%lf %lf %lf %lf\",\nL133: if (count != 4)\nL134: count=(ssize_t) sscanf(command,\"CropBox[%lf %lf %lf %lf\",\nL142: count=(ssize_t) sscanf(command,\"MediaBox [%lf %lf %lf %lf\",\nL144: if (count != 4)\nL145: count=(ssize_t) sscanf(command,\"MediaBox[%lf %lf %lf %lf\",\nL148: if (count != 4)\nL149: continue;"
+        },
+        {
+          "entities": [
+            "width",
+            "height",
+            "page"
+          ],
+          "claim": "When count == 4, width and height are computed from bounds and page.width/page.height are updated to the maximum of their current values and width/height.",
+          "evidence": "L153: width=(size_t)CastDoubleToLong(floor(bounds.x2-bounds.x1+0.5));\nL154: height=(size_t)CastDoubleToLong(floor(bounds.y2-bounds.y1+0.5));\nL155: if (width > page.width)\nL156: page.width=width;\nL157: if (height > page.height)\nL158: page.height=height;"
+        },
+        {
+          "entities": [
+            "page"
+          ],
+          "claim": "After the read loop, if page.width or page.height is zero, page is set from PSPageGeometry; if image_info->page is non-NULL, page is set from image_info->page.",
+          "evidence": "L164: if ((page.width == 0) || (page.height == 0))\nL165: (void) ParseAbsoluteGeometry(PSPageGeometry,&page);\nL166: if (image_info->page != (char *) NULL)\nL167: (void) ParseAbsoluteGeometry(image_info->page,&page);"
+        },
+        {
+          "entities": [
+            "delegate_info"
+          ],
+          "claim": "delegate_info is selected based on image_info->monochrome and cmyk; if NULL, the function destroys image and returns NULL.",
+          "evidence": "L170: if (image_info->monochrome != MagickFalse)\nL171: delegate_info=GetDelegateInfo(\"pcl:mono\",(char *) NULL,exception);\nL173: if (cmyk != MagickFalse)\nL174: delegate_info=GetDelegateInfo(\"pcl:cmyk\",(char *) NULL,exception);\nL176: delegate_info=GetDelegateInfo(\"pcl:color\",(char *) NULL,exception);\nL177: if (delegate_info == (const DelegateInfo *) NULL)\nL179: image=DestroyImage(image);\nL180: return((Image *) NULL);"
+        },
+        {
+          "entities": [
+            "page"
+          ],
+          "claim": "After delegate selection, if page.width or page.height is zero, page is set from PSPageGeometry; if image_info->page is non-NULL, page is set from image_info->page.",
+          "evidence": "L182: if ((page.width == 0) || (page.height == 0))\nL183: (void) ParseAbsoluteGeometry(PSPageGeometry,&page);\nL184: if (image_info->page != (char *) NULL)\nL185: (void) ParseAbsoluteGeometry(image_info->page,&page);"
+        },
+        {
+          "entities": [
+            "page",
+            "image"
+          ],
+          "claim": "page.width and page.height are scaled by image resolution divided by delta, then used to format options.",
+          "evidence": "L192: page.width=(size_t) floor(page.width*image->resolution.x/delta.x+0.5);\nL193: page.height=(size_t) floor(page.height*image->resolution.y/delta.y+0.5);\nL194: (void) FormatLocaleString(options,MagickPathExtent,\"-g%.20gx%.20g \",(double)\nL195: page.width,(double) page.height);"
+        },
+        {
+          "entities": [
+            "read_info",
+            "options"
+          ],
+          "claim": "If read_info->number_scenes != 0, options is overwritten with page-range arguments and number_scenes is reset to 0.",
+          "evidence": "L199: if (read_info->number_scenes != 0)\nL201: if (read_info->number_scenes != 1)\nL202: (void) FormatLocaleString(options,MagickPathExtent,\"-dLastPage=%.20g\",\nL203: (double) (read_info->scene+read_info->number_scenes));\nL205: (void) FormatLocaleString(options,MagickPathExtent,\nL206: \"-dFirstPage=%.20g -dLastPage=%.20g\",(double) read_info->scene+1,\nL207: (double) (read_info->scene+read_info->number_scenes));\nL208: read_info->number_scenes=0;"
+        },
+        {
+          "entities": [
+            "image"
+          ],
+          "claim": "If ReadImage returns NULL, ThrowReaderException is invoked.",
+          "evidence": "L223: image=ReadImage(read_info,exception);\nL227: if (image == (Image *) NULL)\nL228: ThrowReaderException(DelegateError,\"PCLDelegateFailed\");"
+        },
+        {
+          "entities": [
+            "image",
+            "cmyk_image"
+          ],
+          "claim": "If image->magick is \"BMP\", ConsolidateCMYKImages is called; if it returns non-NULL, image is replaced by cmyk_image.",
+          "evidence": "L229: if (LocaleCompare(image->magick,\"BMP\") == 0)\nL234: cmyk_image=ConsolidateCMYKImages(image,exception);\nL235: if (cmyk_image != (Image *) NULL)\nL237: image=DestroyImageList(image);\nL238: image=cmyk_image;"
+        },
+        {
+          "entities": [
+            "image",
+            "next_image"
+          ],
+          "claim": "The do-while loop iterates over the image list until next_image is NULL.",
+          "evidence": "L241: do\nL252: next_image=SyncNextImageInList(image);\nL253: if (next_image != (Image *) NULL)\nL254: image=next_image;\nL255: } while (next_image != (Image *) NULL);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 5071,
+              "output_tokens": 190,
+              "total_tokens": 5261
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 5071,
+          "output_tokens": 190,
+          "total_tokens": 5261
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L115",
+                "matched": true,
+                "expression": "*p++=(char) c"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L119",
+                "matched": true,
+                "expression": "*p='\\0'"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L131",
+                "matched": true,
+                "expression": "sscanf(command, ...)"
+              },
+              {
+                "location": "L134",
+                "matched": true,
+                "expression": "sscanf(command, ...)"
+              },
+              {
+                "location": "L142",
+                "matched": true,
+                "expression": "sscanf(command, ...)"
+              },
+              {
+                "location": "L145",
+                "matched": true,
+                "expression": "sscanf(command, ...)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L153",
+                "matched": true,
+                "expression": "(size_t)CastDoubleToLong(floor(bounds.x2-bounds.x1+0.5))"
+              },
+              {
+                "location": "L154",
+                "matched": true,
+                "expression": "(size_t)CastDoubleToLong(floor(bounds.x2-bounds.x1+0.5))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L192",
+                "matched": true,
+                "expression": "(size_t) floor(page.width*image->resolution.x/delta.x+0.5)"
+              },
+              {
+                "location": "L193",
+                "matched": true,
+                "expression": "(size_t) floor(page.width*image->resolution.x/delta.x+0.5)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3674,
+              "output_tokens": 740,
+              "total_tokens": 4414
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3674,
+          "output_tokens": 740,
+          "total_tokens": 4414
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 63,
+                "fragment": "image=AcquireImage(image_info,exception);",
+                "matched_lines": [
+                  63
+                ]
+              },
+              {
+                "evidence_line": 64,
+                "fragment": "status=OpenBlob(image_info,image,ReadBinaryBlobMode,exception);",
+                "matched_lines": [
+                  64
+                ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "image=DestroyImageList(image);",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 75,
+                "fragment": "image=DestroyImageList(image);",
+                "matched_lines": [
+                  75
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 70,
+                "fragment": "status=AcquireUniqueSymbolicLink(image_info->filename,input_filename);",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 225,
+                "fragment": "(void) RelinquishUniqueFileResource(input_filename);",
+                "matched_lines": [
+                  225
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 107,
+                "fragment": "p=command;",
+                "matched_lines": [
+                  107
+                ]
+              },
+              {
+                "evidence_line": 120,
+                "fragment": "p=command;",
+                "matched_lines": [
+                  120
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 197,
+                "fragment": "read_info=CloneImageInfo(image_info);",
+                "matched_lines": [
+                  197
+                ]
+              },
+              {
+                "evidence_line": 213,
+                "fragment": "(void) AcquireUniqueFilename(read_info->filename);",
+                "matched_lines": [
+                  213
+                ]
+              },
+              {
+                "evidence_line": 224,
+                "fragment": "(void) RelinquishUniqueFileResource(read_info->filename);",
+                "matched_lines": [
+                  224
+                ]
+              },
+              {
+                "evidence_line": 226,
+                "fragment": "read_info=DestroyImageInfo(read_info);",
+                "matched_lines": [
+                  226
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 186,
+                "fragment": "density=AcquireString(\"\");",
+                "matched_lines": [
+                  186
+                ]
+              },
+              {
+                "evidence_line": 187,
+                "fragment": "options=AcquireString(\"\");",
+                "matched_lines": [
+                  187
+                ]
+              },
+              {
+                "evidence_line": 219,
+                "fragment": "options=DestroyString(options);",
+                "matched_lines": [
+                  219
+                ]
+              },
+              {
+                "evidence_line": 220,
+                "fragment": "density=DestroyString(density);",
+                "matched_lines": [
+                  220
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 196,
+                "fragment": "image=DestroyImage(image);",
+                "matched_lines": [
+                  196
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 223,
+                "fragment": "image=ReadImage(read_info,exception);",
+                "matched_lines": [
+                  223
+                ]
+              },
+              {
+                "evidence_line": 227,
+                "fragment": "if (image == (Image *) NULL)",
+                "matched_lines": [
+                  227
+                ]
+              },
+              {
+                "evidence_line": 228,
+                "fragment": "ThrowReaderException(DelegateError,\"PCLDelegateFailed\");",
+                "matched_lines": [
+                  228
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 229,
+                "fragment": "if (LocaleCompare(image->magick,\"BMP\") == 0)",
+                "matched_lines": [
+                  229
+                ]
+              },
+              {
+                "evidence_line": 234,
+                "fragment": "cmyk_image=ConsolidateCMYKImages(image,exception);",
+                "matched_lines": [
+                  234
+                ]
+              },
+              {
+                "evidence_line": 235,
+                "fragment": "if (cmyk_image != (Image *) NULL)",
+                "matched_lines": [
+                  235
+                ]
+              },
+              {
+                "evidence_line": 237,
+                "fragment": "image=DestroyImageList(image);",
+                "matched_lines": [
+                  237
+                ]
+              },
+              {
+                "evidence_line": 238,
+                "fragment": "image=cmyk_image;",
+                "matched_lines": [
+                  238
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 252,
+                "fragment": "next_image=SyncNextImageInList(image);",
+                "matched_lines": [
+                  252
+                ]
+              },
+              {
+                "evidence_line": 253,
+                "fragment": "if (next_image != (Image *) NULL)",
+                "matched_lines": [
+                  253
+                ]
+              },
+              {
+                "evidence_line": 254,
+                "fragment": "image=next_image;",
+                "matched_lines": [
+                  254
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3862,
+              "output_tokens": 1494,
+              "total_tokens": 5356
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3862,
+          "output_tokens": 1494,
+          "total_tokens": 5356
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 106,
+                "fragment": "(void) memset(command,0,sizeof(command));",
+                "matched_lines": [
+                  106
+                ]
+              },
+              {
+                "evidence_line": 107,
+                "fragment": "p=command;",
+                "matched_lines": [
+                  107
+                ]
+              },
+              {
+                "evidence_line": 115,
+                "fragment": "*p++=(char) c;",
+                "matched_lines": [
+                  115
+                ]
+              },
+              {
+                "evidence_line": 117,
+                "fragment": "((size_t) (p-command) < (MagickPathExtent-1)))",
+                "matched_lines": [
+                  117
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 119,
+                "fragment": "*p='\\0';",
+                "matched_lines": [
+                  119
+                ]
+              },
+              {
+                "evidence_line": 120,
+                "fragment": "p=command;",
+                "matched_lines": [
+                  120
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 131,
+                "fragment": "count=(ssize_t) sscanf(command,\"CropBox [%lf %lf %lf %lf\",",
+                "matched_lines": [
+                  131
+                ]
+              },
+              {
+                "evidence_line": 132,
+                "fragment": "&bounds.x1,&bounds.y1,&bounds.x2,&bounds.y2);",
+                "matched_lines": [
+                  132
+                ]
+              },
+              {
+                "evidence_line": 133,
+                "fragment": "if (count != 4)",
+                "matched_lines": [
+                  133
+                ]
+              },
+              {
+                "evidence_line": 142,
+                "fragment": "count=(ssize_t) sscanf(command,\"MediaBox [%lf %lf %lf %lf\",",
+                "matched_lines": [
+                  142
+                ]
+              },
+              {
+                "evidence_line": 143,
+                "fragment": "&bounds.x1,&bounds.y1,&bounds.x2,&bounds.y2);",
+                "matched_lines": [
+                  143
+                ]
+              },
+              {
+                "evidence_line": 148,
+                "fragment": "if (count != 4)",
+                "matched_lines": [
+                  148
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 153,
+                "fragment": "width=(size_t)CastDoubleToLong(floor(bounds.x2-bounds.x1+0.5));",
+                "matched_lines": [
+                  153
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 154,
+                "fragment": "height=(size_t)CastDoubleToLong(floor(bounds.y2-bounds.y1+0.5));",
+                "matched_lines": [
+                  154
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 155,
+                "fragment": "if (width > page.width)",
+                "matched_lines": [
+                  155
+                ]
+              },
+              {
+                "evidence_line": 156,
+                "fragment": "page.width=width;",
+                "matched_lines": [
+                  156
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 157,
+                "fragment": "if (height > page.height)",
+                "matched_lines": [
+                  157
+                ]
+              },
+              {
+                "evidence_line": 158,
+                "fragment": "page.height=height;",
+                "matched_lines": [
+                  158
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 164,
+                "fragment": "if ((page.width == 0) || (page.height == 0))",
+                "matched_lines": [
+                  164
+                ]
+              },
+              {
+                "evidence_line": 165,
+                "fragment": "(void) ParseAbsoluteGeometry(PSPageGeometry,&page);",
+                "matched_lines": [
+                  165
+                ]
+              },
+              {
+                "evidence_line": 166,
+                "fragment": "if (image_info->page != (char *) NULL)",
+                "matched_lines": [
+                  166
+                ]
+              },
+              {
+                "evidence_line": 167,
+                "fragment": "(void) ParseAbsoluteGeometry(image_info->page,&page);",
+                "matched_lines": [
+                  167
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 192,
+                "fragment": "page.width=(size_t) floor(page.width*image->resolution.x/delta.x+0.5);",
+                "matched_lines": [
+                  192
+                ]
+              },
+              {
+                "evidence_line": 193,
+                "fragment": "page.height=(size_t) floor(page.height*image->resolution.y/delta.y+0.5);",
+                "matched_lines": [
+                  193
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 168,
+                "fragment": "(void) FormatLocaleString(geometry,MagickPathExtent,\"%.20gx%.20g\",(double)",
+                "matched_lines": [
+                  168
+                ]
+              },
+              {
+                "evidence_line": 169,
+                "fragment": "page.width,(double) page.height);",
+                "matched_lines": [
+                  169
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 194,
+                "fragment": "(void) FormatLocaleString(options,MagickPathExtent,\"-g%.20gx%.20g \",(double)",
+                "matched_lines": [
+                  194
+                ]
+              },
+              {
+                "evidence_line": 195,
+                "fragment": "page.width,(double) page.height);",
+                "matched_lines": [
+                  195
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 188,
+                "fragment": "(void) FormatLocaleString(density,MagickPathExtent,\"%gx%g\",",
+                "matched_lines": [
+                  188
+                ]
+              },
+              {
+                "evidence_line": 189,
+                "fragment": "image->resolution.x,image->resolution.y);",
+                "matched_lines": [
+                  189
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 214,
+                "fragment": "(void) FormatLocaleString(command,MagickPathExtent,",
+                "matched_lines": [
+                  214
+                ]
+              },
+              {
+                "evidence_line": 215,
+                "fragment": "GetDelegateCommands(delegate_info),",
+                "matched_lines": [
+                  215
+                ]
+              },
+              {
+                "evidence_line": 216,
+                "fragment": "read_info->antialias != MagickFalse ? 4 : 1,",
+                "matched_lines": [
+                  216
+                ]
+              },
+              {
+                "evidence_line": 217,
+                "fragment": "read_info->antialias != MagickFalse ? 4 : 1,density,options,",
+                "matched_lines": [
+                  217
+                ]
+              },
+              {
+                "evidence_line": 218,
+                "fragment": "read_info->filename,input_filename);",
+                "matched_lines": [
+                  218
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 247,
+                "fragment": "image->magick_columns*=image->resolution.x/2.0;",
+                "matched_lines": [
+                  247
+                ]
+              },
+              {
+                "evidence_line": 248,
+                "fragment": "image->magick_rows*=image->resolution.y/2.0;",
+                "matched_lines": [
+                  248
+                ]
+              },
+              {
+                "evidence_line": 249,
+                "fragment": "image->columns*=image->resolution.x/2.0;",
+                "matched_lines": [
+                  249
+                ]
+              },
+              {
+                "evidence_line": 250,
+                "fragment": "image->rows*=image->resolution.y/2.0;",
+                "matched_lines": [
+                  250
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3542,
+              "output_tokens": 1630,
+              "total_tokens": 5172
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3542,
+          "output_tokens": 1630,
+          "total_tokens": 5172
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 108,
+                "fragment": "for (c=ReadBlobByte(image); c != EOF; c=ReadBlobByte(image))",
+                "matched_lines": [
+                  108
+                ]
+              },
+              {
+                "evidence_line": 110,
+                "fragment": "if (image_info->page != (char *) NULL)",
+                "matched_lines": [
+                  110
+                ]
+              },
+              {
+                "evidence_line": 111,
+                "fragment": "continue;",
+                "matched_lines": [
+                  111
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 115,
+                "fragment": "*p++=(char) c;",
+                "matched_lines": [
+                  115
+                ]
+              },
+              {
+                "evidence_line": 116,
+                "fragment": "if ((c != (int) '/') && (c != '\\n') &&",
+                "matched_lines": [
+                  116
+                ]
+              },
+              {
+                "evidence_line": 117,
+                "fragment": "((size_t) (p-command) < (MagickPathExtent-1)))",
+                "matched_lines": [
+                  117
+                ]
+              },
+              {
+                "evidence_line": 118,
+                "fragment": "continue;",
+                "matched_lines": [
+                  118
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 131,
+                "fragment": "count=(ssize_t) sscanf(command,\"CropBox [%lf %lf %lf %lf\",",
+                "matched_lines": [
+                  131
+                ]
+              },
+              {
+                "evidence_line": 133,
+                "fragment": "if (count != 4)",
+                "matched_lines": [
+                  133
+                ]
+              },
+              {
+                "evidence_line": 134,
+                "fragment": "count=(ssize_t) sscanf(command,\"CropBox[%lf %lf %lf %lf\",",
+                "matched_lines": [
+                  134
+                ]
+              },
+              {
+                "evidence_line": 142,
+                "fragment": "count=(ssize_t) sscanf(command,\"MediaBox [%lf %lf %lf %lf\",",
+                "matched_lines": [
+                  142
+                ]
+              },
+              {
+                "evidence_line": 144,
+                "fragment": "if (count != 4)",
+                "matched_lines": [
+                  144
+                ]
+              },
+              {
+                "evidence_line": 145,
+                "fragment": "count=(ssize_t) sscanf(command,\"MediaBox[%lf %lf %lf %lf\",",
+                "matched_lines": [
+                  145
+                ]
+              },
+              {
+                "evidence_line": 148,
+                "fragment": "if (count != 4)",
+                "matched_lines": [
+                  148
+                ]
+              },
+              {
+                "evidence_line": 149,
+                "fragment": "continue;",
+                "matched_lines": [
+                  149
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 153,
+                "fragment": "width=(size_t)CastDoubleToLong(floor(bounds.x2-bounds.x1+0.5));",
+                "matched_lines": [
+                  153
+                ]
+              },
+              {
+                "evidence_line": 154,
+                "fragment": "height=(size_t)CastDoubleToLong(floor(bounds.y2-bounds.y1+0.5));",
+                "matched_lines": [
+                  154
+                ]
+              },
+              {
+                "evidence_line": 155,
+                "fragment": "if (width > page.width)",
+                "matched_lines": [
+                  155
+                ]
+              },
+              {
+                "evidence_line": 156,
+                "fragment": "page.width=width;",
+                "matched_lines": [
+                  156
+                ]
+              },
+              {
+                "evidence_line": 157,
+                "fragment": "if (height > page.height)",
+                "matched_lines": [
+                  157
+                ]
+              },
+              {
+                "evidence_line": 158,
+                "fragment": "page.height=height;",
+                "matched_lines": [
+                  158
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 164,
+                "fragment": "if ((page.width == 0) || (page.height == 0))",
+                "matched_lines": [
+                  164
+                ]
+              },
+              {
+                "evidence_line": 165,
+                "fragment": "(void) ParseAbsoluteGeometry(PSPageGeometry,&page);",
+                "matched_lines": [
+                  165
+                ]
+              },
+              {
+                "evidence_line": 166,
+                "fragment": "if (image_info->page != (char *) NULL)",
+                "matched_lines": [
+                  166
+                ]
+              },
+              {
+                "evidence_line": 167,
+                "fragment": "(void) ParseAbsoluteGeometry(image_info->page,&page);",
+                "matched_lines": [
+                  167
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 170,
+                "fragment": "if (image_info->monochrome != MagickFalse)",
+                "matched_lines": [
+                  170
+                ]
+              },
+              {
+                "evidence_line": 171,
+                "fragment": "delegate_info=GetDelegateInfo(\"pcl:mono\",(char *) NULL,exception);",
+                "matched_lines": [
+                  171
+                ]
+              },
+              {
+                "evidence_line": 173,
+                "fragment": "if (cmyk != MagickFalse)",
+                "matched_lines": [
+                  173
+                ]
+              },
+              {
+                "evidence_line": 174,
+                "fragment": "delegate_info=GetDelegateInfo(\"pcl:cmyk\",(char *) NULL,exception);",
+                "matched_lines": [
+                  174
+                ]
+              },
+              {
+                "evidence_line": 176,
+                "fragment": "delegate_info=GetDelegateInfo(\"pcl:color\",(char *) NULL,exception);",
+                "matched_lines": [
+                  176
+                ]
+              },
+              {
+                "evidence_line": 177,
+                "fragment": "if (delegate_info == (const DelegateInfo *) NULL)",
+                "matched_lines": [
+                  177
+                ]
+              },
+              {
+                "evidence_line": 179,
+                "fragment": "image=DestroyImage(image);",
+                "matched_lines": [
+                  179
+                ]
+              },
+              {
+                "evidence_line": 180,
+                "fragment": "return((Image *) NULL);",
+                "matched_lines": [
+                  180
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 182,
+                "fragment": "if ((page.width == 0) || (page.height == 0))",
+                "matched_lines": [
+                  182
+                ]
+              },
+              {
+                "evidence_line": 183,
+                "fragment": "(void) ParseAbsoluteGeometry(PSPageGeometry,&page);",
+                "matched_lines": [
+                  183
+                ]
+              },
+              {
+                "evidence_line": 184,
+                "fragment": "if (image_info->page != (char *) NULL)",
+                "matched_lines": [
+                  184
+                ]
+              },
+              {
+                "evidence_line": 185,
+                "fragment": "(void) ParseAbsoluteGeometry(image_info->page,&page);",
+                "matched_lines": [
+                  185
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 192,
+                "fragment": "page.width=(size_t) floor(page.width*image->resolution.x/delta.x+0.5);",
+                "matched_lines": [
+                  192
+                ]
+              },
+              {
+                "evidence_line": 193,
+                "fragment": "page.height=(size_t) floor(page.height*image->resolution.y/delta.y+0.5);",
+                "matched_lines": [
+                  193
+                ]
+              },
+              {
+                "evidence_line": 194,
+                "fragment": "(void) FormatLocaleString(options,MagickPathExtent,\"-g%.20gx%.20g \",(double)",
+                "matched_lines": [
+                  194
+                ]
+              },
+              {
+                "evidence_line": 195,
+                "fragment": "page.width,(double) page.height);",
+                "matched_lines": [
+                  195
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 199,
+                "fragment": "if (read_info->number_scenes != 0)",
+                "matched_lines": [
+                  199
+                ]
+              },
+              {
+                "evidence_line": 201,
+                "fragment": "if (read_info->number_scenes != 1)",
+                "matched_lines": [
+                  201
+                ]
+              },
+              {
+                "evidence_line": 202,
+                "fragment": "(void) FormatLocaleString(options,MagickPathExtent,\"-dLastPage=%.20g\",",
+                "matched_lines": [
+                  202
+                ]
+              },
+              {
+                "evidence_line": 203,
+                "fragment": "(double) (read_info->scene+read_info->number_scenes));",
+                "matched_lines": [
+                  203
+                ]
+              },
+              {
+                "evidence_line": 205,
+                "fragment": "(void) FormatLocaleString(options,MagickPathExtent,",
+                "matched_lines": [
+                  205
+                ]
+              },
+              {
+                "evidence_line": 206,
+                "fragment": "\"-dFirstPage=%.20g -dLastPage=%.20g\",(double) read_info->scene+1,",
+                "matched_lines": [
+                  206
+                ]
+              },
+              {
+                "evidence_line": 207,
+                "fragment": "(double) (read_info->scene+read_info->number_scenes));",
+                "matched_lines": [
+                  207
+                ]
+              },
+              {
+                "evidence_line": 208,
+                "fragment": "read_info->number_scenes=0;",
+                "matched_lines": [
+                  208
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 223,
+                "fragment": "image=ReadImage(read_info,exception);",
+                "matched_lines": [
+                  223
+                ]
+              },
+              {
+                "evidence_line": 227,
+                "fragment": "if (image == (Image *) NULL)",
+                "matched_lines": [
+                  227
+                ]
+              },
+              {
+                "evidence_line": 228,
+                "fragment": "ThrowReaderException(DelegateError,\"PCLDelegateFailed\");",
+                "matched_lines": [
+                  228
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 229,
+                "fragment": "if (LocaleCompare(image->magick,\"BMP\") == 0)",
+                "matched_lines": [
+                  229
+                ]
+              },
+              {
+                "evidence_line": 234,
+                "fragment": "cmyk_image=ConsolidateCMYKImages(image,exception);",
+                "matched_lines": [
+                  234
+                ]
+              },
+              {
+                "evidence_line": 235,
+                "fragment": "if (cmyk_image != (Image *) NULL)",
+                "matched_lines": [
+                  235
+                ]
+              },
+              {
+                "evidence_line": 237,
+                "fragment": "image=DestroyImageList(image);",
+                "matched_lines": [
+                  237
+                ]
+              },
+              {
+                "evidence_line": 238,
+                "fragment": "image=cmyk_image;",
+                "matched_lines": [
+                  238
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 241,
+                "fragment": "do",
+                "matched_lines": [
+                  241
+                ]
+              },
+              {
+                "evidence_line": 252,
+                "fragment": "next_image=SyncNextImageInList(image);",
+                "matched_lines": [
+                  252
+                ]
+              },
+              {
+                "evidence_line": 253,
+                "fragment": "if (next_image != (Image *) NULL)",
+                "matched_lines": [
+                  253
+                ]
+              },
+              {
+                "evidence_line": 254,
+                "fragment": "image=next_image;",
+                "matched_lines": [
+                  254
+                ]
+              },
+              {
+                "evidence_line": 255,
+                "fragment": "} while (next_image != (Image *) NULL);",
+                "matched_lines": [
+                  255
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 5,
+      "states": 9,
+      "values": 14,
+      "executions": 12
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 16149,
+    "output_tokens": 4054,
+    "total_tokens": 20203
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000065",
+    "split": "test",
+    "source_hash": "611e973655f288653ac0dd79fbba4e40359109391c2aaa1b85dfd663a3e3707e",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

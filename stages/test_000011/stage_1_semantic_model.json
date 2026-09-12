@@ -11,7 +11,7 @@
             "hmhd",
             "trak->Media->information->InfoHeader"
           ],
-          "claim": "hmhd points to the InfoHeader object of trak's media information, or is NULL if that InfoHeader is NULL.",
+          "claim": "hmhd points to the InfoHeader object of trak's media information, or is NULL if that pointer is NULL.",
           "evidence": "L3: GF_HintMediaHeaderBox *hmhd = (GF_HintMediaHeaderBox *)trak->Media->information->InfoHeader;"
         },
         {
@@ -19,15 +19,17 @@
             "a",
             "trak->Media->information->sampleTable->SampleDescription->child_boxes"
           ],
-          "claim": "a points to the first child box in the SampleDescription child_boxes list, or is NULL if no such element exists.",
+          "claim": "a points to the first child box in the sample description's child_boxes list, or is NULL if no such element exists.",
           "evidence": "L8: GF_Box *a = (GF_Box *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, 0);"
         },
         {
           "entities": [
-            "hmhd"
+            "hmhd",
+            "hmhd->subType",
+            "a"
           ],
-          "claim": "hmhd->subType is assigned the type of the first SampleDescription child box when hmhd is non-NULL and a is non-NULL.",
-          "evidence": "L10: if (a) hmhd->subType = a->type;"
+          "claim": "When hmhd is non-NULL and its subType is unset, hmhd->subType is assigned the type of the first sample-description child box if that box exists.",
+          "evidence": "L7: if (!hmhd || !hmhd->subType) {\nL10: if (a) hmhd->subType = a->type;"
         }
       ],
       "values": [],
@@ -61,7 +63,7 @@
             "a",
             "hmhd->subType"
           ],
-          "claim": "if hmhd is non-null and a is non-null, hmhd->subType is set to a->type before returning it",
+          "claim": "when hmhd is non-null and a is non-null, hmhd->subType is set to a->type before returning it",
           "evidence": "L10: if (a) hmhd->subType = a->type;\nL11: return hmhd->subType;"
         }
       ]
@@ -100,8 +102,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 778,
-              "output_tokens": 249,
-              "total_tokens": 1027
+              "output_tokens": 288,
+              "total_tokens": 1066
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -109,8 +111,8 @@
         ],
         "token_usage": {
           "input_tokens": 778,
-          "output_tokens": 249,
-          "total_tokens": 1027
+          "output_tokens": 288,
+          "total_tokens": 1066
         },
         "grounding": {
           "state_agent.states[0]": {
@@ -139,6 +141,13 @@
           },
           "state_agent.states[2]": {
             "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "if (!hmhd || !hmhd->subType) {",
+                "matched_lines": [
+                  7
+                ]
+              },
               {
                 "evidence_line": 10,
                 "fragment": "if (a) hmhd->subType = a->type;",
@@ -326,8 +335,8 @@
   },
   "token_usage": {
     "input_tokens": 4565,
-    "output_tokens": 627,
-    "total_tokens": 5192
+    "output_tokens": 666,
+    "total_tokens": 5231
   },
   "artifact_metadata": {
     "schema_version": "semantic-claims-v4.13",

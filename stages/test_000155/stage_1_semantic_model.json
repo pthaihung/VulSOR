@@ -1,0 +1,473 @@
+{
+  "sample_id": "test_000155",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L30"
+          ],
+          "expression": "pj_memcpy(&q->type, p, 2)",
+          "claim": "copy 2 bytes from p into q->type, requiring p to point to at least 2 readable bytes"
+        },
+        {
+          "locations": [
+            "L35"
+          ],
+          "expression": "pj_memcpy(&q->dnsclass, p, 2)",
+          "claim": "copy 2 bytes from p into q->dnsclass, requiring p to point to at least 2 readable bytes"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "q->name.ptr"
+          ],
+          "claim": "q->name.ptr is allocated from pool with size name_len+4 and q->name.slen is initialized to 0.",
+          "evidence": "L15: q->name.ptr = (char*) pj_pool_alloc(pool, name_len+4);\nL16: q->name.slen = 0;"
+        },
+        {
+          "entities": [
+            "p",
+            "start",
+            "name_part_len"
+          ],
+          "claim": "p is set to start advanced by name_part_len, preserving provenance from the packet buffer start.",
+          "evidence": "L23: p = (start + name_part_len);"
+        },
+        {
+          "entities": [
+            "p"
+          ],
+          "claim": "p is advanced by 2 after reading the type field.",
+          "evidence": "L32: p += 2;"
+        },
+        {
+          "entities": [
+            "p"
+          ],
+          "claim": "p is advanced by 2 after reading the class field.",
+          "evidence": "L37: p += 2;"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "name_len",
+            "pj_pool_alloc"
+          ],
+          "claim": "Allocation size is name_len+4 bytes, where name_len is the full name length returned by get_name_len.",
+          "evidence": "L10: status = get_name_len(0, pkt, start, max, &name_part_len, &name_len);\nL15: q->name.ptr = (char*) pj_pool_alloc(pool, name_len+4);"
+        },
+        {
+          "entities": [
+            "p",
+            "start",
+            "name_part_len"
+          ],
+          "claim": "p is set to start + name_part_len, the byte offset of the query type field.",
+          "evidence": "L23: p = (start + name_part_len);"
+        },
+        {
+          "entities": [
+            "p",
+            "max"
+          ],
+          "claim": "Bounds check requires p+4 <= max before reading the 2-byte type and 2-byte class fields.",
+          "evidence": "L26: if (p + 4 > max)\nL27: return PJLIB_UTIL_EDNSINSIZE;"
+        },
+        {
+          "entities": [
+            "p",
+            "q->type"
+          ],
+          "claim": "q->type is read from the 2 bytes at p, then p advances by 2.",
+          "evidence": "L30: pj_memcpy(&q->type, p, 2);\nL32: p += 2;"
+        },
+        {
+          "entities": [
+            "p",
+            "q->dnsclass"
+          ],
+          "claim": "q->dnsclass is read from the 2 bytes at p, then p advances by 2.",
+          "evidence": "L35: pj_memcpy(&q->dnsclass, p, 2);\nL37: p += 2;"
+        },
+        {
+          "entities": [
+            "parsed_len",
+            "p",
+            "start"
+          ],
+          "claim": "parsed_len is the byte distance p - start after consuming the type and class fields.",
+          "evidence": "L39: *parsed_len = (int)(p - start);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "p",
+            "max",
+            "start",
+            "name_part_len"
+          ],
+          "claim": "After get_name_len succeeds, p is set to start + name_part_len; continuing past the size check implies p + 4 <= max, so the subsequent 4-byte read at p is within max.",
+          "evidence": "L10: status = get_name_len(0, pkt, start, max, &name_part_len, &name_len);\nL23: p = (start + name_part_len);\nL26: if (p + 4 > max)\nL27: return PJLIB_UTIL_EDNSINSIZE;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2476,
+              "output_tokens": 109,
+              "total_tokens": 2585
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2476,
+          "output_tokens": 109,
+          "total_tokens": 2585
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L30",
+                "matched": true,
+                "expression": "pj_memcpy(&q->type, p, 2)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L35",
+                "matched": true,
+                "expression": "pj_memcpy(&q->dnsclass, p, 2)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1079,
+              "output_tokens": 222,
+              "total_tokens": 1301
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1079,
+          "output_tokens": 222,
+          "total_tokens": 1301
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "q->name.ptr = (char*) pj_pool_alloc(pool, name_len+4);",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "q->name.slen = 0;",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "p = (start + name_part_len);",
+                "matched_lines": [
+                  23
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 32,
+                "fragment": "p += 2;",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 37,
+                "fragment": "p += 2;",
+                "matched_lines": [
+                  37
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1267,
+              "output_tokens": 408,
+              "total_tokens": 1675
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1267,
+          "output_tokens": 408,
+          "total_tokens": 1675
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "status = get_name_len(0, pkt, start, max, &name_part_len, &name_len);",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "q->name.ptr = (char*) pj_pool_alloc(pool, name_len+4);",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "p = (start + name_part_len);",
+                "matched_lines": [
+                  23
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 26,
+                "fragment": "if (p + 4 > max)",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "return PJLIB_UTIL_EDNSINSIZE;",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 30,
+                "fragment": "pj_memcpy(&q->type, p, 2);",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "p += 2;",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 35,
+                "fragment": "pj_memcpy(&q->dnsclass, p, 2);",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "p += 2;",
+                "matched_lines": [
+                  37
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 39,
+                "fragment": "*parsed_len = (int)(p - start);",
+                "matched_lines": [
+                  39
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 947,
+              "output_tokens": 142,
+              "total_tokens": 1089
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 947,
+          "output_tokens": 142,
+          "total_tokens": 1089
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "status = get_name_len(0, pkt, start, max, &name_part_len, &name_len);",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "p = (start + name_part_len);",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "if (p + 4 > max)",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "return PJLIB_UTIL_EDNSINSIZE;",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 2,
+      "states": 4,
+      "values": 6,
+      "executions": 1
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 5769,
+    "output_tokens": 881,
+    "total_tokens": 6650
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000155",
+    "split": "test",
+    "source_hash": "98b4a7b84419843a45a4cde23d6aafaefff4c75abb72cb754188d4522f3792f2",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

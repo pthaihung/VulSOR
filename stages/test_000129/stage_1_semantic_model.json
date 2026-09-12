@@ -1,0 +1,1061 @@
+{
+  "sample_id": "test_000129",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L8",
+            "L12",
+            "L17",
+            "L53",
+            "L57",
+            "L68",
+            "L80",
+            "L88",
+            "L93"
+          ],
+          "expression": "*scanner->curptr",
+          "claim": "dereference of scanner current pointer"
+        },
+        {
+          "locations": [
+            "L12",
+            "L17",
+            "L80",
+            "L93"
+          ],
+          "expression": "*(scanner->curptr+1)",
+          "claim": "dereference of scanner current pointer plus one"
+        },
+        {
+          "locations": [
+            "L61"
+          ],
+          "expression": "++attr->value.ptr",
+          "claim": "increment of attribute value pointer"
+        },
+        {
+          "locations": [
+            "L62"
+          ],
+          "expression": "attr->value.slen -= 2",
+          "claim": "decrement of attribute value length"
+        },
+        {
+          "locations": [
+            "L104"
+          ],
+          "expression": "node->content.slen = scanner->curptr - node->content.ptr",
+          "claim": "pointer subtraction for content length"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "node"
+          ],
+          "claim": "node is allocated by alloc_node(pool) and returned as the parsed XML node; its name, content, attr_head, and node_head fields are populated during parsing.",
+          "evidence": "L44: node = alloc_node(pool);\nL50: pj_scan_get_until_chr( scanner, \" />\\t\\r\\n\", &node->name);\nL65: pj_list_push_back( &node->attr_head, attr );\nL84: pj_list_push_back( &node->node_head, sub_node );\nL89: pj_scan_get_until_ch(scanner, '<', &node->content);\nL122: return node;"
+        },
+        {
+          "entities": [
+            "attr"
+          ],
+          "claim": "attr is allocated by alloc_attr(pool) and linked into node->attr_head; its name and value fields are populated, with value.ptr advanced past the opening quote and value.slen reduced by two to remove quote characters.",
+          "evidence": "L54: pj_xml_attr *attr = alloc_attr(pool);\nL56: pj_scan_get_until_chr( scanner, \"=> \\t\\r\\n\", &attr->name);\nL59: pj_scan_get_quotes(scanner, \"\\\"'\", \"\\\"'\", 2, &attr->value);\nL61: ++attr->value.ptr;\nL62: attr->value.slen -= 2;\nL65: pj_list_push_back( &node->attr_head, attr );"
+        },
+        {
+          "entities": [
+            "sub_node"
+          ],
+          "claim": "sub_node is the result of a recursive xml_parse_node call and is linked into node->node_head.",
+          "evidence": "L83: pj_xml_node *sub_node = xml_parse_node(pool, scanner);\nL84: pj_list_push_back( &node->node_head, sub_node );"
+        },
+        {
+          "entities": [
+            "node->content"
+          ],
+          "claim": "node->content is set from scanner input; in the CDATA path its slen is recomputed as the distance from content.ptr to scanner->curptr.",
+          "evidence": "L89: pj_scan_get_until_ch(scanner, '<', &node->content);\nL97: pj_scan_get_until_ch(scanner, ']', &node->content);\nL104: node->content.slen = scanner->curptr - node->content.ptr;"
+        },
+        {
+          "entities": [
+            "end_name"
+          ],
+          "claim": "end_name is populated from scanner input for comparison against node->name.",
+          "evidence": "L112: pj_scan_get_until_chr(scanner, \" \\t>\", &end_name);\nL115: if (pj_stricmp(&node->name, &end_name) != 0)"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "attr->value.ptr",
+            "attr->value.slen"
+          ],
+          "claim": "After pj_scan_get_quotes fills attr->value, the code advances attr->value.ptr by one byte and decreases attr->value.slen by 2, so the resulting value excludes the surrounding quote characters.",
+          "evidence": "L59: pj_scan_get_quotes(scanner, \"\\\"'\", \"\\\"'\", 2, &attr->value);\nL61: ++attr->value.ptr;\nL62: attr->value.slen -= 2;"
+        },
+        {
+          "entities": [
+            "node->content.slen",
+            "scanner->curptr",
+            "node->content.ptr"
+          ],
+          "claim": "For CDATA content, node->content.slen is set to the byte distance from node->content.ptr to scanner->curptr, then scanner advances by 3 bytes past the closing \"]]>\".",
+          "evidence": "L104: node->content.slen = scanner->curptr - node->content.ptr;\nL105: pj_scan_advance_n(scanner, 3, PJ_TRUE);"
+        },
+        {
+          "entities": [
+            "pj_scan_strcmp",
+            "scanner",
+            "\"]]>\""
+          ],
+          "claim": "The CDATA terminator comparison uses a length of 3 bytes for the literal \"]]>\".",
+          "evidence": "L98: while (pj_scan_strcmp(scanner, \"]]>\", 3)) {"
+        },
+        {
+          "entities": [
+            "pj_scan_advance_n",
+            "scanner"
+          ],
+          "claim": "The PI construct advances the scanner by 2 bytes to skip \"<?\", and the comment construct advances by 2 bytes to skip \"<!\".",
+          "evidence": "L13: pj_scan_advance_n(scanner, 2, PJ_FALSE);\nL29: pj_scan_advance_n(scanner, 2, PJ_FALSE);"
+        },
+        {
+          "entities": [
+            "pj_scan_advance_n",
+            "scanner"
+          ],
+          "claim": "The CDATA construct advances the scanner by 9 bytes to skip the \"<![CDATA[\" prefix.",
+          "evidence": "L96: pj_scan_advance_n(scanner, 9, PJ_FALSE);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "scanner->curptr",
+            "scanner->curptr+1"
+          ],
+          "claim": "After the initial check, continuing execution implies *scanner->curptr == '<'; the PI branch is taken only when the next two characters are '<?'.",
+          "evidence": "L8: if (*scanner->curptr != '<')\nL12: if (*scanner->curptr == '<' && *(scanner->curptr+1) == '?') {"
+        },
+        {
+          "entities": [
+            "scanner->curptr",
+            "scanner->curptr+1"
+          ],
+          "claim": "In the PI loop, the break path is taken only when the current two characters are '?>'; otherwise one character is advanced and the loop continues.",
+          "evidence": "L17: if (*scanner->curptr=='?' && *(scanner->curptr+1)=='>') {\nL18: pj_scan_advance_n(scanner, 2, PJ_TRUE);\nL19: break;\nL21: pj_scan_advance_n(scanner, 1, PJ_FALSE);"
+        },
+        {
+          "entities": [
+            "scanner->curptr"
+          ],
+          "claim": "The comment branch is taken only when the scanner input begins with '<!'.",
+          "evidence": "L28: if (pj_scan_strcmp(scanner, \"<!\", 2) == 0) {"
+        },
+        {
+          "entities": [
+            "scanner->curptr"
+          ],
+          "claim": "In the comment loop, the break path is taken only when the current character is '>'; otherwise one character is advanced and the loop continues.",
+          "evidence": "L33: if (pj_scan_strcmp(scanner, \">\", 1) == 0) {\nL34: pj_scan_advance_n(scanner, 1, PJ_TRUE);\nL35: break;\nL37: pj_scan_advance_n(scanner, 1, PJ_FALSE);"
+        },
+        {
+          "entities": [
+            "scanner->curptr"
+          ],
+          "claim": "The attribute loop continues only while the current character is neither '>' nor '/'.",
+          "evidence": "L53: while (*scanner->curptr != '>' && *scanner->curptr != '/') {"
+        },
+        {
+          "entities": [
+            "scanner->curptr",
+            "attr->value.ptr",
+            "attr->value.slen"
+          ],
+          "claim": "Inside the attribute loop, the quoted-value path is taken only when the current character is '='; after pj_scan_get_quotes, the value pointer is advanced by one and its length is reduced by two.",
+          "evidence": "L57: if (*scanner->curptr == '=') {\nL59: pj_scan_get_quotes(scanner, \"\\\"'\", \"\\\"'\", 2, &attr->value);\nL61: ++attr->value.ptr;\nL62: attr->value.slen -= 2;"
+        },
+        {
+          "entities": [
+            "scanner->curptr"
+          ],
+          "claim": "After the attribute loop, the self-closing path is taken only when the current character is '/'; that path requires the next character to be '>'.",
+          "evidence": "L68: if (*scanner->curptr == '/') {\nL70: if (pj_scan_get_char(scanner) != '>')"
+        },
+        {
+          "entities": [
+            "scanner->curptr"
+          ],
+          "claim": "After the self-closing check, the enclosing '>' is required; otherwise a syntax error occurs.",
+          "evidence": "L76: if (pj_scan_get_char(scanner) != '>')"
+        },
+        {
+          "entities": [
+            "scanner->curptr",
+            "scanner->curptr+1"
+          ],
+          "claim": "The sub-node loop continues only while the current character is '<' and the next character is neither '/' nor '!'.",
+          "evidence": "L80: while (*scanner->curptr == '<' && *(scanner->curptr+1) != '/'\nL81: && *(scanner->curptr+1) != '!')"
+        },
+        {
+          "entities": [
+            "scanner->curptr"
+          ],
+          "claim": "Content is scanned only when not at EOF and the current character is not '<'.",
+          "evidence": "L88: if (!pj_scan_is_eof(scanner) && *scanner->curptr != '<') {"
+        },
+        {
+          "entities": [
+            "scanner->curptr",
+            "scanner->curptr+1",
+            "node->content.ptr",
+            "node->content.slen"
+          ],
+          "claim": "The CDATA branch is taken only when the current two characters are '<!' and the scanner input begins with '<![CDATA['; after scanning, node->content.slen is set to the distance from node->content.ptr to scanner->curptr, then three characters are advanced.",
+          "evidence": "L93: if (*scanner->curptr == '<' && *(scanner->curptr+1) == '!' &&\nL94: pj_scan_strcmp(scanner, \"<![CDATA[\", 9) == 0)\nL104: node->content.slen = scanner->curptr - node->content.ptr;\nL105: pj_scan_advance_n(scanner, 3, PJ_TRUE);"
+        },
+        {
+          "entities": [
+            "scanner->curptr"
+          ],
+          "claim": "In the CDATA loop, the loop continues while the scanner input does not begin with ']]>'; each iteration advances one character.",
+          "evidence": "L98: while (pj_scan_strcmp(scanner, \"]]>\", 3)) {\nL101: pj_scan_advance_n(scanner, 1, PJ_FALSE);"
+        },
+        {
+          "entities": [
+            "scanner->curptr"
+          ],
+          "claim": "The enclosing node requires the next two characters to be '<' then '/'; otherwise a syntax error occurs.",
+          "evidence": "L109: if (pj_scan_get_char(scanner) != '<' || pj_scan_get_char(scanner) != '/')"
+        },
+        {
+          "entities": [
+            "node->name",
+            "end_name"
+          ],
+          "claim": "After reading the end name, the node name and end name must compare equal; otherwise a syntax error occurs.",
+          "evidence": "L115: if (pj_stricmp(&node->name, &end_name) != 0)"
+        },
+        {
+          "entities": [
+            "scanner->curptr"
+          ],
+          "claim": "The final enclosing '>' is required; otherwise a syntax error occurs.",
+          "evidence": "L119: if (pj_scan_get_char(scanner) != '>')"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3570,
+              "output_tokens": 186,
+              "total_tokens": 3756
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3570,
+          "output_tokens": 186,
+          "total_tokens": 3756
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L8",
+                "matched": true,
+                "expression": "*scanner->curptr"
+              },
+              {
+                "location": "L12",
+                "matched": true,
+                "expression": "*scanner->curptr"
+              },
+              {
+                "location": "L17",
+                "matched": true,
+                "expression": "*scanner->curptr"
+              },
+              {
+                "location": "L53",
+                "matched": true,
+                "expression": "*scanner->curptr"
+              },
+              {
+                "location": "L57",
+                "matched": true,
+                "expression": "*scanner->curptr"
+              },
+              {
+                "location": "L68",
+                "matched": true,
+                "expression": "*scanner->curptr"
+              },
+              {
+                "location": "L80",
+                "matched": true,
+                "expression": "*scanner->curptr"
+              },
+              {
+                "location": "L88",
+                "matched": true,
+                "expression": "*scanner->curptr"
+              },
+              {
+                "location": "L93",
+                "matched": true,
+                "expression": "*scanner->curptr"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L12",
+                "matched": true,
+                "expression": "*(scanner->curptr+1)"
+              },
+              {
+                "location": "L17",
+                "matched": true,
+                "expression": "*(scanner->curptr+1)"
+              },
+              {
+                "location": "L80",
+                "matched": true,
+                "expression": "*(scanner->curptr+1)"
+              },
+              {
+                "location": "L93",
+                "matched": true,
+                "expression": "*(scanner->curptr+1)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L61",
+                "matched": true,
+                "expression": "++attr->value.ptr"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L62",
+                "matched": true,
+                "expression": "attr->value.slen -= 2"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L104",
+                "matched": true,
+                "expression": "node->content.slen = scanner->curptr - node->content.ptr"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2173,
+              "output_tokens": 634,
+              "total_tokens": 2807
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2173,
+          "output_tokens": 634,
+          "total_tokens": 2807
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "node = alloc_node(pool);",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "pj_scan_get_until_chr( scanner, \" />\\t\\r\\n\", &node->name);",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 65,
+                "fragment": "pj_list_push_back( &node->attr_head, attr );",
+                "matched_lines": [
+                  65
+                ]
+              },
+              {
+                "evidence_line": 84,
+                "fragment": "pj_list_push_back( &node->node_head, sub_node );",
+                "matched_lines": [
+                  84
+                ]
+              },
+              {
+                "evidence_line": 89,
+                "fragment": "pj_scan_get_until_ch(scanner, '<', &node->content);",
+                "matched_lines": [
+                  89
+                ]
+              },
+              {
+                "evidence_line": 122,
+                "fragment": "return node;",
+                "matched_lines": [
+                  122
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 54,
+                "fragment": "pj_xml_attr *attr = alloc_attr(pool);",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "pj_scan_get_until_chr( scanner, \"=> \\t\\r\\n\", &attr->name);",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "pj_scan_get_quotes(scanner, \"\\\"'\", \"\\\"'\", 2, &attr->value);",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "++attr->value.ptr;",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "attr->value.slen -= 2;",
+                "matched_lines": [
+                  62
+                ]
+              },
+              {
+                "evidence_line": 65,
+                "fragment": "pj_list_push_back( &node->attr_head, attr );",
+                "matched_lines": [
+                  65
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 83,
+                "fragment": "pj_xml_node *sub_node = xml_parse_node(pool, scanner);",
+                "matched_lines": [
+                  83
+                ]
+              },
+              {
+                "evidence_line": 84,
+                "fragment": "pj_list_push_back( &node->node_head, sub_node );",
+                "matched_lines": [
+                  84
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 89,
+                "fragment": "pj_scan_get_until_ch(scanner, '<', &node->content);",
+                "matched_lines": [
+                  89
+                ]
+              },
+              {
+                "evidence_line": 97,
+                "fragment": "pj_scan_get_until_ch(scanner, ']', &node->content);",
+                "matched_lines": [
+                  97
+                ]
+              },
+              {
+                "evidence_line": 104,
+                "fragment": "node->content.slen = scanner->curptr - node->content.ptr;",
+                "matched_lines": [
+                  104
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 112,
+                "fragment": "pj_scan_get_until_chr(scanner, \" \\t>\", &end_name);",
+                "matched_lines": [
+                  112
+                ]
+              },
+              {
+                "evidence_line": 115,
+                "fragment": "if (pj_stricmp(&node->name, &end_name) != 0)",
+                "matched_lines": [
+                  115
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2361,
+              "output_tokens": 542,
+              "total_tokens": 2903
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2361,
+          "output_tokens": 542,
+          "total_tokens": 2903
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 59,
+                "fragment": "pj_scan_get_quotes(scanner, \"\\\"'\", \"\\\"'\", 2, &attr->value);",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "++attr->value.ptr;",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "attr->value.slen -= 2;",
+                "matched_lines": [
+                  62
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 104,
+                "fragment": "node->content.slen = scanner->curptr - node->content.ptr;",
+                "matched_lines": [
+                  104
+                ]
+              },
+              {
+                "evidence_line": 105,
+                "fragment": "pj_scan_advance_n(scanner, 3, PJ_TRUE);",
+                "matched_lines": [
+                  105
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 98,
+                "fragment": "while (pj_scan_strcmp(scanner, \"]]>\", 3)) {",
+                "matched_lines": [
+                  98
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "pj_scan_advance_n(scanner, 2, PJ_FALSE);",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "pj_scan_advance_n(scanner, 2, PJ_FALSE);",
+                "matched_lines": [
+                  29
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 96,
+                "fragment": "pj_scan_advance_n(scanner, 9, PJ_FALSE);",
+                "matched_lines": [
+                  96
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 2,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2041,
+              "output_tokens": 1367,
+              "total_tokens": 3408
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2041,
+          "output_tokens": 1367,
+          "total_tokens": 3408
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (*scanner->curptr != '<')",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "if (*scanner->curptr == '<' && *(scanner->curptr+1) == '?') {",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "if (*scanner->curptr=='?' && *(scanner->curptr+1)=='>') {",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "pj_scan_advance_n(scanner, 2, PJ_TRUE);",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "break;",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "pj_scan_advance_n(scanner, 1, PJ_FALSE);",
+                "matched_lines": [
+                  21
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 28,
+                "fragment": "if (pj_scan_strcmp(scanner, \"<!\", 2) == 0) {",
+                "matched_lines": [
+                  28
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 33,
+                "fragment": "if (pj_scan_strcmp(scanner, \">\", 1) == 0) {",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "pj_scan_advance_n(scanner, 1, PJ_TRUE);",
+                "matched_lines": [
+                  34
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "break;",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "pj_scan_advance_n(scanner, 1, PJ_FALSE);",
+                "matched_lines": [
+                  37
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 53,
+                "fragment": "while (*scanner->curptr != '>' && *scanner->curptr != '/') {",
+                "matched_lines": [
+                  53
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "if (*scanner->curptr == '=') {",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "pj_scan_get_quotes(scanner, \"\\\"'\", \"\\\"'\", 2, &attr->value);",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "++attr->value.ptr;",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "attr->value.slen -= 2;",
+                "matched_lines": [
+                  62
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 68,
+                "fragment": "if (*scanner->curptr == '/') {",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "if (pj_scan_get_char(scanner) != '>')",
+                "matched_lines": [
+                  70
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 76,
+                "fragment": "if (pj_scan_get_char(scanner) != '>')",
+                "matched_lines": [
+                  76
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 80,
+                "fragment": "while (*scanner->curptr == '<' && *(scanner->curptr+1) != '/'",
+                "matched_lines": [
+                  80
+                ]
+              },
+              {
+                "evidence_line": 81,
+                "fragment": "&& *(scanner->curptr+1) != '!')",
+                "matched_lines": [
+                  81
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 88,
+                "fragment": "if (!pj_scan_is_eof(scanner) && *scanner->curptr != '<') {",
+                "matched_lines": [
+                  88
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 93,
+                "fragment": "if (*scanner->curptr == '<' && *(scanner->curptr+1) == '!' &&",
+                "matched_lines": [
+                  93
+                ]
+              },
+              {
+                "evidence_line": 94,
+                "fragment": "pj_scan_strcmp(scanner, \"<![CDATA[\", 9) == 0)",
+                "matched_lines": [
+                  94
+                ]
+              },
+              {
+                "evidence_line": 104,
+                "fragment": "node->content.slen = scanner->curptr - node->content.ptr;",
+                "matched_lines": [
+                  104
+                ]
+              },
+              {
+                "evidence_line": 105,
+                "fragment": "pj_scan_advance_n(scanner, 3, PJ_TRUE);",
+                "matched_lines": [
+                  105
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 98,
+                "fragment": "while (pj_scan_strcmp(scanner, \"]]>\", 3)) {",
+                "matched_lines": [
+                  98
+                ]
+              },
+              {
+                "evidence_line": 101,
+                "fragment": "pj_scan_advance_n(scanner, 1, PJ_FALSE);",
+                "matched_lines": [
+                  101
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 109,
+                "fragment": "if (pj_scan_get_char(scanner) != '<' || pj_scan_get_char(scanner) != '/')",
+                "matched_lines": [
+                  109
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 115,
+                "fragment": "if (pj_stricmp(&node->name, &end_name) != 0)",
+                "matched_lines": [
+                  115
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 119,
+                "fragment": "if (pj_scan_get_char(scanner) != '>')",
+                "matched_lines": [
+                  119
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 5,
+      "states": 5,
+      "values": 5,
+      "executions": 15
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 10145,
+    "output_tokens": 2729,
+    "total_tokens": 12874
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000129",
+    "split": "test",
+    "source_hash": "0d71dddad6b9cd0ef1982d9934f7b157aabc11e19c20408e493f4d4f2945a792",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

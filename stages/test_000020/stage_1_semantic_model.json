@@ -1,0 +1,960 @@
+{
+  "sample_id": "test_000020",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L62",
+            "L69",
+            "L80"
+          ],
+          "expression": "output->flat<uint8>().data() / output->flat<uint16>().data() / buffer.get()",
+          "claim": "obtain a typed pointer to the output tensor's element buffer for decoding"
+        },
+        {
+          "locations": [
+            "L76",
+            "L77"
+          ],
+          "expression": "new uint16[height * width * decode.channels]",
+          "claim": "allocate a uint16 buffer sized by height, width, and channel count"
+        },
+        {
+          "locations": [
+            "L88",
+            "L89"
+          ],
+          "expression": "TTypes<uint16, 3>::UnalignedConstTensor buf(buffer.get(), height, width, decode.channels)",
+          "claim": "construct a 3-D tensor view over the allocated buffer with the given dimensions"
+        },
+        {
+          "locations": [
+            "L92"
+          ],
+          "expression": "output->tensor<float, 3>().device(device) = buf.cast<float>() * scale",
+          "claim": "write the converted float image data into the output tensor"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "decode"
+          ],
+          "claim": "decode is initialized by png::CommonInitDecode before its fields are read.",
+          "evidence": "L3: png::DecodeContext decode;\nL5: context, png::CommonInitDecode(input, channels_, channel_bits, &decode),"
+        },
+        {
+          "entities": [
+            "output"
+          ],
+          "claim": "output is a Tensor pointer allocated by context->allocate_output and refers to the output tensor storage.",
+          "evidence": "L26: Tensor* output = nullptr;\nL33: 0, TensorShape({1, height, width, decode.channels}), &output));\nL38: 0, TensorShape({height, width, decode.channels}), &output));"
+        },
+        {
+          "entities": [
+            "output"
+          ],
+          "claim": "output->flat<uint8>().data() provides the byte-addressed storage region passed to png::CommonFinishDecode for DT_UINT8.",
+          "evidence": "L62: reinterpret_cast<png_bytep>(output->flat<uint8>().data()),"
+        },
+        {
+          "entities": [
+            "output"
+          ],
+          "claim": "output->flat<uint16>().data() provides the byte-addressed storage region passed to png::CommonFinishDecode for DT_UINT16.",
+          "evidence": "L69: reinterpret_cast<png_bytep>(output->flat<uint16>().data()),"
+        },
+        {
+          "entities": [
+            "buffer"
+          ],
+          "claim": "buffer owns a newly allocated uint16 array of height * width * decode.channels elements.",
+          "evidence": "L76: std::unique_ptr<uint16[]> buffer(\nL77: new uint16[height * width * decode.channels]);"
+        },
+        {
+          "entities": [
+            "buffer"
+          ],
+          "claim": "buffer.get() provides the byte-addressed storage region passed to png::CommonFinishDecode for DT_FLOAT.",
+          "evidence": "L80: png::CommonFinishDecode(reinterpret_cast<png_bytep>(buffer.get()),"
+        },
+        {
+          "entities": [
+            "buf",
+            "buffer"
+          ],
+          "claim": "buf is an UnalignedConstTensor view over the storage owned by buffer.",
+          "evidence": "L88: TTypes<uint16, 3>::UnalignedConstTensor buf(buffer.get(), height, width,\nL89: decode.channels);"
+        },
+        {
+          "entities": [
+            "output"
+          ],
+          "claim": "output->tensor<float, 3>() is the typed tensor storage written from buf for DT_FLOAT.",
+          "evidence": "L92: output->tensor<float, 3>().device(device) = buf.cast<float>() * scale;"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "channel_bits",
+            "data_type_"
+          ],
+          "claim": "channel_bits is 8 when data_type_ is DT_UINT8, otherwise 16.",
+          "evidence": "L2: int channel_bits = (data_type_ == DataType::DT_UINT8) ? 8 : 16;"
+        },
+        {
+          "entities": [
+            "width",
+            "decode.width"
+          ],
+          "claim": "width is the int cast of decode.width; the check width != (int64_t)decode.width ensures the cast did not truncate.",
+          "evidence": "L14: const int width = static_cast<int>(decode.width);\nL18: if (width != static_cast<int64_t>(decode.width) || width <= 0 ||"
+        },
+        {
+          "entities": [
+            "height",
+            "decode.height"
+          ],
+          "claim": "height is the int cast of decode.height; the check height != (int64_t)decode.height ensures the cast did not truncate.",
+          "evidence": "L15: const int height = static_cast<int>(decode.height);\nL19: width >= (1LL << 27) || height != static_cast<int64_t>(decode.height) ||"
+        },
+        {
+          "entities": [
+            "total_size",
+            "width",
+            "height"
+          ],
+          "claim": "total_size is the int64_t product of width and height.",
+          "evidence": "L16: const int64_t total_size =\nL17: static_cast<int64_t>(width) * static_cast<int64_t>(height);"
+        },
+        {
+          "entities": [
+            "width",
+            "height",
+            "total_size"
+          ],
+          "claim": "Accepted values require 0 < width < 2^27, 0 < height < 2^27, and total_size < 2^29.",
+          "evidence": "L18: if (width != static_cast<int64_t>(decode.width) || width <= 0 ||\nL19: width >= (1LL << 27) || height != static_cast<int64_t>(decode.height) ||\nL20: height <= 0 || height >= (1LL << 27) || total_size >= (1LL << 29)) {"
+        },
+        {
+          "entities": [
+            "output",
+            "height",
+            "width",
+            "decode.channels"
+          ],
+          "claim": "For DecodeGif, output is allocated with shape {1, height, width, decode.channels}; otherwise with shape {height, width, decode.channels}.",
+          "evidence": "L32: context->allocate_output(\nL33: 0, TensorShape({1, height, width, decode.channels}), &output));\nL37: context->allocate_output(\nL38: 0, TensorShape({height, width, decode.channels}), &output));"
+        },
+        {
+          "entities": [
+            "output",
+            "decode.channels",
+            "width"
+          ],
+          "claim": "For DT_UINT8, the decode buffer is output->flat<uint8>().data() with row size decode.channels * width * sizeof(uint8).",
+          "evidence": "L62: reinterpret_cast<png_bytep>(output->flat<uint8>().data()),\nL63: decode.channels * width * sizeof(uint8), &decode),"
+        },
+        {
+          "entities": [
+            "output",
+            "decode.channels",
+            "width"
+          ],
+          "claim": "For DT_UINT16, the decode buffer is output->flat<uint16>().data() with row size decode.channels * width * sizeof(uint16).",
+          "evidence": "L69: reinterpret_cast<png_bytep>(output->flat<uint16>().data()),\nL70: decode.channels * width * sizeof(uint16), &decode),"
+        },
+        {
+          "entities": [
+            "buffer",
+            "height",
+            "width",
+            "decode.channels"
+          ],
+          "claim": "For DT_FLOAT, a uint16 buffer of height * width * decode.channels elements is allocated.",
+          "evidence": "L76: std::unique_ptr<uint16[]> buffer(\nL77: new uint16[height * width * decode.channels]);"
+        },
+        {
+          "entities": [
+            "buffer",
+            "decode.channels",
+            "width"
+          ],
+          "claim": "For DT_FLOAT, the decode buffer is buffer.get() with row size decode.channels * width * sizeof(uint16).",
+          "evidence": "L80: png::CommonFinishDecode(reinterpret_cast<png_bytep>(buffer.get()),\nL81: decode.channels * width * sizeof(uint16),"
+        },
+        {
+          "entities": [
+            "buf",
+            "buffer",
+            "height",
+            "width",
+            "decode.channels"
+          ],
+          "claim": "buf is an UnalignedConstTensor<uint16,3> over buffer.get() with dimensions height, width, decode.channels.",
+          "evidence": "L88: TTypes<uint16, 3>::UnalignedConstTensor buf(buffer.get(), height, width,\nL89: decode.channels);"
+        },
+        {
+          "entities": [
+            "scale"
+          ],
+          "claim": "scale is 1.0 divided by the maximum uint16 value.",
+          "evidence": "L90: float scale = 1. / std::numeric_limits<uint16>::max();"
+        },
+        {
+          "entities": [
+            "output",
+            "buf",
+            "scale"
+          ],
+          "claim": "The float output tensor is assigned buf.cast<float>() * scale.",
+          "evidence": "L92: output->tensor<float, 3>().device(device) = buf.cast<float>() * scale;"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "width",
+            "height",
+            "total_size",
+            "decode.width",
+            "decode.height"
+          ],
+          "claim": "continuing past the size check implies width and height are positive, each less than 2^27, exactly equal to the corresponding decode dimensions, and width*height < 2^29",
+          "evidence": "L18: if (width != static_cast<int64_t>(decode.width) || width <= 0 ||\nL19: width >= (1LL << 27) || height != static_cast<int64_t>(decode.height) ||\nL20: height <= 0 || height >= (1LL << 27) || total_size >= (1LL << 29)) {\nL21: OP_REQUIRES(context, false,"
+        },
+        {
+          "entities": [
+            "op_type_"
+          ],
+          "claim": "continuing past the op_type_ checks implies op_type_ is neither \"DecodeBmp\" nor \"DecodeAndCropJpeg\"",
+          "evidence": "L41: if (op_type_ == \"DecodeBmp\") {\nL47: OP_REQUIRES(context, false,\nL51: } else if (op_type_ == \"DecodeAndCropJpeg\") {\nL52: OP_REQUIRES(context, false,"
+        },
+        {
+          "entities": [
+            "data_type_"
+          ],
+          "claim": "the decode path is selected by data_type_: DT_UINT8, DT_UINT16, or DT_FLOAT; no decode occurs for other types",
+          "evidence": "L58: if (data_type_ == DataType::DT_UINT8) {\nL65: } else if (data_type_ == DataType::DT_UINT16) {\nL72: } else if (data_type_ == DataType::DT_FLOAT) {"
+        },
+        {
+          "entities": [
+            "buffer",
+            "height",
+            "width",
+            "decode.channels"
+          ],
+          "claim": "in the DT_FLOAT path, a uint16 buffer of size height*width*decode.channels is allocated before decoding",
+          "evidence": "L76: std::unique_ptr<uint16[]> buffer(\nL77: new uint16[height * width * decode.channels]);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3387,
+              "output_tokens": 205,
+              "total_tokens": 3592
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3387,
+          "output_tokens": 205,
+          "total_tokens": 3592
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L62",
+                "matched": true,
+                "expression": "output->flat<uint8>().data() / output->flat<uint16>().data() / buffer.get()"
+              },
+              {
+                "location": "L69",
+                "matched": true,
+                "expression": "output->flat<uint8>().data() / output->flat<uint16>().data() / buffer.get()"
+              },
+              {
+                "location": "L80",
+                "matched": true,
+                "expression": "output->flat<uint8>().data() / output->flat<uint16>().data() / buffer.get()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L76",
+                "matched": true,
+                "expression": "new uint16[height * width * decode.channels]"
+              },
+              {
+                "location": "L77",
+                "matched": true,
+                "expression": "new uint16[height * width * decode.channels]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L88",
+                "matched": true,
+                "expression": "TTypes<uint16, 3>::UnalignedConstTensor buf(buffer.get(), height, width, decode.channels)"
+              },
+              {
+                "location": "L89",
+                "matched": true,
+                "expression": "TTypes<uint16, 3>::UnalignedConstTensor buf(buffer.get(), height, width, decode.channels)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L92",
+                "matched": true,
+                "expression": "output->tensor<float, 3>().device(device) = buf.cast<float>() * scale"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1990,
+              "output_tokens": 525,
+              "total_tokens": 2515
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1990,
+          "output_tokens": 525,
+          "total_tokens": 2515
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "png::DecodeContext decode;",
+                "matched_lines": [
+                  3
+                ]
+              },
+              {
+                "evidence_line": 5,
+                "fragment": "context, png::CommonInitDecode(input, channels_, channel_bits, &decode),",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 26,
+                "fragment": "Tensor* output = nullptr;",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "0, TensorShape({1, height, width, decode.channels}), &output));",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 38,
+                "fragment": "0, TensorShape({height, width, decode.channels}), &output));",
+                "matched_lines": [
+                  38
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 62,
+                "fragment": "reinterpret_cast<png_bytep>(output->flat<uint8>().data()),",
+                "matched_lines": [
+                  62
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 69,
+                "fragment": "reinterpret_cast<png_bytep>(output->flat<uint16>().data()),",
+                "matched_lines": [
+                  69
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 76,
+                "fragment": "std::unique_ptr<uint16[]> buffer(",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 77,
+                "fragment": "new uint16[height * width * decode.channels]);",
+                "matched_lines": [
+                  77
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 80,
+                "fragment": "png::CommonFinishDecode(reinterpret_cast<png_bytep>(buffer.get()),",
+                "matched_lines": [
+                  80
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 88,
+                "fragment": "TTypes<uint16, 3>::UnalignedConstTensor buf(buffer.get(), height, width,",
+                "matched_lines": [
+                  88
+                ]
+              },
+              {
+                "evidence_line": 89,
+                "fragment": "decode.channels);",
+                "matched_lines": [
+                  89
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 92,
+                "fragment": "output->tensor<float, 3>().device(device) = buf.cast<float>() * scale;",
+                "matched_lines": [
+                  92
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2178,
+              "output_tokens": 1065,
+              "total_tokens": 3243
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2178,
+          "output_tokens": 1065,
+          "total_tokens": 3243
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "int channel_bits = (data_type_ == DataType::DT_UINT8) ? 8 : 16;",
+                "matched_lines": [
+                  2
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "const int width = static_cast<int>(decode.width);",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "if (width != static_cast<int64_t>(decode.width) || width <= 0 ||",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "const int height = static_cast<int>(decode.height);",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "width >= (1LL << 27) || height != static_cast<int64_t>(decode.height) ||",
+                "matched_lines": [
+                  19
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "const int64_t total_size =",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "static_cast<int64_t>(width) * static_cast<int64_t>(height);",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "if (width != static_cast<int64_t>(decode.width) || width <= 0 ||",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "width >= (1LL << 27) || height != static_cast<int64_t>(decode.height) ||",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "height <= 0 || height >= (1LL << 27) || total_size >= (1LL << 29)) {",
+                "matched_lines": [
+                  20
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 32,
+                "fragment": "context->allocate_output(",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "0, TensorShape({1, height, width, decode.channels}), &output));",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "context->allocate_output(",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 38,
+                "fragment": "0, TensorShape({height, width, decode.channels}), &output));",
+                "matched_lines": [
+                  38
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 62,
+                "fragment": "reinterpret_cast<png_bytep>(output->flat<uint8>().data()),",
+                "matched_lines": [
+                  62
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "decode.channels * width * sizeof(uint8), &decode),",
+                "matched_lines": [
+                  63
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 69,
+                "fragment": "reinterpret_cast<png_bytep>(output->flat<uint16>().data()),",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "decode.channels * width * sizeof(uint16), &decode),",
+                "matched_lines": [
+                  70
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 76,
+                "fragment": "std::unique_ptr<uint16[]> buffer(",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 77,
+                "fragment": "new uint16[height * width * decode.channels]);",
+                "matched_lines": [
+                  77
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 80,
+                "fragment": "png::CommonFinishDecode(reinterpret_cast<png_bytep>(buffer.get()),",
+                "matched_lines": [
+                  80
+                ]
+              },
+              {
+                "evidence_line": 81,
+                "fragment": "decode.channels * width * sizeof(uint16),",
+                "matched_lines": [
+                  81
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 88,
+                "fragment": "TTypes<uint16, 3>::UnalignedConstTensor buf(buffer.get(), height, width,",
+                "matched_lines": [
+                  88
+                ]
+              },
+              {
+                "evidence_line": 89,
+                "fragment": "decode.channels);",
+                "matched_lines": [
+                  89
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 90,
+                "fragment": "float scale = 1. / std::numeric_limits<uint16>::max();",
+                "matched_lines": [
+                  90
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 92,
+                "fragment": "output->tensor<float, 3>().device(device) = buf.cast<float>() * scale;",
+                "matched_lines": [
+                  92
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1858,
+              "output_tokens": 452,
+              "total_tokens": 2310
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1858,
+          "output_tokens": 452,
+          "total_tokens": 2310
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "if (width != static_cast<int64_t>(decode.width) || width <= 0 ||",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "width >= (1LL << 27) || height != static_cast<int64_t>(decode.height) ||",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "height <= 0 || height >= (1LL << 27) || total_size >= (1LL << 29)) {",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "OP_REQUIRES(context, false,",
+                "matched_lines": [
+                  21
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 41,
+                "fragment": "if (op_type_ == \"DecodeBmp\") {",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "OP_REQUIRES(context, false,",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "} else if (op_type_ == \"DecodeAndCropJpeg\") {",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "OP_REQUIRES(context, false,",
+                "matched_lines": [
+                  52
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 58,
+                "fragment": "if (data_type_ == DataType::DT_UINT8) {",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 65,
+                "fragment": "} else if (data_type_ == DataType::DT_UINT16) {",
+                "matched_lines": [
+                  65
+                ]
+              },
+              {
+                "evidence_line": 72,
+                "fragment": "} else if (data_type_ == DataType::DT_FLOAT) {",
+                "matched_lines": [
+                  72
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 76,
+                "fragment": "std::unique_ptr<uint16[]> buffer(",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 77,
+                "fragment": "new uint16[height * width * decode.channels]);",
+                "matched_lines": [
+                  77
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 4,
+      "states": 8,
+      "values": 13,
+      "executions": 4
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 9413,
+    "output_tokens": 2247,
+    "total_tokens": 11660
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000020",
+    "split": "test",
+    "source_hash": "3d3df8a05d647918c6c1dfc89144dbfa7d7206fe8f55e55501e1bd0bc8727a9f",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

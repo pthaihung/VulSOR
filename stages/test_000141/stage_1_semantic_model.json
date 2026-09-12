@@ -1,0 +1,1874 @@
+{
+  "sample_id": "test_000141",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L399"
+          ],
+          "expression": "c[0],c[1],c[2],c[3]",
+          "claim": "reads four bytes from box->data, requiring the data buffer to contain at least four readable bytes"
+        },
+        {
+          "locations": [
+            "L476"
+          ],
+          "expression": "mov->moov->mvhd->timeScale",
+          "claim": "dereferences mov->moov->mvhd, requiring the movie header pointer to be non-null"
+        },
+        {
+          "locations": [
+            "L482"
+          ],
+          "expression": "gf_isom_box_del_parent(&mov->moov->child_boxes, (GF_Box *)mov->moov->mvex)",
+          "claim": "deletes mov->moov->mvex from its parent child-box list, requiring the box to be a valid child of that list"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "mov->moov"
+          ],
+          "claim": "mov->moov is set to the parsed MOOV box a, establishing the movie box object for mov.",
+          "evidence": "L58: mov->moov = (GF_MovieBox *)a;"
+        },
+        {
+          "entities": [
+            "mov->moov->mov"
+          ],
+          "claim": "mov->moov->mov points back to mov.",
+          "evidence": "L61: mov->moov->mov = mov;"
+        },
+        {
+          "entities": [
+            "mov->moov->mvex"
+          ],
+          "claim": "If present, mov->moov->mvex->mov points back to mov.",
+          "evidence": "L63: if (mov->moov->mvex) mov->moov->mvex->mov = mov;"
+        },
+        {
+          "entities": [
+            "mov->meta"
+          ],
+          "claim": "mov->meta is set to the parsed META box a.",
+          "evidence": "L120: mov->meta = (GF_MetaBox *)a;"
+        },
+        {
+          "entities": [
+            "mov->mdat"
+          ],
+          "claim": "In read mode, if no mdat exists yet, mov->mdat is set to the parsed MDAT box a.",
+          "evidence": "L146: if (!mov->mdat) {\nL147: mov->mdat = (GF_MediaDataBox *) a;"
+        },
+        {
+          "entities": [
+            "mov->mdat"
+          ],
+          "claim": "In non-read, non-keep-fragments mode with no existing mdat, a new MDAT box is allocated and assigned to mov->mdat.",
+          "evidence": "L170: else if (!mov->mdat && (mov->openMode != GF_ISOM_OPEN_READ) && (mov->openMode != GF_ISOM_OPEN_KEEP_FRAGMENTS)) {\nL172: mov->mdat = (GF_MediaDataBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDAT);"
+        },
+        {
+          "entities": [
+            "mov->brand"
+          ],
+          "claim": "mov->brand is set to the parsed FTYP box a.",
+          "evidence": "L189: mov->brand = (GF_FileTypeBox *)a;"
+        },
+        {
+          "entities": [
+            "mov->otyp"
+          ],
+          "claim": "In debug read mode, mov->otyp is set to the parsed OTYP box a.",
+          "evidence": "L204: mov->otyp = (GF_Box *)a;"
+        },
+        {
+          "entities": [
+            "mov->brand"
+          ],
+          "claim": "In non-debug mode, if an FTYP child exists in the OTYP box, mov->brand is replaced by that child and the old brand box is deleted.",
+          "evidence": "L209: GF_FileTypeBox *brand = (GF_FileTypeBox *) gf_isom_box_find_child(a->child_boxes, GF_ISOM_BOX_TYPE_FTYP);\nL214: gf_isom_box_del((GF_Box *) mov->brand);\nL215: mov->brand = brand;"
+        },
+        {
+          "entities": [
+            "mov->pdin"
+          ],
+          "claim": "mov->pdin is set to the parsed PDIN box a.",
+          "evidence": "L230: mov->pdin = (GF_ProgressiveDownloadBox *) a;"
+        },
+        {
+          "entities": [
+            "mov->root_sidx"
+          ],
+          "claim": "In signal-frag-bounds mode, mov->root_sidx is set to the parsed SIDX box a after deleting any previous root_sidx.",
+          "evidence": "L266: if (mov->root_sidx) gf_isom_box_del( (GF_Box *) mov->root_sidx);\nL267: mov->root_sidx = (GF_SegmentIndexBox *) a;"
+        },
+        {
+          "entities": [
+            "mov->seg_styp"
+          ],
+          "claim": "In signal-frag-bounds mode, mov->seg_styp is set to the parsed STYP box a after deleting any previous seg_styp.",
+          "evidence": "L275: if (mov->seg_styp) gf_isom_box_del(mov->seg_styp);\nL276: mov->seg_styp = a;"
+        },
+        {
+          "entities": [
+            "mov->seg_ssix"
+          ],
+          "claim": "In signal-frag-bounds mode, mov->seg_ssix is set to the parsed SSIX box a after deleting any previous seg_ssix.",
+          "evidence": "L278: if (mov->seg_ssix) gf_isom_box_del(mov->seg_ssix);\nL279: mov->seg_ssix = a;"
+        },
+        {
+          "entities": [
+            "mov->main_sidx"
+          ],
+          "claim": "In non-signal-frag-bounds mode with no NextMoofNumber, mov->main_sidx is set to the parsed SIDX box a after deleting any previous main_sidx.",
+          "evidence": "L285: if (mov->main_sidx) gf_isom_box_del( (GF_Box *) mov->main_sidx);\nL286: mov->main_sidx = (GF_SegmentIndexBox *) a;"
+        },
+        {
+          "entities": [
+            "mov->moof"
+          ],
+          "claim": "mov->moof is set to the parsed MOOF box a.",
+          "evidence": "L309: mov->moof = (GF_MovieFragmentBox *) a;"
+        },
+        {
+          "entities": [
+            "mov->moof"
+          ],
+          "claim": "In keep-fragments mode, mov->moof is set to NULL after processing the MOOF box.",
+          "evidence": "L367: mov->moof = NULL;"
+        },
+        {
+          "entities": [
+            "mov->root_sidx"
+          ],
+          "claim": "After processing a MOOF, mov->root_sidx is deleted and set to NULL.",
+          "evidence": "L378: gf_isom_box_del((GF_Box *) mov->root_sidx);\nL379: mov->root_sidx = NULL;"
+        },
+        {
+          "entities": [
+            "mov->root_ssix"
+          ],
+          "claim": "After processing a MOOF, mov->seg_ssix is deleted and mov->root_ssix is set to NULL.",
+          "evidence": "L382: gf_isom_box_del(mov->seg_ssix);\nL383: mov->root_ssix = NULL;"
+        },
+        {
+          "entities": [
+            "mov->seg_styp"
+          ],
+          "claim": "After processing a MOOF, mov->seg_styp is deleted and set to NULL.",
+          "evidence": "L386: gf_isom_box_del(mov->seg_styp);\nL387: mov->seg_styp = NULL;"
+        },
+        {
+          "entities": [
+            "mov->last_producer_ref_time"
+          ],
+          "claim": "In non-debug mode, mov->last_producer_ref_time is set to the parsed PRFT box a if not already set.",
+          "evidence": "L413: if (mov->last_producer_ref_time)\nL414: gf_isom_box_del(a);\nL416: mov->last_producer_ref_time = (GF_ProducerReferenceTimeBox *)a;"
+        },
+        {
+          "entities": [
+            "mov->emsgs"
+          ],
+          "claim": "In non-debug mode, mov->emsgs is created if absent and the parsed EMSG box a is added to it.",
+          "evidence": "L424: if (!mov->emsgs) mov->emsgs = gf_list_new();\nL425: gf_list_add(mov->emsgs, a);"
+        },
+        {
+          "entities": [
+            "mov->moov->mvex"
+          ],
+          "claim": "In edit mode with loaded fragments, mov->moov->mvex is deleted from child_boxes and set to NULL.",
+          "evidence": "L482: gf_isom_box_del_parent(&mov->moov->child_boxes, (GF_Box *)mov->moov->mvex);\nL483: mov->moov->mvex = NULL;"
+        },
+        {
+          "entities": [
+            "mov->mdat"
+          ],
+          "claim": "If no mdat exists and mode is not read or keep-fragments, a new MDAT box is allocated and assigned to mov->mdat.",
+          "evidence": "L490: if (!mov->mdat && (mov->openMode != GF_ISOM_OPEN_READ) && (mov->openMode != GF_ISOM_OPEN_KEEP_FRAGMENTS)) {\nL491: mov->mdat = (GF_MediaDataBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDAT);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "totSize",
+            "mov->current_top_box_start",
+            "mov->bytes_removed"
+          ],
+          "claim": "totSize is initialized to mov->current_top_box_start, and if mov->bytes_removed is nonzero, totSize is reduced by mov->bytes_removed (asserting totSize >= mov->bytes_removed).",
+          "evidence": "L13: totSize = mov->current_top_box_start;\nL14: if (mov->bytes_removed) {\nL15: assert(totSize >= mov->bytes_removed);\nL16: totSize -= mov->bytes_removed;"
+        },
+        {
+          "entities": [
+            "totSize",
+            "a->size"
+          ],
+          "claim": "totSize is incremented by a->size for each parsed top-level box in the MOOV, META, MDAT, FTYP, OTYP, PDIN, STYP/SIDX/SSIX, MOOF, and default cases.",
+          "evidence": "L75: totSize += a->size;\nL126: totSize += a->size;\nL136: totSize += a->size;\nL190: totSize += a->size;\nL205: totSize += a->size;\nL231: totSize += a->size;\nL259: totSize += a->size;\nL308: totSize += a->size;\nL433: totSize += a->size;\nL438: totSize += a->size;"
+        },
+        {
+          "entities": [
+            "mov->current_top_box_start",
+            "gf_bs_get_position",
+            "mov->bytes_removed"
+          ],
+          "claim": "mov->current_top_box_start is set to the current bitstream position plus mov->bytes_removed before parsing each top-level box and again after processing it.",
+          "evidence": "L26: mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs) + mov->bytes_removed;\nL446: mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs) + mov->bytes_removed;"
+        },
+        {
+          "entities": [
+            "mov->first_data_toplevel_offset",
+            "mov->current_top_box_start",
+            "mov->first_data_toplevel_size",
+            "a->size"
+          ],
+          "claim": "For the first MDAT (or SIDX/SSIX/STYP when moov exists and no first_data_toplevel_offset yet), mov->first_data_toplevel_offset is set to mov->current_top_box_start and mov->first_data_toplevel_size to a->size.",
+          "evidence": "L132: if (!mov->first_data_toplevel_offset) {\nL133: mov->first_data_toplevel_offset = mov->current_top_box_start;\nL134: mov->first_data_toplevel_size = a->size;\nL255: if (mov->moov && !mov->first_data_toplevel_offset) {\nL256: mov->first_data_toplevel_offset = mov->current_top_box_start;\nL257: mov->first_data_toplevel_size = a->size;"
+        },
+        {
+          "entities": [
+            "mov->main_sidx_end_pos",
+            "mov->current_top_box_start",
+            "a->size"
+          ],
+          "claim": "mov->main_sidx_end_pos is set to mov->current_top_box_start + a->size for a SIDX box when NextMoofNumber is zero.",
+          "evidence": "L287: mov->main_sidx_end_pos = mov->current_top_box_start + a->size;"
+        },
+        {
+          "entities": [
+            "mov->sidx_start_offset",
+            "mov->current_top_box_start",
+            "mov->sidx_end_offset",
+            "gf_bs_get_position"
+          ],
+          "claim": "For a SIDX box in signal_frag_bounds mode, mov->sidx_start_offset is set to mov->current_top_box_start and mov->sidx_end_offset to the current bitstream position.",
+          "evidence": "L268: mov->sidx_start_offset = mov->current_top_box_start;\nL269: mov->sidx_end_offset = gf_bs_get_position(mov->movieFileMap->bs);"
+        },
+        {
+          "entities": [
+            "mov->styp_start_offset",
+            "mov->current_top_box_start"
+          ],
+          "claim": "For a STYP box in signal_frag_bounds mode, mov->styp_start_offset is set to mov->current_top_box_start.",
+          "evidence": "L273: mov->styp_start_offset = mov->current_top_box_start;"
+        },
+        {
+          "entities": [
+            "mov->NextMoofNumber",
+            "mov->moof->mfhd->sequence_number"
+          ],
+          "claim": "In KEEP_FRAGMENTS mode, mov->NextMoofNumber is set to mov->moof->mfhd->sequence_number + 1.",
+          "evidence": "L366: mov->NextMoofNumber = mov->moof->mfhd->sequence_number+1;"
+        },
+        {
+          "entities": [
+            "box->dataSize",
+            "box->data",
+            "c[0]",
+            "c[1]",
+            "c[2]",
+            "c[3]"
+          ],
+          "claim": "For an unknown box with original_4cc JP, box->data is treated as a u8 pointer c, and c[0..3] are read only when box->dataSize == 4.",
+          "evidence": "L398: u8 *c = (u8 *) box->data;\nL399: if ((box->dataSize==4) && (GF_4CC(c[0],c[1],c[2],c[3])==(u32)0x0D0A870A))"
+        },
+        {
+          "entities": [
+            "mov->interleavingTime",
+            "mov->moov->mvhd->timeScale"
+          ],
+          "claim": "When mov->moov exists, mov->interleavingTime is set to mov->moov->mvhd->timeScale.",
+          "evidence": "L476: mov->interleavingTime = mov->moov->mvhd->timeScale;"
+        },
+        {
+          "entities": [
+            "mov->original_moov_offset",
+            "mov->current_top_box_start"
+          ],
+          "claim": "When a MOOV box is accepted, mov->original_moov_offset is set to mov->current_top_box_start.",
+          "evidence": "L59: mov->original_moov_offset = mov->current_top_box_start;"
+        },
+        {
+          "entities": [
+            "mov->original_meta_offset",
+            "mov->current_top_box_start"
+          ],
+          "claim": "When a META box is accepted, mov->original_meta_offset is set to mov->current_top_box_start.",
+          "evidence": "L121: mov->original_meta_offset = mov->current_top_box_start;"
+        },
+        {
+          "entities": [
+            "mdat_end",
+            "gf_bs_get_position"
+          ],
+          "claim": "In READ mode with signal_frag_bounds and not FRAG_READ_DEBUG, mdat_end is set to the current bitstream position after an MDAT box.",
+          "evidence": "L160: mdat_end = gf_bs_get_position(mov->movieFileMap->bs);"
+        },
+        {
+          "entities": [
+            "pos",
+            "gf_list_del_item",
+            "mov->TopBoxes",
+            "mov->brand"
+          ],
+          "claim": "pos is the result of gf_list_del_item(mov->TopBoxes, mov->brand); if pos < 0 it is set to 0 before inserting brand into mov->TopBoxes.",
+          "evidence": "L213: pos = gf_list_del_item(mov->TopBoxes, mov->brand);\nL216: if (pos<0) pos=0;\nL217: gf_list_insert(mov->TopBoxes, brand, pos);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "mov->single_moof_mode",
+            "mov->single_moof_state"
+          ],
+          "claim": "If single_moof_mode is set and single_moof_state == 2, the function returns immediately without parsing any boxes.",
+          "evidence": "L8: if (mov->single_moof_mode && mov->single_moof_state == 2) {\nL9: return e;"
+        },
+        {
+          "entities": [
+            "totSize",
+            "mov->current_top_box_start",
+            "mov->bytes_removed"
+          ],
+          "claim": "When bytes_removed is nonzero, totSize is asserted to be >= bytes_removed and then reduced by bytes_removed before seeking.",
+          "evidence": "L13: totSize = mov->current_top_box_start;\nL14: if (mov->bytes_removed) {\nL15: assert(totSize >= mov->bytes_removed);\nL16: totSize -= mov->bytes_removed;"
+        },
+        {
+          "entities": [
+            "a",
+            "e"
+          ],
+          "claim": "After gf_isom_parse_root_box returns e >= 0, a must be non-NULL; otherwise the function returns GF_ISOM_INVALID_FILE.",
+          "evidence": "L30: e = gf_isom_parse_root_box(&a, mov->movieFileMap->bs, boxType, bytesMissing, progressive_mode);\nL32: if (e >= 0) {\nL34: if (!a) return GF_ISOM_INVALID_FILE;"
+        },
+        {
+          "entities": [
+            "mov->openMode",
+            "progressive_mode",
+            "e"
+          ],
+          "claim": "On GF_ISOM_INCOMPLETE_FILE, if openMode != GF_ISOM_OPEN_READ the function returns GF_ISOM_INVALID_FILE; if openMode == GF_ISOM_OPEN_READ and not progressive_mode it breaks out of the loop; otherwise it returns e.",
+          "evidence": "L35: } else if (e == GF_ISOM_INCOMPLETE_FILE) {\nL37: if (mov->openMode != GF_ISOM_OPEN_READ) {\nL39: return GF_ISOM_INVALID_FILE;\nL41: if ((mov->openMode == GF_ISOM_OPEN_READ) && !progressive_mode) {\nL43: break;\nL45: return e;"
+        },
+        {
+          "entities": [
+            "mov->moov",
+            "a"
+          ],
+          "claim": "A second MOOV box causes the function to delete the box and return GF_ISOM_INVALID_FILE.",
+          "evidence": "L52: case GF_ISOM_BOX_TYPE_MOOV:\nL53: if (mov->moov) {\nL55: gf_isom_box_del(a);\nL56: return GF_ISOM_INVALID_FILE;"
+        },
+        {
+          "entities": [
+            "mov->moov->mvhd"
+          ],
+          "claim": "After adding a MOOV, if mov->moov->mvhd is NULL the function returns GF_ISOM_INVALID_FILE.",
+          "evidence": "L77: if (!mov->moov->mvhd) {\nL79: return GF_ISOM_INVALID_FILE;"
+        },
+        {
+          "entities": [
+            "mov->meta",
+            "a"
+          ],
+          "claim": "A second META box causes the function to delete the box and return GF_ISOM_INVALID_FILE.",
+          "evidence": "L114: case GF_ISOM_BOX_TYPE_META:\nL115: if (mov->meta) {\nL117: gf_isom_box_del(a);\nL118: return GF_ISOM_INVALID_FILE;"
+        },
+        {
+          "entities": [
+            "mov->brand",
+            "a"
+          ],
+          "claim": "A second FTYP box causes the function to delete the box and return GF_ISOM_INVALID_FILE.",
+          "evidence": "L182: case GF_ISOM_BOX_TYPE_FTYP:\nL184: if (mov->brand) {\nL185: gf_isom_box_del(a);\nL187: return GF_ISOM_INVALID_FILE;"
+        },
+        {
+          "entities": [
+            "mov->otyp",
+            "a"
+          ],
+          "claim": "A second OTYP box causes the function to delete the box and return GF_ISOM_INVALID_FILE.",
+          "evidence": "L195: case GF_ISOM_BOX_TYPE_OTYP:\nL197: if (mov->otyp) {\nL198: gf_isom_box_del(a);\nL200: return GF_ISOM_INVALID_FILE;"
+        },
+        {
+          "entities": [
+            "mov->pdin",
+            "a"
+          ],
+          "claim": "A second PDIN box causes the function to delete the box and return GF_ISOM_INVALID_FILE.",
+          "evidence": "L223: case GF_ISOM_BOX_TYPE_PDIN:\nL225: if (mov->pdin) {\nL226: gf_isom_box_del(a);\nL228: return GF_ISOM_INVALID_FILE;"
+        },
+        {
+          "entities": [
+            "mov->single_moof_mode",
+            "mov->single_moof_state",
+            "a"
+          ],
+          "claim": "On MOOF with single_moof_mode set, single_moof_state is incremented; if it exceeds 1 the box is deleted and the function returns GF_OK.",
+          "evidence": "L299: if (mov->single_moof_mode) {\nL300: mov->single_moof_state++;\nL301: if (mov->single_moof_state > 1) {\nL302: gf_isom_box_del(a);\nL303: return GF_OK;"
+        },
+        {
+          "entities": [
+            "mov->moov",
+            "mov->meta",
+            "mov->moof",
+            "mov->is_index_segment"
+          ],
+          "claim": "After the loop, if none of moov, meta, moof, or is_index_segment is set, the function returns GF_ISOM_INCOMPLETE_FILE.",
+          "evidence": "L451: if (!mov->moov && !mov->meta\nL453: && !mov->moof && !mov->is_index_segment\nL456: return GF_ISOM_INCOMPLETE_FILE;"
+        },
+        {
+          "entities": [
+            "mov->moov",
+            "mov->moov->mvhd"
+          ],
+          "claim": "Unless the core no-check option is set, if moov exists but moov->mvhd is NULL the function returns GF_ISOM_INVALID_FILE.",
+          "evidence": "L459: if (!gf_opts_get_bool(\"core\", \"no-check\")) {\nL460: if (mov->moov && !mov->moov->mvhd) {\nL462: return GF_ISOM_INVALID_FILE;"
+        },
+        {
+          "entities": [
+            "mov->meta",
+            "mov->meta->handler"
+          ],
+          "claim": "Unless the core no-check option is set, if meta exists but meta->handler is NULL the function returns GF_ISOM_INVALID_FILE.",
+          "evidence": "L466: if (mov->meta && !mov->meta->handler) {\nL468: return GF_ISOM_INVALID_FILE;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 9406,
+              "output_tokens": 170,
+              "total_tokens": 9576
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 9406,
+          "output_tokens": 170,
+          "total_tokens": 9576
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L399",
+                "matched": true,
+                "expression": "c[0],c[1],c[2],c[3]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L476",
+                "matched": true,
+                "expression": "mov->moov->mvhd->timeScale"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L482",
+                "matched": true,
+                "expression": "gf_isom_box_del_parent(&mov->moov->child_boxes, (GF_Box *)mov->moov->mvex)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 8009,
+              "output_tokens": 1710,
+              "total_tokens": 9719
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 8009,
+          "output_tokens": 1710,
+          "total_tokens": 9719
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 58,
+                "fragment": "mov->moov = (GF_MovieBox *)a;",
+                "matched_lines": [
+                  58
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 61,
+                "fragment": "mov->moov->mov = mov;",
+                "matched_lines": [
+                  61
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 63,
+                "fragment": "if (mov->moov->mvex) mov->moov->mvex->mov = mov;",
+                "matched_lines": [
+                  63
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 120,
+                "fragment": "mov->meta = (GF_MetaBox *)a;",
+                "matched_lines": [
+                  120
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 146,
+                "fragment": "if (!mov->mdat) {",
+                "matched_lines": [
+                  146
+                ]
+              },
+              {
+                "evidence_line": 147,
+                "fragment": "mov->mdat = (GF_MediaDataBox *) a;",
+                "matched_lines": [
+                  147
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 170,
+                "fragment": "else if (!mov->mdat && (mov->openMode != GF_ISOM_OPEN_READ) && (mov->openMode != GF_ISOM_OPEN_KEEP_FRAGMENTS)) {",
+                "matched_lines": [
+                  170
+                ]
+              },
+              {
+                "evidence_line": 172,
+                "fragment": "mov->mdat = (GF_MediaDataBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDAT);",
+                "matched_lines": [
+                  172
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 189,
+                "fragment": "mov->brand = (GF_FileTypeBox *)a;",
+                "matched_lines": [
+                  189
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 204,
+                "fragment": "mov->otyp = (GF_Box *)a;",
+                "matched_lines": [
+                  204
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 209,
+                "fragment": "GF_FileTypeBox *brand = (GF_FileTypeBox *) gf_isom_box_find_child(a->child_boxes, GF_ISOM_BOX_TYPE_FTYP);",
+                "matched_lines": [
+                  209
+                ]
+              },
+              {
+                "evidence_line": 214,
+                "fragment": "gf_isom_box_del((GF_Box *) mov->brand);",
+                "matched_lines": [
+                  214
+                ]
+              },
+              {
+                "evidence_line": 215,
+                "fragment": "mov->brand = brand;",
+                "matched_lines": [
+                  215
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 230,
+                "fragment": "mov->pdin = (GF_ProgressiveDownloadBox *) a;",
+                "matched_lines": [
+                  230
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 266,
+                "fragment": "if (mov->root_sidx) gf_isom_box_del( (GF_Box *) mov->root_sidx);",
+                "matched_lines": [
+                  266
+                ]
+              },
+              {
+                "evidence_line": 267,
+                "fragment": "mov->root_sidx = (GF_SegmentIndexBox *) a;",
+                "matched_lines": [
+                  267
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 275,
+                "fragment": "if (mov->seg_styp) gf_isom_box_del(mov->seg_styp);",
+                "matched_lines": [
+                  275
+                ]
+              },
+              {
+                "evidence_line": 276,
+                "fragment": "mov->seg_styp = a;",
+                "matched_lines": [
+                  276
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 278,
+                "fragment": "if (mov->seg_ssix) gf_isom_box_del(mov->seg_ssix);",
+                "matched_lines": [
+                  278
+                ]
+              },
+              {
+                "evidence_line": 279,
+                "fragment": "mov->seg_ssix = a;",
+                "matched_lines": [
+                  279
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 285,
+                "fragment": "if (mov->main_sidx) gf_isom_box_del( (GF_Box *) mov->main_sidx);",
+                "matched_lines": [
+                  285
+                ]
+              },
+              {
+                "evidence_line": 286,
+                "fragment": "mov->main_sidx = (GF_SegmentIndexBox *) a;",
+                "matched_lines": [
+                  286
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 309,
+                "fragment": "mov->moof = (GF_MovieFragmentBox *) a;",
+                "matched_lines": [
+                  309
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[15]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 367,
+                "fragment": "mov->moof = NULL;",
+                "matched_lines": [
+                  367
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[16]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 378,
+                "fragment": "gf_isom_box_del((GF_Box *) mov->root_sidx);",
+                "matched_lines": [
+                  378
+                ]
+              },
+              {
+                "evidence_line": 379,
+                "fragment": "mov->root_sidx = NULL;",
+                "matched_lines": [
+                  379
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[17]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 382,
+                "fragment": "gf_isom_box_del(mov->seg_ssix);",
+                "matched_lines": [
+                  382
+                ]
+              },
+              {
+                "evidence_line": 383,
+                "fragment": "mov->root_ssix = NULL;",
+                "matched_lines": [
+                  383
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[18]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 386,
+                "fragment": "gf_isom_box_del(mov->seg_styp);",
+                "matched_lines": [
+                  386
+                ]
+              },
+              {
+                "evidence_line": 387,
+                "fragment": "mov->seg_styp = NULL;",
+                "matched_lines": [
+                  387
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[19]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 413,
+                "fragment": "if (mov->last_producer_ref_time)",
+                "matched_lines": [
+                  413
+                ]
+              },
+              {
+                "evidence_line": 414,
+                "fragment": "gf_isom_box_del(a);",
+                "matched_lines": [
+                  414
+                ]
+              },
+              {
+                "evidence_line": 416,
+                "fragment": "mov->last_producer_ref_time = (GF_ProducerReferenceTimeBox *)a;",
+                "matched_lines": [
+                  416
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[20]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 424,
+                "fragment": "if (!mov->emsgs) mov->emsgs = gf_list_new();",
+                "matched_lines": [
+                  424
+                ]
+              },
+              {
+                "evidence_line": 425,
+                "fragment": "gf_list_add(mov->emsgs, a);",
+                "matched_lines": [
+                  425
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[21]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 482,
+                "fragment": "gf_isom_box_del_parent(&mov->moov->child_boxes, (GF_Box *)mov->moov->mvex);",
+                "matched_lines": [
+                  482
+                ]
+              },
+              {
+                "evidence_line": 483,
+                "fragment": "mov->moov->mvex = NULL;",
+                "matched_lines": [
+                  483
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[22]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 490,
+                "fragment": "if (!mov->mdat && (mov->openMode != GF_ISOM_OPEN_READ) && (mov->openMode != GF_ISOM_OPEN_KEEP_FRAGMENTS)) {",
+                "matched_lines": [
+                  490
+                ]
+              },
+              {
+                "evidence_line": 491,
+                "fragment": "mov->mdat = (GF_MediaDataBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDAT);",
+                "matched_lines": [
+                  491
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 8197,
+              "output_tokens": 1841,
+              "total_tokens": 10038
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 8197,
+          "output_tokens": 1841,
+          "total_tokens": 10038
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "totSize = mov->current_top_box_start;",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "if (mov->bytes_removed) {",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "assert(totSize >= mov->bytes_removed);",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "totSize -= mov->bytes_removed;",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 75,
+                "fragment": "totSize += a->size;",
+                "matched_lines": [
+                  75
+                ]
+              },
+              {
+                "evidence_line": 126,
+                "fragment": "totSize += a->size;",
+                "matched_lines": [
+                  126
+                ]
+              },
+              {
+                "evidence_line": 136,
+                "fragment": "totSize += a->size;",
+                "matched_lines": [
+                  136
+                ]
+              },
+              {
+                "evidence_line": 190,
+                "fragment": "totSize += a->size;",
+                "matched_lines": [
+                  190
+                ]
+              },
+              {
+                "evidence_line": 205,
+                "fragment": "totSize += a->size;",
+                "matched_lines": [
+                  205
+                ]
+              },
+              {
+                "evidence_line": 231,
+                "fragment": "totSize += a->size;",
+                "matched_lines": [
+                  231
+                ]
+              },
+              {
+                "evidence_line": 259,
+                "fragment": "totSize += a->size;",
+                "matched_lines": [
+                  259
+                ]
+              },
+              {
+                "evidence_line": 308,
+                "fragment": "totSize += a->size;",
+                "matched_lines": [
+                  308
+                ]
+              },
+              {
+                "evidence_line": 433,
+                "fragment": "totSize += a->size;",
+                "matched_lines": [
+                  433
+                ]
+              },
+              {
+                "evidence_line": 438,
+                "fragment": "totSize += a->size;",
+                "matched_lines": [
+                  438
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 26,
+                "fragment": "mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs) + mov->bytes_removed;",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 446,
+                "fragment": "mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs) + mov->bytes_removed;",
+                "matched_lines": [
+                  446
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 132,
+                "fragment": "if (!mov->first_data_toplevel_offset) {",
+                "matched_lines": [
+                  132
+                ]
+              },
+              {
+                "evidence_line": 133,
+                "fragment": "mov->first_data_toplevel_offset = mov->current_top_box_start;",
+                "matched_lines": [
+                  133
+                ]
+              },
+              {
+                "evidence_line": 134,
+                "fragment": "mov->first_data_toplevel_size = a->size;",
+                "matched_lines": [
+                  134
+                ]
+              },
+              {
+                "evidence_line": 255,
+                "fragment": "if (mov->moov && !mov->first_data_toplevel_offset) {",
+                "matched_lines": [
+                  255
+                ]
+              },
+              {
+                "evidence_line": 256,
+                "fragment": "mov->first_data_toplevel_offset = mov->current_top_box_start;",
+                "matched_lines": [
+                  256
+                ]
+              },
+              {
+                "evidence_line": 257,
+                "fragment": "mov->first_data_toplevel_size = a->size;",
+                "matched_lines": [
+                  257
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 287,
+                "fragment": "mov->main_sidx_end_pos = mov->current_top_box_start + a->size;",
+                "matched_lines": [
+                  287
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 268,
+                "fragment": "mov->sidx_start_offset = mov->current_top_box_start;",
+                "matched_lines": [
+                  268
+                ]
+              },
+              {
+                "evidence_line": 269,
+                "fragment": "mov->sidx_end_offset = gf_bs_get_position(mov->movieFileMap->bs);",
+                "matched_lines": [
+                  269
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 273,
+                "fragment": "mov->styp_start_offset = mov->current_top_box_start;",
+                "matched_lines": [
+                  273
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 366,
+                "fragment": "mov->NextMoofNumber = mov->moof->mfhd->sequence_number+1;",
+                "matched_lines": [
+                  366
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 398,
+                "fragment": "u8 *c = (u8 *) box->data;",
+                "matched_lines": [
+                  398
+                ]
+              },
+              {
+                "evidence_line": 399,
+                "fragment": "if ((box->dataSize==4) && (GF_4CC(c[0],c[1],c[2],c[3])==(u32)0x0D0A870A))",
+                "matched_lines": [
+                  399
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 476,
+                "fragment": "mov->interleavingTime = mov->moov->mvhd->timeScale;",
+                "matched_lines": [
+                  476
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 59,
+                "fragment": "mov->original_moov_offset = mov->current_top_box_start;",
+                "matched_lines": [
+                  59
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 121,
+                "fragment": "mov->original_meta_offset = mov->current_top_box_start;",
+                "matched_lines": [
+                  121
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 160,
+                "fragment": "mdat_end = gf_bs_get_position(mov->movieFileMap->bs);",
+                "matched_lines": [
+                  160
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 213,
+                "fragment": "pos = gf_list_del_item(mov->TopBoxes, mov->brand);",
+                "matched_lines": [
+                  213
+                ]
+              },
+              {
+                "evidence_line": 216,
+                "fragment": "if (pos<0) pos=0;",
+                "matched_lines": [
+                  216
+                ]
+              },
+              {
+                "evidence_line": 217,
+                "fragment": "gf_list_insert(mov->TopBoxes, brand, pos);",
+                "matched_lines": [
+                  217
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 12,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 13,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 7877,
+              "output_tokens": 1644,
+              "total_tokens": 9521
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 7877,
+          "output_tokens": 1644,
+          "total_tokens": 9521
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (mov->single_moof_mode && mov->single_moof_state == 2) {",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "return e;",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "totSize = mov->current_top_box_start;",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "if (mov->bytes_removed) {",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "assert(totSize >= mov->bytes_removed);",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "totSize -= mov->bytes_removed;",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 30,
+                "fragment": "e = gf_isom_parse_root_box(&a, mov->movieFileMap->bs, boxType, bytesMissing, progressive_mode);",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "if (e >= 0) {",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "if (!a) return GF_ISOM_INVALID_FILE;",
+                "matched_lines": [
+                  34
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 35,
+                "fragment": "} else if (e == GF_ISOM_INCOMPLETE_FILE) {",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "if (mov->openMode != GF_ISOM_OPEN_READ) {",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "return GF_ISOM_INVALID_FILE;",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "if ((mov->openMode == GF_ISOM_OPEN_READ) && !progressive_mode) {",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "break;",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "return e;",
+                "matched_lines": [
+                  45
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 52,
+                "fragment": "case GF_ISOM_BOX_TYPE_MOOV:",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "if (mov->moov) {",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "gf_isom_box_del(a);",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "return GF_ISOM_INVALID_FILE;",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 77,
+                "fragment": "if (!mov->moov->mvhd) {",
+                "matched_lines": [
+                  77
+                ]
+              },
+              {
+                "evidence_line": 79,
+                "fragment": "return GF_ISOM_INVALID_FILE;",
+                "matched_lines": [
+                  79
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 114,
+                "fragment": "case GF_ISOM_BOX_TYPE_META:",
+                "matched_lines": [
+                  114
+                ]
+              },
+              {
+                "evidence_line": 115,
+                "fragment": "if (mov->meta) {",
+                "matched_lines": [
+                  115
+                ]
+              },
+              {
+                "evidence_line": 117,
+                "fragment": "gf_isom_box_del(a);",
+                "matched_lines": [
+                  117
+                ]
+              },
+              {
+                "evidence_line": 118,
+                "fragment": "return GF_ISOM_INVALID_FILE;",
+                "matched_lines": [
+                  118
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 182,
+                "fragment": "case GF_ISOM_BOX_TYPE_FTYP:",
+                "matched_lines": [
+                  182
+                ]
+              },
+              {
+                "evidence_line": 184,
+                "fragment": "if (mov->brand) {",
+                "matched_lines": [
+                  184
+                ]
+              },
+              {
+                "evidence_line": 185,
+                "fragment": "gf_isom_box_del(a);",
+                "matched_lines": [
+                  185
+                ]
+              },
+              {
+                "evidence_line": 187,
+                "fragment": "return GF_ISOM_INVALID_FILE;",
+                "matched_lines": [
+                  187
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 195,
+                "fragment": "case GF_ISOM_BOX_TYPE_OTYP:",
+                "matched_lines": [
+                  195
+                ]
+              },
+              {
+                "evidence_line": 197,
+                "fragment": "if (mov->otyp) {",
+                "matched_lines": [
+                  197
+                ]
+              },
+              {
+                "evidence_line": 198,
+                "fragment": "gf_isom_box_del(a);",
+                "matched_lines": [
+                  198
+                ]
+              },
+              {
+                "evidence_line": 200,
+                "fragment": "return GF_ISOM_INVALID_FILE;",
+                "matched_lines": [
+                  200
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 223,
+                "fragment": "case GF_ISOM_BOX_TYPE_PDIN:",
+                "matched_lines": [
+                  223
+                ]
+              },
+              {
+                "evidence_line": 225,
+                "fragment": "if (mov->pdin) {",
+                "matched_lines": [
+                  225
+                ]
+              },
+              {
+                "evidence_line": 226,
+                "fragment": "gf_isom_box_del(a);",
+                "matched_lines": [
+                  226
+                ]
+              },
+              {
+                "evidence_line": 228,
+                "fragment": "return GF_ISOM_INVALID_FILE;",
+                "matched_lines": [
+                  228
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 299,
+                "fragment": "if (mov->single_moof_mode) {",
+                "matched_lines": [
+                  299
+                ]
+              },
+              {
+                "evidence_line": 300,
+                "fragment": "mov->single_moof_state++;",
+                "matched_lines": [
+                  300
+                ]
+              },
+              {
+                "evidence_line": 301,
+                "fragment": "if (mov->single_moof_state > 1) {",
+                "matched_lines": [
+                  301
+                ]
+              },
+              {
+                "evidence_line": 302,
+                "fragment": "gf_isom_box_del(a);",
+                "matched_lines": [
+                  302
+                ]
+              },
+              {
+                "evidence_line": 303,
+                "fragment": "return GF_OK;",
+                "matched_lines": [
+                  303
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 451,
+                "fragment": "if (!mov->moov && !mov->meta",
+                "matched_lines": [
+                  451
+                ]
+              },
+              {
+                "evidence_line": 453,
+                "fragment": "&& !mov->moof && !mov->is_index_segment",
+                "matched_lines": [
+                  453
+                ]
+              },
+              {
+                "evidence_line": 456,
+                "fragment": "return GF_ISOM_INCOMPLETE_FILE;",
+                "matched_lines": [
+                  456
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 459,
+                "fragment": "if (!gf_opts_get_bool(\"core\", \"no-check\")) {",
+                "matched_lines": [
+                  459
+                ]
+              },
+              {
+                "evidence_line": 460,
+                "fragment": "if (mov->moov && !mov->moov->mvhd) {",
+                "matched_lines": [
+                  460
+                ]
+              },
+              {
+                "evidence_line": 462,
+                "fragment": "return GF_ISOM_INVALID_FILE;",
+                "matched_lines": [
+                  462
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 466,
+                "fragment": "if (mov->meta && !mov->meta->handler) {",
+                "matched_lines": [
+                  466
+                ]
+              },
+              {
+                "evidence_line": 468,
+                "fragment": "return GF_ISOM_INVALID_FILE;",
+                "matched_lines": [
+                  468
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 12,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 13,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 3,
+      "states": 23,
+      "values": 14,
+      "executions": 14
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 33489,
+    "output_tokens": 5365,
+    "total_tokens": 38854
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000141",
+    "split": "test",
+    "source_hash": "cf5e41fab6d6c8cc1ab94d9aa14792fa35ac626e45c3b6a961f761d3ac6db014",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

@@ -1,0 +1,563 @@
+{
+  "sample_id": "test_000031",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L46",
+            "L48",
+            "L50"
+          ],
+          "expression": "per_batch_counts[batch_idx - 1][value]",
+          "claim": "indexed access into the per-batch count map using a computed batch index and value key"
+        }
+      ],
+      "states": [],
+      "values": [
+        {
+          "entities": [
+            "num_batches",
+            "splits.NumElements()"
+          ],
+          "claim": "num_batches is computed as splits.NumElements() - 1, so it is one less than the number of split elements.",
+          "evidence": "L20: int num_batches = splits.NumElements() - 1;"
+        },
+        {
+          "entities": [
+            "num_values",
+            "values.NumElements()"
+          ],
+          "claim": "num_values equals the number of elements in values.",
+          "evidence": "L21: int num_values = values.NumElements();"
+        },
+        {
+          "entities": [
+            "splits_values(0)",
+            "num_batches"
+          ],
+          "claim": "splits_values(0) is required to equal 0, and splits_values(num_batches) is required to equal num_values.",
+          "evidence": "L27: OP_REQUIRES(context, splits_values(0) == 0,\nL30: OP_REQUIRES(context, splits_values(num_batches) == num_values,"
+        },
+        {
+          "entities": [
+            "batch_idx",
+            "splits_values(batch_idx)",
+            "idx"
+          ],
+          "claim": "batch_idx is advanced while idx >= splits_values(batch_idx), so batch_idx-1 indexes the batch containing idx.",
+          "evidence": "L40: while (idx >= splits_values(batch_idx)) {\nL41: batch_idx++;"
+        },
+        {
+          "entities": [
+            "value",
+            "maxlength_"
+          ],
+          "claim": "value is used as a map key only when value >= 0 and (maxlength_ <= 0 or value < maxlength_).",
+          "evidence": "L44: if (value >= 0 && (maxlength_ <= 0 || value < maxlength_)) {"
+        },
+        {
+          "entities": [
+            "max_value",
+            "value"
+          ],
+          "claim": "max_value is updated to value whenever value exceeds the current max_value.",
+          "evidence": "L52: if (value > max_value) {\nL53: max_value = value;"
+        },
+        {
+          "entities": [
+            "num_output_values",
+            "max_value",
+            "maxlength_",
+            "minlength_"
+          ],
+          "claim": "num_output_values is computed from max_value, maxlength_, and minlength_ via GetOutputSize.",
+          "evidence": "L58: int num_output_values = GetOutputSize(max_value, maxlength_, minlength_);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "weights",
+            "values"
+          ],
+          "claim": "If use_weights is true (weights.NumElements() > 0), then weights.shape() == values.shape() must hold; otherwise execution aborts.",
+          "evidence": "L5: bool use_weights = weights.NumElements() > 0;\nL8: if (use_weights) {\nL10: context, weights.shape() == values.shape(),"
+        },
+        {
+          "entities": [
+            "num_batches",
+            "splits"
+          ],
+          "claim": "Continuing past the checks implies num_batches > 0, i.e., splits.NumElements() >= 2.",
+          "evidence": "L20: int num_batches = splits.NumElements() - 1;\nL23: OP_REQUIRES(\nL24: context, num_batches > 0,"
+        },
+        {
+          "entities": [
+            "splits_values",
+            "num_batches",
+            "num_values"
+          ],
+          "claim": "Continuing past the checks implies splits_values(0) == 0 and splits_values(num_batches) == num_values.",
+          "evidence": "L27: OP_REQUIRES(context, splits_values(0) == 0,\nL30: OP_REQUIRES(context, splits_values(num_batches) == num_values,"
+        },
+        {
+          "entities": [
+            "idx",
+            "batch_idx",
+            "splits_values",
+            "num_values"
+          ],
+          "claim": "For each idx in [0, num_values), the while loop advances batch_idx until idx < splits_values(batch_idx); thus after the loop, batch_idx is the smallest index with splits_values(batch_idx) > idx, and batch_idx >= 1 is used for per_batch_counts indexing.",
+          "evidence": "L39: for (int idx = 0; idx < num_values; ++idx) {\nL40: while (idx >= splits_values(batch_idx)) {\nL41: batch_idx++;\nL46: per_batch_counts[batch_idx - 1][value] = 1;"
+        },
+        {
+          "entities": [
+            "value",
+            "maxlength_"
+          ],
+          "claim": "The body that indexes per_batch_counts and weight_values(idx) executes only when value >= 0 and (maxlength_ <= 0 or value < maxlength_).",
+          "evidence": "L43: const auto& value = values_values(idx);\nL44: if (value >= 0 && (maxlength_ <= 0 || value < maxlength_)) {\nL48: per_batch_counts[batch_idx - 1][value] += weight_values(idx);"
+        },
+        {
+          "entities": [
+            "max_value",
+            "value"
+          ],
+          "claim": "max_value is updated to value only when value > max_value, so after the loop max_value is the maximum qualifying value encountered (or 0 if none).",
+          "evidence": "L36: T max_value = 0;\nL52: if (value > max_value) {\nL53: max_value = value;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2732,
+              "output_tokens": 171,
+              "total_tokens": 2903
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2732,
+          "output_tokens": 171,
+          "total_tokens": 2903
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L46",
+                "matched": true,
+                "expression": "per_batch_counts[batch_idx - 1][value]"
+              },
+              {
+                "location": "L48",
+                "matched": true,
+                "expression": "per_batch_counts[batch_idx - 1][value]"
+              },
+              {
+                "location": "L50",
+                "matched": true,
+                "expression": "per_batch_counts[batch_idx - 1][value]"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 0,
+            "expression": "splits_values(batch_idx)"
+          },
+          {
+            "action": "drop_ungrounded_item",
+            "index": 1,
+            "expression": "values_values(idx)"
+          },
+          {
+            "action": "drop_ungrounded_item",
+            "index": 2,
+            "expression": "weight_values(idx)"
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1335,
+              "output_tokens": 12,
+              "total_tokens": 1347
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1335,
+          "output_tokens": 12,
+          "total_tokens": 1347
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1523,
+              "output_tokens": 469,
+              "total_tokens": 1992
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1523,
+          "output_tokens": 469,
+          "total_tokens": 1992
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "int num_batches = splits.NumElements() - 1;",
+                "matched_lines": [
+                  20
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 21,
+                "fragment": "int num_values = values.NumElements();",
+                "matched_lines": [
+                  21
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 27,
+                "fragment": "OP_REQUIRES(context, splits_values(0) == 0,",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "OP_REQUIRES(context, splits_values(num_batches) == num_values,",
+                "matched_lines": [
+                  30
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 40,
+                "fragment": "while (idx >= splits_values(batch_idx)) {",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "batch_idx++;",
+                "matched_lines": [
+                  41
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "if (value >= 0 && (maxlength_ <= 0 || value < maxlength_)) {",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 52,
+                "fragment": "if (value > max_value) {",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "max_value = value;",
+                "matched_lines": [
+                  53
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 58,
+                "fragment": "int num_output_values = GetOutputSize(max_value, maxlength_, minlength_);",
+                "matched_lines": [
+                  58
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1203,
+              "output_tokens": 636,
+              "total_tokens": 1839
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1203,
+          "output_tokens": 636,
+          "total_tokens": 1839
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "bool use_weights = weights.NumElements() > 0;",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": "if (use_weights) {",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "context, weights.shape() == values.shape(),",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "int num_batches = splits.NumElements() - 1;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "context, num_batches > 0,",
+                "matched_lines": [
+                  24
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 27,
+                "fragment": "OP_REQUIRES(context, splits_values(0) == 0,",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "OP_REQUIRES(context, splits_values(num_batches) == num_values,",
+                "matched_lines": [
+                  30
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 39,
+                "fragment": "for (int idx = 0; idx < num_values; ++idx) {",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "while (idx >= splits_values(batch_idx)) {",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "batch_idx++;",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "per_batch_counts[batch_idx - 1][value] = 1;",
+                "matched_lines": [
+                  46
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "const auto& value = values_values(idx);",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "if (value >= 0 && (maxlength_ <= 0 || value < maxlength_)) {",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "per_batch_counts[batch_idx - 1][value] += weight_values(idx);",
+                "matched_lines": [
+                  48
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 36,
+                "fragment": "T max_value = 0;",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "if (value > max_value) {",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "max_value = value;",
+                "matched_lines": [
+                  53
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 1,
+      "states": 0,
+      "values": 7,
+      "executions": 6
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 6793,
+    "output_tokens": 1288,
+    "total_tokens": 8081
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000031",
+    "split": "test",
+    "source_hash": "b4eb9f0daf35d23dfb5fd6e75ff68a699c3df70da54a5fa1ae600ba4daf3b06c",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

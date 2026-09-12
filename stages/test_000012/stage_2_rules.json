@@ -12,7 +12,7 @@
         ],
         "expression": "delete input.tensor / delete output.tensor",
         "requirements": [
-          "The pointer operand of delete must designate a live object that was allocated by new and has not already been deleted."
+          "Each pointer passed to delete must designate a live object allocated by new or be null."
         ]
       },
       {
@@ -21,7 +21,7 @@
         ],
         "expression": "input_node->attr().at(\"value\").tensor()",
         "requirements": [
-          "The attribute map of input_node must contain an entry with key \"value\"."
+          "The attr() map must contain the key \"value\"."
         ]
       },
       {
@@ -30,7 +30,8 @@
         ],
         "expression": "new Tensor(raw_val.dtype(), raw_val.tensor_shape())",
         "requirements": [
-          "The dtype and tensor_shape obtained from raw_val must be valid arguments for constructing a Tensor."
+          "raw_val.dtype() must be a valid TensorFlow DataType other than DT_INVALID.",
+          "raw_val.tensor_shape() must describe a valid tensor shape."
         ]
       },
       {
@@ -39,7 +40,7 @@
         ],
         "expression": "value->FromProto(raw_val)",
         "requirements": [
-          "The TensorProto raw_val must be compatible with the shape and dtype of the Tensor value."
+          "raw_val must be a valid TensorProto whose dtype and tensor_shape are compatible with the Tensor being populated."
         ]
       },
       {
@@ -48,7 +49,7 @@
         ],
         "expression": "value->TotalBytes()",
         "requirements": [
-          "The Tensor value must have a valid, fully initialized shape and dtype so that its total byte size is well-defined."
+          "value must point to a Tensor whose shape and dtype are valid for byte-size computation."
         ]
       },
       {
@@ -57,18 +58,20 @@
         ],
         "expression": "outputs->resize(output_tensors.size())",
         "requirements": [
-          "The outputs pointer must designate a valid, live vector object."
+          "outputs must point to a valid vector object."
         ]
       },
       {
         "locations": [
-          "L62"
+          "L62",
+          "L63"
         ],
         "expression": "CreateNodeDef(node_name, output_tensors[i], &outputs->at(i), total_inputs_size)",
         "requirements": [
-          "The index i must be within the valid range of output_tensors.",
-          "The index i must be within the valid range of outputs.",
-          "The output_tensors[i] element must contain a valid tensor when passed to CreateNodeDef."
+          "output_tensors[i].tensor must be non-null.",
+          "i must be less than output_tensors.size().",
+          "i must be less than outputs->size().",
+          "outputs must point to a valid vector object."
         ]
       },
       {
@@ -77,7 +80,8 @@
         ],
         "expression": "outputs->at(i) = NodeDef()",
         "requirements": [
-          "The index i must be within the valid range of outputs."
+          "i must be less than outputs->size().",
+          "outputs must point to a valid vector object."
         ]
       }
     ]
@@ -90,18 +94,18 @@
         "retry_mode": "initial",
         "errors": [],
         "token_usage": {
-          "input_tokens": 2507,
-          "output_tokens": 389,
-          "total_tokens": 2896
+          "input_tokens": 2524,
+          "output_tokens": 399,
+          "total_tokens": 2923
         },
         "max_tokens": 8192,
         "serialization_prefix_recovered": false
       }
     ],
     "token_usage": {
-      "input_tokens": 2507,
-      "output_tokens": 389,
-      "total_tokens": 2896
+      "input_tokens": 2524,
+      "output_tokens": 399,
+      "total_tokens": 2923
     },
     "safety_relevance_filter": {
       "input_operation_groups": 8,
@@ -110,9 +114,9 @@
     }
   },
   "token_usage": {
-    "input_tokens": 2507,
-    "output_tokens": 389,
-    "total_tokens": 2896
+    "input_tokens": 2524,
+    "output_tokens": 399,
+    "total_tokens": 2923
   },
   "artifact_metadata": {
     "schema_version": "semantic-claims-v4.13",
@@ -122,7 +126,7 @@
     "split": "test",
     "source_hash": "62f531f2f1890052c3037604faf9b086812c58b2f8913ac4bc006980e272eb8b",
     "upstream_hashes": {
-      "semantic_model": "cf506c051a00f0b14725465d386c12f549bc7881267a97082a9208b0e0ac6136"
+      "semantic_model": "e4e7562da781c3ab5ed99ab7327402968ff8c525bdc97fa6aed2b3faf23a9a7f"
     },
     "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
   }

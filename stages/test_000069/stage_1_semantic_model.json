@@ -1,0 +1,1072 @@
+{
+  "sample_id": "test_000069",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L16",
+            "L17"
+          ],
+          "expression": "node_map_->GetNode(node->input(0))",
+          "claim": "look up a node by input name in the node map"
+        },
+        {
+          "locations": [
+            "L46",
+            "L47"
+          ],
+          "expression": "node_map_->GetNode(conv_node->input(0))",
+          "claim": "look up a node by convolution input name in the node map"
+        },
+        {
+          "locations": [
+            "L63",
+            "L64"
+          ],
+          "expression": "mul_props[0].shape()",
+          "claim": "access the first output property shape"
+        },
+        {
+          "locations": [
+            "L73"
+          ],
+          "expression": "input_props[1].shape()",
+          "claim": "access the second input property shape"
+        },
+        {
+          "locations": [
+            "L81"
+          ],
+          "expression": "const_props[0].shape()",
+          "claim": "access the first output property shape of the constant node"
+        },
+        {
+          "locations": [
+            "L83"
+          ],
+          "expression": "conv_node->attr().at(\"data_format\").s()",
+          "claim": "access the data_format attribute value"
+        },
+        {
+          "locations": [
+            "L94"
+          ],
+          "expression": "conv_node->input(0)",
+          "claim": "access the first input name of the convolution node"
+        },
+        {
+          "locations": [
+            "L105",
+            "L106",
+            "L108",
+            "L109"
+          ],
+          "expression": "conv_node->set_input(0, mul_new_name)",
+          "claim": "set an input name on the convolution node"
+        },
+        {
+          "locations": [
+            "L114",
+            "L116"
+          ],
+          "expression": "node->set_input(1, conv_const_node->name())",
+          "claim": "set an input name on the multiplication node"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "mul_left_child",
+            "node_map_"
+          ],
+          "claim": "mul_left_child is the NodeDef obtained from node_map_ for node->input(0), or NULL if absent.",
+          "evidence": "L16: NodeDef* mul_left_child = node_map_->GetNode(node->input(0));\nL18: if (mul_left_child == nullptr || mul_right_child == nullptr) {"
+        },
+        {
+          "entities": [
+            "mul_right_child",
+            "node_map_"
+          ],
+          "claim": "mul_right_child is the NodeDef obtained from node_map_ for node->input(1), or NULL if absent.",
+          "evidence": "L17: NodeDef* mul_right_child = node_map_->GetNode(node->input(1));\nL18: if (mul_left_child == nullptr || mul_right_child == nullptr) {"
+        },
+        {
+          "entities": [
+            "conv_node",
+            "mul_left_child",
+            "mul_right_child"
+          ],
+          "claim": "conv_node refers to mul_right_child when the left child is constant, otherwise to mul_left_child.",
+          "evidence": "L27: NodeDef* conv_node =\nL28: left_child_is_constant ? mul_right_child : mul_left_child;"
+        },
+        {
+          "entities": [
+            "conv_left_child",
+            "node_map_"
+          ],
+          "claim": "conv_left_child is the NodeDef obtained from node_map_ for conv_node->input(0).",
+          "evidence": "L46: NodeDef* conv_left_child = node_map_->GetNode(conv_node->input(0));"
+        },
+        {
+          "entities": [
+            "conv_right_child",
+            "node_map_"
+          ],
+          "claim": "conv_right_child is the NodeDef obtained from node_map_ for conv_node->input(1).",
+          "evidence": "L47: NodeDef* conv_right_child = node_map_->GetNode(conv_node->input(1));"
+        },
+        {
+          "entities": [
+            "const_node",
+            "mul_left_child",
+            "mul_right_child"
+          ],
+          "claim": "const_node refers to mul_left_child when the left child is constant, otherwise to mul_right_child.",
+          "evidence": "L75: NodeDef* const_node =\nL76: left_child_is_constant ? mul_left_child : mul_right_child;"
+        },
+        {
+          "entities": [
+            "conv_const_node",
+            "conv_left_child",
+            "conv_right_child"
+          ],
+          "claim": "conv_const_node refers to conv_left_child when the convolution left input is constant, otherwise to conv_right_child.",
+          "evidence": "L111: NodeDef* conv_const_node =\nL112: conv_left_is_constant ? conv_left_child : conv_right_child;"
+        },
+        {
+          "entities": [
+            "conv_node",
+            "node"
+          ],
+          "claim": "conv_node is renamed to node's original name, and node is renamed to mul_new_name.",
+          "evidence": "L102: conv_node->set_name(node->name());\nL103: node->set_name(mul_new_name);"
+        },
+        {
+          "entities": [
+            "conv_node",
+            "node_map_",
+            "mul_new_name"
+          ],
+          "claim": "conv_node's constant-side input is replaced by mul_new_name in both the node_map_ and conv_node's input list.",
+          "evidence": "L104: if (conv_left_is_constant) {\nL105: node_map_->UpdateInput(conv_node->name(), node->input(0), mul_new_name);\nL106: conv_node->set_input(0, mul_new_name);\nL107: } else {\nL108: node_map_->UpdateInput(conv_node->name(), node->input(1), mul_new_name);\nL109: conv_node->set_input(1, mul_new_name);\nL110: }"
+        },
+        {
+          "entities": [
+            "node",
+            "conv_const_node"
+          ],
+          "claim": "node's input on the constant side is set to conv_const_node's name.",
+          "evidence": "L113: if (left_child_is_constant) {\nL114: node->set_input(1, conv_const_node->name());\nL115: } else {\nL116: node->set_input(0, conv_const_node->name());\nL117: }"
+        },
+        {
+          "entities": [
+            "node_map_",
+            "mul_new_name",
+            "node"
+          ],
+          "claim": "node_map_ is updated to associate mul_new_name with node.",
+          "evidence": "L118: node_map_->AddNode(mul_new_name, node);"
+        }
+      ],
+      "values": [],
+      "executions": [
+        {
+          "entities": [
+            "node",
+            "mul_left_child",
+            "mul_right_child"
+          ],
+          "claim": "continuing past the initial checks implies node is a Mul with exactly 2 non-control inputs, both input nodes exist, and at least one of them is a real constant",
+          "evidence": "L14: if (!IsAnyMul(*node) || NumNonControlInputs(*node) != 2) return false;\nL16: NodeDef* mul_left_child = node_map_->GetNode(node->input(0));\nL17: NodeDef* mul_right_child = node_map_->GetNode(node->input(1));\nL18: if (mul_left_child == nullptr || mul_right_child == nullptr) {\nL22: const bool left_child_is_constant = IsReallyConstant(*mul_left_child);\nL23: const bool right_child_is_constant = IsReallyConstant(*mul_right_child);\nL24: if (!left_child_is_constant && !right_child_is_constant) {"
+        },
+        {
+          "entities": [
+            "conv_node"
+          ],
+          "claim": "continuing past the conv checks implies conv_node is Conv2D or Conv3D, has the same device as both mul children, has at least 2 inputs, has at most one non-control output, and is not in nodes_to_preserve_",
+          "evidence": "L27: NodeDef* conv_node =\nL28: left_child_is_constant ? mul_right_child : mul_left_child;\nL29: if (!IsConv2D(*conv_node) && !IsConv3D(*conv_node)) {\nL32: if (node->device() != mul_left_child->device() ||\nL33: node->device() != mul_right_child->device()) {\nL39: if (conv_node->input_size() < 2 ||\nL40: NumNonControlOutputs(*conv_node, *node_map_) > 1 ||\nL41: nodes_to_preserve_.find(conv_node->name()) != nodes_to_preserve_.end()) {"
+        },
+        {
+          "entities": [
+            "conv_left_child",
+            "conv_right_child"
+          ],
+          "claim": "continuing past the conv-input checks implies exactly one of conv_node's two inputs is a real constant",
+          "evidence": "L46: NodeDef* conv_left_child = node_map_->GetNode(conv_node->input(0));\nL47: NodeDef* conv_right_child = node_map_->GetNode(conv_node->input(1));\nL48: const bool conv_left_is_constant = IsReallyConstant(*conv_left_child);\nL49: const bool conv_right_is_constant = IsReallyConstant(*conv_right_child);\nL50: if (!conv_left_is_constant && !conv_right_is_constant) {\nL54: if (conv_left_is_constant && conv_right_is_constant) {"
+        },
+        {
+          "entities": [
+            "mul_shape",
+            "conv_shape"
+          ],
+          "claim": "continuing past the shape checks implies mul and conv output properties are non-empty and their shapes are symbolically equal",
+          "evidence": "L58: const auto& mul_props = properties.GetOutputProperties(node->name());\nL59: const auto& conv_props = properties.GetOutputProperties(conv_node->name());\nL60: if (mul_props.empty() || conv_props.empty()) {\nL63: const auto& mul_shape = mul_props[0].shape();\nL64: const auto& conv_shape = conv_props[0].shape();\nL65: if (!ShapesSymbolicallyEqual(mul_shape, conv_shape)) {"
+        },
+        {
+          "entities": [
+            "input_props",
+            "filter_shape",
+            "const_shape"
+          ],
+          "claim": "continuing past the const-shape checks implies conv_node has at least 2 input properties, the constant child has non-empty output properties, and the constant shape is valid for MulConvPushDown given the filter shape and data_format",
+          "evidence": "L69: const auto& input_props = properties.GetInputProperties(conv_node->name());\nL70: if (input_props.size() < 2) {\nL73: const auto& filter_shape = input_props[1].shape();\nL77: const auto& const_props = properties.GetOutputProperties(const_node->name());\nL78: if (const_props.empty()) {\nL81: const auto& const_shape = const_props[0].shape();\nL82: if (!IsValidConstShapeForMulConvPushDown(\nL83: conv_node->attr().at(\"data_format\").s(), filter_shape, const_shape)) {"
+        },
+        {
+          "entities": [
+            "mul_new_name"
+          ],
+          "claim": "continuing past the name check implies the generated merged_input name does not already exist in node_map_",
+          "evidence": "L87: string mul_new_name = AddPrefixToNodeName(\"merged_input\", conv_node->name());\nL88: if (node_map_->NodeExists(mul_new_name)) {"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3566,
+              "output_tokens": 322,
+              "total_tokens": 3888
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3566,
+          "output_tokens": 322,
+          "total_tokens": 3888
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L16",
+                "matched": true,
+                "expression": "node_map_->GetNode(node->input(0))"
+              },
+              {
+                "location": "L17",
+                "matched": true,
+                "expression": "node_map_->GetNode(node->input(0))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L46",
+                "matched": true,
+                "expression": "node_map_->GetNode(conv_node->input(0))"
+              },
+              {
+                "location": "L47",
+                "matched": true,
+                "expression": "node_map_->GetNode(conv_node->input(0))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L63",
+                "matched": true,
+                "expression": "mul_props[0].shape()"
+              },
+              {
+                "location": "L64",
+                "matched": true,
+                "expression": "mul_props[0].shape()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L73",
+                "matched": true,
+                "expression": "input_props[1].shape()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L81",
+                "matched": true,
+                "expression": "const_props[0].shape()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L83",
+                "matched": true,
+                "expression": "conv_node->attr().at(\"data_format\").s()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L94",
+                "matched": true,
+                "expression": "conv_node->input(0)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L105",
+                "matched": true,
+                "expression": "conv_node->set_input(0, mul_new_name)"
+              },
+              {
+                "location": "L106",
+                "matched": true,
+                "expression": "conv_node->set_input(0, mul_new_name)"
+              },
+              {
+                "location": "L108",
+                "matched": true,
+                "expression": "conv_node->set_input(0, mul_new_name)"
+              },
+              {
+                "location": "L109",
+                "matched": true,
+                "expression": "conv_node->set_input(0, mul_new_name)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L114",
+                "matched": true,
+                "expression": "node->set_input(1, conv_const_node->name())"
+              },
+              {
+                "location": "L116",
+                "matched": true,
+                "expression": "node->set_input(1, conv_const_node->name())"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2169,
+              "output_tokens": 897,
+              "total_tokens": 3066
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2169,
+          "output_tokens": 897,
+          "total_tokens": 3066
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "NodeDef* mul_left_child = node_map_->GetNode(node->input(0));",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "if (mul_left_child == nullptr || mul_right_child == nullptr) {",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "NodeDef* mul_right_child = node_map_->GetNode(node->input(1));",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "if (mul_left_child == nullptr || mul_right_child == nullptr) {",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 27,
+                "fragment": "NodeDef* conv_node =",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "left_child_is_constant ? mul_right_child : mul_left_child;",
+                "matched_lines": [
+                  28
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 46,
+                "fragment": "NodeDef* conv_left_child = node_map_->GetNode(conv_node->input(0));",
+                "matched_lines": [
+                  46
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 47,
+                "fragment": "NodeDef* conv_right_child = node_map_->GetNode(conv_node->input(1));",
+                "matched_lines": [
+                  47
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 75,
+                "fragment": "NodeDef* const_node =",
+                "matched_lines": [
+                  75
+                ]
+              },
+              {
+                "evidence_line": 76,
+                "fragment": "left_child_is_constant ? mul_left_child : mul_right_child;",
+                "matched_lines": [
+                  76
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 111,
+                "fragment": "NodeDef* conv_const_node =",
+                "matched_lines": [
+                  111
+                ]
+              },
+              {
+                "evidence_line": 112,
+                "fragment": "conv_left_is_constant ? conv_left_child : conv_right_child;",
+                "matched_lines": [
+                  112
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 102,
+                "fragment": "conv_node->set_name(node->name());",
+                "matched_lines": [
+                  102
+                ]
+              },
+              {
+                "evidence_line": 103,
+                "fragment": "node->set_name(mul_new_name);",
+                "matched_lines": [
+                  103
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 104,
+                "fragment": "if (conv_left_is_constant) {",
+                "matched_lines": [
+                  104
+                ]
+              },
+              {
+                "evidence_line": 105,
+                "fragment": "node_map_->UpdateInput(conv_node->name(), node->input(0), mul_new_name);",
+                "matched_lines": [
+                  105
+                ]
+              },
+              {
+                "evidence_line": 106,
+                "fragment": "conv_node->set_input(0, mul_new_name);",
+                "matched_lines": [
+                  106
+                ]
+              },
+              {
+                "evidence_line": 107,
+                "fragment": "} else {",
+                "matched_lines": [
+                  107
+                ]
+              },
+              {
+                "evidence_line": 108,
+                "fragment": "node_map_->UpdateInput(conv_node->name(), node->input(1), mul_new_name);",
+                "matched_lines": [
+                  108
+                ]
+              },
+              {
+                "evidence_line": 109,
+                "fragment": "conv_node->set_input(1, mul_new_name);",
+                "matched_lines": [
+                  109
+                ]
+              },
+              {
+                "evidence_line": 110,
+                "fragment": "}",
+                "matched_lines": [
+                  110
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 113,
+                "fragment": "if (left_child_is_constant) {",
+                "matched_lines": [
+                  113
+                ]
+              },
+              {
+                "evidence_line": 114,
+                "fragment": "node->set_input(1, conv_const_node->name());",
+                "matched_lines": [
+                  114
+                ]
+              },
+              {
+                "evidence_line": 115,
+                "fragment": "} else {",
+                "matched_lines": [
+                  115
+                ]
+              },
+              {
+                "evidence_line": 116,
+                "fragment": "node->set_input(0, conv_const_node->name());",
+                "matched_lines": [
+                  116
+                ]
+              },
+              {
+                "evidence_line": 117,
+                "fragment": "}",
+                "matched_lines": [
+                  117
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 118,
+                "fragment": "node_map_->AddNode(mul_new_name, node);",
+                "matched_lines": [
+                  118
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2357,
+              "output_tokens": 12,
+              "total_tokens": 2369
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2357,
+          "output_tokens": 12,
+          "total_tokens": 2369
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2037,
+              "output_tokens": 1035,
+              "total_tokens": 3072
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2037,
+          "output_tokens": 1035,
+          "total_tokens": 3072
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "if (!IsAnyMul(*node) || NumNonControlInputs(*node) != 2) return false;",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "NodeDef* mul_left_child = node_map_->GetNode(node->input(0));",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "NodeDef* mul_right_child = node_map_->GetNode(node->input(1));",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "if (mul_left_child == nullptr || mul_right_child == nullptr) {",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "const bool left_child_is_constant = IsReallyConstant(*mul_left_child);",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "const bool right_child_is_constant = IsReallyConstant(*mul_right_child);",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "if (!left_child_is_constant && !right_child_is_constant) {",
+                "matched_lines": [
+                  24
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 27,
+                "fragment": "NodeDef* conv_node =",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "left_child_is_constant ? mul_right_child : mul_left_child;",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "if (!IsConv2D(*conv_node) && !IsConv3D(*conv_node)) {",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "if (node->device() != mul_left_child->device() ||",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "node->device() != mul_right_child->device()) {",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "if (conv_node->input_size() < 2 ||",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "NumNonControlOutputs(*conv_node, *node_map_) > 1 ||",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "nodes_to_preserve_.find(conv_node->name()) != nodes_to_preserve_.end()) {",
+                "matched_lines": [
+                  41
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 46,
+                "fragment": "NodeDef* conv_left_child = node_map_->GetNode(conv_node->input(0));",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "NodeDef* conv_right_child = node_map_->GetNode(conv_node->input(1));",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "const bool conv_left_is_constant = IsReallyConstant(*conv_left_child);",
+                "matched_lines": [
+                  48
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "const bool conv_right_is_constant = IsReallyConstant(*conv_right_child);",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "if (!conv_left_is_constant && !conv_right_is_constant) {",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "if (conv_left_is_constant && conv_right_is_constant) {",
+                "matched_lines": [
+                  54
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 58,
+                "fragment": "const auto& mul_props = properties.GetOutputProperties(node->name());",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "const auto& conv_props = properties.GetOutputProperties(conv_node->name());",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "if (mul_props.empty() || conv_props.empty()) {",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "const auto& mul_shape = mul_props[0].shape();",
+                "matched_lines": [
+                  63
+                ]
+              },
+              {
+                "evidence_line": 64,
+                "fragment": "const auto& conv_shape = conv_props[0].shape();",
+                "matched_lines": [
+                  64
+                ]
+              },
+              {
+                "evidence_line": 65,
+                "fragment": "if (!ShapesSymbolicallyEqual(mul_shape, conv_shape)) {",
+                "matched_lines": [
+                  65
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 69,
+                "fragment": "const auto& input_props = properties.GetInputProperties(conv_node->name());",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "if (input_props.size() < 2) {",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 73,
+                "fragment": "const auto& filter_shape = input_props[1].shape();",
+                "matched_lines": [
+                  73
+                ]
+              },
+              {
+                "evidence_line": 77,
+                "fragment": "const auto& const_props = properties.GetOutputProperties(const_node->name());",
+                "matched_lines": [
+                  77
+                ]
+              },
+              {
+                "evidence_line": 78,
+                "fragment": "if (const_props.empty()) {",
+                "matched_lines": [
+                  78
+                ]
+              },
+              {
+                "evidence_line": 81,
+                "fragment": "const auto& const_shape = const_props[0].shape();",
+                "matched_lines": [
+                  81
+                ]
+              },
+              {
+                "evidence_line": 82,
+                "fragment": "if (!IsValidConstShapeForMulConvPushDown(",
+                "matched_lines": [
+                  82
+                ]
+              },
+              {
+                "evidence_line": 83,
+                "fragment": "conv_node->attr().at(\"data_format\").s(), filter_shape, const_shape)) {",
+                "matched_lines": [
+                  83
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 87,
+                "fragment": "string mul_new_name = AddPrefixToNodeName(\"merged_input\", conv_node->name());",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 88,
+                "fragment": "if (node_map_->NodeExists(mul_new_name)) {",
+                "matched_lines": [
+                  88
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 9,
+      "states": 11,
+      "values": 0,
+      "executions": 6
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 10129,
+    "output_tokens": 2266,
+    "total_tokens": 12395
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000069",
+    "split": "test",
+    "source_hash": "b37708b2fc31ca07ec7614cdc3cf681c9e64b6c4b6828539c4a49a1b25bd950b",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

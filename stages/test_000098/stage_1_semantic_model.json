@@ -1,0 +1,278 @@
+{
+  "sample_id": "test_000098",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L9"
+          ],
+          "expression": "a1_set[def.name()] = &def",
+          "claim": "insert or assign into unordered_map using a key derived from def.name(), consuming the map's storage and the referenced AttrDef object"
+        },
+        {
+          "locations": [
+            "L12"
+          ],
+          "expression": "a1_set.find(def.name())",
+          "claim": "lookup in unordered_map by key def.name(), consuming the map's internal state"
+        },
+        {
+          "locations": [
+            "L14"
+          ],
+          "expression": "*iter->second",
+          "claim": "dereference the pointer stored in the unordered_map iterator, consuming the pointed-to AttrDef object"
+        },
+        {
+          "locations": [
+            "L15"
+          ],
+          "expression": "a1_set.erase(iter)",
+          "claim": "erase the element referenced by the unordered_map iterator, consuming the iterator and modifying the map"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "a1_set",
+            "def"
+          ],
+          "claim": "a1_set maps each AttrDef name to a pointer to the corresponding element of a1; the pointed-to AttrDef objects remain owned by a1.",
+          "evidence": "L4: std::unordered_map<string, const OpDef::AttrDef*> a1_set;\nL9: a1_set[def.name()] = &def;"
+        },
+        {
+          "entities": [
+            "a1_set",
+            "iter"
+          ],
+          "claim": "iter is an iterator into a1_set; after erase(iter), that iterator is invalidated.",
+          "evidence": "L12: auto iter = a1_set.find(def.name());\nL15: a1_set.erase(iter);"
+        }
+      ],
+      "values": [],
+      "executions": []
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2232,
+              "output_tokens": 169,
+              "total_tokens": 2401
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2232,
+          "output_tokens": 169,
+          "total_tokens": 2401
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L9",
+                "matched": true,
+                "expression": "a1_set[def.name()] = &def"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L12",
+                "matched": true,
+                "expression": "a1_set.find(def.name())"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L14",
+                "matched": true,
+                "expression": "*iter->second"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L15",
+                "matched": true,
+                "expression": "a1_set.erase(iter)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 835,
+              "output_tokens": 158,
+              "total_tokens": 993
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 835,
+          "output_tokens": 158,
+          "total_tokens": 993
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "std::unordered_map<string, const OpDef::AttrDef*> a1_set;",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "a1_set[def.name()] = &def;",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "auto iter = a1_set.find(def.name());",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "a1_set.erase(iter);",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1023,
+              "output_tokens": 11,
+              "total_tokens": 1034
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1023,
+          "output_tokens": 11,
+          "total_tokens": 1034
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 703,
+              "output_tokens": 13,
+              "total_tokens": 716
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 703,
+          "output_tokens": 13,
+          "total_tokens": 716
+        },
+        "grounding": {},
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 4,
+      "states": 2,
+      "values": 0,
+      "executions": 0
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4793,
+    "output_tokens": 351,
+    "total_tokens": 5144
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000098",
+    "split": "test",
+    "source_hash": "ca1faa34f9936c43a2ad05aba435b27c45d4417217871a13e1e2762f1d2af383",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

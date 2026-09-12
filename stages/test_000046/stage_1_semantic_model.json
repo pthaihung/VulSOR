@@ -1,0 +1,421 @@
+{
+  "sample_id": "test_000046",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L12",
+            "L15"
+          ],
+          "expression": "Helper<T>::Decode(a, content, N) / FromProtoField<T>(a, proto, N)",
+          "claim": "decode tensor content into a newly allocated buffer using the allocator, content, and element count"
+        },
+        {
+          "locations": [
+            "L22"
+          ],
+          "expression": "UnrefIfNonNull(buf_)",
+          "claim": "release the existing tensor buffer reference if non-null"
+        },
+        {
+          "locations": [
+            "L26"
+          ],
+          "expression": "buf_->data()",
+          "claim": "access the data pointer of the tensor buffer"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "p"
+          ],
+          "claim": "p is initialized to nullptr before any allocation attempt.",
+          "evidence": "L3: TensorBuffer* p = nullptr;"
+        },
+        {
+          "entities": [
+            "p"
+          ],
+          "claim": "p may be assigned a TensorBuffer* returned by Helper<T>::Decode or FromProtoField<T>; if the dtype is unsupported, p remains nullptr and dtype_error is set.",
+          "evidence": "L12: CASES_WITH_DEFAULT(proto.dtype(), p = Helper<T>::Decode(a, content, N),\nL15: CASES_WITH_DEFAULT(proto.dtype(), p = FromProtoField<T>(a, proto, N),"
+        },
+        {
+          "entities": [
+            "buf_",
+            "p"
+          ],
+          "claim": "buf_ is unref'd if non-null, then buf_ is assigned the value of p, transferring the TensorBuffer* reference to buf_.",
+          "evidence": "L22: UnrefIfNonNull(buf_);\nL23: buf_ = p;"
+        },
+        {
+          "entities": [
+            "buf_"
+          ],
+          "claim": "buf_ may be non-null and its data() may be non-null when memory logging is enabled.",
+          "evidence": "L26: if (MemoryLoggingEnabled() && buf_ != nullptr && buf_->data() != nullptr) {"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "N",
+            "shape.num_elements()"
+          ],
+          "claim": "N is the element count of the tensor shape, computed as int64_t from shape.num_elements().",
+          "evidence": "L7: const int64_t N = shape.num_elements();"
+        },
+        {
+          "entities": [
+            "N",
+            "Decode",
+            "FromProtoField"
+          ],
+          "claim": "N is passed as the element count to Helper<T>::Decode and FromProtoField<T> for decoding tensor content.",
+          "evidence": "L12: CASES_WITH_DEFAULT(proto.dtype(), p = Helper<T>::Decode(a, content, N),\nL15: CASES_WITH_DEFAULT(proto.dtype(), p = FromProtoField<T>(a, proto, N),"
+        },
+        {
+          "entities": [
+            "content",
+            "proto.tensor_content()"
+          ],
+          "claim": "content is a reference to proto.tensor_content(), used as the byte buffer for decoding.",
+          "evidence": "L11: const auto& content = proto.tensor_content();"
+        }
+      ],
+      "executions": []
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2380,
+              "output_tokens": 119,
+              "total_tokens": 2499
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2380,
+          "output_tokens": 119,
+          "total_tokens": 2499
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L12",
+                "matched": true,
+                "expression": "Helper<T>::Decode(a, content, N) / FromProtoField<T>(a, proto, N)"
+              },
+              {
+                "location": "L15",
+                "matched": true,
+                "expression": "Helper<T>::Decode(a, content, N) / FromProtoField<T>(a, proto, N)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L22",
+                "matched": true,
+                "expression": "UnrefIfNonNull(buf_)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L26",
+                "matched": true,
+                "expression": "buf_->data()"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 983,
+              "output_tokens": 278,
+              "total_tokens": 1261
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 983,
+          "output_tokens": 278,
+          "total_tokens": 1261
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "TensorBuffer* p = nullptr;",
+                "matched_lines": [
+                  3
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "CASES_WITH_DEFAULT(proto.dtype(), p = Helper<T>::Decode(a, content, N),",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "CASES_WITH_DEFAULT(proto.dtype(), p = FromProtoField<T>(a, proto, N),",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 22,
+                "fragment": "UnrefIfNonNull(buf_);",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "buf_ = p;",
+                "matched_lines": [
+                  23
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 26,
+                "fragment": "if (MemoryLoggingEnabled() && buf_ != nullptr && buf_->data() != nullptr) {",
+                "matched_lines": [
+                  26
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1171,
+              "output_tokens": 231,
+              "total_tokens": 1402
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1171,
+          "output_tokens": 231,
+          "total_tokens": 1402
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "const int64_t N = shape.num_elements();",
+                "matched_lines": [
+                  7
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "CASES_WITH_DEFAULT(proto.dtype(), p = Helper<T>::Decode(a, content, N),",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "CASES_WITH_DEFAULT(proto.dtype(), p = FromProtoField<T>(a, proto, N),",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "const auto& content = proto.tensor_content();",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 851,
+              "output_tokens": 316,
+              "total_tokens": 1167
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 851,
+          "output_tokens": 316,
+          "total_tokens": 1167
+        },
+        "grounding": {},
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "drop_ungrounded_item",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "drop_ungrounded_item",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "drop_ungrounded_item",
+            "index": 3,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 3,
+      "states": 4,
+      "values": 3,
+      "executions": 0
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 5385,
+    "output_tokens": 944,
+    "total_tokens": 6329
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000046",
+    "split": "test",
+    "source_hash": "c54d2aa8474946f53984be8932c20c8fe4ddbd7114217fe6ee2b9cb4357f2936",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

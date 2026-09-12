@@ -1,0 +1,372 @@
+{
+  "sample_id": "test_000182",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L23",
+            "L27"
+          ],
+          "expression": "a_shape_flat(i)",
+          "claim": "indexed read from the flat tensor view a_shape_flat at index i"
+        },
+        {
+          "locations": [
+            "L23"
+          ],
+          "expression": "b->dim_size(i)",
+          "claim": "indexed dimension-size query on tensor b at index i"
+        }
+      ],
+      "states": [],
+      "values": [
+        {
+          "entities": [
+            "a_shape->NumElements()",
+            "b->dims()"
+          ],
+          "claim": "a_shape->NumElements() must equal b->dims(); the loop bound i < b->dims() is therefore also the number of elements in a_shape_flat.",
+          "evidence": "L16: if (a_shape->NumElements() != b->dims()) {\nL22: for (int i = 0; i < b->dims(); ++i) {"
+        },
+        {
+          "entities": [
+            "a_shape_flat",
+            "a_shape->flat<Index>()",
+            "i",
+            "b->dims()"
+          ],
+          "claim": "a_shape_flat is a flat view of a_shape with element type Index; the loop indexes a_shape_flat(i) for i in [0, b->dims()), and b->dims() equals a_shape->NumElements(), so each access is within the flat view's element count.",
+          "evidence": "L21: const auto a_shape_flat = a_shape->flat<Index>();\nL22: for (int i = 0; i < b->dims(); ++i) {\nL23: if (a_shape_flat(i) != b->dim_size(i)) {"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "a_indices"
+          ],
+          "claim": "continuing past this check implies a_indices->shape() is a matrix",
+          "evidence": "L3: if (!TensorShapeUtils::IsMatrix(a_indices->shape())) {"
+        },
+        {
+          "entities": [
+            "a_values",
+            "a_shape"
+          ],
+          "claim": "continuing past this check implies a_values->shape() and a_shape->shape() are vectors",
+          "evidence": "L8: if (!TensorShapeUtils::IsVector(a_values->shape()) ||\nL9: !TensorShapeUtils::IsVector(a_shape->shape())) {"
+        },
+        {
+          "entities": [
+            "a_shape",
+            "b"
+          ],
+          "claim": "continuing past this check implies a_shape->NumElements() == b->dims()",
+          "evidence": "L16: if (a_shape->NumElements() != b->dims()) {"
+        },
+        {
+          "entities": [
+            "i",
+            "b"
+          ],
+          "claim": "inside the loop, 0 <= i < b->dims()",
+          "evidence": "L22: for (int i = 0; i < b->dims(); ++i) {"
+        },
+        {
+          "entities": [
+            "a_shape_flat",
+            "i",
+            "b"
+          ],
+          "claim": "continuing past the loop-body check implies a_shape_flat(i) == b->dim_size(i)",
+          "evidence": "L23: if (a_shape_flat(i) != b->dim_size(i)) {"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2373,
+              "output_tokens": 74,
+              "total_tokens": 2447
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2373,
+          "output_tokens": 74,
+          "total_tokens": 2447
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L23",
+                "matched": true,
+                "expression": "a_shape_flat(i)"
+              },
+              {
+                "location": "L27",
+                "matched": true,
+                "expression": "a_shape_flat(i)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L23",
+                "matched": true,
+                "expression": "b->dim_size(i)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_operation_locations",
+            "index": 0,
+            "locations": [
+              "L23",
+              "L27"
+            ]
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 976,
+              "output_tokens": 12,
+              "total_tokens": 988
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 976,
+          "output_tokens": 12,
+          "total_tokens": 988
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1164,
+              "output_tokens": 262,
+              "total_tokens": 1426
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1164,
+          "output_tokens": 262,
+          "total_tokens": 1426
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "if (a_shape->NumElements() != b->dims()) {",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "for (int i = 0; i < b->dims(); ++i) {",
+                "matched_lines": [
+                  22
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 21,
+                "fragment": "const auto a_shape_flat = a_shape->flat<Index>();",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "for (int i = 0; i < b->dims(); ++i) {",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "if (a_shape_flat(i) != b->dim_size(i)) {",
+                "matched_lines": [
+                  23
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 844,
+              "output_tokens": 315,
+              "total_tokens": 1159
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 844,
+          "output_tokens": 315,
+          "total_tokens": 1159
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "if (!TensorShapeUtils::IsMatrix(a_indices->shape())) {",
+                "matched_lines": [
+                  3
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (!TensorShapeUtils::IsVector(a_values->shape()) ||",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "!TensorShapeUtils::IsVector(a_shape->shape())) {",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "if (a_shape->NumElements() != b->dims()) {",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 22,
+                "fragment": "for (int i = 0; i < b->dims(); ++i) {",
+                "matched_lines": [
+                  22
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "if (a_shape_flat(i) != b->dim_size(i)) {",
+                "matched_lines": [
+                  23
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 2,
+      "states": 0,
+      "values": 2,
+      "executions": 5
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 5357,
+    "output_tokens": 663,
+    "total_tokens": 6020
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000182",
+    "split": "test",
+    "source_hash": "582a83dda361f85885d2ecd7cc3c4bbc3fdaecd800d279d60bcecca43108d48e",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

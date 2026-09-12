@@ -1,0 +1,605 @@
+{
+  "sample_id": "test_000054",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L8",
+            "L11",
+            "L14",
+            "L23"
+          ],
+          "expression": "xstrdup(optarg)",
+          "claim": "duplicate the option argument string into a newly allocated buffer"
+        },
+        {
+          "locations": [
+            "L17",
+            "L20",
+            "L26"
+          ],
+          "expression": "atoi(optarg)",
+          "claim": "convert the option argument string to an integer port number"
+        },
+        {
+          "locations": [
+            "L54",
+            "L55",
+            "L56"
+          ],
+          "expression": "mkdir(TMATE_WORKDIR, 0701)",
+          "claim": "create a directory at the given path with the given mode"
+        },
+        {
+          "locations": [
+            "L60",
+            "L61",
+            "L62"
+          ],
+          "expression": "chmod(TMATE_WORKDIR, 0701)",
+          "claim": "change the mode of the directory at the given path"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "tmate_settings->bind_addr"
+          ],
+          "claim": "tmate_settings->bind_addr is assigned a heap-allocated duplicate of optarg via xstrdup.",
+          "evidence": "L8: tmate_settings->bind_addr = xstrdup(optarg);"
+        },
+        {
+          "entities": [
+            "tmate_settings->tmate_host"
+          ],
+          "claim": "tmate_settings->tmate_host is assigned a heap-allocated duplicate of optarg via xstrdup.",
+          "evidence": "L11: tmate_settings->tmate_host = xstrdup(optarg);"
+        },
+        {
+          "entities": [
+            "tmate_settings->keys_dir"
+          ],
+          "claim": "tmate_settings->keys_dir is assigned a heap-allocated duplicate of optarg via xstrdup.",
+          "evidence": "L14: tmate_settings->keys_dir = xstrdup(optarg);"
+        },
+        {
+          "entities": [
+            "tmate_settings->websocket_hostname"
+          ],
+          "claim": "tmate_settings->websocket_hostname is assigned a heap-allocated duplicate of optarg via xstrdup.",
+          "evidence": "L23: tmate_settings->websocket_hostname = xstrdup(optarg);"
+        },
+        {
+          "entities": [
+            "tmate_settings->tmate_host"
+          ],
+          "claim": "If tmate_settings->tmate_host is NULL, it is assigned the result of get_full_hostname().",
+          "evidence": "L44: if (!tmate_settings->tmate_host)\nL45: tmate_settings->tmate_host = get_full_hostname();"
+        },
+        {
+          "entities": [
+            "cmdline"
+          ],
+          "claim": "cmdline is assigned the pointer value of *argv.",
+          "evidence": "L47: cmdline = *argv;"
+        },
+        {
+          "entities": [
+            "cmdline_end"
+          ],
+          "claim": "cmdline_end is assigned the pointer value of *envp.",
+          "evidence": "L48: cmdline_end = *envp;"
+        }
+      ],
+      "values": [],
+      "executions": [
+        {
+          "entities": [
+            "opt"
+          ],
+          "claim": "The option-processing loop continues only while getopt returns a value other than -1; each iteration handles exactly one option character.",
+          "evidence": "L5: while ((opt = getopt(argc, argv, \"b:h:k:p:q:w:z:xv\")) != -1) {"
+        },
+        {
+          "entities": [
+            "tmate_settings->tmate_host"
+          ],
+          "claim": "After option processing, if tmate_host is still NULL, it is assigned get_full_hostname(); thus after this point tmate_host is non-NULL.",
+          "evidence": "L44: if (!tmate_settings->tmate_host)\nL45: tmate_settings->tmate_host = get_full_hostname();"
+        },
+        {
+          "entities": [
+            "TMATE_WORKDIR",
+            "TMATE_WORKDIR \"/sessions\"",
+            "TMATE_WORKDIR \"/jail\""
+          ],
+          "claim": "Execution continues past the mkdir checks only if each mkdir either succeeds or fails with errno == EEXIST; otherwise tmate_fatal is invoked.",
+          "evidence": "L54: if ((mkdir(TMATE_WORKDIR, 0701)             < 0 && errno != EEXIST) ||\nL55: (mkdir(TMATE_WORKDIR \"/sessions\", 0703) < 0 && errno != EEXIST) ||\nL56: (mkdir(TMATE_WORKDIR \"/jail\", 0700)     < 0 && errno != EEXIST))\nL57: tmate_fatal(\"Cannot prepare session in \" TMATE_WORKDIR);"
+        },
+        {
+          "entities": [
+            "TMATE_WORKDIR",
+            "TMATE_WORKDIR \"/sessions\"",
+            "TMATE_WORKDIR \"/jail\""
+          ],
+          "claim": "Execution continues past the chmod checks only if all three chmod calls succeed; otherwise tmate_fatal is invoked.",
+          "evidence": "L60: if ((chmod(TMATE_WORKDIR, 0701)             < 0) ||\nL61: (chmod(TMATE_WORKDIR \"/sessions\", 0703) < 0) ||\nL62: (chmod(TMATE_WORKDIR \"/jail\", 0700)     < 0))\nL63: tmate_fatal(\"Cannot prepare session in \" TMATE_WORKDIR);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2785,
+              "output_tokens": 199,
+              "total_tokens": 2984
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2785,
+          "output_tokens": 199,
+          "total_tokens": 2984
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L8",
+                "matched": true,
+                "expression": "xstrdup(optarg)"
+              },
+              {
+                "location": "L11",
+                "matched": true,
+                "expression": "xstrdup(optarg)"
+              },
+              {
+                "location": "L14",
+                "matched": true,
+                "expression": "xstrdup(optarg)"
+              },
+              {
+                "location": "L23",
+                "matched": true,
+                "expression": "xstrdup(optarg)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L17",
+                "matched": true,
+                "expression": "atoi(optarg)"
+              },
+              {
+                "location": "L20",
+                "matched": true,
+                "expression": "atoi(optarg)"
+              },
+              {
+                "location": "L26",
+                "matched": true,
+                "expression": "atoi(optarg)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L32",
+                "matched": true,
+                "expression": "tmate_settings->log_level++"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L54",
+                "matched": true,
+                "expression": "mkdir(TMATE_WORKDIR, 0701)"
+              },
+              {
+                "location": "L55",
+                "matched": true,
+                "expression": "mkdir(TMATE_WORKDIR, 0701)"
+              },
+              {
+                "location": "L56",
+                "matched": true,
+                "expression": "mkdir(TMATE_WORKDIR, 0701)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L60",
+                "matched": true,
+                "expression": "chmod(TMATE_WORKDIR, 0701)"
+              },
+              {
+                "location": "L61",
+                "matched": true,
+                "expression": "chmod(TMATE_WORKDIR, 0701)"
+              },
+              {
+                "location": "L62",
+                "matched": true,
+                "expression": "chmod(TMATE_WORKDIR, 0701)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1388,
+              "output_tokens": 423,
+              "total_tokens": 1811
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1388,
+          "output_tokens": 423,
+          "total_tokens": 1811
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "tmate_settings->bind_addr = xstrdup(optarg);",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "tmate_settings->tmate_host = xstrdup(optarg);",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "tmate_settings->keys_dir = xstrdup(optarg);",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "tmate_settings->websocket_hostname = xstrdup(optarg);",
+                "matched_lines": [
+                  23
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "if (!tmate_settings->tmate_host)",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "tmate_settings->tmate_host = get_full_hostname();",
+                "matched_lines": [
+                  45
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 47,
+                "fragment": "cmdline = *argv;",
+                "matched_lines": [
+                  47
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 48,
+                "fragment": "cmdline_end = *envp;",
+                "matched_lines": [
+                  48
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1576,
+              "output_tokens": 10,
+              "total_tokens": 1586
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1576,
+          "output_tokens": 10,
+          "total_tokens": 1586
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1256,
+              "output_tokens": 568,
+              "total_tokens": 1824
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1256,
+          "output_tokens": 568,
+          "total_tokens": 1824
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "while ((opt = getopt(argc, argv, \"b:h:k:p:q:w:z:xv\")) != -1) {",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "if (!tmate_settings->tmate_host)",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "tmate_settings->tmate_host = get_full_hostname();",
+                "matched_lines": [
+                  45
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 54,
+                "fragment": "if ((mkdir(TMATE_WORKDIR, 0701)             < 0 && errno != EEXIST) ||",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "(mkdir(TMATE_WORKDIR \"/sessions\", 0703) < 0 && errno != EEXIST) ||",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "(mkdir(TMATE_WORKDIR \"/jail\", 0700)     < 0 && errno != EEXIST))",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "tmate_fatal(\"Cannot prepare session in \" TMATE_WORKDIR);",
+                "matched_lines": [
+                  57
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 60,
+                "fragment": "if ((chmod(TMATE_WORKDIR, 0701)             < 0) ||",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "(chmod(TMATE_WORKDIR \"/sessions\", 0703) < 0) ||",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "(chmod(TMATE_WORKDIR \"/jail\", 0700)     < 0))",
+                "matched_lines": [
+                  62
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "tmate_fatal(\"Cannot prepare session in \" TMATE_WORKDIR);",
+                "matched_lines": [
+                  63
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 4,
+      "states": 7,
+      "values": 0,
+      "executions": 4
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 1
+    }
+  },
+  "token_usage": {
+    "input_tokens": 7005,
+    "output_tokens": 1200,
+    "total_tokens": 8205
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000054",
+    "split": "test",
+    "source_hash": "9eb976020fb8697033920e7419722de0abce6376a06bec4d8b759578d0810b05",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

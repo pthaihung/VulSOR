@@ -16,13 +16,23 @@
       },
       {
         "locations": [
+          "L44"
+        ],
+        "expression": "filemap_write_and_wait(inode->i_mapping)",
+        "requirements": [
+          "inode must designate a live inode object",
+          "inode->i_mapping must designate a live address_space object"
+        ]
+      },
+      {
+        "locations": [
           "L47"
         ],
         "expression": "NFS_PROTO(dir)->open_context(dir, ctx, openflags, &attr, NULL)",
         "requirements": [
           "dir must designate a live inode object",
           "ctx must designate a valid NFS open context",
-          "attr must designate a writable nfs_fattr object"
+          "&attr must designate a writable nfs_fattr object"
         ]
       },
       {
@@ -40,7 +50,16 @@
         ],
         "expression": "put_nfs_open_context(ctx)",
         "requirements": [
-          "ctx must designate a valid NFS open context that has not already been released"
+          "ctx must designate a valid NFS open context allocated by alloc_nfs_open_context"
+        ]
+      },
+      {
+        "locations": [
+          "L71"
+        ],
+        "expression": "dput(parent)",
+        "requirements": [
+          "parent must designate a live dentry object with an active reference"
         ]
       }
     ]
@@ -53,29 +72,29 @@
         "retry_mode": "initial",
         "errors": [],
         "token_usage": {
-          "input_tokens": 2472,
-          "output_tokens": 202,
-          "total_tokens": 2674
+          "input_tokens": 2275,
+          "output_tokens": 286,
+          "total_tokens": 2561
         },
         "max_tokens": 8192,
         "serialization_prefix_recovered": false
       }
     ],
     "token_usage": {
-      "input_tokens": 2472,
-      "output_tokens": 202,
-      "total_tokens": 2674
+      "input_tokens": 2275,
+      "output_tokens": 286,
+      "total_tokens": 2561
     },
     "safety_relevance_filter": {
-      "input_operation_groups": 5,
-      "kept_obligations": 4,
+      "input_operation_groups": 7,
+      "kept_obligations": 6,
       "filtered_non_safety_candidates": 1
     }
   },
   "token_usage": {
-    "input_tokens": 2472,
-    "output_tokens": 202,
-    "total_tokens": 2674
+    "input_tokens": 2275,
+    "output_tokens": 286,
+    "total_tokens": 2561
   },
   "artifact_metadata": {
     "schema_version": "semantic-claims-v4.13",
@@ -85,7 +104,7 @@
     "split": "test",
     "source_hash": "79102873cec0858c92b7b6caa142fe5adf8fb78c4a79e14762962c6c34d3b3bb",
     "upstream_hashes": {
-      "semantic_model": "cb8369af0bc38c4e58f9677e4707c98a77de5b567164afb9a0607e791920e0b1"
+      "semantic_model": "c5e2c9e35fbf14474c5f8f6d899e550e1a6a997697b131fed16c0dbed757fe87"
     },
     "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
   }

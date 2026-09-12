@@ -10,16 +10,16 @@
             "L7",
             "L14"
           ],
-          "expression": "init_op_sig_it->second.outputs() / sig_def_outputs_it->second.name()",
-          "claim": "accessing the outputs map and the matched output entry through the signature-def iterator"
+          "expression": "init_op_sig_it->second.outputs()",
+          "claim": "accessing the outputs map of the signature def through a valid iterator"
         },
         {
           "locations": [
             "L29",
             "L33"
           ],
-          "expression": "init_op_it->second.node_list().value_size() / init_op_it->second.node_list().value(0)",
-          "claim": "accessing the node_list value size and indexed element through the collection-def iterator"
+          "expression": "init_op_it->second.node_list().value(0)",
+          "claim": "indexed access to the node list value at index 0"
         }
       ],
       "states": [],
@@ -30,31 +30,39 @@
             "init_op_sig_it",
             "sig_def_map.end()"
           ],
-          "claim": "If the signature-def entry for kSavedModelInitOpSignatureKey exists, execution enters the signature-based path and returns before the collection-based path is reached.",
-          "evidence": "L6: if (init_op_sig_it != sig_def_map.end()) {\nL15: return Status::OK();"
+          "claim": "If the signature_def map contains kSavedModelInitOpSignatureKey, execution enters the signature-based path; otherwise it falls through to the collection-based path.",
+          "evidence": "L5: meta_graph_def.signature_def().find(kSavedModelInitOpSignatureKey);\nL6: if (init_op_sig_it != sig_def_map.end()) {"
         },
         {
           "entities": [
             "sig_def_outputs_it",
             "sig_def_outputs.end()"
           ],
-          "claim": "Within the signature-based path, continuing past the output lookup check implies the output entry for kSavedModelInitOpSignatureKey exists.",
-          "evidence": "L10: if (sig_def_outputs_it == sig_def_outputs.end()) {\nL11: return errors::FailedPrecondition(\"Could not find output \","
+          "claim": "Within the signature-based path, continuing past the output lookup implies the outputs map contains kSavedModelInitOpSignatureKey.",
+          "evidence": "L8: const auto& sig_def_outputs_it =\nL9: sig_def_outputs.find(kSavedModelInitOpSignatureKey);\nL10: if (sig_def_outputs_it == sig_def_outputs.end()) {\nL11: return errors::FailedPrecondition(\"Could not find output \","
+        },
+        {
+          "entities": [
+            "init_op_collection_key",
+            "collection_def_map"
+          ],
+          "claim": "In the collection-based path, init_op_collection_key is kSavedModelMainOpKey if that key exists in collection_def_map, otherwise kSavedModelLegacyInitOpKey.",
+          "evidence": "L20: if (collection_def_map.find(kSavedModelMainOpKey) !=\nL21: collection_def_map.end()) {\nL22: init_op_collection_key = kSavedModelMainOpKey;\nL23: } else {\nL24: init_op_collection_key = kSavedModelLegacyInitOpKey;"
         },
         {
           "entities": [
             "init_op_it",
             "collection_def_map.end()"
           ],
-          "claim": "If the collection entry for init_op_collection_key exists, execution enters the collection-based assignment path.",
-          "evidence": "L28: if (init_op_it != collection_def_map.end()) {"
+          "claim": "Continuing into the node_list access implies the selected init_op_collection_key exists in collection_def_map.",
+          "evidence": "L27: const auto init_op_it = collection_def_map.find(init_op_collection_key);\nL28: if (init_op_it != collection_def_map.end()) {"
         },
         {
           "entities": [
             "init_op_it->second.node_list().value_size()"
           ],
-          "claim": "Within the collection-based path, continuing past the size check implies the node_list value_size is exactly 1.",
-          "evidence": "L29: if (init_op_it->second.node_list().value_size() != 1) {\nL30: return errors::FailedPrecondition("
+          "claim": "Accessing value(0) on the node_list implies value_size() == 1.",
+          "evidence": "L29: if (init_op_it->second.node_list().value_size() != 1) {\nL30: return errors::FailedPrecondition(\nL31: strings::StrCat(\"Expected exactly one main op in : \", export_dir));\nL33: *init_op_name = init_op_it->second.node_list().value(0);"
         }
       ]
     },
@@ -68,8 +76,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 2444,
-              "output_tokens": 113,
-              "total_tokens": 2557
+              "output_tokens": 127,
+              "total_tokens": 2571
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -77,8 +85,8 @@
         ],
         "token_usage": {
           "input_tokens": 2444,
-          "output_tokens": 113,
-          "total_tokens": 2557
+          "output_tokens": 127,
+          "total_tokens": 2571
         },
         "grounding": {
           "operation_agent.operations[0]": {
@@ -86,12 +94,12 @@
               {
                 "location": "L7",
                 "matched": true,
-                "expression": "init_op_sig_it->second.outputs() / sig_def_outputs_it->second.name()"
+                "expression": "init_op_sig_it->second.outputs()"
               },
               {
                 "location": "L14",
                 "matched": true,
-                "expression": "init_op_sig_it->second.outputs() / sig_def_outputs_it->second.name()"
+                "expression": "init_op_sig_it->second.outputs()"
               }
             ],
             "status": "pass"
@@ -101,18 +109,24 @@
               {
                 "location": "L29",
                 "matched": true,
-                "expression": "init_op_it->second.node_list().value_size() / init_op_it->second.node_list().value(0)"
+                "expression": "init_op_it->second.node_list().value(0)"
               },
               {
                 "location": "L33",
                 "matched": true,
-                "expression": "init_op_it->second.node_list().value_size() / init_op_it->second.node_list().value(0)"
+                "expression": "init_op_it->second.node_list().value(0)"
               }
             ],
             "status": "pass"
           }
         },
-        "item_recovery": []
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 1,
+            "expression": "sig_def_outputs_it->second.name()"
+          }
+        ]
       },
       "state_agent": {
         "status": "passed",
@@ -171,8 +185,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 915,
-              "output_tokens": 314,
-              "total_tokens": 1229
+              "output_tokens": 560,
+              "total_tokens": 1475
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -180,24 +194,24 @@
         ],
         "token_usage": {
           "input_tokens": 915,
-          "output_tokens": 314,
-          "total_tokens": 1229
+          "output_tokens": 560,
+          "total_tokens": 1475
         },
         "grounding": {
           "execution_agent.executions[0]": {
             "evidence_matches": [
               {
+                "evidence_line": 5,
+                "fragment": "meta_graph_def.signature_def().find(kSavedModelInitOpSignatureKey);",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
                 "evidence_line": 6,
                 "fragment": "if (init_op_sig_it != sig_def_map.end()) {",
                 "matched_lines": [
                   6
-                ]
-              },
-              {
-                "evidence_line": 15,
-                "fragment": "return Status::OK();",
-                "matched_lines": [
-                  15
                 ]
               }
             ],
@@ -205,6 +219,20 @@
           },
           "execution_agent.executions[1]": {
             "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "const auto& sig_def_outputs_it =",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "sig_def_outputs.find(kSavedModelInitOpSignatureKey);",
+                "matched_lines": [
+                  9
+                ]
+              },
               {
                 "evidence_line": 10,
                 "fragment": "if (sig_def_outputs_it == sig_def_outputs.end()) {",
@@ -225,6 +253,53 @@
           "execution_agent.executions[2]": {
             "evidence_matches": [
               {
+                "evidence_line": 20,
+                "fragment": "if (collection_def_map.find(kSavedModelMainOpKey) !=",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "collection_def_map.end()) {",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "init_op_collection_key = kSavedModelMainOpKey;",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "} else {",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "init_op_collection_key = kSavedModelLegacyInitOpKey;",
+                "matched_lines": [
+                  24
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 27,
+                "fragment": "const auto init_op_it = collection_def_map.find(init_op_collection_key);",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
                 "evidence_line": 28,
                 "fragment": "if (init_op_it != collection_def_map.end()) {",
                 "matched_lines": [
@@ -234,7 +309,7 @@
             ],
             "status": "pass"
           },
-          "execution_agent.executions[3]": {
+          "execution_agent.executions[4]": {
             "evidence_matches": [
               {
                 "evidence_line": 29,
@@ -249,12 +324,52 @@
                 "matched_lines": [
                   30
                 ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "strings::StrCat(\"Expected exactly one main op in : \", export_dir));",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "*init_op_name = init_op_it->second.node_list().value(0);",
+                "matched_lines": [
+                  33
+                ]
               }
             ],
             "status": "pass"
           }
         },
-        "item_recovery": []
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          }
+        ]
       }
     }
   },
@@ -266,7 +381,7 @@
       "operations": 2,
       "states": 0,
       "values": 0,
-      "executions": 4
+      "executions": 5
     },
     "schema_version": "semantic-claims-v4.13",
     "operation_normalization": {
@@ -275,8 +390,8 @@
   },
   "token_usage": {
     "input_tokens": 5641,
-    "output_tokens": 451,
-    "total_tokens": 6092
+    "output_tokens": 711,
+    "total_tokens": 6352
   },
   "artifact_metadata": {
     "schema_version": "semantic-claims-v4.13",

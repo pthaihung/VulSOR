@@ -11,7 +11,7 @@
         ],
         "expression": "frame_info_[\"\"]",
         "requirements": [
-          "the key used to index frame_info_ must exist in the map"
+          "the key \"\" must be present in frame_info_ so that the lookup yields a valid FrameInfo pointer"
         ]
       },
       {
@@ -20,37 +20,43 @@
         ],
         "expression": "cf_info.frame_names[id]",
         "requirements": [
-          "the index id must be within the valid readable extent of cf_info.frame_names"
+          "id must be within the valid readable extent of cf_info.frame_names"
         ]
       },
       {
         "locations": [
-          "L43",
-          "L167",
-          "L171"
+          "L43"
         ],
         "expression": "gview_.node(id)",
         "requirements": [
-          "the node id must be within the valid extent of the graph view's node storage"
+          "id must designate a valid node in gview_"
         ]
       },
       {
         "locations": [
-          "L47"
+          "L51"
         ],
-        "expression": "n->num_inputs()",
+        "expression": "params_.delete_kernel(item->kernel)",
         "requirements": [
-          "the node pointer must designate a valid live node object"
+          "item->kernel must satisfy the allocation/lifetime contract expected by params_.delete_kernel"
         ]
       },
       {
         "locations": [
-          "L66",
-          "L73"
+          "L57"
+        ],
+        "expression": "item->kernel->AsAsync()",
+        "requirements": [
+          "item->kernel must designate a live kernel object whose dynamic type supports the AsAsync virtual call"
+        ]
+      },
+      {
+        "locations": [
+          "L66"
         ],
         "expression": "item->kernel->const_tensor()",
         "requirements": [
-          "the kernel pointer must be non-null and designate a valid live kernel object"
+          "item->kernel must designate a live kernel object whose dynamic type supports the const_tensor virtual call"
         ]
       },
       {
@@ -59,7 +65,16 @@
         ],
         "expression": "const_tensors_.emplace_back(*const_tensor)",
         "requirements": [
-          "the const_tensor pointer must be non-null and designate a valid live tensor object"
+          "const_tensor must designate a live readable Tensor object"
+        ]
+      },
+      {
+        "locations": [
+          "L74"
+        ],
+        "expression": "item->kernel->type_string_view()",
+        "requirements": [
+          "item->kernel must designate a live kernel object whose dynamic type supports the type_string_view virtual call"
         ]
       },
       {
@@ -68,18 +83,7 @@
         ],
         "expression": "frame_info_[frame_name].get()",
         "requirements": [
-          "the frame name key must exist in frame_info_",
-          "the unique_ptr stored for the frame name must be non-null"
-        ]
-      },
-      {
-        "locations": [
-          "L99",
-          "L100"
-        ],
-        "expression": "enter_frame_info_.resize(id + 1)",
-        "requirements": [
-          "the requested new size id + 1 must be representable in the vector's size type"
+          "frame_name must be present in frame_info_ so that the lookup yields a valid FrameInfo pointer"
         ]
       },
       {
@@ -88,7 +92,7 @@
         ],
         "expression": "enter_frame_info_[id] = frame_info",
         "requirements": [
-          "the index id must be within the valid writable extent of enter_frame_info_"
+          "id must be within the valid writable extent of enter_frame_info_"
         ]
       },
       {
@@ -98,7 +102,7 @@
         ],
         "expression": "pending_ids_[id] = frame_info->pending_counts_layout.CreateHandle(max_pending, max_dead)",
         "requirements": [
-          "the index id must be within the valid writable extent of pending_ids_"
+          "id must be within the valid writable extent of pending_ids_"
         ]
       },
       {
@@ -107,16 +111,7 @@
         ],
         "expression": "frame_info->nodes->push_back(item)",
         "requirements": [
-          "the frame_info nodes pointer must be non-null and designate a valid live vector"
-        ]
-      },
-      {
-        "locations": [
-          "L140"
-        ],
-        "expression": "new bool[n->num_outputs()]",
-        "requirements": [
-          "the requested allocation size must be representable in the allocation size type"
+          "frame_info->nodes must designate a live writable vector"
         ]
       },
       {
@@ -125,7 +120,7 @@
         ],
         "expression": "std::fill(&outputs_required[0], &outputs_required[n->num_outputs()], false)",
         "requirements": [
-          "the range [0, n->num_outputs()) must be within the allocated outputs_required array"
+          "the range [outputs_required, outputs_required + n->num_outputs()) must be writable"
         ]
       },
       {
@@ -135,7 +130,7 @@
         ],
         "expression": "outputs_required[e->src_output()]",
         "requirements": [
-          "the edge source output index must be within the valid extent of the outputs_required array"
+          "e->src_output() must be within the valid readable and writable extent of outputs_required"
         ]
       },
       {
@@ -144,26 +139,25 @@
         ],
         "expression": "outputs_required[i]",
         "requirements": [
-          "the loop index i must be within the valid extent of the outputs_required array"
+          "i must be within the valid readable extent of outputs_required"
         ]
       },
       {
         "locations": [
-          "L169"
+          "L167"
         ],
-        "expression": "item->mutable_output_edges()",
+        "expression": "gview_.node(id)",
         "requirements": [
-          "the item pointer must designate a valid live node item object"
+          "id must designate a valid node in gview_"
         ]
       },
       {
         "locations": [
-          "L172"
+          "L171"
         ],
-        "expression": "e.input_slot += dst_item->input_start",
+        "expression": "gview_.node(dst_id)",
         "requirements": [
-          "the edge info object must designate a valid live edge info object",
-          "the destination item pointer must designate a valid live node item object"
+          "dst_id must designate a valid node in gview_"
         ]
       }
     ]
@@ -176,29 +170,29 @@
         "retry_mode": "initial",
         "errors": [],
         "token_usage": {
-          "input_tokens": 4134,
-          "output_tokens": 728,
-          "total_tokens": 4862
+          "input_tokens": 4428,
+          "output_tokens": 864,
+          "total_tokens": 5292
         },
         "max_tokens": 8192,
         "serialization_prefix_recovered": false
       }
     ],
     "token_usage": {
-      "input_tokens": 4134,
-      "output_tokens": 728,
-      "total_tokens": 4862
+      "input_tokens": 4428,
+      "output_tokens": 864,
+      "total_tokens": 5292
     },
     "safety_relevance_filter": {
-      "input_operation_groups": 17,
+      "input_operation_groups": 24,
       "kept_obligations": 17,
-      "filtered_non_safety_candidates": 0
+      "filtered_non_safety_candidates": 7
     }
   },
   "token_usage": {
-    "input_tokens": 4134,
-    "output_tokens": 728,
-    "total_tokens": 4862
+    "input_tokens": 4428,
+    "output_tokens": 864,
+    "total_tokens": 5292
   },
   "artifact_metadata": {
     "schema_version": "semantic-claims-v4.13",
@@ -208,7 +202,7 @@
     "split": "test",
     "source_hash": "01fe115d7b961a8afcff6daad5874b34cd48902e327705f6c9701b3f3df2d293",
     "upstream_hashes": {
-      "semantic_model": "01b580861681b77feec801f476d85e81800b62c71adbaf42024e9a21ce0f4555"
+      "semantic_model": "c0c3298c3f01f34008076b5890bad8c0f851e611f98ceb01d553445e3ab95826"
     },
     "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
   }

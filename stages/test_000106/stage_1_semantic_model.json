@@ -1,0 +1,238 @@
+{
+  "sample_id": "test_000106",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [],
+      "states": [],
+      "values": [
+        {
+          "entities": [
+            "size",
+            "computed_size",
+            "dummy",
+            "dummy.data[0]"
+          ],
+          "claim": "computed_size is computed as sizeof(dummy) + sizeof(dummy.data[0]) * size, so the result is a signed int product of size and the element size plus the struct size.",
+          "evidence": "L4: int computed_size = sizeof(dummy) + sizeof(dummy.data[0]) * size;"
+        },
+        {
+          "entities": [
+            "computed_size",
+            "dummy.data[0]"
+          ],
+          "claim": "Under _MSC_VER, computed_size is decremented by sizeof(dummy.data[0]) after the multiplication.",
+          "evidence": "L7: computed_size -= sizeof(dummy.data[0]);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "computed_size",
+            "size"
+          ],
+          "claim": "computed_size is computed as sizeof(dummy) + sizeof(dummy.data[0]) * size; on MSVC builds, computed_size is then reduced by sizeof(dummy.data[0]) before being returned",
+          "evidence": "L4: int computed_size = sizeof(dummy) + sizeof(dummy.data[0]) * size;\nL7: computed_size -= sizeof(dummy.data[0]);\nL9: return computed_size;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2083,
+              "output_tokens": 5,
+              "total_tokens": 2088
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2083,
+          "output_tokens": 5,
+          "total_tokens": 2088
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 686,
+              "output_tokens": 5,
+              "total_tokens": 691
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 686,
+          "output_tokens": 5,
+          "total_tokens": 691
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 874,
+              "output_tokens": 159,
+              "total_tokens": 1033
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 874,
+          "output_tokens": 159,
+          "total_tokens": 1033
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "int computed_size = sizeof(dummy) + sizeof(dummy.data[0]) * size;",
+                "matched_lines": [
+                  4
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "computed_size -= sizeof(dummy.data[0]);",
+                "matched_lines": [
+                  7
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 554,
+              "output_tokens": 117,
+              "total_tokens": 671
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 554,
+          "output_tokens": 117,
+          "total_tokens": 671
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "int computed_size = sizeof(dummy) + sizeof(dummy.data[0]) * size;",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 7,
+                "fragment": "computed_size -= sizeof(dummy.data[0]);",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "return computed_size;",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 0,
+      "states": 0,
+      "values": 2,
+      "executions": 1
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4197,
+    "output_tokens": 286,
+    "total_tokens": 4483
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000106",
+    "split": "test",
+    "source_hash": "bbcb3be618116fb5138ada1ae9159a9575fa1566affc79f2079a3ee7e8386257",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

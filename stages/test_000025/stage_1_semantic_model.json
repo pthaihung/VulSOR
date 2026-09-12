@@ -1,0 +1,766 @@
+{
+  "sample_id": "test_000025",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L17"
+          ],
+          "expression": "mrb_ary_new_from_values(mrb, n, ARY_PTR(a))",
+          "claim": "allocate a new array from n values read from the array's element buffer"
+        },
+        {
+          "locations": [
+            "L20",
+            "L21"
+          ],
+          "expression": "a->as.heap.ptr+=n; a->as.heap.len-=n",
+          "claim": "advance the shared array's heap pointer and reduce its length by n"
+        },
+        {
+          "locations": [
+            "L36"
+          ],
+          "expression": "*ptr = *(ptr+n)",
+          "claim": "read the element at ptr+n and write it to ptr"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "a"
+          ],
+          "claim": "a is an RArray pointer obtained from self via mrb_ary_ptr; a refers to the array object represented by self.",
+          "evidence": "L9: struct RArray *a = mrb_ary_ptr(self);"
+        },
+        {
+          "entities": [
+            "a"
+          ],
+          "claim": "a has been modified/checked for modification via ary_modify_check.",
+          "evidence": "L13: ary_modify_check(mrb, a);"
+        },
+        {
+          "entities": [
+            "a"
+          ],
+          "claim": "a is in shared-array state (ARY_SHARED_P(a) true).",
+          "evidence": "L18: if (ARY_SHARED_P(a)) {"
+        },
+        {
+          "entities": [
+            "a"
+          ],
+          "claim": "a's heap pointer is advanced by n and its heap length is reduced by n, shifting the array's storage region.",
+          "evidence": "L20: a->as.heap.ptr+=n;\nL21: a->as.heap.len-=n;"
+        },
+        {
+          "entities": [
+            "a"
+          ],
+          "claim": "a has been made shared via ary_make_shared.",
+          "evidence": "L25: ary_make_shared(mrb, a);"
+        },
+        {
+          "entities": [
+            "a"
+          ],
+          "claim": "a's length is set to 0.",
+          "evidence": "L29: ARY_SET_LEN(a, 0);"
+        },
+        {
+          "entities": [
+            "a",
+            "ptr"
+          ],
+          "claim": "ptr is initialized from ARY_PTR(a), pointing into a's storage region.",
+          "evidence": "L32: mrb_value *ptr = ARY_PTR(a);"
+        },
+        {
+          "entities": [
+            "a",
+            "ptr"
+          ],
+          "claim": "ptr is advanced through a's storage region while elements are shifted.",
+          "evidence": "L35: while (size--) {\nL36: *ptr = *(ptr+n);\nL37: ++ptr;"
+        },
+        {
+          "entities": [
+            "a"
+          ],
+          "claim": "a's length is set to len-n.",
+          "evidence": "L39: ARY_SET_LEN(a, len-n);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "n",
+            "len"
+          ],
+          "claim": "n is clamped to len when n > len, so after line 16 n <= len; n remains nonnegative due to the n < 0 raise at line 15.",
+          "evidence": "L15: if (n < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, \"negative array shift\");\nL16: if (n > len) n = len;"
+        },
+        {
+          "entities": [
+            "len",
+            "n",
+            "size"
+          ],
+          "claim": "size is computed as len-n, and since n <= len, size is nonnegative; the copy loop runs size times.",
+          "evidence": "L33: mrb_int size = len-n;\nL35: while (size--) {"
+        },
+        {
+          "entities": [
+            "ptr",
+            "n",
+            "size"
+          ],
+          "claim": "In the copy loop, ptr starts at ARY_PTR(a) and is advanced by one element per iteration; each iteration reads *(ptr+n), so the maximum read offset from the initial ptr is (size-1)+n = len-1.",
+          "evidence": "L32: mrb_value *ptr = ARY_PTR(a);\nL33: mrb_int size = len-n;\nL35: while (size--) {\nL36: *ptr = *(ptr+n);\nL37: ++ptr;"
+        },
+        {
+          "entities": [
+            "a",
+            "n"
+          ],
+          "claim": "In the shared-array shift path, the heap pointer is advanced by n elements and the heap length is decreased by n.",
+          "evidence": "L20: a->as.heap.ptr+=n;\nL21: a->as.heap.len-=n;"
+        },
+        {
+          "entities": [
+            "a",
+            "len",
+            "n"
+          ],
+          "claim": "When len == n, the array length is set to 0; otherwise the array length is set to len-n.",
+          "evidence": "L29: ARY_SET_LEN(a, 0);\nL39: ARY_SET_LEN(a, len-n);"
+        },
+        {
+          "entities": [
+            "n",
+            "ARY_PTR(a)"
+          ],
+          "claim": "mrb_ary_new_from_values is called with count n and source pointer ARY_PTR(a), so it reads n elements from the array start.",
+          "evidence": "L17: val = mrb_ary_new_from_values(mrb, n, ARY_PTR(a));"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "n",
+            "len"
+          ],
+          "claim": "After the early returns, n is constrained to 0 < n <= len; if n > len it is clamped to len, so the subsequent shift/copy uses n <= len.",
+          "evidence": "L14: if (len == 0 || n == 0) return mrb_ary_new(mrb);\nL15: if (n < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, \"negative array shift\");\nL16: if (n > len) n = len;"
+        },
+        {
+          "entities": [
+            "n",
+            "a->as.heap.ptr",
+            "a->as.heap.len"
+          ],
+          "claim": "At L_SHIFT, n is positive and no greater than the array length, and the heap pointer/length are advanced/reduced by n.",
+          "evidence": "L16: if (n > len) n = len;\nL19: L_SHIFT:\nL20: a->as.heap.ptr+=n;\nL21: a->as.heap.len-=n;"
+        },
+        {
+          "entities": [
+            "len",
+            "n",
+            "size"
+          ],
+          "claim": "In the non-shared, non-equal-length copy path, size = len - n is positive, and the loop copies exactly size elements from ptr+n to ptr.",
+          "evidence": "L28: else if (len == n) {\nL31: else {\nL33: mrb_int size = len-n;\nL35: while (size--) {\nL36: *ptr = *(ptr+n);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2433,
+              "output_tokens": 132,
+              "total_tokens": 2565
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2433,
+          "output_tokens": 132,
+          "total_tokens": 2565
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L17",
+                "matched": true,
+                "expression": "mrb_ary_new_from_values(mrb, n, ARY_PTR(a))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L20",
+                "matched": true,
+                "expression": "a->as.heap.ptr+=n; a->as.heap.len-=n"
+              },
+              {
+                "location": "L21",
+                "matched": true,
+                "expression": "a->as.heap.ptr+=n; a->as.heap.len-=n"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L36",
+                "matched": true,
+                "expression": "*ptr = *(ptr+n)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1036,
+              "output_tokens": 435,
+              "total_tokens": 1471
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1036,
+          "output_tokens": 435,
+          "total_tokens": 1471
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "struct RArray *a = mrb_ary_ptr(self);",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "ary_modify_check(mrb, a);",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "if (ARY_SHARED_P(a)) {",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "a->as.heap.ptr+=n;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "a->as.heap.len-=n;",
+                "matched_lines": [
+                  21
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 25,
+                "fragment": "ary_make_shared(mrb, a);",
+                "matched_lines": [
+                  25
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "ARY_SET_LEN(a, 0);",
+                "matched_lines": [
+                  29
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 32,
+                "fragment": "mrb_value *ptr = ARY_PTR(a);",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 35,
+                "fragment": "while (size--) {",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "*ptr = *(ptr+n);",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "++ptr;",
+                "matched_lines": [
+                  37
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 39,
+                "fragment": "ARY_SET_LEN(a, len-n);",
+                "matched_lines": [
+                  39
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1224,
+              "output_tokens": 499,
+              "total_tokens": 1723
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1224,
+          "output_tokens": 499,
+          "total_tokens": 1723
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "if (n < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, \"negative array shift\");",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "if (n > len) n = len;",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 33,
+                "fragment": "mrb_int size = len-n;",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "while (size--) {",
+                "matched_lines": [
+                  35
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 32,
+                "fragment": "mrb_value *ptr = ARY_PTR(a);",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "mrb_int size = len-n;",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "while (size--) {",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "*ptr = *(ptr+n);",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "++ptr;",
+                "matched_lines": [
+                  37
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "a->as.heap.ptr+=n;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "a->as.heap.len-=n;",
+                "matched_lines": [
+                  21
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "ARY_SET_LEN(a, 0);",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "ARY_SET_LEN(a, len-n);",
+                "matched_lines": [
+                  39
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "val = mrb_ary_new_from_values(mrb, n, ARY_PTR(a));",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 904,
+              "output_tokens": 345,
+              "total_tokens": 1249
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 904,
+          "output_tokens": 345,
+          "total_tokens": 1249
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "if (len == 0 || n == 0) return mrb_ary_new(mrb);",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "if (n < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, \"negative array shift\");",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "if (n > len) n = len;",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "if (n > len) n = len;",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "L_SHIFT:",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "a->as.heap.ptr+=n;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "a->as.heap.len-=n;",
+                "matched_lines": [
+                  21
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 28,
+                "fragment": "else if (len == n) {",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "else {",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "mrb_int size = len-n;",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "while (size--) {",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "*ptr = *(ptr+n);",
+                "matched_lines": [
+                  36
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 3,
+      "states": 9,
+      "values": 6,
+      "executions": 3
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 5597,
+    "output_tokens": 1411,
+    "total_tokens": 7008
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000025",
+    "split": "test",
+    "source_hash": "ffcd76c761bf43b58bda0509e07b2de0af89f3e949d5d6f0d697d6eabb78ff65",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

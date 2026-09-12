@@ -1,0 +1,1785 @@
+{
+  "sample_id": "test_000101",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L10"
+          ],
+          "expression": "data->flat<tstring>().data()",
+          "claim": "obtains a typed pointer to the tensor's string data"
+        },
+        {
+          "locations": [
+            "L14"
+          ],
+          "expression": "splits->flat<SPLITS_TYPE>()",
+          "claim": "obtains a typed flat view of the splits tensor"
+        },
+        {
+          "locations": [
+            "L18"
+          ],
+          "expression": "data->flat<tstring>().size()",
+          "claim": "reads the number of strings in the data tensor"
+        },
+        {
+          "locations": [
+            "L19"
+          ],
+          "expression": "splits_vec.size()",
+          "claim": "reads the number of elements in the splits flat view"
+        },
+        {
+          "locations": [
+            "L21"
+          ],
+          "expression": "splits_vec(0)",
+          "claim": "indexes the splits flat view at position 0"
+        },
+        {
+          "locations": [
+            "L26",
+            "L27",
+            "L30",
+            "L32"
+          ],
+          "expression": "splits_vec(i)",
+          "claim": "indexes the splits flat view at position i"
+        },
+        {
+          "locations": [
+            "L44"
+          ],
+          "expression": "ngrams_splits->flat<SPLITS_TYPE>().data()",
+          "claim": "obtains a typed pointer to the output splits tensor data"
+        },
+        {
+          "locations": [
+            "L47"
+          ],
+          "expression": "data->flat<tstring>().size()",
+          "claim": "reads the number of strings in the data tensor"
+        },
+        {
+          "locations": [
+            "L47"
+          ],
+          "expression": "splits_vec.size()",
+          "claim": "reads the number of elements in the splits flat view"
+        },
+        {
+          "locations": [
+            "L52"
+          ],
+          "expression": "ngrams_splits_data[i]",
+          "claim": "writes to the output splits data at index i"
+        },
+        {
+          "locations": [
+            "L57"
+          ],
+          "expression": "ngrams_splits_data[0]",
+          "claim": "writes to the output splits data at index 0"
+        },
+        {
+          "locations": [
+            "L59"
+          ],
+          "expression": "splits_vec(i)",
+          "claim": "indexes the splits flat view at position i"
+        },
+        {
+          "locations": [
+            "L59"
+          ],
+          "expression": "splits_vec(i - 1)",
+          "claim": "indexes the splits flat view at position i-1"
+        },
+        {
+          "locations": [
+            "L66"
+          ],
+          "expression": "ngrams_splits_data[i]",
+          "claim": "writes to the output splits data at index i"
+        },
+        {
+          "locations": [
+            "L66"
+          ],
+          "expression": "ngrams_splits_data[i - 1]",
+          "claim": "reads from the output splits data at index i-1"
+        },
+        {
+          "locations": [
+            "L73"
+          ],
+          "expression": "ngrams_splits_data[num_batch_items]",
+          "claim": "reads from the output splits data at index num_batch_items"
+        },
+        {
+          "locations": [
+            "L74"
+          ],
+          "expression": "ngrams->flat<tstring>().data()",
+          "claim": "obtains a typed pointer to the output ngrams tensor data"
+        },
+        {
+          "locations": [
+            "L77"
+          ],
+          "expression": "&input_data[splits_vec(i)]",
+          "claim": "forms a pointer into the input data at the split index"
+        },
+        {
+          "locations": [
+            "L78"
+          ],
+          "expression": "ngrams_splits_data[i]",
+          "claim": "reads from the output splits data at index i"
+        },
+        {
+          "locations": [
+            "L80",
+            "L112"
+          ],
+          "expression": "&ngrams_data[output_start_idx]",
+          "claim": "forms a pointer into the output ngrams data at the current output index"
+        },
+        {
+          "locations": [
+            "L81"
+          ],
+          "expression": "splits_vec(i + 1)",
+          "claim": "indexes the splits flat view at position i+1"
+        },
+        {
+          "locations": [
+            "L81"
+          ],
+          "expression": "splits_vec(i)",
+          "claim": "indexes the splits flat view at position i"
+        },
+        {
+          "locations": [
+            "L91"
+          ],
+          "expression": "ngrams_splits_data[i]",
+          "claim": "reads from the output splits data at index i"
+        },
+        {
+          "locations": [
+            "L92"
+          ],
+          "expression": "splits_vec(i + 1)",
+          "claim": "indexes the splits flat view at position i+1"
+        },
+        {
+          "locations": [
+            "L92"
+          ],
+          "expression": "splits_vec(i)",
+          "claim": "indexes the splits flat view at position i"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "data",
+            "input_data"
+          ],
+          "claim": "data is a Tensor pointer obtained from context input \"data\"; input_data is a pointer to the flat<tstring> data buffer of data.",
+          "evidence": "L8: const tensorflow::Tensor* data;\nL9: OP_REQUIRES_OK(context, context->input(\"data\", &data));\nL10: const auto& input_data = data->flat<tstring>().data();"
+        },
+        {
+          "entities": [
+            "splits",
+            "splits_vec"
+          ],
+          "claim": "splits is a Tensor pointer obtained from context input \"data_splits\"; splits_vec is a flat<SPLITS_TYPE> view of splits.",
+          "evidence": "L12: const tensorflow::Tensor* splits;\nL13: OP_REQUIRES_OK(context, context->input(\"data_splits\", &splits));\nL14: const auto& splits_vec = splits->flat<SPLITS_TYPE>();"
+        },
+        {
+          "entities": [
+            "ngrams_splits",
+            "ngrams_splits_data"
+          ],
+          "claim": "ngrams_splits is an allocated output Tensor at output index 1 with shape splits->shape(); ngrams_splits_data points to its flat<SPLITS_TYPE> data buffer.",
+          "evidence": "L41: tensorflow::Tensor* ngrams_splits;\nL42: OP_REQUIRES_OK(\nL43: context, context->allocate_output(1, splits->shape(), &ngrams_splits));\nL44: auto ngrams_splits_data = ngrams_splits->flat<SPLITS_TYPE>().data();"
+        },
+        {
+          "entities": [
+            "empty"
+          ],
+          "claim": "empty is an allocated output Tensor at output index 0 with shape data->shape() in the empty-input path.",
+          "evidence": "L48: tensorflow::Tensor* empty;\nL49: OP_REQUIRES_OK(context,\nL50: context->allocate_output(0, data->shape(), &empty));"
+        },
+        {
+          "entities": [
+            "ngrams",
+            "ngrams_data"
+          ],
+          "claim": "ngrams is an allocated output Tensor at output index 0 with shape {ngrams_splits_data[num_batch_items]}; ngrams_data points to its flat<tstring> data buffer.",
+          "evidence": "L69: tensorflow::Tensor* ngrams;\nL70: OP_REQUIRES_OK(\nL71: context,\nL72: context->allocate_output(\nL73: 0, TensorShape({ngrams_splits_data[num_batch_items]}), &ngrams));\nL74: auto ngrams_data = ngrams->flat<tstring>().data();"
+        },
+        {
+          "entities": [
+            "data_start",
+            "input_data",
+            "splits_vec"
+          ],
+          "claim": "data_start is a pointer into the input_data buffer at offset splits_vec(i).",
+          "evidence": "L77: auto data_start = &input_data[splits_vec(i)];"
+        },
+        {
+          "entities": [
+            "output_start",
+            "ngrams_data",
+            "output_start_idx"
+          ],
+          "claim": "output_start is a pointer into the ngrams_data buffer at offset output_start_idx.",
+          "evidence": "L80: auto output_start = &ngrams_data[output_start_idx];"
+        },
+        {
+          "entities": [
+            "output_start",
+            "ngrams_data",
+            "output_start_idx"
+          ],
+          "claim": "output_start is a pointer into the ngrams_data buffer at offset output_start_idx in the preserve_short_ path.",
+          "evidence": "L112: auto output_start = &ngrams_data[output_start_idx];"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "input_data_size",
+            "data->flat<tstring>().size()"
+          ],
+          "claim": "input_data_size is the number of tstring elements in the input data tensor, used as the upper bound for split indices.",
+          "evidence": "L18: const int input_data_size = data->flat<tstring>().size();"
+        },
+        {
+          "entities": [
+            "splits_vec_size",
+            "splits_vec.size()"
+          ],
+          "claim": "splits_vec_size is the number of SPLITS_TYPE elements in the splits tensor.",
+          "evidence": "L19: const int splits_vec_size = splits_vec.size();"
+        },
+        {
+          "entities": [
+            "prev_split",
+            "splits_vec(0)"
+          ],
+          "claim": "When splits_vec_size > 0, prev_split is initialized to splits_vec(0) and is required to equal 0.",
+          "evidence": "L21: int prev_split = splits_vec(0);\nL22: OP_REQUIRES(context, prev_split == 0,"
+        },
+        {
+          "entities": [
+            "splits_vec(i)",
+            "prev_split",
+            "input_data_size"
+          ],
+          "claim": "For each i in [1, splits_vec_size), splits_vec(i) must be >= prev_split and <= input_data_size; prev_split is then updated to splits_vec(i).",
+          "evidence": "L25: for (int i = 1; i < splits_vec_size; ++i) {\nL26: bool valid_splits = splits_vec(i) >= prev_split;\nL27: valid_splits = valid_splits && (splits_vec(i) <= input_data_size);\nL32: prev_split = splits_vec(i);"
+        },
+        {
+          "entities": [
+            "prev_split",
+            "input_data_size"
+          ],
+          "claim": "After the split validation loop, prev_split must equal input_data_size.",
+          "evidence": "L34: OP_REQUIRES(context, prev_split == input_data_size,"
+        },
+        {
+          "entities": [
+            "num_batch_items",
+            "splits_vec.size()"
+          ],
+          "claim": "num_batch_items equals splits_vec.size() - 1.",
+          "evidence": "L40: int num_batch_items = splits_vec.size() - 1;"
+        },
+        {
+          "entities": [
+            "ngrams_splits_data",
+            "splits->shape()"
+          ],
+          "claim": "ngrams_splits_data points to the flat SPLITS_TYPE data of the output tensor allocated with splits->shape().",
+          "evidence": "L42: OP_REQUIRES_OK(\nL43: context, context->allocate_output(1, splits->shape(), &ngrams_splits));\nL44: auto ngrams_splits_data = ngrams_splits->flat<SPLITS_TYPE>().data();"
+        },
+        {
+          "entities": [
+            "ngrams_splits_data",
+            "num_batch_items"
+          ],
+          "claim": "In the empty-data/splits branch, ngrams_splits_data[0..num_batch_items] are all set to 0.",
+          "evidence": "L51: for (int i = 0; i <= num_batch_items; ++i) {\nL52: ngrams_splits_data[i] = 0;"
+        },
+        {
+          "entities": [
+            "ngrams_splits_data",
+            "num_batch_items",
+            "length",
+            "num_ngrams",
+            "splits_vec(i)",
+            "splits_vec(i-1)"
+          ],
+          "claim": "ngrams_splits_data[0] is 0; for i in [1, num_batch_items], length = splits_vec(i) - splits_vec(i-1), num_ngrams is the sum over ngram_widths_ of get_num_ngrams(length, ngram_width) (or 1 if preserve_short_ and length>0 and num_ngrams==0), and ngrams_splits_data[i] = ngrams_splits_data[i-1] + num_ngrams.",
+          "evidence": "L57: ngrams_splits_data[0] = 0;\nL58: for (int i = 1; i <= num_batch_items; ++i) {\nL59: int length = splits_vec(i) - splits_vec(i - 1);\nL60: int num_ngrams = 0;\nL61: for (int ngram_width : ngram_widths_)\nL62: num_ngrams += get_num_ngrams(length, ngram_width);\nL63: if (preserve_short_ && length > 0 && num_ngrams == 0) {\nL64: num_ngrams = 1;\nL66: ngrams_splits_data[i] = ngrams_splits_data[i - 1] + num_ngrams;"
+        },
+        {
+          "entities": [
+            "ngrams",
+            "ngrams_splits_data[num_batch_items]"
+          ],
+          "claim": "The ngrams output tensor is allocated with shape {ngrams_splits_data[num_batch_items]}, so its flat<tstring> element count equals ngrams_splits_data[num_batch_items].",
+          "evidence": "L70: OP_REQUIRES_OK(\nL71: context,\nL72: context->allocate_output(\nL73: 0, TensorShape({ngrams_splits_data[num_batch_items]}), &ngrams));\nL74: auto ngrams_data = ngrams->flat<tstring>().data();"
+        },
+        {
+          "entities": [
+            "data_start",
+            "input_data",
+            "splits_vec(i)"
+          ],
+          "claim": "For each i in [0, num_batch_items), data_start = &input_data[splits_vec(i)], an interior pointer into the input data array.",
+          "evidence": "L76: for (int i = 0; i < num_batch_items; ++i) {\nL77: auto data_start = &input_data[splits_vec(i)];"
+        },
+        {
+          "entities": [
+            "output_start_idx",
+            "ngrams_splits_data[i]"
+          ],
+          "claim": "output_start_idx is initialized to ngrams_splits_data[i] for each batch item i.",
+          "evidence": "L78: int output_start_idx = ngrams_splits_data[i];"
+        },
+        {
+          "entities": [
+            "output_start",
+            "ngrams_data",
+            "output_start_idx"
+          ],
+          "claim": "output_start = &ngrams_data[output_start_idx], an interior pointer into the ngrams output array.",
+          "evidence": "L80: auto output_start = &ngrams_data[output_start_idx];"
+        },
+        {
+          "entities": [
+            "length",
+            "splits_vec(i+1)",
+            "splits_vec(i)"
+          ],
+          "claim": "For each i in [0, num_batch_items), length = splits_vec(i+1) - splits_vec(i).",
+          "evidence": "L81: int length = splits_vec(i + 1) - splits_vec(i);"
+        },
+        {
+          "entities": [
+            "num_ngrams",
+            "length",
+            "ngram_width"
+          ],
+          "claim": "num_ngrams = get_num_ngrams(length, ngram_width) for each ngram_width in ngram_widths_.",
+          "evidence": "L82: int num_ngrams = get_num_ngrams(length, ngram_width);"
+        },
+        {
+          "entities": [
+            "output_start_idx",
+            "num_ngrams"
+          ],
+          "claim": "After CreateNgrams, output_start_idx is incremented by num_ngrams.",
+          "evidence": "L84: output_start_idx += num_ngrams;"
+        },
+        {
+          "entities": [
+            "data_length",
+            "splits_vec(i+1)",
+            "splits_vec(i)"
+          ],
+          "claim": "data_length = splits_vec(i+1) - splits_vec(i) in the preserve_short_ branch.",
+          "evidence": "L92: int data_length = splits_vec(i + 1) - splits_vec(i);"
+        },
+        {
+          "entities": [
+            "ngram_width",
+            "data_length",
+            "pad_width_"
+          ],
+          "claim": "In the preserve_short_ branch, ngram_width = data_length + 2 * pad_width_, with pad_width_ required to be >= 0.",
+          "evidence": "L105: OP_REQUIRES(\nL106: context, pad_width_ >= 0,\nL111: int ngram_width = data_length + 2 * pad_width_;"
+        },
+        {
+          "entities": [
+            "output_start",
+            "ngrams_data",
+            "output_start_idx"
+          ],
+          "claim": "In the preserve_short_ branch, output_start = &ngrams_data[output_start_idx].",
+          "evidence": "L112: auto output_start = &ngrams_data[output_start_idx];"
+        },
+        {
+          "entities": [
+            "num_ngrams"
+          ],
+          "claim": "In the preserve_short_ branch, num_ngrams is set to 1.",
+          "evidence": "L113: int num_ngrams = 1;"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "ngram_width"
+          ],
+          "claim": "Every ngram_width in ngram_widths_ must be > 0 before any further execution.",
+          "evidence": "L3: OP_REQUIRES(\nL4: context, ngram_width > 0,\nL5: errors::InvalidArgument(\"ngram_widths must contain positive values\"));"
+        },
+        {
+          "entities": [
+            "splits_vec_size",
+            "prev_split",
+            "splits_vec(i)",
+            "input_data_size"
+          ],
+          "claim": "If splits_vec_size > 0, then splits_vec(0) == 0, and for each i in [1, splits_vec_size), prev_split <= splits_vec(i) <= input_data_size, with prev_split updated to splits_vec(i); after the loop, prev_split == input_data_size.",
+          "evidence": "L20: if (splits_vec_size > 0) {\nL21: int prev_split = splits_vec(0);\nL22: OP_REQUIRES(context, prev_split == 0,\nL25: for (int i = 1; i < splits_vec_size; ++i) {\nL26: bool valid_splits = splits_vec(i) >= prev_split;\nL27: valid_splits = valid_splits && (splits_vec(i) <= input_data_size);\nL28: OP_REQUIRES(context, valid_splits,\nL32: prev_split = splits_vec(i);\nL34: OP_REQUIRES(context, prev_split == input_data_size,"
+        },
+        {
+          "entities": [
+            "num_batch_items",
+            "splits_vec",
+            "data"
+          ],
+          "claim": "If data size is 0 or splits_vec size is 0, execution returns after writing zeros to ngrams_splits_data[0..num_batch_items].",
+          "evidence": "L40: int num_batch_items = splits_vec.size() - 1;\nL47: if (data->flat<tstring>().size() == 0 || splits_vec.size() == 0) {\nL51: for (int i = 0; i <= num_batch_items; ++i) {\nL52: ngrams_splits_data[i] = 0;\nL54: return;"
+        },
+        {
+          "entities": [
+            "i",
+            "num_batch_items",
+            "splits_vec",
+            "ngrams_splits_data"
+          ],
+          "claim": "Continuing past the empty-data return implies data size > 0 and splits_vec size > 0, and for i in [1, num_batch_items], ngrams_splits_data[i] = ngrams_splits_data[i-1] + num_ngrams where num_ngrams is computed from splits_vec(i)-splits_vec(i-1) and ngram_widths_.",
+          "evidence": "L57: ngrams_splits_data[0] = 0;\nL58: for (int i = 1; i <= num_batch_items; ++i) {\nL59: int length = splits_vec(i) - splits_vec(i - 1);\nL62: num_ngrams += get_num_ngrams(length, ngram_width);\nL66: ngrams_splits_data[i] = ngrams_splits_data[i - 1] + num_ngrams;"
+        },
+        {
+          "entities": [
+            "i",
+            "num_batch_items",
+            "splits_vec",
+            "input_data",
+            "ngrams_data",
+            "output_start_idx"
+          ],
+          "claim": "For i in [0, num_batch_items), data_start points to input_data[splits_vec(i)], output_start_idx starts at ngrams_splits_data[i], and for each ngram_width, output_start points to ngrams_data[output_start_idx] and output_start_idx is incremented by get_num_ngrams(splits_vec(i+1)-splits_vec(i), ngram_width).",
+          "evidence": "L76: for (int i = 0; i < num_batch_items; ++i) {\nL77: auto data_start = &input_data[splits_vec(i)];\nL78: int output_start_idx = ngrams_splits_data[i];\nL80: auto output_start = &ngrams_data[output_start_idx];\nL81: int length = splits_vec(i + 1) - splits_vec(i);\nL82: int num_ngrams = get_num_ngrams(length, ngram_width);\nL84: output_start_idx += num_ngrams;"
+        },
+        {
+          "entities": [
+            "pad_width_",
+            "data_length",
+            "ngram_width",
+            "output_start_idx",
+            "ngrams_data"
+          ],
+          "claim": "If preserve_short_ and output_start_idx == ngrams_splits_data[i], then data_length == 0 causes continue; otherwise pad_width_ >= 0 is required, ngram_width = data_length + 2*pad_width_, and one ngram is created at ngrams_data[output_start_idx].",
+          "evidence": "L91: if (preserve_short_ && output_start_idx == ngrams_splits_data[i]) {\nL92: int data_length = splits_vec(i + 1) - splits_vec(i);\nL95: if (data_length == 0) {\nL96: continue;\nL105: OP_REQUIRES(\nL106: context, pad_width_ >= 0,\nL111: int ngram_width = data_length + 2 * pad_width_;\nL112: auto output_start = &ngrams_data[output_start_idx];\nL113: int num_ngrams = 1;\nL114: CreateNgrams(data_start, output_start, num_ngrams, ngram_width);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3674,
+              "output_tokens": 839,
+              "total_tokens": 4513
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3674,
+          "output_tokens": 839,
+          "total_tokens": 4513
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L10",
+                "matched": true,
+                "expression": "data->flat<tstring>().data()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L14",
+                "matched": true,
+                "expression": "splits->flat<SPLITS_TYPE>()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L18",
+                "matched": true,
+                "expression": "data->flat<tstring>().size()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L19",
+                "matched": true,
+                "expression": "splits_vec.size()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L21",
+                "matched": true,
+                "expression": "splits_vec(0)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L26",
+                "matched": true,
+                "expression": "splits_vec(i)"
+              },
+              {
+                "location": "L27",
+                "matched": true,
+                "expression": "splits_vec(i)"
+              },
+              {
+                "location": "L30",
+                "matched": true,
+                "expression": "splits_vec(i)"
+              },
+              {
+                "location": "L32",
+                "matched": true,
+                "expression": "splits_vec(i)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L44",
+                "matched": true,
+                "expression": "ngrams_splits->flat<SPLITS_TYPE>().data()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L47",
+                "matched": true,
+                "expression": "data->flat<tstring>().size()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L47",
+                "matched": true,
+                "expression": "splits_vec.size()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[9]": {
+            "expression_matches": [
+              {
+                "location": "L52",
+                "matched": true,
+                "expression": "ngrams_splits_data[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[10]": {
+            "expression_matches": [
+              {
+                "location": "L57",
+                "matched": true,
+                "expression": "ngrams_splits_data[0]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[11]": {
+            "expression_matches": [
+              {
+                "location": "L59",
+                "matched": true,
+                "expression": "splits_vec(i)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[12]": {
+            "expression_matches": [
+              {
+                "location": "L59",
+                "matched": true,
+                "expression": "splits_vec(i - 1)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[13]": {
+            "expression_matches": [
+              {
+                "location": "L66",
+                "matched": true,
+                "expression": "ngrams_splits_data[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[14]": {
+            "expression_matches": [
+              {
+                "location": "L66",
+                "matched": true,
+                "expression": "ngrams_splits_data[i - 1]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[15]": {
+            "expression_matches": [
+              {
+                "location": "L73",
+                "matched": true,
+                "expression": "ngrams_splits_data[num_batch_items]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[16]": {
+            "expression_matches": [
+              {
+                "location": "L74",
+                "matched": true,
+                "expression": "ngrams->flat<tstring>().data()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[17]": {
+            "expression_matches": [
+              {
+                "location": "L77",
+                "matched": true,
+                "expression": "&input_data[splits_vec(i)]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[18]": {
+            "expression_matches": [
+              {
+                "location": "L78",
+                "matched": true,
+                "expression": "ngrams_splits_data[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[19]": {
+            "expression_matches": [
+              {
+                "location": "L80",
+                "matched": true,
+                "expression": "&ngrams_data[output_start_idx]"
+              },
+              {
+                "location": "L112",
+                "matched": true,
+                "expression": "&ngrams_data[output_start_idx]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[20]": {
+            "expression_matches": [
+              {
+                "location": "L81",
+                "matched": true,
+                "expression": "splits_vec(i + 1)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[21]": {
+            "expression_matches": [
+              {
+                "location": "L81",
+                "matched": true,
+                "expression": "splits_vec(i)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[22]": {
+            "expression_matches": [
+              {
+                "location": "L91",
+                "matched": true,
+                "expression": "ngrams_splits_data[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[23]": {
+            "expression_matches": [
+              {
+                "location": "L92",
+                "matched": true,
+                "expression": "splits_vec(i + 1)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[24]": {
+            "expression_matches": [
+              {
+                "location": "L92",
+                "matched": true,
+                "expression": "splits_vec(i)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2277,
+              "output_tokens": 747,
+              "total_tokens": 3024
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2277,
+          "output_tokens": 747,
+          "total_tokens": 3024
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "const tensorflow::Tensor* data;",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "OP_REQUIRES_OK(context, context->input(\"data\", &data));",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "const auto& input_data = data->flat<tstring>().data();",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "const tensorflow::Tensor* splits;",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "OP_REQUIRES_OK(context, context->input(\"data_splits\", &splits));",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "const auto& splits_vec = splits->flat<SPLITS_TYPE>();",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 41,
+                "fragment": "tensorflow::Tensor* ngrams_splits;",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 42,
+                "fragment": "OP_REQUIRES_OK(",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "context, context->allocate_output(1, splits->shape(), &ngrams_splits));",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "auto ngrams_splits_data = ngrams_splits->flat<SPLITS_TYPE>().data();",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 48,
+                "fragment": "tensorflow::Tensor* empty;",
+                "matched_lines": [
+                  48
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "OP_REQUIRES_OK(context,",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "context->allocate_output(0, data->shape(), &empty));",
+                "matched_lines": [
+                  50
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 69,
+                "fragment": "tensorflow::Tensor* ngrams;",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "OP_REQUIRES_OK(",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 71,
+                "fragment": "context,",
+                "matched_lines": [
+                  71
+                ]
+              },
+              {
+                "evidence_line": 72,
+                "fragment": "context->allocate_output(",
+                "matched_lines": [
+                  72
+                ]
+              },
+              {
+                "evidence_line": 73,
+                "fragment": "0, TensorShape({ngrams_splits_data[num_batch_items]}), &ngrams));",
+                "matched_lines": [
+                  73
+                ]
+              },
+              {
+                "evidence_line": 74,
+                "fragment": "auto ngrams_data = ngrams->flat<tstring>().data();",
+                "matched_lines": [
+                  74
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 77,
+                "fragment": "auto data_start = &input_data[splits_vec(i)];",
+                "matched_lines": [
+                  77
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 80,
+                "fragment": "auto output_start = &ngrams_data[output_start_idx];",
+                "matched_lines": [
+                  80
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 112,
+                "fragment": "auto output_start = &ngrams_data[output_start_idx];",
+                "matched_lines": [
+                  112
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2465,
+              "output_tokens": 1799,
+              "total_tokens": 4264
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2465,
+          "output_tokens": 1799,
+          "total_tokens": 4264
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "const int input_data_size = data->flat<tstring>().size();",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 19,
+                "fragment": "const int splits_vec_size = splits_vec.size();",
+                "matched_lines": [
+                  19
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 21,
+                "fragment": "int prev_split = splits_vec(0);",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "OP_REQUIRES(context, prev_split == 0,",
+                "matched_lines": [
+                  22
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 25,
+                "fragment": "for (int i = 1; i < splits_vec_size; ++i) {",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "bool valid_splits = splits_vec(i) >= prev_split;",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "valid_splits = valid_splits && (splits_vec(i) <= input_data_size);",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "prev_split = splits_vec(i);",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 34,
+                "fragment": "OP_REQUIRES(context, prev_split == input_data_size,",
+                "matched_lines": [
+                  34
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 40,
+                "fragment": "int num_batch_items = splits_vec.size() - 1;",
+                "matched_lines": [
+                  40
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 42,
+                "fragment": "OP_REQUIRES_OK(",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "context, context->allocate_output(1, splits->shape(), &ngrams_splits));",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "auto ngrams_splits_data = ngrams_splits->flat<SPLITS_TYPE>().data();",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 51,
+                "fragment": "for (int i = 0; i <= num_batch_items; ++i) {",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "ngrams_splits_data[i] = 0;",
+                "matched_lines": [
+                  52
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "ngrams_splits_data[0] = 0;",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "for (int i = 1; i <= num_batch_items; ++i) {",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "int length = splits_vec(i) - splits_vec(i - 1);",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "int num_ngrams = 0;",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "for (int ngram_width : ngram_widths_)",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "num_ngrams += get_num_ngrams(length, ngram_width);",
+                "matched_lines": [
+                  62
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "if (preserve_short_ && length > 0 && num_ngrams == 0) {",
+                "matched_lines": [
+                  63
+                ]
+              },
+              {
+                "evidence_line": 64,
+                "fragment": "num_ngrams = 1;",
+                "matched_lines": [
+                  64
+                ]
+              },
+              {
+                "evidence_line": 66,
+                "fragment": "ngrams_splits_data[i] = ngrams_splits_data[i - 1] + num_ngrams;",
+                "matched_lines": [
+                  66
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 70,
+                "fragment": "OP_REQUIRES_OK(",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 71,
+                "fragment": "context,",
+                "matched_lines": [
+                  71
+                ]
+              },
+              {
+                "evidence_line": 72,
+                "fragment": "context->allocate_output(",
+                "matched_lines": [
+                  72
+                ]
+              },
+              {
+                "evidence_line": 73,
+                "fragment": "0, TensorShape({ngrams_splits_data[num_batch_items]}), &ngrams));",
+                "matched_lines": [
+                  73
+                ]
+              },
+              {
+                "evidence_line": 74,
+                "fragment": "auto ngrams_data = ngrams->flat<tstring>().data();",
+                "matched_lines": [
+                  74
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 76,
+                "fragment": "for (int i = 0; i < num_batch_items; ++i) {",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 77,
+                "fragment": "auto data_start = &input_data[splits_vec(i)];",
+                "matched_lines": [
+                  77
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 78,
+                "fragment": "int output_start_idx = ngrams_splits_data[i];",
+                "matched_lines": [
+                  78
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 80,
+                "fragment": "auto output_start = &ngrams_data[output_start_idx];",
+                "matched_lines": [
+                  80
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 81,
+                "fragment": "int length = splits_vec(i + 1) - splits_vec(i);",
+                "matched_lines": [
+                  81
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 82,
+                "fragment": "int num_ngrams = get_num_ngrams(length, ngram_width);",
+                "matched_lines": [
+                  82
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[15]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 84,
+                "fragment": "output_start_idx += num_ngrams;",
+                "matched_lines": [
+                  84
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[16]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 92,
+                "fragment": "int data_length = splits_vec(i + 1) - splits_vec(i);",
+                "matched_lines": [
+                  92
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[17]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 105,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  105
+                ]
+              },
+              {
+                "evidence_line": 106,
+                "fragment": "context, pad_width_ >= 0,",
+                "matched_lines": [
+                  106
+                ]
+              },
+              {
+                "evidence_line": 111,
+                "fragment": "int ngram_width = data_length + 2 * pad_width_;",
+                "matched_lines": [
+                  111
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[18]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 112,
+                "fragment": "auto output_start = &ngrams_data[output_start_idx];",
+                "matched_lines": [
+                  112
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[19]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 113,
+                "fragment": "int num_ngrams = 1;",
+                "matched_lines": [
+                  113
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2145,
+              "output_tokens": 1201,
+              "total_tokens": 3346
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2145,
+          "output_tokens": 1201,
+          "total_tokens": 3346
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  3
+                ]
+              },
+              {
+                "evidence_line": 4,
+                "fragment": "context, ngram_width > 0,",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 5,
+                "fragment": "errors::InvalidArgument(\"ngram_widths must contain positive values\"));",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "if (splits_vec_size > 0) {",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "int prev_split = splits_vec(0);",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "OP_REQUIRES(context, prev_split == 0,",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "for (int i = 1; i < splits_vec_size; ++i) {",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "bool valid_splits = splits_vec(i) >= prev_split;",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "valid_splits = valid_splits && (splits_vec(i) <= input_data_size);",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "OP_REQUIRES(context, valid_splits,",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "prev_split = splits_vec(i);",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "OP_REQUIRES(context, prev_split == input_data_size,",
+                "matched_lines": [
+                  34
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 40,
+                "fragment": "int num_batch_items = splits_vec.size() - 1;",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "if (data->flat<tstring>().size() == 0 || splits_vec.size() == 0) {",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "for (int i = 0; i <= num_batch_items; ++i) {",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "ngrams_splits_data[i] = 0;",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "return;",
+                "matched_lines": [
+                  54
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "ngrams_splits_data[0] = 0;",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "for (int i = 1; i <= num_batch_items; ++i) {",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "int length = splits_vec(i) - splits_vec(i - 1);",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "num_ngrams += get_num_ngrams(length, ngram_width);",
+                "matched_lines": [
+                  62
+                ]
+              },
+              {
+                "evidence_line": 66,
+                "fragment": "ngrams_splits_data[i] = ngrams_splits_data[i - 1] + num_ngrams;",
+                "matched_lines": [
+                  66
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 76,
+                "fragment": "for (int i = 0; i < num_batch_items; ++i) {",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 77,
+                "fragment": "auto data_start = &input_data[splits_vec(i)];",
+                "matched_lines": [
+                  77
+                ]
+              },
+              {
+                "evidence_line": 78,
+                "fragment": "int output_start_idx = ngrams_splits_data[i];",
+                "matched_lines": [
+                  78
+                ]
+              },
+              {
+                "evidence_line": 80,
+                "fragment": "auto output_start = &ngrams_data[output_start_idx];",
+                "matched_lines": [
+                  80
+                ]
+              },
+              {
+                "evidence_line": 81,
+                "fragment": "int length = splits_vec(i + 1) - splits_vec(i);",
+                "matched_lines": [
+                  81
+                ]
+              },
+              {
+                "evidence_line": 82,
+                "fragment": "int num_ngrams = get_num_ngrams(length, ngram_width);",
+                "matched_lines": [
+                  82
+                ]
+              },
+              {
+                "evidence_line": 84,
+                "fragment": "output_start_idx += num_ngrams;",
+                "matched_lines": [
+                  84
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 91,
+                "fragment": "if (preserve_short_ && output_start_idx == ngrams_splits_data[i]) {",
+                "matched_lines": [
+                  91
+                ]
+              },
+              {
+                "evidence_line": 92,
+                "fragment": "int data_length = splits_vec(i + 1) - splits_vec(i);",
+                "matched_lines": [
+                  92
+                ]
+              },
+              {
+                "evidence_line": 95,
+                "fragment": "if (data_length == 0) {",
+                "matched_lines": [
+                  95
+                ]
+              },
+              {
+                "evidence_line": 96,
+                "fragment": "continue;",
+                "matched_lines": [
+                  96
+                ]
+              },
+              {
+                "evidence_line": 105,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  105
+                ]
+              },
+              {
+                "evidence_line": 106,
+                "fragment": "context, pad_width_ >= 0,",
+                "matched_lines": [
+                  106
+                ]
+              },
+              {
+                "evidence_line": 111,
+                "fragment": "int ngram_width = data_length + 2 * pad_width_;",
+                "matched_lines": [
+                  111
+                ]
+              },
+              {
+                "evidence_line": 112,
+                "fragment": "auto output_start = &ngrams_data[output_start_idx];",
+                "matched_lines": [
+                  112
+                ]
+              },
+              {
+                "evidence_line": 113,
+                "fragment": "int num_ngrams = 1;",
+                "matched_lines": [
+                  113
+                ]
+              },
+              {
+                "evidence_line": 114,
+                "fragment": "CreateNgrams(data_start, output_start, num_ngrams, ngram_width);",
+                "matched_lines": [
+                  114
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 25,
+      "states": 8,
+      "values": 20,
+      "executions": 6
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 10561,
+    "output_tokens": 4586,
+    "total_tokens": 15147
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000101",
+    "split": "test",
+    "source_hash": "5aa5909ae1d85bcf1f571f9860e505b3b5f880748f84c7d951ca2e7a150292d9",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

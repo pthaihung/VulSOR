@@ -1,0 +1,627 @@
+{
+  "sample_id": "test_000045",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L16"
+          ],
+          "expression": "c->intercepts[i] = h->intercepts[i]",
+          "claim": "write to and read from intercepts arrays at index i"
+        },
+        {
+          "locations": [
+            "L35"
+          ],
+          "expression": "c->intercepts[i] |= g->intercepts[i]",
+          "claim": "read-modify-write of intercepts arrays at index i"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "svm->vmcb",
+            "svm->vmcb->control",
+            "c"
+          ],
+          "claim": "c points to the control area of svm->vmcb, which is marked dirty for VMCB_INTERCEPTS.",
+          "evidence": "L6: vmcb_mark_dirty(svm->vmcb, VMCB_INTERCEPTS);\nL11: c = &svm->vmcb->control;"
+        },
+        {
+          "entities": [
+            "svm->vmcb01.ptr",
+            "svm->vmcb01.ptr->control",
+            "h"
+          ],
+          "claim": "h points to the control area of svm->vmcb01.ptr.",
+          "evidence": "L12: h = &svm->vmcb01.ptr->control;"
+        },
+        {
+          "entities": [
+            "svm->nested.ctl",
+            "g"
+          ],
+          "claim": "g points to svm->nested.ctl.",
+          "evidence": "L13: g = &svm->nested.ctl;"
+        },
+        {
+          "entities": [
+            "c",
+            "h"
+          ],
+          "claim": "The intercepts array of c is initialized from the intercepts array of h.",
+          "evidence": "L15: for (i = 0; i < MAX_INTERCEPT; i++)\nL16: c->intercepts[i] = h->intercepts[i];"
+        },
+        {
+          "entities": [
+            "c",
+            "g"
+          ],
+          "claim": "The intercepts array of c is updated with the intercepts array of g.",
+          "evidence": "L34: for (i = 0; i < MAX_INTERCEPT; i++)\nL35: c->intercepts[i] |= g->intercepts[i];"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "MAX_INTERCEPT",
+            "i",
+            "c->intercepts",
+            "h->intercepts",
+            "g->intercepts"
+          ],
+          "claim": "Both loops iterate i from 0 to MAX_INTERCEPT-1, indexing c->intercepts, h->intercepts, and g->intercepts at the same index i, so each array access is bounded by MAX_INTERCEPT.",
+          "evidence": "L15: for (i = 0; i < MAX_INTERCEPT; i++)\nL16: c->intercepts[i] = h->intercepts[i];\nL34: for (i = 0; i < MAX_INTERCEPT; i++)\nL35: c->intercepts[i] |= g->intercepts[i];"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "i"
+          ],
+          "claim": "The first loop runs with 0 <= i < MAX_INTERCEPT, and after it completes i == MAX_INTERCEPT; the second loop then runs with 0 <= i < MAX_INTERCEPT.",
+          "evidence": "L15: for (i = 0; i < MAX_INTERCEPT; i++)\nL34: for (i = 0; i < MAX_INTERCEPT; i++)"
+        },
+        {
+          "entities": [
+            "c",
+            "h",
+            "g"
+          ],
+          "claim": "After the early return, c, h, and g are initialized to the control areas of svm->vmcb, svm->vmcb01.ptr, and svm->nested.ctl respectively, and remain valid through the intercept updates.",
+          "evidence": "L8: if (!is_guest_mode(&svm->vcpu))\nL9: return;\nL11: c = &svm->vmcb->control;\nL12: h = &svm->vmcb01.ptr->control;\nL13: g = &svm->nested.ctl;"
+        },
+        {
+          "entities": [
+            "c"
+          ],
+          "claim": "If g->int_ctl has V_INTR_MASKING_MASK set, then INTERCEPT_CR8_READ, INTERCEPT_CR8_WRITE, and INTERCEPT_VINTR are cleared in c before the second loop ORs in g->intercepts.",
+          "evidence": "L18: if (g->int_ctl & V_INTR_MASKING_MASK) {\nL20: vmcb_clr_intercept(c, INTERCEPT_CR8_READ);\nL21: vmcb_clr_intercept(c, INTERCEPT_CR8_WRITE);\nL28: vmcb_clr_intercept(c, INTERCEPT_VINTR);\nL34: for (i = 0; i < MAX_INTERCEPT; i++)\nL35: c->intercepts[i] |= g->intercepts[i];"
+        },
+        {
+          "entities": [
+            "c"
+          ],
+          "claim": "INTERCEPT_VMMCALL is cleared in c before the second loop ORs in g->intercepts.",
+          "evidence": "L32: vmcb_clr_intercept(c, INTERCEPT_VMMCALL);\nL34: for (i = 0; i < MAX_INTERCEPT; i++)\nL35: c->intercepts[i] |= g->intercepts[i];"
+        },
+        {
+          "entities": [
+            "c"
+          ],
+          "claim": "If intercept_smi is false, INTERCEPT_SMI is cleared in c after the second loop.",
+          "evidence": "L38: if (!intercept_smi)\nL39: vmcb_clr_intercept(c, INTERCEPT_SMI);"
+        },
+        {
+          "entities": [
+            "c"
+          ],
+          "claim": "INTERCEPT_VMLOAD and INTERCEPT_VMSAVE are set in c after the second loop and any SMI clearing.",
+          "evidence": "L41: vmcb_set_intercept(c, INTERCEPT_VMLOAD);\nL42: vmcb_set_intercept(c, INTERCEPT_VMSAVE);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2525,
+              "output_tokens": 82,
+              "total_tokens": 2607
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2525,
+          "output_tokens": 82,
+          "total_tokens": 2607
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L16",
+                "matched": true,
+                "expression": "c->intercepts[i] = h->intercepts[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L35",
+                "matched": true,
+                "expression": "c->intercepts[i] |= g->intercepts[i]"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1128,
+              "output_tokens": 362,
+              "total_tokens": 1490
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1128,
+          "output_tokens": 362,
+          "total_tokens": 1490
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "vmcb_mark_dirty(svm->vmcb, VMCB_INTERCEPTS);",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "c = &svm->vmcb->control;",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "h = &svm->vmcb01.ptr->control;",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "g = &svm->nested.ctl;",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "for (i = 0; i < MAX_INTERCEPT; i++)",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "c->intercepts[i] = h->intercepts[i];",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 34,
+                "fragment": "for (i = 0; i < MAX_INTERCEPT; i++)",
+                "matched_lines": [
+                  34
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "c->intercepts[i] |= g->intercepts[i];",
+                "matched_lines": [
+                  35
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1316,
+              "output_tokens": 178,
+              "total_tokens": 1494
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1316,
+          "output_tokens": 178,
+          "total_tokens": 1494
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "for (i = 0; i < MAX_INTERCEPT; i++)",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "c->intercepts[i] = h->intercepts[i];",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "for (i = 0; i < MAX_INTERCEPT; i++)",
+                "matched_lines": [
+                  34
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "c->intercepts[i] |= g->intercepts[i];",
+                "matched_lines": [
+                  35
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 996,
+              "output_tokens": 699,
+              "total_tokens": 1695
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 996,
+          "output_tokens": 699,
+          "total_tokens": 1695
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "for (i = 0; i < MAX_INTERCEPT; i++)",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "for (i = 0; i < MAX_INTERCEPT; i++)",
+                "matched_lines": [
+                  34
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (!is_guest_mode(&svm->vcpu))",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "return;",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "c = &svm->vmcb->control;",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "h = &svm->vmcb01.ptr->control;",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "g = &svm->nested.ctl;",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "if (g->int_ctl & V_INTR_MASKING_MASK) {",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "vmcb_clr_intercept(c, INTERCEPT_CR8_READ);",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "vmcb_clr_intercept(c, INTERCEPT_CR8_WRITE);",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "vmcb_clr_intercept(c, INTERCEPT_VINTR);",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "for (i = 0; i < MAX_INTERCEPT; i++)",
+                "matched_lines": [
+                  34
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "c->intercepts[i] |= g->intercepts[i];",
+                "matched_lines": [
+                  35
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 32,
+                "fragment": "vmcb_clr_intercept(c, INTERCEPT_VMMCALL);",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "for (i = 0; i < MAX_INTERCEPT; i++)",
+                "matched_lines": [
+                  34
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "c->intercepts[i] |= g->intercepts[i];",
+                "matched_lines": [
+                  35
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 38,
+                "fragment": "if (!intercept_smi)",
+                "matched_lines": [
+                  38
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "vmcb_clr_intercept(c, INTERCEPT_SMI);",
+                "matched_lines": [
+                  39
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 41,
+                "fragment": "vmcb_set_intercept(c, INTERCEPT_VMLOAD);",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 42,
+                "fragment": "vmcb_set_intercept(c, INTERCEPT_VMSAVE);",
+                "matched_lines": [
+                  42
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 2,
+      "states": 5,
+      "values": 1,
+      "executions": 6
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 5965,
+    "output_tokens": 1321,
+    "total_tokens": 7286
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000045",
+    "split": "test",
+    "source_hash": "0d1cb8b2b924ce324eb4ab47820edcc1af187190898052769bbe48f5c6f13132",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

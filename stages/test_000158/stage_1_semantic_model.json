@@ -1,0 +1,369 @@
+{
+  "sample_id": "test_000158",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L10"
+          ],
+          "expression": "str[i] = gf_bs_read_u8(bs)",
+          "claim": "write to str at index i within the 1024-byte buffer"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "p",
+            "s"
+          ],
+          "claim": "p is a pointer to the GF_DIMSScriptTypesBox object s; p->content_script_types is assigned a newly duplicated string from str.",
+          "evidence": "L5: GF_DIMSScriptTypesBox *p = (GF_DIMSScriptTypesBox *)s;\nL16: p->content_script_types = gf_strdup(str);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "i",
+            "str",
+            "str[i]"
+          ],
+          "claim": "i is the byte index into str[1024]; the loop writes str[i] before incrementing i, so the maximum index written is bounded only by the terminating NUL byte read from the bitstream, not by the 1024-byte array size.",
+          "evidence": "L4: char str[1024];\nL10: str[i] = gf_bs_read_u8(bs);\nL11: if (!str[i]) break;\nL12: i++;"
+        },
+        {
+          "entities": [
+            "i",
+            "p",
+            "ISOM_DECREASE_SIZE"
+          ],
+          "claim": "ISOM_DECREASE_SIZE(p, i) decreases the box size by i, where i is the number of non-NUL bytes read into str before the terminating NUL.",
+          "evidence": "L14: ISOM_DECREASE_SIZE(p, i);"
+        },
+        {
+          "entities": [
+            "str",
+            "p->content_script_types",
+            "gf_strdup"
+          ],
+          "claim": "p->content_script_types is a duplicate of the NUL-terminated str buffer, so its length is the string length of str, which is i.",
+          "evidence": "L16: p->content_script_types = gf_strdup(str);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "i"
+          ],
+          "claim": "The loop continues reading bytes into str[i] and incrementing i until a zero byte is read; therefore, when the loop exits, i is the index of the terminating zero byte and all prior bytes str[0..i-1] were nonzero.",
+          "evidence": "L9: while (1) {\nL10: str[i] = gf_bs_read_u8(bs);\nL11: if (!str[i]) break;\nL12: i++;"
+        },
+        {
+          "entities": [
+            "i"
+          ],
+          "claim": "After the loop, i is used as the size decrement amount, so the number of bytes consumed from the bitstream is i (the terminating zero byte is not counted in the decrement).",
+          "evidence": "L14: ISOM_DECREASE_SIZE(p, i);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2149,
+              "output_tokens": 46,
+              "total_tokens": 2195
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2149,
+          "output_tokens": 46,
+          "total_tokens": 2195
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L10",
+                "matched": true,
+                "expression": "str[i] = gf_bs_read_u8(bs)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 752,
+              "output_tokens": 95,
+              "total_tokens": 847
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 752,
+          "output_tokens": 95,
+          "total_tokens": 847
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "GF_DIMSScriptTypesBox *p = (GF_DIMSScriptTypesBox *)s;",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "p->content_script_types = gf_strdup(str);",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 940,
+              "output_tokens": 281,
+              "total_tokens": 1221
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 940,
+          "output_tokens": 281,
+          "total_tokens": 1221
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "char str[1024];",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "str[i] = gf_bs_read_u8(bs);",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "if (!str[i]) break;",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "i++;",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "ISOM_DECREASE_SIZE(p, i);",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "p->content_script_types = gf_strdup(str);",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 620,
+              "output_tokens": 206,
+              "total_tokens": 826
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 620,
+          "output_tokens": 206,
+          "total_tokens": 826
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "while (1) {",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "str[i] = gf_bs_read_u8(bs);",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "if (!str[i]) break;",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "i++;",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "ISOM_DECREASE_SIZE(p, i);",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 1,
+      "states": 1,
+      "values": 3,
+      "executions": 2
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4461,
+    "output_tokens": 628,
+    "total_tokens": 5089
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000158",
+    "split": "test",
+    "source_hash": "7cbab2980a06de8f7509dd5d053353d918dd56a89144c812ee0b202e29bb3658",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

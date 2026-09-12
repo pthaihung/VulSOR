@@ -1,0 +1,643 @@
+{
+  "sample_id": "test_000183",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L34"
+          ],
+          "expression": "a_shape_flat(i)",
+          "claim": "indexed read from a_shape_flat at position i"
+        },
+        {
+          "locations": [
+            "L47"
+          ],
+          "expression": "a_indices_mat(zidx, didx)",
+          "claim": "indexed read from a_indices_mat at row zidx, column didx"
+        },
+        {
+          "locations": [
+            "L48"
+          ],
+          "expression": "a_shape_flat(didx)",
+          "claim": "indexed read from a_shape_flat at position didx"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "a_shape_flat"
+          ],
+          "claim": "a_shape_flat is a flat view over the storage of the a_shape tensor, providing element access into that tensor's data.",
+          "evidence": "L32: const auto a_shape_flat = a_shape->flat<Index>();"
+        },
+        {
+          "entities": [
+            "a_indices_mat"
+          ],
+          "claim": "a_indices_mat is a matrix view over the storage of the a_indices tensor, providing element access into that tensor's data.",
+          "evidence": "L43: const auto a_indices_mat = a_indices->flat_inner_dims<Index>();"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "nnz",
+            "a_indices->dim_size(0)"
+          ],
+          "claim": "nnz is the number of rows of a_indices (dim_size(0)).",
+          "evidence": "L16: int64_t nnz = a_indices->dim_size(0);"
+        },
+        {
+          "entities": [
+            "ndims",
+            "a_indices->dim_size(1)"
+          ],
+          "claim": "ndims is the number of columns of a_indices (dim_size(1)).",
+          "evidence": "L17: int64_t ndims = a_indices->dim_size(1);"
+        },
+        {
+          "entities": [
+            "a_values->dim_size(0)",
+            "nnz"
+          ],
+          "claim": "a_values->dim_size(0) must equal nnz.",
+          "evidence": "L18: if (a_values->dim_size(0) != nnz) {"
+        },
+        {
+          "entities": [
+            "a_shape->dim_size(0)",
+            "ndims"
+          ],
+          "claim": "a_shape->dim_size(0) must equal ndims.",
+          "evidence": "L23: if (a_shape->dim_size(0) != ndims) {"
+        },
+        {
+          "entities": [
+            "a_shape->NumElements()",
+            "b->dims()"
+          ],
+          "claim": "a_shape->NumElements() must equal b->dims().",
+          "evidence": "L27: if (a_shape->NumElements() != b->dims()) {"
+        },
+        {
+          "entities": [
+            "a_shape_flat",
+            "a_shape"
+          ],
+          "claim": "a_shape_flat is a flat view of a_shape with element type Index.",
+          "evidence": "L32: const auto a_shape_flat = a_shape->flat<Index>();"
+        },
+        {
+          "entities": [
+            "a_shape_flat(i)",
+            "b->dim_size(i)",
+            "i",
+            "b->dims()"
+          ],
+          "claim": "For each i in [0, b->dims()), a_shape_flat(i) must equal b->dim_size(i).",
+          "evidence": "L33: for (int i = 0; i < b->dims(); ++i) {\nL34: if (a_shape_flat(i) != b->dim_size(i)) {"
+        },
+        {
+          "entities": [
+            "a_indices_mat",
+            "a_indices"
+          ],
+          "claim": "a_indices_mat is a flat_inner_dims<Index> view of a_indices, indexed as (zidx, didx).",
+          "evidence": "L43: const auto a_indices_mat = a_indices->flat_inner_dims<Index>();"
+        },
+        {
+          "entities": [
+            "zidx",
+            "nnz"
+          ],
+          "claim": "zidx ranges over [0, nnz).",
+          "evidence": "L45: for (int64_t zidx = 0; zidx < nnz; ++zidx) {"
+        },
+        {
+          "entities": [
+            "didx",
+            "ndims"
+          ],
+          "claim": "didx ranges over [0, ndims).",
+          "evidence": "L46: for (int64_t didx = 0; didx < ndims; ++didx) {"
+        },
+        {
+          "entities": [
+            "idx",
+            "a_indices_mat(zidx, didx)"
+          ],
+          "claim": "idx is the Index value read from a_indices_mat at (zidx, didx).",
+          "evidence": "L47: const Index idx = a_indices_mat(zidx, didx);"
+        },
+        {
+          "entities": [
+            "idx",
+            "a_shape_flat(didx)"
+          ],
+          "claim": "idx must satisfy 0 <= idx < a_shape_flat(didx).",
+          "evidence": "L48: if (idx < 0 || idx >= a_shape_flat(didx)) {"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "a_indices",
+            "a_values",
+            "a_shape",
+            "b"
+          ],
+          "claim": "Continuing past the initial shape checks implies a_indices is a matrix, a_values and a_shape are vectors, a_values->dim_size(0) == a_indices->dim_size(0), a_shape->dim_size(0) == a_indices->dim_size(1), and a_shape->NumElements() == b->dims().",
+          "evidence": "L3: if (!TensorShapeUtils::IsMatrix(a_indices->shape())) {\nL8: if (!TensorShapeUtils::IsVector(a_values->shape()) ||\nL9: !TensorShapeUtils::IsVector(a_shape->shape())) {\nL16: int64_t nnz = a_indices->dim_size(0);\nL17: int64_t ndims = a_indices->dim_size(1);\nL18: if (a_values->dim_size(0) != nnz) {\nL23: if (a_shape->dim_size(0) != ndims) {\nL27: if (a_shape->NumElements() != b->dims()) {"
+        },
+        {
+          "entities": [
+            "i",
+            "a_shape_flat",
+            "b"
+          ],
+          "claim": "Continuing past the per-dimension loop implies for every i in [0, b->dims()), a_shape_flat(i) == b->dim_size(i).",
+          "evidence": "L33: for (int i = 0; i < b->dims(); ++i) {\nL34: if (a_shape_flat(i) != b->dim_size(i)) {"
+        },
+        {
+          "entities": [
+            "zidx",
+            "didx",
+            "idx",
+            "a_shape_flat"
+          ],
+          "claim": "Continuing past the index-validation loop implies for every zidx in [0, nnz) and didx in [0, ndims), the index idx = a_indices_mat(zidx, didx) satisfies 0 <= idx < a_shape_flat(didx).",
+          "evidence": "L45: for (int64_t zidx = 0; zidx < nnz; ++zidx) {\nL46: for (int64_t didx = 0; didx < ndims; ++didx) {\nL47: const Index idx = a_indices_mat(zidx, didx);\nL48: if (idx < 0 || idx >= a_shape_flat(didx)) {"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2762,
+              "output_tokens": 109,
+              "total_tokens": 2871
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2762,
+          "output_tokens": 109,
+          "total_tokens": 2871
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L34",
+                "matched": true,
+                "expression": "a_shape_flat(i)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L47",
+                "matched": true,
+                "expression": "a_indices_mat(zidx, didx)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L48",
+                "matched": true,
+                "expression": "a_shape_flat(didx)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1365,
+              "output_tokens": 138,
+              "total_tokens": 1503
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1365,
+          "output_tokens": 138,
+          "total_tokens": 1503
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 32,
+                "fragment": "const auto a_shape_flat = a_shape->flat<Index>();",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "const auto a_indices_mat = a_indices->flat_inner_dims<Index>();",
+                "matched_lines": [
+                  43
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [
+              "Expecting ':' delimiter: line 1 column 1418 (char 1417)"
+            ],
+            "token_usage": {
+              "input_tokens": 1553,
+              "output_tokens": 803,
+              "total_tokens": 2356
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          },
+          {
+            "attempt": 2,
+            "retry_mode": "semantic_regeneration",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2525,
+              "output_tokens": 721,
+              "total_tokens": 3246
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 4078,
+          "output_tokens": 1524,
+          "total_tokens": 5602
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "int64_t nnz = a_indices->dim_size(0);",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "int64_t ndims = a_indices->dim_size(1);",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "if (a_values->dim_size(0) != nnz) {",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "if (a_shape->dim_size(0) != ndims) {",
+                "matched_lines": [
+                  23
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 27,
+                "fragment": "if (a_shape->NumElements() != b->dims()) {",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 32,
+                "fragment": "const auto a_shape_flat = a_shape->flat<Index>();",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 33,
+                "fragment": "for (int i = 0; i < b->dims(); ++i) {",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "if (a_shape_flat(i) != b->dim_size(i)) {",
+                "matched_lines": [
+                  34
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "const auto a_indices_mat = a_indices->flat_inner_dims<Index>();",
+                "matched_lines": [
+                  43
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 45,
+                "fragment": "for (int64_t zidx = 0; zidx < nnz; ++zidx) {",
+                "matched_lines": [
+                  45
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 46,
+                "fragment": "for (int64_t didx = 0; didx < ndims; ++didx) {",
+                "matched_lines": [
+                  46
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 47,
+                "fragment": "const Index idx = a_indices_mat(zidx, didx);",
+                "matched_lines": [
+                  47
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 48,
+                "fragment": "if (idx < 0 || idx >= a_shape_flat(didx)) {",
+                "matched_lines": [
+                  48
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1233,
+              "output_tokens": 553,
+              "total_tokens": 1786
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1233,
+          "output_tokens": 553,
+          "total_tokens": 1786
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "if (!TensorShapeUtils::IsMatrix(a_indices->shape())) {",
+                "matched_lines": [
+                  3
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": "if (!TensorShapeUtils::IsVector(a_values->shape()) ||",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "!TensorShapeUtils::IsVector(a_shape->shape())) {",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "int64_t nnz = a_indices->dim_size(0);",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "int64_t ndims = a_indices->dim_size(1);",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "if (a_values->dim_size(0) != nnz) {",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "if (a_shape->dim_size(0) != ndims) {",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "if (a_shape->NumElements() != b->dims()) {",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 33,
+                "fragment": "for (int i = 0; i < b->dims(); ++i) {",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "if (a_shape_flat(i) != b->dim_size(i)) {",
+                "matched_lines": [
+                  34
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 45,
+                "fragment": "for (int64_t zidx = 0; zidx < nnz; ++zidx) {",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "for (int64_t didx = 0; didx < ndims; ++didx) {",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "const Index idx = a_indices_mat(zidx, didx);",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "if (idx < 0 || idx >= a_shape_flat(didx)) {",
+                "matched_lines": [
+                  48
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 3,
+      "states": 2,
+      "values": 12,
+      "executions": 3
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 9438,
+    "output_tokens": 2324,
+    "total_tokens": 11762
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000183",
+    "split": "test",
+    "source_hash": "f41a96bf6aeee1663c43227979d30eda1fd7a9a5c510c7243a70e0c7770754d5",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

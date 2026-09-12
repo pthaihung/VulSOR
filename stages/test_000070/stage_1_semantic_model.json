@@ -1,0 +1,520 @@
+{
+  "sample_id": "test_000070",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [],
+      "states": [
+        {
+          "entities": [
+            "context",
+            "rhs"
+          ],
+          "claim": "rhs is a reference to input tensor 1 of context.",
+          "evidence": "L2: const Tensor& rhs = context->input(1);"
+        },
+        {
+          "entities": [
+            "context"
+          ],
+          "claim": "context input 0 is forwarded to ref output 0.",
+          "evidence": "L5: context->forward_ref_input_to_ref_output(0, 0);"
+        },
+        {
+          "entities": [
+            "context",
+            "old_lhs"
+          ],
+          "claim": "old_lhs is a reference to mutable input 0 of context, obtained while holding input_ref_mutex(0).",
+          "evidence": "L18: mutex_lock l(*context->input_ref_mutex(0));\nL19: const Tensor& old_lhs = context->mutable_input(0, /* lock_held */ true);"
+        },
+        {
+          "entities": [
+            "reshaped_old_lhs",
+            "old_lhs"
+          ],
+          "claim": "reshaped_old_lhs is initialized as a copy/reference of old_lhs when same_shape is true.",
+          "evidence": "L42: Tensor reshaped_old_lhs;\nL43: if (same_shape) {\nL44: reshaped_old_lhs = old_lhs;"
+        },
+        {
+          "entities": [
+            "reshaped_old_lhs",
+            "old_lhs",
+            "context"
+          ],
+          "claim": "reshaped_old_lhs is initialized from old_lhs with rhs shape and replaces ref input 0 when same_shape is false.",
+          "evidence": "L46: CHECK(reshaped_old_lhs.CopyFrom(old_lhs, rhs.shape()));\nL47: context->replace_ref_input(0, reshaped_old_lhs,"
+        }
+      ],
+      "values": [],
+      "executions": [
+        {
+          "entities": [
+            "old_lhs",
+            "rhs"
+          ],
+          "claim": "If validate_shape_ is true, continuing past the OP_REQUIRES implies old_lhs.shape() and rhs.shape() have the same size.",
+          "evidence": "L21: if (validate_shape_) {\nL22: OP_REQUIRES(context, same_shape,"
+        },
+        {
+          "entities": [
+            "old_lhs",
+            "rhs"
+          ],
+          "claim": "Entering the first shortcut branch implies old_lhs is initialized and old_lhs.shape().num_elements() == rhs.shape().num_elements().",
+          "evidence": "L38: if (old_lhs.IsInitialized() &&\nL39: old_lhs.shape().num_elements() == rhs.shape().num_elements()) {"
+        },
+        {
+          "entities": [
+            "reshaped_old_lhs",
+            "old_lhs",
+            "rhs"
+          ],
+          "claim": "In the first shortcut branch, if same_shape is false then reshaped_old_lhs is created from old_lhs with rhs.shape() before use.",
+          "evidence": "L43: if (same_shape) {\nL44: reshaped_old_lhs = old_lhs;\nL46: CHECK(reshaped_old_lhs.CopyFrom(old_lhs, rhs.shape()));"
+        },
+        {
+          "entities": [
+            "input_alias",
+            "rhs"
+          ],
+          "claim": "Entering the rhs-reuse path implies old_lhs is not initialized or its element count differs from rhs, and input_alias is non-null only when forward_input succeeds.",
+          "evidence": "L54: } else {\nL56: std::unique_ptr<Tensor> input_alias = context->forward_input(\nL59: if (input_alias != nullptr) {"
+        },
+        {
+          "entities": [
+            "copy_tensor",
+            "old_lhs",
+            "rhs"
+          ],
+          "claim": "If input_alias is null, continuing implies copy_tensor is allocated with old_lhs.dtype() and rhs.shape() before being installed as the ref input.",
+          "evidence": "L67: Tensor copy_tensor;\nL68: OP_REQUIRES_OK(context,\nL69: context->allocate_temp(old_lhs.dtype(), rhs.shape(),\nL70: &copy_tensor, attr));\nL74: context->replace_ref_input(0, copy_tensor, /* lock_held */ true);"
+        },
+        {
+          "entities": [
+            "old_unlocked_lhs",
+            "rhs"
+          ],
+          "claim": "Reaching the final Copy implies execution did not return from either use_exclusive_lock_ copy path, and old_unlocked_lhs is obtained without holding the lock.",
+          "evidence": "L50: if (use_exclusive_lock_) {\nL51: Copy(context, &reshaped_old_lhs, rhs);\nL52: return;\nL75: if (use_exclusive_lock_) {\nL76: Copy(context, &copy_tensor, rhs);\nL77: return;\nL85: Tensor old_unlocked_lhs = context->mutable_input(0, /* lock_held */ false);\nL86: Copy(context, &old_unlocked_lhs, rhs);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3080,
+              "output_tokens": 45,
+              "total_tokens": 3125
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3080,
+          "output_tokens": 45,
+          "total_tokens": 3125
+        },
+        "grounding": {},
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 0,
+            "expression": "Copy(context, &reshaped_old_lhs, rhs)"
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1683,
+              "output_tokens": 360,
+              "total_tokens": 2043
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1683,
+          "output_tokens": 360,
+          "total_tokens": 2043
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "const Tensor& rhs = context->input(1);",
+                "matched_lines": [
+                  2
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "context->forward_ref_input_to_ref_output(0, 0);",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "mutex_lock l(*context->input_ref_mutex(0));",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "const Tensor& old_lhs = context->mutable_input(0, /* lock_held */ true);",
+                "matched_lines": [
+                  19
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 42,
+                "fragment": "Tensor reshaped_old_lhs;",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "if (same_shape) {",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "reshaped_old_lhs = old_lhs;",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 46,
+                "fragment": "CHECK(reshaped_old_lhs.CopyFrom(old_lhs, rhs.shape()));",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "context->replace_ref_input(0, reshaped_old_lhs,",
+                "matched_lines": [
+                  47
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1871,
+              "output_tokens": 12,
+              "total_tokens": 1883
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1871,
+          "output_tokens": 12,
+          "total_tokens": 1883
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1551,
+              "output_tokens": 653,
+              "total_tokens": 2204
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1551,
+          "output_tokens": 653,
+          "total_tokens": 2204
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 21,
+                "fragment": "if (validate_shape_) {",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "OP_REQUIRES(context, same_shape,",
+                "matched_lines": [
+                  22
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 38,
+                "fragment": "if (old_lhs.IsInitialized() &&",
+                "matched_lines": [
+                  38
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "old_lhs.shape().num_elements() == rhs.shape().num_elements()) {",
+                "matched_lines": [
+                  39
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "if (same_shape) {",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "reshaped_old_lhs = old_lhs;",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "CHECK(reshaped_old_lhs.CopyFrom(old_lhs, rhs.shape()));",
+                "matched_lines": [
+                  46
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 54,
+                "fragment": "} else {",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "std::unique_ptr<Tensor> input_alias = context->forward_input(",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "if (input_alias != nullptr) {",
+                "matched_lines": [
+                  59
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 67,
+                "fragment": "Tensor copy_tensor;",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "OP_REQUIRES_OK(context,",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "context->allocate_temp(old_lhs.dtype(), rhs.shape(),",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "&copy_tensor, attr));",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 74,
+                "fragment": "context->replace_ref_input(0, copy_tensor, /* lock_held */ true);",
+                "matched_lines": [
+                  74
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "if (use_exclusive_lock_) {",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "Copy(context, &reshaped_old_lhs, rhs);",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "return;",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 75,
+                "fragment": "if (use_exclusive_lock_) {",
+                "matched_lines": [
+                  75
+                ]
+              },
+              {
+                "evidence_line": 76,
+                "fragment": "Copy(context, &copy_tensor, rhs);",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 77,
+                "fragment": "return;",
+                "matched_lines": [
+                  77
+                ]
+              },
+              {
+                "evidence_line": 85,
+                "fragment": "Tensor old_unlocked_lhs = context->mutable_input(0, /* lock_held */ false);",
+                "matched_lines": [
+                  85
+                ]
+              },
+              {
+                "evidence_line": 86,
+                "fragment": "Copy(context, &old_unlocked_lhs, rhs);",
+                "matched_lines": [
+                  86
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 0,
+      "states": 5,
+      "values": 0,
+      "executions": 6
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 8185,
+    "output_tokens": 1070,
+    "total_tokens": 9255
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000070",
+    "split": "test",
+    "source_hash": "db431bd83947d3b169ddd8be9979e29f5bb60cd6965cfc0a3f50f0ca1a8aacd5",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

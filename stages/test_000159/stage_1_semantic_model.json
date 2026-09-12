@@ -1,0 +1,400 @@
+{
+  "sample_id": "test_000159",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L5"
+          ],
+          "expression": "gf_malloc(sizeof(char) * (s->size+1))",
+          "claim": "allocate a buffer of s->size+1 bytes"
+        },
+        {
+          "locations": [
+            "L7"
+          ],
+          "expression": "gf_bs_read_data(bs, p->content_script_types, s->size)",
+          "claim": "read s->size bytes from the bitstream into the allocated buffer"
+        },
+        {
+          "locations": [
+            "L8"
+          ],
+          "expression": "p->content_script_types[s->size] = 0",
+          "claim": "write a null terminator at index s->size of the allocated buffer"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "p->content_script_types"
+          ],
+          "claim": "p->content_script_types points to a newly allocated byte buffer of size s->size+1, or is NULL if allocation failed.",
+          "evidence": "L5: p->content_script_types = gf_malloc(sizeof(char) * (s->size+1));\nL6: if (!p->content_script_types) return GF_OUT_OF_MEM;"
+        },
+        {
+          "entities": [
+            "p->content_script_types"
+          ],
+          "claim": "The allocated buffer is filled with s->size bytes read from the bitstream and then NUL-terminated at index s->size.",
+          "evidence": "L7: gf_bs_read_data(bs, p->content_script_types, s->size);\nL8: p->content_script_types[s->size] = 0;"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "s->size",
+            "p->content_script_types"
+          ],
+          "claim": "Allocation size is sizeof(char) * (s->size+1), i.e. s->size+1 bytes, and the buffer is indexed at [s->size] for the terminating NUL, so the valid index range is 0..s->size inclusive.",
+          "evidence": "L5: p->content_script_types = gf_malloc(sizeof(char) * (s->size+1));\nL8: p->content_script_types[s->size] = 0;"
+        },
+        {
+          "entities": [
+            "s->size",
+            "p->content_script_types"
+          ],
+          "claim": "gf_bs_read_data writes exactly s->size bytes into p->content_script_types, matching the allocated payload extent of s->size bytes.",
+          "evidence": "L7: gf_bs_read_data(bs, p->content_script_types, s->size);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "p->content_script_types",
+            "s->size"
+          ],
+          "claim": "gf_malloc succeeds, so p->content_script_types points to a buffer of at least s->size+1 bytes",
+          "evidence": "L5: p->content_script_types = gf_malloc(sizeof(char) * (s->size+1));\nL6: if (!p->content_script_types) return GF_OUT_OF_MEM;"
+        },
+        {
+          "entities": [
+            "p->content_script_types",
+            "s->size"
+          ],
+          "claim": "continuing past the allocation check implies p->content_script_types is non-null and the buffer has capacity for s->size+1 chars",
+          "evidence": "L5: p->content_script_types = gf_malloc(sizeof(char) * (s->size+1));\nL6: if (!p->content_script_types) return GF_OUT_OF_MEM;\nL7: gf_bs_read_data(bs, p->content_script_types, s->size);\nL8: p->content_script_types[s->size] = 0;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2114,
+              "output_tokens": 130,
+              "total_tokens": 2244
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2114,
+          "output_tokens": 130,
+          "total_tokens": 2244
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L5",
+                "matched": true,
+                "expression": "gf_malloc(sizeof(char) * (s->size+1))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L7",
+                "matched": true,
+                "expression": "gf_bs_read_data(bs, p->content_script_types, s->size)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L8",
+                "matched": true,
+                "expression": "p->content_script_types[s->size] = 0"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 717,
+              "output_tokens": 186,
+              "total_tokens": 903
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 717,
+          "output_tokens": 186,
+          "total_tokens": 903
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "p->content_script_types = gf_malloc(sizeof(char) * (s->size+1));",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "if (!p->content_script_types) return GF_OUT_OF_MEM;",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "gf_bs_read_data(bs, p->content_script_types, s->size);",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": "p->content_script_types[s->size] = 0;",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 905,
+              "output_tokens": 203,
+              "total_tokens": 1108
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 905,
+          "output_tokens": 203,
+          "total_tokens": 1108
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "p->content_script_types = gf_malloc(sizeof(char) * (s->size+1));",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": "p->content_script_types[s->size] = 0;",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "gf_bs_read_data(bs, p->content_script_types, s->size);",
+                "matched_lines": [
+                  7
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 585,
+              "output_tokens": 260,
+              "total_tokens": 845
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 585,
+          "output_tokens": 260,
+          "total_tokens": 845
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "p->content_script_types = gf_malloc(sizeof(char) * (s->size+1));",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "if (!p->content_script_types) return GF_OUT_OF_MEM;",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "p->content_script_types = gf_malloc(sizeof(char) * (s->size+1));",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "if (!p->content_script_types) return GF_OUT_OF_MEM;",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 7,
+                "fragment": "gf_bs_read_data(bs, p->content_script_types, s->size);",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": "p->content_script_types[s->size] = 0;",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 3,
+      "states": 2,
+      "values": 2,
+      "executions": 2
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4321,
+    "output_tokens": 779,
+    "total_tokens": 5100
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000159",
+    "split": "test",
+    "source_hash": "0adaed215ce96c4ddc1146fcb37a8741acbb1048efa639e7ce8fa6fada2e2173",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

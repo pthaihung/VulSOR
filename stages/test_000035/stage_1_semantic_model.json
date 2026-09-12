@@ -1,0 +1,416 @@
+{
+  "sample_id": "test_000035",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [],
+      "states": [
+        {
+          "entities": [
+            "input"
+          ],
+          "claim": "input is a pointer to the NodeDef obtained from node_map_->GetNode(NodeName(node.input(0))); it is non-NULL after the null check at line 20.",
+          "evidence": "L19: const NodeDef* input = node_map_->GetNode(NodeName(node.input(0)));\nL20: if (input == nullptr) {"
+        }
+      ],
+      "values": [],
+      "executions": [
+        {
+          "entities": [
+            "node"
+          ],
+          "claim": "Reaching line 6 implies node is an Identity or IdentityN node.",
+          "evidence": "L2: if (!IsIdentity(node) && !IsIdentityN(node)) {\nL3: return true;"
+        },
+        {
+          "entities": [
+            "node"
+          ],
+          "claim": "Continuing past line 6 implies node.name() is not in nodes_to_preserve_.",
+          "evidence": "L6: if (nodes_to_preserve_.find(node.name()) != nodes_to_preserve_.end()) {\nL7: return false;"
+        },
+        {
+          "entities": [
+            "fetch_nodes_known_"
+          ],
+          "claim": "Continuing past line 9 implies fetch_nodes_known_ is true.",
+          "evidence": "L9: if (!fetch_nodes_known_) {\nL11: return false;"
+        },
+        {
+          "entities": [
+            "node"
+          ],
+          "claim": "Continuing past line 14 implies node.input_size() >= 1.",
+          "evidence": "L14: if (node.input_size() < 1) {\nL16: return false;"
+        },
+        {
+          "entities": [
+            "input"
+          ],
+          "claim": "Continuing past line 20 implies input is non-null.",
+          "evidence": "L19: const NodeDef* input = node_map_->GetNode(NodeName(node.input(0)));\nL20: if (input == nullptr) {\nL22: return false;"
+        },
+        {
+          "entities": [
+            "input"
+          ],
+          "claim": "Continuing past line 26 implies input is neither a Variable nor a Recv node.",
+          "evidence": "L26: if (IsVariable(*input) || IsRecv(*input)) {\nL27: return false;"
+        },
+        {
+          "entities": [
+            "node",
+            "consumer"
+          ],
+          "claim": "For each consumer of node, if node.input_size() > 1 then consumer is neither Retval nor Merge.",
+          "evidence": "L29: for (const auto& consumer : node_map_->GetOutputs(node.name())) {\nL30: if (node.input_size() > 1 && (IsRetval(*consumer) || IsMerge(*consumer))) {\nL31: return false;"
+        },
+        {
+          "entities": [
+            "input",
+            "consumer",
+            "node"
+          ],
+          "claim": "For each consumer of node, if input is a Switch then no consumer input equals the control dependency of node.name().",
+          "evidence": "L33: if (IsSwitch(*input)) {\nL34: for (const string& consumer_input : consumer->input()) {\nL35: if (consumer_input == AsControlDependency(node.name())) {\nL36: return false;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2410,
+              "output_tokens": 5,
+              "total_tokens": 2415
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2410,
+          "output_tokens": 5,
+          "total_tokens": 2415
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1013,
+              "output_tokens": 91,
+              "total_tokens": 1104
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1013,
+          "output_tokens": 91,
+          "total_tokens": 1104
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 19,
+                "fragment": "const NodeDef* input = node_map_->GetNode(NodeName(node.input(0)));",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "if (input == nullptr) {",
+                "matched_lines": [
+                  20
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1201,
+              "output_tokens": 12,
+              "total_tokens": 1213
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1201,
+          "output_tokens": 12,
+          "total_tokens": 1213
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 881,
+              "output_tokens": 576,
+              "total_tokens": 1457
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 881,
+          "output_tokens": 576,
+          "total_tokens": 1457
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "if (!IsIdentity(node) && !IsIdentityN(node)) {",
+                "matched_lines": [
+                  2
+                ]
+              },
+              {
+                "evidence_line": 3,
+                "fragment": "return true;",
+                "matched_lines": [
+                  3
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "if (nodes_to_preserve_.find(node.name()) != nodes_to_preserve_.end()) {",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 7,
+                "fragment": "return false;",
+                "matched_lines": [
+                  7
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "if (!fetch_nodes_known_) {",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "return false;",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "if (node.input_size() < 1) {",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "return false;",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 19,
+                "fragment": "const NodeDef* input = node_map_->GetNode(NodeName(node.input(0)));",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "if (input == nullptr) {",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "return false;",
+                "matched_lines": [
+                  22
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 26,
+                "fragment": "if (IsVariable(*input) || IsRecv(*input)) {",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "return false;",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "for (const auto& consumer : node_map_->GetOutputs(node.name())) {",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "if (node.input_size() > 1 && (IsRetval(*consumer) || IsMerge(*consumer))) {",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "return false;",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 33,
+                "fragment": "if (IsSwitch(*input)) {",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "for (const string& consumer_input : consumer->input()) {",
+                "matched_lines": [
+                  34
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "if (consumer_input == AsControlDependency(node.name())) {",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "return false;",
+                "matched_lines": [
+                  36
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 0,
+      "states": 1,
+      "values": 0,
+      "executions": 8
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 5505,
+    "output_tokens": 684,
+    "total_tokens": 6189
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000035",
+    "split": "test",
+    "source_hash": "d2dbf34acb70037d9499d5635ba3ac598500ad99a17779c085328c643eac3a46",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

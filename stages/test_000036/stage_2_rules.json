@@ -1,0 +1,422 @@
+{
+  "sample_id": "test_000036",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "rules",
+  "agent_key": "obligation_reasoner",
+  "output": {
+    "rules": [
+      {
+        "locations": [
+          "L31"
+        ],
+        "expression": "gf_filter_pck_get_data(pck, &pck_size)",
+        "requirements": [
+          "pck must designate a valid packet object whose data buffer is accessible for reading"
+        ]
+      },
+      {
+        "locations": [
+          "L70"
+        ],
+        "expression": "gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc)",
+        "requirements": [
+          "ctx->hdr_store must be a pointer previously returned by an allocation function or be NULL",
+          "ctx->hdr_store_alloc must be a size value that does not overflow when multiplied by sizeof(char)"
+        ]
+      },
+      {
+        "locations": [
+          "L72"
+        ],
+        "expression": "memcpy(ctx->hdr_store + ctx->hdr_store_size, data, sizeof(char)*pck_size)",
+        "requirements": [
+          "the destination range [ctx->hdr_store + ctx->hdr_store_size, ctx->hdr_store + ctx->hdr_store_size + pck_size) must be writable",
+          "the source range [data, data + pck_size) must be readable",
+          "the source and destination ranges must not overlap"
+        ]
+      },
+      {
+        "locations": [
+          "L91"
+        ],
+        "expression": "ctx->hdr_store + ctx->resume_from",
+        "requirements": [
+          "ctx->resume_from must be less than or equal to ctx->hdr_store_size",
+          "ctx->hdr_store must designate a live accessible object of at least ctx->hdr_store_size bytes"
+        ]
+      },
+      {
+        "locations": [
+          "L102"
+        ],
+        "expression": "gf_bs_new(start, remain, GF_BITSTREAM_READ)",
+        "requirements": [
+          "start must designate a readable buffer of at least remain bytes"
+        ]
+      },
+      {
+        "locations": [
+          "L104"
+        ],
+        "expression": "gf_bs_reassign_buffer(ctx->bs, start, remain)",
+        "requirements": [
+          "ctx->bs must designate a valid bitstream object",
+          "start must designate a readable buffer of at least remain bytes"
+        ]
+      },
+      {
+        "locations": [
+          "L129"
+        ],
+        "expression": "memcpy(ctx->hdr_store, start, remain)",
+        "requirements": [
+          "the destination range [ctx->hdr_store, ctx->hdr_store + remain) must be writable",
+          "the source range [start, start + remain) must be readable",
+          "the source and destination ranges must not overlap"
+        ]
+      },
+      {
+        "locations": [
+          "L139"
+        ],
+        "expression": "memcpy(ctx->hdr_store + ctx->bytes_in_header, start, 8 - ctx->bytes_in_header)",
+        "requirements": [
+          "ctx->bytes_in_header must be less than or equal to 8",
+          "the destination range [ctx->hdr_store + ctx->bytes_in_header, ctx->hdr_store + 8) must be writable",
+          "the source range [start, start + (8 - ctx->bytes_in_header)) must be readable",
+          "the source and destination ranges must not overlap"
+        ]
+      },
+      {
+        "locations": [
+          "L151"
+        ],
+        "expression": "memcpy(pck_data, ctx->hdr_store, ctx->bytes_in_header)",
+        "requirements": [
+          "the destination range [pck_data, pck_data + ctx->bytes_in_header) must be writable",
+          "the source range [ctx->hdr_store, ctx->hdr_store + ctx->bytes_in_header) must be readable",
+          "the source and destination ranges must not overlap"
+        ]
+      },
+      {
+        "locations": [
+          "L172"
+        ],
+        "expression": "ctx->hdr_store[current+3]",
+        "requirements": [
+          "current + 3 must be within the valid readable extent of ctx->hdr_store"
+        ]
+      },
+      {
+        "locations": [
+          "L174"
+        ],
+        "expression": "start[hdr_offset-1]",
+        "requirements": [
+          "hdr_offset - 1 must be within the valid readable extent of start"
+        ]
+      },
+      {
+        "locations": [
+          "L191",
+          "L192",
+          "L193"
+        ],
+        "expression": "start[remain-3]",
+        "requirements": [
+          "remain must be at least 3",
+          "remain - 3 must be within the valid readable extent of start"
+        ]
+      },
+      {
+        "locations": [
+          "L206"
+        ],
+        "expression": "memcpy(pck_data, start, (size_t) size)",
+        "requirements": [
+          "the destination range [pck_data, pck_data + size) must be writable",
+          "the source range [start, start + size) must be readable",
+          "the source and destination ranges must not overlap"
+        ]
+      },
+      {
+        "locations": [
+          "L217"
+        ],
+        "expression": "memcpy(ctx->hdr_store, start+remain-3, 3)",
+        "requirements": [
+          "remain must be at least 3",
+          "the destination range [ctx->hdr_store, ctx->hdr_store + 3) must be writable",
+          "the source range [start + remain - 3, start + remain) must be readable",
+          "the source and destination ranges must not overlap"
+        ]
+      },
+      {
+        "locations": [
+          "L256"
+        ],
+        "expression": "memcpy(pck_data, ctx->hdr_store, current)",
+        "requirements": [
+          "the destination range [pck_data, pck_data + current) must be writable",
+          "the source range [ctx->hdr_store, ctx->hdr_store + current) must be readable",
+          "the source and destination ranges must not overlap"
+        ]
+      },
+      {
+        "locations": [
+          "L262"
+        ],
+        "expression": "memcpy(pck_data, start, current)",
+        "requirements": [
+          "the destination range [pck_data, pck_data + current) must be writable",
+          "the source range [start, start + current) must be readable",
+          "the source and destination ranges must not overlap"
+        ]
+      },
+      {
+        "locations": [
+          "L277"
+        ],
+        "expression": "gf_bs_reassign_buffer(ctx->bs, start + hdr_offset, remain - hdr_offset)",
+        "requirements": [
+          "ctx->bs must designate a valid bitstream object",
+          "hdr_offset must be less than or equal to remain",
+          "start + hdr_offset must designate a readable buffer of at least remain - hdr_offset bytes"
+        ]
+      },
+      {
+        "locations": [
+          "L280"
+        ],
+        "expression": "gf_bs_reassign_buffer(ctx->bs, start, remain)",
+        "requirements": [
+          "ctx->bs must designate a valid bitstream object",
+          "start must designate a readable buffer of at least remain bytes"
+        ]
+      },
+      {
+        "locations": [
+          "L281"
+        ],
+        "expression": "gf_bs_read_int(ctx->bs, 24)",
+        "requirements": [
+          "ctx->bs must designate a valid bitstream object positioned so that 24 bits are available to read"
+        ]
+      },
+      {
+        "locations": [
+          "L282"
+        ],
+        "expression": "gf_bs_read_int(ctx->bs, 8)",
+        "requirements": [
+          "ctx->bs must designate a valid bitstream object positioned so that 8 bits are available to read"
+        ]
+      },
+      {
+        "locations": [
+          "L289"
+        ],
+        "expression": "gf_bs_reassign_buffer(ctx->bs, start, remain)",
+        "requirements": [
+          "ctx->bs must designate a valid bitstream object",
+          "start must designate a readable buffer of at least remain bytes"
+        ]
+      },
+      {
+        "locations": [
+          "L295"
+        ],
+        "expression": "memmove(ctx->hdr_store, start, remain)",
+        "requirements": [
+          "the destination range [ctx->hdr_store, ctx->hdr_store + remain) must be writable",
+          "the source range [start, start + remain) must be readable"
+        ]
+      },
+      {
+        "locations": [
+          "L300"
+        ],
+        "expression": "gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc)",
+        "requirements": [
+          "ctx->hdr_store must be a pointer previously returned by an allocation function or be NULL",
+          "ctx->hdr_store_alloc must be a size value that does not overflow when multiplied by sizeof(char)"
+        ]
+      },
+      {
+        "locations": [
+          "L302"
+        ],
+        "expression": "memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) )",
+        "requirements": [
+          "vosh_start must be less than or equal to pck_size",
+          "the destination range [ctx->hdr_store + ctx->hdr_store_size, ctx->hdr_store + ctx->hdr_store_size + (pck_size - vosh_start)) must be writable",
+          "the source range [data + vosh_start, data + pck_size) must be readable",
+          "the source and destination ranges must not overlap"
+        ]
+      },
+      {
+        "locations": [
+          "L323"
+        ],
+        "expression": "gf_bs_read_u8(ctx->bs)",
+        "requirements": [
+          "ctx->bs must designate a valid bitstream object positioned so that 8 bits are available to read"
+        ]
+      },
+      {
+        "locations": [
+          "L331"
+        ],
+        "expression": "gf_bs_reassign_buffer(ctx->bs, start, remain)",
+        "requirements": [
+          "ctx->bs must designate a valid bitstream object",
+          "start must designate a readable buffer of at least remain bytes"
+        ]
+      },
+      {
+        "locations": [
+          "L339"
+        ],
+        "expression": "memmove(ctx->hdr_store, start, remain)",
+        "requirements": [
+          "the destination range [ctx->hdr_store, ctx->hdr_store + remain) must be writable",
+          "the source range [start, start + remain) must be readable"
+        ]
+      },
+      {
+        "locations": [
+          "L344"
+        ],
+        "expression": "gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc)",
+        "requirements": [
+          "ctx->hdr_store must be a pointer previously returned by an allocation function or be NULL",
+          "ctx->hdr_store_alloc must be a size value that does not overflow when multiplied by sizeof(char)"
+        ]
+      },
+      {
+        "locations": [
+          "L346"
+        ],
+        "expression": "memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) )",
+        "requirements": [
+          "vosh_start must be less than or equal to pck_size",
+          "the destination range [ctx->hdr_store + ctx->hdr_store_size, ctx->hdr_store + ctx->hdr_store_size + (pck_size - vosh_start)) must be writable",
+          "the source range [data + vosh_start, data + pck_size) must be readable",
+          "the source and destination ranges must not overlap"
+        ]
+      },
+      {
+        "locations": [
+          "L424",
+          "L425",
+          "L426"
+        ],
+        "expression": "start[remain-3]",
+        "requirements": [
+          "remain must be at least 3",
+          "remain - 3 must be within the valid readable extent of start"
+        ]
+      },
+      {
+        "locations": [
+          "L486"
+        ],
+        "expression": "memcpy(pck_data, ctx->hdr_store+current, bytes_from_store)",
+        "requirements": [
+          "the destination range [pck_data, pck_data + bytes_from_store) must be writable",
+          "the source range [ctx->hdr_store + current, ctx->hdr_store + current + bytes_from_store) must be readable",
+          "the source and destination ranges must not overlap"
+        ]
+      },
+      {
+        "locations": [
+          "L492"
+        ],
+        "expression": "memcpy(pck_data + bytes_from_store, start, (size_t) size)",
+        "requirements": [
+          "the destination range [pck_data + bytes_from_store, pck_data + bytes_from_store + size) must be writable",
+          "the source range [start, start + size) must be readable",
+          "the source and destination ranges must not overlap"
+        ]
+      },
+      {
+        "locations": [
+          "L495"
+        ],
+        "expression": "memcpy(pck_data, start, (size_t) size)",
+        "requirements": [
+          "the destination range [pck_data, pck_data + size) must be writable",
+          "the source range [start, start + size) must be readable",
+          "the source and destination ranges must not overlap"
+        ]
+      },
+      {
+        "locations": [
+          "L500",
+          "L501",
+          "L502"
+        ],
+        "expression": "pck_data[0]",
+        "requirements": [
+          "pck_data must designate a readable buffer of at least 1 byte"
+        ]
+      },
+      {
+        "locations": [
+          "L524"
+        ],
+        "expression": "memcpy(ctx->hdr_store, start+remain-3, 3)",
+        "requirements": [
+          "remain must be at least 3",
+          "the destination range [ctx->hdr_store, ctx->hdr_store + 3) must be writable",
+          "the source range [start + remain - 3, start + remain) must be readable",
+          "the source and destination ranges must not overlap"
+        ]
+      }
+    ]
+  },
+  "quality_gate": {
+    "status": "passed",
+    "attempts": [
+      {
+        "attempt": 1,
+        "retry_mode": "initial",
+        "errors": [],
+        "token_usage": {
+          "input_tokens": 9849,
+          "output_tokens": 2438,
+          "total_tokens": 12287
+        },
+        "max_tokens": 8192,
+        "serialization_prefix_recovered": false
+      }
+    ],
+    "token_usage": {
+      "input_tokens": 9849,
+      "output_tokens": 2438,
+      "total_tokens": 12287
+    },
+    "safety_relevance_filter": {
+      "input_operation_groups": 35,
+      "kept_obligations": 35,
+      "filtered_non_safety_candidates": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 9849,
+    "output_tokens": 2438,
+    "total_tokens": 12287
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "rules",
+    "sample_id": "test_000036",
+    "split": "test",
+    "source_hash": "56a67c84cd7d6cfb4573edafe1b775c14c4acefcf43ad9da43d6e897341e4736",
+    "upstream_hashes": {
+      "semantic_model": "7430985ffa22bf18dfc480ed338c9f89b65b7fd392713945fc2851638b45e549"
+    },
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

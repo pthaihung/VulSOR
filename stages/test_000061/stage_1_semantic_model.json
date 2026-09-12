@@ -1,0 +1,376 @@
+{
+  "sample_id": "test_000061",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L13"
+          ],
+          "expression": "ctx->set_output(output_port, shape)",
+          "claim": "call to set_output with output_port as index into the context's output array"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "ctx",
+            "node"
+          ],
+          "claim": "ctx is the InferenceContext associated with node, obtained via GetContext(node); it may be NULL.",
+          "evidence": "L4: InferenceContext* ctx = GetContext(node);\nL5: if (ctx == nullptr) {"
+        },
+        {
+          "entities": [
+            "shape",
+            "node",
+            "output_port"
+          ],
+          "claim": "shape is the unknown output shape handle for node at output_port, obtained via GetUnknownOutputShape(node, output_port).",
+          "evidence": "L2: shape_inference::ShapeHandle shape =\nL3: GetUnknownOutputShape(node, output_port);"
+        },
+        {
+          "entities": [
+            "ctx",
+            "output_port",
+            "shape"
+          ],
+          "claim": "ctx's output at output_port is set to shape.",
+          "evidence": "L13: ctx->set_output(output_port, shape);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "output_port",
+            "ctx->num_outputs()"
+          ],
+          "claim": "output_port is valid only when 0 <= output_port < ctx->num_outputs(); the upper bound is the context's output count.",
+          "evidence": "L8: if (output_port < 0 || output_port >= ctx->num_outputs()) {"
+        },
+        {
+          "entities": [
+            "output_port",
+            "ctx->set_output"
+          ],
+          "claim": "ctx->set_output is indexed by output_port, which is bounded by ctx->num_outputs() before the call.",
+          "evidence": "L13: ctx->set_output(output_port, shape);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "ctx"
+          ],
+          "claim": "continuing past this check implies ctx is non-null",
+          "evidence": "L5: if (ctx == nullptr) {\nL6: return errors::InvalidArgument(\"SetUnknownShape: Missing context\");"
+        },
+        {
+          "entities": [
+            "output_port",
+            "ctx"
+          ],
+          "claim": "continuing past this check implies 0 <= output_port < ctx->num_outputs()",
+          "evidence": "L8: if (output_port < 0 || output_port >= ctx->num_outputs()) {\nL9: return errors::InvalidArgument(\nL10: \"SetUnknownShape: output_port must be in [0, \", ctx->num_outputs(),\nL11: \") but was \", output_port);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2146,
+              "output_tokens": 43,
+              "total_tokens": 2189
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2146,
+          "output_tokens": 43,
+          "total_tokens": 2189
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L13",
+                "matched": true,
+                "expression": "ctx->set_output(output_port, shape)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 749,
+              "output_tokens": 178,
+              "total_tokens": 927
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 749,
+          "output_tokens": 178,
+          "total_tokens": 927
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "InferenceContext* ctx = GetContext(node);",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 5,
+                "fragment": "if (ctx == nullptr) {",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "shape_inference::ShapeHandle shape =",
+                "matched_lines": [
+                  2
+                ]
+              },
+              {
+                "evidence_line": 3,
+                "fragment": "GetUnknownOutputShape(node, output_port);",
+                "matched_lines": [
+                  3
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "ctx->set_output(output_port, shape);",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 937,
+              "output_tokens": 135,
+              "total_tokens": 1072
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 937,
+          "output_tokens": 135,
+          "total_tokens": 1072
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (output_port < 0 || output_port >= ctx->num_outputs()) {",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "ctx->set_output(output_port, shape);",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 617,
+              "output_tokens": 182,
+              "total_tokens": 799
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 617,
+          "output_tokens": 182,
+          "total_tokens": 799
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "if (ctx == nullptr) {",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "return errors::InvalidArgument(\"SetUnknownShape: Missing context\");",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (output_port < 0 || output_port >= ctx->num_outputs()) {",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "return errors::InvalidArgument(",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "\"SetUnknownShape: output_port must be in [0, \", ctx->num_outputs(),",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "\") but was \", output_port);",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 1,
+      "states": 3,
+      "values": 2,
+      "executions": 2
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4449,
+    "output_tokens": 538,
+    "total_tokens": 4987
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000061",
+    "split": "test",
+    "source_hash": "202da3a5b4e7896de4c1967e7d311758343fa0c9bed5e1d6dc29dd67c72f208b",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

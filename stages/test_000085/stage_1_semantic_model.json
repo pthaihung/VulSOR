@@ -1,0 +1,1265 @@
+{
+  "sample_id": "test_000085",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L8"
+          ],
+          "expression": "memset(szLine, 0, sizeof(char)*lineSize)",
+          "claim": "write zero bytes into the buffer szLine for lineSize bytes"
+        },
+        {
+          "locations": [
+            "L9"
+          ],
+          "expression": "gf_fgets(szLine, lineSize, txt_in)",
+          "claim": "read up to lineSize bytes from txt_in into the buffer szLine"
+        },
+        {
+          "locations": [
+            "L15"
+          ],
+          "expression": "szLine[i]",
+          "claim": "read the byte at index i from szLine"
+        },
+        {
+          "locations": [
+            "L17"
+          ],
+          "expression": "szLine[i+1]",
+          "claim": "read the byte at index i+1 from szLine"
+        },
+        {
+          "locations": [
+            "L18",
+            "L20"
+          ],
+          "expression": "szLineConv[j] = ...; szLine[i] &= 0xbf",
+          "claim": "write to szLineConv at index j and modify szLine at index i"
+        },
+        {
+          "locations": [
+            "L24",
+            "L30",
+            "L33",
+            "L39",
+            "L42",
+            "L45",
+            "L53"
+          ],
+          "expression": "szLineConv[j] = szLine[i]",
+          "claim": "write the byte from szLine at index i into szLineConv at index j"
+        },
+        {
+          "locations": [
+            "L56"
+          ],
+          "expression": "szLineConv[j] = 0",
+          "claim": "write a null terminator into szLineConv at index j"
+        },
+        {
+          "locations": [
+            "L57",
+            "L80"
+          ],
+          "expression": "strcpy(szLine, szLineConv)",
+          "claim": "copy the null-terminated string from szLineConv into szLine"
+        },
+        {
+          "locations": [
+            "L70"
+          ],
+          "expression": "szLine[i] && szLine[i+1]",
+          "claim": "read the bytes at indices i and i+1 from szLine"
+        },
+        {
+          "locations": [
+            "L71",
+            "L72",
+            "L73"
+          ],
+          "expression": "c = szLine[i+1]; szLine[i+1] = szLine[i]; szLine[i] = c",
+          "claim": "read and write the bytes at indices i and i+1 in szLine"
+        },
+        {
+          "locations": [
+            "L77"
+          ],
+          "expression": "sptr = (u16 *)szLine",
+          "claim": "reinterpret the char buffer szLine as a pointer to unsigned short"
+        },
+        {
+          "locations": [
+            "L78"
+          ],
+          "expression": "gf_utf8_wcstombs(szLineConv, 2048, (const unsigned short **) &sptr)",
+          "claim": "convert a UTF-16 string pointed to by sptr into the buffer szLineConv of size 2048"
+        },
+        {
+          "locations": [
+            "L79"
+          ],
+          "expression": "szLineConv[i] = 0",
+          "claim": "write a null terminator into szLineConv at index i"
+        },
+        {
+          "locations": [
+            "L82"
+          ],
+          "expression": "gf_fgetc(txt_in)",
+          "claim": "read one character from the stream txt_in"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "szLine",
+            "lineSize"
+          ],
+          "claim": "szLine points to a caller-provided writable buffer of lineSize bytes, initialized to zero for the full lineSize range.",
+          "evidence": "L8: memset(szLine, 0, sizeof(char)*lineSize);"
+        },
+        {
+          "entities": [
+            "sOK",
+            "szLine",
+            "lineSize",
+            "txt_in"
+          ],
+          "claim": "sOK is the result of reading from txt_in into szLine; if sOK is NULL, the function returns NULL without further use of szLine.",
+          "evidence": "L9: sOK = gf_fgets(szLine, lineSize, txt_in);\nL10: if (!sOK) return NULL;"
+        },
+        {
+          "entities": [
+            "szLineConv"
+          ],
+          "claim": "szLineConv is a local 2048-byte char array used as conversion storage.",
+          "evidence": "L5: char szLineConv[2048];"
+        },
+        {
+          "entities": [
+            "sptr",
+            "szLine"
+          ],
+          "claim": "sptr is set to point to the storage of szLine as an unsigned short pointer.",
+          "evidence": "L77: sptr = (u16 *)szLine;"
+        },
+        {
+          "entities": [
+            "szLineConv",
+            "sptr"
+          ],
+          "claim": "szLineConv is written by gf_utf8_wcstombs using sptr as the source wide-character pointer.",
+          "evidence": "L78: i = (u32) gf_utf8_wcstombs(szLineConv, 2048, (const unsigned short **) &sptr);"
+        },
+        {
+          "entities": [
+            "szLineConv"
+          ],
+          "claim": "szLineConv is null-terminated at index i after conversion.",
+          "evidence": "L79: szLineConv[i] = 0;"
+        },
+        {
+          "entities": [
+            "szLine",
+            "szLineConv"
+          ],
+          "claim": "The null-terminated contents of szLineConv are copied into szLine.",
+          "evidence": "L80: strcpy(szLine, szLineConv);"
+        },
+        {
+          "entities": [
+            "szLine",
+            "szLineConv"
+          ],
+          "claim": "The null-terminated contents of szLineConv are copied into szLine in the unicode_type<=1 path.",
+          "evidence": "L57: strcpy(szLine, szLineConv);"
+        },
+        {
+          "entities": [
+            "txt_in"
+          ],
+          "claim": "When unicode_type==3, one additional character is read from txt_in.",
+          "evidence": "L82: if (unicode_type==3) gf_fgetc(txt_in);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "lineSize",
+            "szLine",
+            "memset"
+          ],
+          "claim": "memset clears exactly lineSize bytes of szLine, so lineSize is the byte extent of the szLine buffer used by the initial clear.",
+          "evidence": "L8: memset(szLine, 0, sizeof(char)*lineSize);"
+        },
+        {
+          "entities": [
+            "gf_fgets",
+            "szLine",
+            "lineSize",
+            "txt_in"
+          ],
+          "claim": "gf_fgets reads at most lineSize bytes into szLine from txt_in, bounding the string length subsequently measured by strlen.",
+          "evidence": "L9: sOK = gf_fgets(szLine, lineSize, txt_in);"
+        },
+        {
+          "entities": [
+            "len",
+            "szLine",
+            "strlen"
+          ],
+          "claim": "len is the strlen of szLine, i.e. the number of bytes before the terminating NUL in the buffer read by gf_fgets.",
+          "evidence": "L13: len = (u32) strlen(szLine);"
+        },
+        {
+          "entities": [
+            "i",
+            "len",
+            "szLine"
+          ],
+          "claim": "The loop iterates i from 0 while i < len, so szLine[i] is accessed for indices 0..len-1.",
+          "evidence": "L14: for (i=0; i<len; i++) {"
+        },
+        {
+          "entities": [
+            "szLine",
+            "i",
+            "len"
+          ],
+          "claim": "Inside the loop, szLine[i+1] may be read when szLine[i] has the high bit set; since i can reach len-1, this reads one byte past the strlen-terminating NUL position.",
+          "evidence": "L15: if (!unicode_type && (szLine[i] & 0x80)) {\nL17: if ((szLine[i+1] & 0xc0) != 0x80) {"
+        },
+        {
+          "entities": [
+            "szLineConv",
+            "j"
+          ],
+          "claim": "szLineConv is a 2048-byte local buffer indexed by j; writes to szLineConv[j] occur at the current j value.",
+          "evidence": "L5: char szLineConv[2048];\nL18: szLineConv[j] = 0xc0 | ( (szLine[i] >> 6) & 0x3 );"
+        },
+        {
+          "entities": [
+            "j",
+            "szLineConv"
+          ],
+          "claim": "j is incremented after each write to szLineConv, so j tracks the number of bytes written into szLineConv.",
+          "evidence": "L19: j++;\nL54: j++;"
+        },
+        {
+          "entities": [
+            "szLineConv",
+            "j"
+          ],
+          "claim": "After the loop, szLineConv[j] is written with 0, requiring j to be within the 2048-byte szLineConv buffer.",
+          "evidence": "L56: szLineConv[j] = 0;"
+        },
+        {
+          "entities": [
+            "strcpy",
+            "szLine",
+            "szLineConv"
+          ],
+          "claim": "strcpy copies the NUL-terminated szLineConv into szLine, so the copied length is the strlen of szLineConv.",
+          "evidence": "L57: strcpy(szLine, szLineConv);"
+        },
+        {
+          "entities": [
+            "i",
+            "szLine"
+          ],
+          "claim": "In the unicode_type==2/3 branch, i starts at 0 and is advanced by 2 each iteration while swapping szLine[i] and szLine[i+1].",
+          "evidence": "L67: i=0;\nL74: i+=2;"
+        },
+        {
+          "entities": [
+            "sptr",
+            "szLine"
+          ],
+          "claim": "sptr is set to (u16 *)szLine, a pointer to unsigned-short elements starting at the szLine byte address.",
+          "evidence": "L77: sptr = (u16 *)szLine;"
+        },
+        {
+          "entities": [
+            "gf_utf8_wcstombs",
+            "szLineConv",
+            "sptr"
+          ],
+          "claim": "gf_utf8_wcstombs writes into szLineConv with a stated size of 2048 and reads unsigned-short elements through sptr; its return value is assigned to i.",
+          "evidence": "L78: i = (u32) gf_utf8_wcstombs(szLineConv, 2048, (const unsigned short **) &sptr);"
+        },
+        {
+          "entities": [
+            "i",
+            "szLineConv"
+          ],
+          "claim": "szLineConv[i] is set to 0 using the value returned by gf_utf8_wcstombs, so i must be within the 2048-byte szLineConv buffer.",
+          "evidence": "L79: szLineConv[i] = 0;"
+        },
+        {
+          "entities": [
+            "strcpy",
+            "szLine",
+            "szLineConv"
+          ],
+          "claim": "strcpy copies the NUL-terminated szLineConv into szLine in the unicode_type==2/3 branch.",
+          "evidence": "L80: strcpy(szLine, szLineConv);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "i",
+            "szLine"
+          ],
+          "claim": "In the unicode_type<=1 branch, the loop condition i < len with len = strlen(szLine) ensures i is a valid index into szLine for the read at szLine[i]; however, the branch at line 17 reads szLine[i+1], which can be one past the terminating NUL when i == len-1.",
+          "evidence": "L13: len = (u32) strlen(szLine);\nL14: for (i=0; i<len; i++) {\nL17: if ((szLine[i+1] & 0xc0) != 0x80) {"
+        },
+        {
+          "entities": [
+            "j",
+            "szLineConv"
+          ],
+          "claim": "In the unicode_type<=1 branch, j indexes szLineConv and is incremented for each output byte; the writes at lines 18, 24, 30, 33, 39, 42, 45, 53, and 56 can reach index 2048 or beyond because no bound check against sizeof(szLineConv) is performed.",
+          "evidence": "L5: char szLineConv[2048];\nL18: szLineConv[j] = 0xc0 | ( (szLine[i] >> 6) & 0x3 );\nL53: szLineConv[j] = szLine[i];\nL56: szLineConv[j] = 0;"
+        },
+        {
+          "entities": [
+            "i",
+            "szLine"
+          ],
+          "claim": "In the unicode_type<=1 branch, when a multi-byte UTF-8 sequence is detected, i is incremented inside the loop body (lines 25, 31, 34, 40, 43, 46) and then again by the for-loop increment, so i can exceed len and subsequent reads at szLine[i] may access beyond the string.",
+          "evidence": "L25: i++;\nL31: i++;\nL34: i++;\nL40: i++;\nL43: i++;\nL46: i++;\nL14: for (i=0; i<len; i++) {"
+        },
+        {
+          "entities": [
+            "i",
+            "szLine"
+          ],
+          "claim": "In the unicode_type==2 or unicode_type==3 branch, the while(1) loop reads szLine[i] and szLine[i+1] and increments i by 2 until both are zero; there is no bound on i relative to lineSize, so reads can go past the buffer if no double-NUL terminator is present.",
+          "evidence": "L68: while (1) {\nL70: if (!szLine[i] && !szLine[i+1]) break;\nL74: i+=2;"
+        },
+        {
+          "entities": [
+            "i",
+            "szLineConv"
+          ],
+          "claim": "After gf_utf8_wcstombs, i is used as an index into szLineConv at line 79 without any check that i < 2048, so a large return value can cause an out-of-bounds write.",
+          "evidence": "L78: i = (u32) gf_utf8_wcstombs(szLineConv, 2048, (const unsigned short **) &sptr);\nL79: szLineConv[i] = 0;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3005,
+              "output_tokens": 587,
+              "total_tokens": 3592
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3005,
+          "output_tokens": 587,
+          "total_tokens": 3592
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L8",
+                "matched": true,
+                "expression": "memset(szLine, 0, sizeof(char)*lineSize)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L9",
+                "matched": true,
+                "expression": "gf_fgets(szLine, lineSize, txt_in)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L15",
+                "matched": true,
+                "expression": "szLine[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L17",
+                "matched": true,
+                "expression": "szLine[i+1]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L18",
+                "matched": true,
+                "expression": "szLineConv[j] = ...; szLine[i] &= 0xbf"
+              },
+              {
+                "location": "L20",
+                "matched": true,
+                "expression": "szLineConv[j] = ...; szLine[i] &= 0xbf"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L24",
+                "matched": true,
+                "expression": "szLineConv[j] = szLine[i]"
+              },
+              {
+                "location": "L30",
+                "matched": true,
+                "expression": "szLineConv[j] = szLine[i]"
+              },
+              {
+                "location": "L33",
+                "matched": true,
+                "expression": "szLineConv[j] = szLine[i]"
+              },
+              {
+                "location": "L39",
+                "matched": true,
+                "expression": "szLineConv[j] = szLine[i]"
+              },
+              {
+                "location": "L42",
+                "matched": true,
+                "expression": "szLineConv[j] = szLine[i]"
+              },
+              {
+                "location": "L45",
+                "matched": true,
+                "expression": "szLineConv[j] = szLine[i]"
+              },
+              {
+                "location": "L53",
+                "matched": true,
+                "expression": "szLineConv[j] = szLine[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L56",
+                "matched": true,
+                "expression": "szLineConv[j] = 0"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L57",
+                "matched": true,
+                "expression": "strcpy(szLine, szLineConv)"
+              },
+              {
+                "location": "L80",
+                "matched": true,
+                "expression": "strcpy(szLine, szLineConv)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L70",
+                "matched": true,
+                "expression": "szLine[i] && szLine[i+1]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[9]": {
+            "expression_matches": [
+              {
+                "location": "L71",
+                "matched": true,
+                "expression": "c = szLine[i+1]; szLine[i+1] = szLine[i]; szLine[i] = c"
+              },
+              {
+                "location": "L72",
+                "matched": true,
+                "expression": "c = szLine[i+1]; szLine[i+1] = szLine[i]; szLine[i] = c"
+              },
+              {
+                "location": "L73",
+                "matched": true,
+                "expression": "c = szLine[i+1]; szLine[i+1] = szLine[i]; szLine[i] = c"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[10]": {
+            "expression_matches": [
+              {
+                "location": "L77",
+                "matched": true,
+                "expression": "sptr = (u16 *)szLine"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[11]": {
+            "expression_matches": [
+              {
+                "location": "L78",
+                "matched": true,
+                "expression": "gf_utf8_wcstombs(szLineConv, 2048, (const unsigned short **) &sptr)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[12]": {
+            "expression_matches": [
+              {
+                "location": "L79",
+                "matched": true,
+                "expression": "szLineConv[i] = 0"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[13]": {
+            "expression_matches": [
+              {
+                "location": "L82",
+                "matched": true,
+                "expression": "gf_fgetc(txt_in)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1608,
+              "output_tokens": 529,
+              "total_tokens": 2137
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1608,
+          "output_tokens": 529,
+          "total_tokens": 2137
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "memset(szLine, 0, sizeof(char)*lineSize);",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "sOK = gf_fgets(szLine, lineSize, txt_in);",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "if (!sOK) return NULL;",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "char szLineConv[2048];",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 77,
+                "fragment": "sptr = (u16 *)szLine;",
+                "matched_lines": [
+                  77
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 78,
+                "fragment": "i = (u32) gf_utf8_wcstombs(szLineConv, 2048, (const unsigned short **) &sptr);",
+                "matched_lines": [
+                  78
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 79,
+                "fragment": "szLineConv[i] = 0;",
+                "matched_lines": [
+                  79
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 80,
+                "fragment": "strcpy(szLine, szLineConv);",
+                "matched_lines": [
+                  80
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "strcpy(szLine, szLineConv);",
+                "matched_lines": [
+                  57
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 82,
+                "fragment": "if (unicode_type==3) gf_fgetc(txt_in);",
+                "matched_lines": [
+                  82
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1796,
+              "output_tokens": 1048,
+              "total_tokens": 2844
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1796,
+          "output_tokens": 1048,
+          "total_tokens": 2844
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "memset(szLine, 0, sizeof(char)*lineSize);",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "sOK = gf_fgets(szLine, lineSize, txt_in);",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "len = (u32) strlen(szLine);",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "for (i=0; i<len; i++) {",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "if (!unicode_type && (szLine[i] & 0x80)) {",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "if ((szLine[i+1] & 0xc0) != 0x80) {",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "char szLineConv[2048];",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "szLineConv[j] = 0xc0 | ( (szLine[i] >> 6) & 0x3 );",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 19,
+                "fragment": "j++;",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "j++;",
+                "matched_lines": [
+                  54
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 56,
+                "fragment": "szLineConv[j] = 0;",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "strcpy(szLine, szLineConv);",
+                "matched_lines": [
+                  57
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 67,
+                "fragment": "i=0;",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 74,
+                "fragment": "i+=2;",
+                "matched_lines": [
+                  74
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 77,
+                "fragment": "sptr = (u16 *)szLine;",
+                "matched_lines": [
+                  77
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 78,
+                "fragment": "i = (u32) gf_utf8_wcstombs(szLineConv, 2048, (const unsigned short **) &sptr);",
+                "matched_lines": [
+                  78
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 79,
+                "fragment": "szLineConv[i] = 0;",
+                "matched_lines": [
+                  79
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 80,
+                "fragment": "strcpy(szLine, szLineConv);",
+                "matched_lines": [
+                  80
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 12,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 13,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1476,
+              "output_tokens": 735,
+              "total_tokens": 2211
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1476,
+          "output_tokens": 735,
+          "total_tokens": 2211
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "len = (u32) strlen(szLine);",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "for (i=0; i<len; i++) {",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "if ((szLine[i+1] & 0xc0) != 0x80) {",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "char szLineConv[2048];",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "szLineConv[j] = 0xc0 | ( (szLine[i] >> 6) & 0x3 );",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "szLineConv[j] = szLine[i];",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "szLineConv[j] = 0;",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 25,
+                "fragment": "i++;",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "i++;",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "i++;",
+                "matched_lines": [
+                  34
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "i++;",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "i++;",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "i++;",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "for (i=0; i<len; i++) {",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 68,
+                "fragment": "while (1) {",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "if (!szLine[i] && !szLine[i+1]) break;",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 74,
+                "fragment": "i+=2;",
+                "matched_lines": [
+                  74
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 78,
+                "fragment": "i = (u32) gf_utf8_wcstombs(szLineConv, 2048, (const unsigned short **) &sptr);",
+                "matched_lines": [
+                  78
+                ]
+              },
+              {
+                "evidence_line": 79,
+                "fragment": "szLineConv[i] = 0;",
+                "matched_lines": [
+                  79
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 14,
+      "states": 9,
+      "values": 14,
+      "executions": 5
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 7885,
+    "output_tokens": 2899,
+    "total_tokens": 10784
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000085",
+    "split": "test",
+    "source_hash": "f6b95e63b8ac736c2f6b196d1381130bd13fca1267d3699cb7758b8e8a796489",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

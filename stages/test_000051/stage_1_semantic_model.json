@@ -1,0 +1,293 @@
+{
+  "sample_id": "test_000051",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [],
+      "states": [],
+      "values": [],
+      "executions": [
+        {
+          "entities": [
+            "operand"
+          ],
+          "claim": "In the MinusKind branch, reaching the LiteralNumberKind case and passing the dyn_cast check implies operand is a LiteralNumber; otherwise execution breaks out of the inner switch.",
+          "evidence": "L8: switch (operand->getKind()) {\nL9: case ValueKind::LiteralNumberKind:\nL10: if (auto *literalNum = llvh::dyn_cast<LiteralNumber>(operand)) {\nL14: break;"
+        },
+        {
+          "entities": [
+            "operand"
+          ],
+          "claim": "In the MinusKind branch, the LiteralBoolKind case calls evalIsTrue(builder, operand); if true it returns -1, otherwise it returns negative zero.",
+          "evidence": "L17: case ValueKind::LiteralBoolKind:\nL18: if (evalIsTrue(builder, operand)) {\nL19: return builder.getLiteralNumber(-1);\nL20: } else { // evalIsFalse(operand)\nL21: return builder.getLiteralNegativeZero();"
+        },
+        {
+          "entities": [
+            "operand"
+          ],
+          "claim": "In the BangKind branch, if evalIsTrue(builder, operand) returns true, execution returns false; otherwise it proceeds to check evalIsFalse(builder, operand).",
+          "evidence": "L47: case UnaryOperatorInst::OpKind::BangKind:\nL48: if (evalIsTrue(builder, operand)) {\nL49: return builder.getLiteralBool(false);\nL51: if (evalIsFalse(builder, operand)) {\nL52: return builder.getLiteralBool(true);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2607,
+              "output_tokens": 5,
+              "total_tokens": 2612
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2607,
+          "output_tokens": 5,
+          "total_tokens": 2612
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1210,
+              "output_tokens": 11,
+              "total_tokens": 1221
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1210,
+          "output_tokens": 11,
+          "total_tokens": 1221
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1398,
+              "output_tokens": 10,
+              "total_tokens": 1408
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1398,
+          "output_tokens": 10,
+          "total_tokens": 1408
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1078,
+              "output_tokens": 358,
+              "total_tokens": 1436
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1078,
+          "output_tokens": 358,
+          "total_tokens": 1436
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "switch (operand->getKind()) {",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "case ValueKind::LiteralNumberKind:",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "if (auto *literalNum = llvh::dyn_cast<LiteralNumber>(operand)) {",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "break;",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "case ValueKind::LiteralBoolKind:",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "if (evalIsTrue(builder, operand)) {",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "return builder.getLiteralNumber(-1);",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "} else { // evalIsFalse(operand)",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "return builder.getLiteralNegativeZero();",
+                "matched_lines": [
+                  21
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 47,
+                "fragment": "case UnaryOperatorInst::OpKind::BangKind:",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "if (evalIsTrue(builder, operand)) {",
+                "matched_lines": [
+                  48
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "return builder.getLiteralBool(false);",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "if (evalIsFalse(builder, operand)) {",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "return builder.getLiteralBool(true);",
+                "matched_lines": [
+                  52
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 0,
+      "states": 0,
+      "values": 0,
+      "executions": 3
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 6293,
+    "output_tokens": 384,
+    "total_tokens": 6677
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000051",
+    "split": "test",
+    "source_hash": "73c1a6265789519e0ef22a0da6e56528f9c44061ea5e0a1fc1254ee308c04b35",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

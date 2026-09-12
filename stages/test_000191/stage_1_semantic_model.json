@@ -1,0 +1,317 @@
+{
+  "sample_id": "test_000191",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [],
+      "states": [],
+      "values": [
+        {
+          "entities": [
+            "rank",
+            "c->Dim(c->input(0), 1)"
+          ],
+          "claim": "rank is the second dimension of input(0), which is required to have rank 2.",
+          "evidence": "L3: TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 2, &unused));\nL4: auto rank = c->Dim(c->input(0), 1);"
+        },
+        {
+          "entities": [
+            "nvals",
+            "c->UnknownDim()"
+          ],
+          "claim": "nvals is an unknown dimension value.",
+          "evidence": "L5: auto nvals = c->UnknownDim();"
+        },
+        {
+          "entities": [
+            "out.indices",
+            "nvals",
+            "rank"
+          ],
+          "claim": "output 0 is a matrix with nvals rows and rank columns.",
+          "evidence": "L6: c->set_output(0, c->Matrix(nvals, rank));  // out.indices"
+        },
+        {
+          "entities": [
+            "out.values",
+            "nvals"
+          ],
+          "claim": "output 1 is a vector of length nvals.",
+          "evidence": "L7: c->set_output(1, c->Vector(nvals));        // out.values"
+        },
+        {
+          "entities": [
+            "out.dense_shape",
+            "rank"
+          ],
+          "claim": "output 2 is a vector of length rank.",
+          "evidence": "L8: c->set_output(2, c->Vector(rank));         // out.dense_shape"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "c->input(0)"
+          ],
+          "claim": "continuing past the rank check implies input(0) has rank exactly 2",
+          "evidence": "L3: TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 2, &unused));"
+        },
+        {
+          "entities": [
+            "rank"
+          ],
+          "claim": "rank is the dimension of input(0) at index 1, valid only after input(0) is confirmed rank 2",
+          "evidence": "L4: auto rank = c->Dim(c->input(0), 1);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2128,
+              "output_tokens": 5,
+              "total_tokens": 2133
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2128,
+          "output_tokens": 5,
+          "total_tokens": 2133
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 731,
+              "output_tokens": 12,
+              "total_tokens": 743
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 731,
+          "output_tokens": 12,
+          "total_tokens": 743
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 919,
+              "output_tokens": 306,
+              "total_tokens": 1225
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 919,
+          "output_tokens": 306,
+          "total_tokens": 1225
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 2, &unused));",
+                "matched_lines": [
+                  3
+                ]
+              },
+              {
+                "evidence_line": 4,
+                "fragment": "auto rank = c->Dim(c->input(0), 1);",
+                "matched_lines": [
+                  4
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "auto nvals = c->UnknownDim();",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "c->set_output(0, c->Matrix(nvals, rank));  // out.indices",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "c->set_output(1, c->Vector(nvals));        // out.values",
+                "matched_lines": [
+                  7
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "c->set_output(2, c->Vector(rank));         // out.dense_shape",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 599,
+              "output_tokens": 138,
+              "total_tokens": 737
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 599,
+          "output_tokens": 138,
+          "total_tokens": 737
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 2, &unused));",
+                "matched_lines": [
+                  3
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "auto rank = c->Dim(c->input(0), 1);",
+                "matched_lines": [
+                  4
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 0,
+      "states": 0,
+      "values": 5,
+      "executions": 2
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4377,
+    "output_tokens": 461,
+    "total_tokens": 4838
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000191",
+    "split": "test",
+    "source_hash": "a3abc9085d3fc2a74315396adb70a2eb52c315fa2789f0ddf372029a4943eda9",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

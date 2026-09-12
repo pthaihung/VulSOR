@@ -1,0 +1,1002 @@
+{
+  "sample_id": "test_000138",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L57"
+          ],
+          "expression": "*lp++ = a << preshift",
+          "claim": "write through pointer lp into the current line buffer"
+        },
+        {
+          "locations": [
+            "L89"
+          ],
+          "expression": "*lp = rx << preshift",
+          "claim": "write through pointer lp into the current line buffer"
+        },
+        {
+          "locations": [
+            "L132"
+          ],
+          "expression": "*lp = rx << preshift",
+          "claim": "write through pointer lp into the current line buffer"
+        },
+        {
+          "locations": [
+            "L140"
+          ],
+          "expression": "line = line->m_pNext",
+          "claim": "read the m_pNext member through pointer line"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "line",
+            "CurrentLine(0)"
+          ],
+          "claim": "line is a pointer to the current Line object for component 0, obtained from CurrentLine(0).",
+          "evidence": "L6: struct Line *line     = CurrentLine(0);"
+        },
+        {
+          "entities": [
+            "line",
+            "line->m_pNext"
+          ],
+          "claim": "line is advanced to the next Line object via line->m_pNext after each line is processed.",
+          "evidence": "L140: line = line->m_pNext;"
+        },
+        {
+          "entities": [
+            "lp",
+            "line->m_pData"
+          ],
+          "claim": "lp is a pointer into the pixel data storage of the current line, initialized from line->m_pData.",
+          "evidence": "L30: LONG *lp    = line->m_pData;"
+        },
+        {
+          "entities": [
+            "lp"
+          ],
+          "claim": "lp is advanced through the line's pixel data storage as pixels are written.",
+          "evidence": "L57: *lp++ = a << preshift;\nL137: } while(++lp,--length);"
+        },
+        {
+          "entities": [
+            "m_Stream"
+          ],
+          "claim": "m_Stream is the byte stream resource used for reading MCU data and skipping stuffing bits.",
+          "evidence": "L39: if (BeginReadMCU(m_Stream.ByteStreamOf())) { // No error handling strategy. No RST in scans. Bummer!\nL147: m_Stream.SkipStuffing();"
+        },
+        {
+          "entities": [
+            "m_pFrame"
+          ],
+          "claim": "m_pFrame is a pointer to the frame object whose height is queried and whose remaining line count is updated.",
+          "evidence": "L10: if (m_pFrame->HeightOf() == 0) {\nL22: if (m_pFrame->HeightOf() > 0)\nL23: m_ulRemaining[0] -= lines;"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "lines",
+            "m_ulRemaining[0]"
+          ],
+          "claim": "lines is initialized from m_ulRemaining[0], then clamped to at most 8; if m_pFrame->HeightOf() > 0, m_ulRemaining[0] is decremented by lines.",
+          "evidence": "L4: int lines             = m_ulRemaining[0]; // total number of MCU lines processed.\nL19: if (lines > 8) {\nL20: lines = 8;\nL22: if (m_pFrame->HeightOf() > 0)\nL23: m_ulRemaining[0] -= lines;"
+        },
+        {
+          "entities": [
+            "lines"
+          ],
+          "claim": "If m_pFrame->HeightOf() == 0, lines is set to 8.",
+          "evidence": "L10: if (m_pFrame->HeightOf() == 0) {\nL12: lines = 8;"
+        },
+        {
+          "entities": [
+            "length",
+            "m_ulWidth[0]"
+          ],
+          "claim": "length is initialized from m_ulWidth[0] for each line and is decremented once per pixel written.",
+          "evidence": "L29: LONG length = m_ulWidth[0];\nL61: run--,length--;\nL137: } while(++lp,--length);"
+        },
+        {
+          "entities": [
+            "lp",
+            "line->m_pData"
+          ],
+          "claim": "lp is initialized from line->m_pData and is advanced by one LONG element per pixel written.",
+          "evidence": "L30: LONG *lp    = line->m_pData;\nL57: *lp++ = a << preshift;\nL137: } while(++lp,--length);"
+        },
+        {
+          "entities": [
+            "preshift",
+            "m_ucLowBit",
+            "FractionalColorBitsOf()"
+          ],
+          "claim": "preshift is computed as m_ucLowBit + FractionalColorBitsOf() and is used as the left-shift amount for pixel values stored through lp.",
+          "evidence": "L5: UBYTE preshift        = m_ucLowBit + FractionalColorBitsOf();\nL57: *lp++ = a << preshift;\nL89: *lp    = rx << preshift;\nL132: *lp    = rx << preshift;"
+        },
+        {
+          "entities": [
+            "run",
+            "length"
+          ],
+          "claim": "DecodeRun returns run, which is decremented together with length in the fill loop; the loop continues while run is nonzero.",
+          "evidence": "L50: LONG run = DecodeRun(length,m_lRunIndex[0]);\nL53: while(run) {\nL61: run--,length--;"
+        },
+        {
+          "entities": [
+            "merr",
+            "k",
+            "m_lLimit",
+            "m_lJ[m_lRunIndex[0]]"
+          ],
+          "claim": "In run-interruption decoding, GolombDecode is called with limit m_lLimit - m_lJ[m_lRunIndex[0]] - 1.",
+          "evidence": "L81: merr   = GolombDecode(k,m_lLimit - m_lJ[m_lRunIndex[0]] - 1);"
+        },
+        {
+          "entities": [
+            "merr",
+            "k",
+            "m_lLimit"
+          ],
+          "claim": "In non-run decoding, GolombDecode is called with limit m_lLimit.",
+          "evidence": "L122: merr   = GolombDecode(k,m_lLimit);"
+        },
+        {
+          "entities": [
+            "line",
+            "line->m_pNext"
+          ],
+          "claim": "line is advanced to line->m_pNext after each line is processed.",
+          "evidence": "L140: line = line->m_pNext;"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "lines"
+          ],
+          "claim": "After the DNL fix and the MCU cap, lines is in [1,8]; if HeightOf()==0 then lines==8, otherwise lines is the original remaining count capped at 8.",
+          "evidence": "L10: if (m_pFrame->HeightOf() == 0) {\nL11: assert(lines == 0);\nL12: lines = 8;\nL19: if (lines > 8) {\nL20: lines = 8;\nL25: assert(lines > 0);"
+        },
+        {
+          "entities": [
+            "length"
+          ],
+          "claim": "Inside the outer do-loop, length starts as m_ulWidth[0] and is decremented once per decoded sample; the inner loop continues while length is nonzero after incrementing lp.",
+          "evidence": "L29: LONG length = m_ulWidth[0];\nL61: run--,length--;\nL137: } while(++lp,--length);"
+        },
+        {
+          "entities": [
+            "lp"
+          ],
+          "claim": "lp starts at line->m_pData and is incremented once per decoded sample; the inner loop condition decrements length and continues while the pre-decrement length is nonzero.",
+          "evidence": "L30: LONG *lp    = line->m_pData;\nL57: *lp++ = a << preshift;\nL137: } while(++lp,--length);"
+        },
+        {
+          "entities": [
+            "run",
+            "length"
+          ],
+          "claim": "In run mode, the run-fill loop executes while run is nonzero, decrementing both run and length each iteration; after the loop, if length is nonzero the run-interruption sample is decoded, otherwise the inner loop breaks.",
+          "evidence": "L50: LONG run = DecodeRun(length,m_lRunIndex[0]);\nL53: while(run) {\nL61: run--,length--;\nL67: if (length) {\nL100: } else break; // end of line."
+        },
+        {
+          "entities": [
+            "m_lRunIndex[0]"
+          ],
+          "claim": "After decoding a run-interruption sample, m_lRunIndex[0] is decremented only if it is greater than zero.",
+          "evidence": "L98: if (m_lRunIndex[0] > 0)\nL99: m_lRunIndex[0]--;"
+        },
+        {
+          "entities": [
+            "m_ulRemaining[0]"
+          ],
+          "claim": "m_ulRemaining[0] is decremented by lines only when HeightOf() is greater than zero.",
+          "evidence": "L22: if (m_pFrame->HeightOf() > 0)\nL23: m_ulRemaining[0] -= lines;"
+        },
+        {
+          "entities": [
+            "line"
+          ],
+          "claim": "After each outer-loop iteration, line is advanced to line->m_pNext; the outer loop continues while pre-decrement lines is nonzero.",
+          "evidence": "L140: line = line->m_pNext;\nL141: } while(--lines);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3841,
+              "output_tokens": 126,
+              "total_tokens": 3967
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3841,
+          "output_tokens": 126,
+          "total_tokens": 3967
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L57",
+                "matched": true,
+                "expression": "*lp++ = a << preshift"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L89",
+                "matched": true,
+                "expression": "*lp = rx << preshift"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L132",
+                "matched": true,
+                "expression": "*lp = rx << preshift"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L140",
+                "matched": true,
+                "expression": "line = line->m_pNext"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2444,
+              "output_tokens": 387,
+              "total_tokens": 2831
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2444,
+          "output_tokens": 387,
+          "total_tokens": 2831
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "struct Line *line     = CurrentLine(0);",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 140,
+                "fragment": "line = line->m_pNext;",
+                "matched_lines": [
+                  140
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 30,
+                "fragment": "LONG *lp    = line->m_pData;",
+                "matched_lines": [
+                  30
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "*lp++ = a << preshift;",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 137,
+                "fragment": "} while(++lp,--length);",
+                "matched_lines": [
+                  137
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 39,
+                "fragment": "if (BeginReadMCU(m_Stream.ByteStreamOf())) { // No error handling strategy. No RST in scans. Bummer!",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 147,
+                "fragment": "m_Stream.SkipStuffing();",
+                "matched_lines": [
+                  147
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "if (m_pFrame->HeightOf() == 0) {",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "if (m_pFrame->HeightOf() > 0)",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "m_ulRemaining[0] -= lines;",
+                "matched_lines": [
+                  23
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2632,
+              "output_tokens": 788,
+              "total_tokens": 3420
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2632,
+          "output_tokens": 788,
+          "total_tokens": 3420
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "int lines             = m_ulRemaining[0]; // total number of MCU lines processed.",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "if (lines > 8) {",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "lines = 8;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "if (m_pFrame->HeightOf() > 0)",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "m_ulRemaining[0] -= lines;",
+                "matched_lines": [
+                  23
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "if (m_pFrame->HeightOf() == 0) {",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "lines = 8;",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "LONG length = m_ulWidth[0];",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "run--,length--;",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 137,
+                "fragment": "} while(++lp,--length);",
+                "matched_lines": [
+                  137
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 30,
+                "fragment": "LONG *lp    = line->m_pData;",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "*lp++ = a << preshift;",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 137,
+                "fragment": "} while(++lp,--length);",
+                "matched_lines": [
+                  137
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "UBYTE preshift        = m_ucLowBit + FractionalColorBitsOf();",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "*lp++ = a << preshift;",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 89,
+                "fragment": "*lp    = rx << preshift;",
+                "matched_lines": [
+                  89
+                ]
+              },
+              {
+                "evidence_line": 132,
+                "fragment": "*lp    = rx << preshift;",
+                "matched_lines": [
+                  132
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "LONG run = DecodeRun(length,m_lRunIndex[0]);",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "while(run) {",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "run--,length--;",
+                "matched_lines": [
+                  61
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 81,
+                "fragment": "merr   = GolombDecode(k,m_lLimit - m_lJ[m_lRunIndex[0]] - 1);",
+                "matched_lines": [
+                  81
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 122,
+                "fragment": "merr   = GolombDecode(k,m_lLimit);",
+                "matched_lines": [
+                  122
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 140,
+                "fragment": "line = line->m_pNext;",
+                "matched_lines": [
+                  140
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2312,
+              "output_tokens": 652,
+              "total_tokens": 2964
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2312,
+          "output_tokens": 652,
+          "total_tokens": 2964
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "if (m_pFrame->HeightOf() == 0) {",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "assert(lines == 0);",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "lines = 8;",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "if (lines > 8) {",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "lines = 8;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "assert(lines > 0);",
+                "matched_lines": [
+                  25
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "LONG length = m_ulWidth[0];",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "run--,length--;",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 137,
+                "fragment": "} while(++lp,--length);",
+                "matched_lines": [
+                  137
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 30,
+                "fragment": "LONG *lp    = line->m_pData;",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "*lp++ = a << preshift;",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 137,
+                "fragment": "} while(++lp,--length);",
+                "matched_lines": [
+                  137
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "LONG run = DecodeRun(length,m_lRunIndex[0]);",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "while(run) {",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "run--,length--;",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "if (length) {",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 100,
+                "fragment": "} else break; // end of line.",
+                "matched_lines": [
+                  100
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 98,
+                "fragment": "if (m_lRunIndex[0] > 0)",
+                "matched_lines": [
+                  98
+                ]
+              },
+              {
+                "evidence_line": 99,
+                "fragment": "m_lRunIndex[0]--;",
+                "matched_lines": [
+                  99
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 22,
+                "fragment": "if (m_pFrame->HeightOf() > 0)",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "m_ulRemaining[0] -= lines;",
+                "matched_lines": [
+                  23
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 140,
+                "fragment": "line = line->m_pNext;",
+                "matched_lines": [
+                  140
+                ]
+              },
+              {
+                "evidence_line": 141,
+                "fragment": "} while(--lines);",
+                "matched_lines": [
+                  141
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 4,
+      "states": 6,
+      "values": 9,
+      "executions": 7
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 11229,
+    "output_tokens": 1953,
+    "total_tokens": 13182
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000138",
+    "split": "test",
+    "source_hash": "435ae65299da34b2c92711e62e5476260c16f596edbda1cb3782e5b980e85039",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

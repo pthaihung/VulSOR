@@ -1,0 +1,904 @@
+{
+  "sample_id": "test_000072",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L9"
+          ],
+          "expression": "nint(tree->car->car->car)",
+          "claim": "dereference of nested node pointers to read an integer field"
+        },
+        {
+          "locations": [
+            "L21"
+          ],
+          "expression": "tree->car->cdr",
+          "claim": "dereference of tree->car to access its cdr member"
+        },
+        {
+          "locations": [
+            "L31",
+            "L32"
+          ],
+          "expression": "tree->car->car",
+          "claim": "dereference of tree->car to access its car member"
+        },
+        {
+          "locations": [
+            "L35"
+          ],
+          "expression": "tree->cdr",
+          "claim": "dereference of tree to access its cdr member"
+        }
+      ],
+      "states": [],
+      "values": [
+        {
+          "entities": [
+            "slimit",
+            "GEN_VAL_STACK_MAX",
+            "cursp()",
+            "GEN_LIT_ARY_MAX",
+            "INT16_MAX"
+          ],
+          "claim": "slimit is initialized to GEN_VAL_STACK_MAX, but if cursp() >= GEN_LIT_ARY_MAX then slimit is set to INT16_MAX; slimit is used as the stack-pointer threshold for flushing hash entries when val is true.",
+          "evidence": "L3: int slimit = GEN_VAL_STACK_MAX;\nL4: if (cursp() >= GEN_LIT_ARY_MAX) slimit = INT16_MAX;\nL36: if (val && cursp() >= slimit) {"
+        },
+        {
+          "entities": [
+            "len",
+            "pop_n",
+            "genop_2",
+            "OP_HASH",
+            "OP_HASHADD",
+            "cursp()"
+          ],
+          "claim": "len counts accumulated hash entries; when flushing, pop_n removes len*2 stack slots for a new hash (OP_HASH) or len*2+1 slots for a hash-add (OP_HASHADD), and genop_2 receives len as the entry count.",
+          "evidence": "L11: pop_n(len*2);\nL13: genop_2(s, OP_HASH, cursp(), len);\nL17: genop_2(s, OP_HASHADD, cursp(), len);\nL33: len++;\nL37: pop_n(len*2);\nL39: genop_2(s, OP_HASH, cursp(), len);\nL43: genop_2(s, OP_HASHADD, cursp(), len);\nL52: pop_n(len*2+1);\nL53: genop_2(s, OP_HASHADD, cursp(), len);"
+        },
+        {
+          "entities": [
+            "len",
+            "update"
+          ],
+          "claim": "len is reset to 0 after each flush, and update tracks whether a hash has already been emitted; the final return value is -1 if update is true, otherwise len.",
+          "evidence": "L28: len = 0;\nL47: len = 0;\nL50: if (update) {\nL56: return -1;                  /* variable length */\nL58: return len;"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "slimit",
+            "cursp()",
+            "GEN_LIT_ARY_MAX",
+            "GEN_VAL_STACK_MAX"
+          ],
+          "claim": "If cursp() >= GEN_LIT_ARY_MAX at entry, slimit is INT16_MAX; otherwise slimit remains GEN_VAL_STACK_MAX.",
+          "evidence": "L3: int slimit = GEN_VAL_STACK_MAX;\nL4: if (cursp() >= GEN_LIT_ARY_MAX) slimit = INT16_MAX;"
+        },
+        {
+          "entities": [
+            "len",
+            "update"
+          ],
+          "claim": "Entering the while loop, len == 0 and update == FALSE.",
+          "evidence": "L5: int len = 0;\nL6: mrb_bool update = FALSE;\nL8: while (tree) {"
+        },
+        {
+          "entities": [
+            "len",
+            "update"
+          ],
+          "claim": "When a NODE_KW_REST_ARGS element is encountered, if len > 0 then len is reset to 0 and update is set to TRUE after the branch; if len == 0, len remains 0 and update becomes TRUE.",
+          "evidence": "L9: if (nint(tree->car->car->car) == NODE_KW_REST_ARGS) {\nL10: if (len > 0) {\nL11: pop_n(len*2);\nL12: if (!update) {\nL13: genop_2(s, OP_HASH, cursp(), len);\nL14: }\nL15: else {\nL16: pop();\nL17: genop_2(s, OP_HASHADD, cursp(), len);\nL18: }\nL19: push();\nL20: }\nL21: codegen(s, tree->car->cdr, val);\nL22: if (len > 0 || update) {\nL23: pop(); pop();\nL24: genop_1(s, OP_HASHCAT, cursp());\nL25: push();\nL26: }\nL27: update = TRUE;\nL28: len = 0;"
+        },
+        {
+          "entities": [
+            "len"
+          ],
+          "claim": "In the non-NODE_KW_REST_ARGS branch, len is incremented by 1.",
+          "evidence": "L30: else {\nL31: codegen(s, tree->car->car, val);\nL32: codegen(s, tree->car->cdr, val);\nL33: len++;\nL34: }"
+        },
+        {
+          "entities": [
+            "val",
+            "cursp()",
+            "slimit",
+            "len",
+            "update"
+          ],
+          "claim": "After advancing tree, if val is true and cursp() >= slimit, then len is reset to 0 and update is set to TRUE.",
+          "evidence": "L35: tree = tree->cdr;\nL36: if (val && cursp() >= slimit) {\nL37: pop_n(len*2);\nL38: if (!update) {\nL39: genop_2(s, OP_HASH, cursp(), len);\nL40: }\nL41: else {\nL42: pop();\nL43: genop_2(s, OP_HASHADD, cursp(), len);\nL44: }\nL45: push();\nL46: update = TRUE;\nL47: len = 0;\nL48: }"
+        },
+        {
+          "entities": [
+            "update",
+            "val",
+            "len"
+          ],
+          "claim": "After the loop, if update is TRUE and val is true and len > 0, then len is reset to 0 before returning -1.",
+          "evidence": "L50: if (update) {\nL51: if (val && len > 0) {\nL52: pop_n(len*2+1);\nL53: genop_2(s, OP_HASHADD, cursp(), len);\nL54: push();\nL55: }\nL56: return -1;                  /* variable length */\nL57: }"
+        },
+        {
+          "entities": [
+            "len"
+          ],
+          "claim": "If update is FALSE after the loop, the function returns len.",
+          "evidence": "L58: return len;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2563,
+              "output_tokens": 137,
+              "total_tokens": 2700
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2563,
+          "output_tokens": 137,
+          "total_tokens": 2700
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L9",
+                "matched": true,
+                "expression": "nint(tree->car->car->car)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L21",
+                "matched": true,
+                "expression": "tree->car->cdr"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L31",
+                "matched": true,
+                "expression": "tree->car->car"
+              },
+              {
+                "location": "L32",
+                "matched": true,
+                "expression": "tree->car->car"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L35",
+                "matched": true,
+                "expression": "tree->cdr"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1166,
+              "output_tokens": 12,
+              "total_tokens": 1178
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1166,
+          "output_tokens": 12,
+          "total_tokens": 1178
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1354,
+              "output_tokens": 497,
+              "total_tokens": 1851
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1354,
+          "output_tokens": 497,
+          "total_tokens": 1851
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "int slimit = GEN_VAL_STACK_MAX;",
+                "matched_lines": [
+                  3
+                ]
+              },
+              {
+                "evidence_line": 4,
+                "fragment": "if (cursp() >= GEN_LIT_ARY_MAX) slimit = INT16_MAX;",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "if (val && cursp() >= slimit) {",
+                "matched_lines": [
+                  36
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "pop_n(len*2);",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "genop_2(s, OP_HASH, cursp(), len);",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "genop_2(s, OP_HASHADD, cursp(), len);",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "len++;",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "pop_n(len*2);",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "genop_2(s, OP_HASH, cursp(), len);",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "genop_2(s, OP_HASHADD, cursp(), len);",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "pop_n(len*2+1);",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "genop_2(s, OP_HASHADD, cursp(), len);",
+                "matched_lines": [
+                  53
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 28,
+                "fragment": "len = 0;",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "len = 0;",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "if (update) {",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "return -1;                  /* variable length */",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "return len;",
+                "matched_lines": [
+                  58
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1034,
+              "output_tokens": 958,
+              "total_tokens": 1992
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1034,
+          "output_tokens": 958,
+          "total_tokens": 1992
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "int slimit = GEN_VAL_STACK_MAX;",
+                "matched_lines": [
+                  3
+                ]
+              },
+              {
+                "evidence_line": 4,
+                "fragment": "if (cursp() >= GEN_LIT_ARY_MAX) slimit = INT16_MAX;",
+                "matched_lines": [
+                  4
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "int len = 0;",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "mrb_bool update = FALSE;",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": "while (tree) {",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "if (nint(tree->car->car->car) == NODE_KW_REST_ARGS) {",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "if (len > 0) {",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "pop_n(len*2);",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "if (!update) {",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "genop_2(s, OP_HASH, cursp(), len);",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "}",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "else {",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "pop();",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "genop_2(s, OP_HASHADD, cursp(), len);",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "}",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "push();",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "}",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "codegen(s, tree->car->cdr, val);",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "if (len > 0 || update) {",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "pop(); pop();",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "genop_1(s, OP_HASHCAT, cursp());",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "push();",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "}",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "update = TRUE;",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "len = 0;",
+                "matched_lines": [
+                  28
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 30,
+                "fragment": "else {",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "codegen(s, tree->car->car, val);",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "codegen(s, tree->car->cdr, val);",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "len++;",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "}",
+                "matched_lines": [
+                  34
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 35,
+                "fragment": "tree = tree->cdr;",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "if (val && cursp() >= slimit) {",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "pop_n(len*2);",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 38,
+                "fragment": "if (!update) {",
+                "matched_lines": [
+                  38
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "genop_2(s, OP_HASH, cursp(), len);",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "}",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "else {",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 42,
+                "fragment": "pop();",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "genop_2(s, OP_HASHADD, cursp(), len);",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "}",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "push();",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "update = TRUE;",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "len = 0;",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "}",
+                "matched_lines": [
+                  48
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "if (update) {",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "if (val && len > 0) {",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "pop_n(len*2+1);",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "genop_2(s, OP_HASHADD, cursp(), len);",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "push();",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "}",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "return -1;                  /* variable length */",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "}",
+                "matched_lines": [
+                  57
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 58,
+                "fragment": "return len;",
+                "matched_lines": [
+                  58
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 4,
+      "states": 0,
+      "values": 3,
+      "executions": 7
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 6117,
+    "output_tokens": 1604,
+    "total_tokens": 7721
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000072",
+    "split": "test",
+    "source_hash": "dc78a0d7286fd07b4904959f5a884b1caf3f65c01e211fee5acbf67d8d4ae78b",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

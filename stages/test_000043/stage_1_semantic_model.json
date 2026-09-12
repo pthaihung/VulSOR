@@ -1,0 +1,839 @@
+{
+  "sample_id": "test_000043",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L61"
+          ],
+          "expression": "gf_malloc((size_t)obu_size)",
+          "claim": "allocate a memory block of obu_size bytes"
+        },
+        {
+          "locations": [
+            "L67"
+          ],
+          "expression": "gf_bs_read_data(bs, (char *) a->obu, (u32)obu_size)",
+          "claim": "read obu_size bytes from the bitstream into the allocated buffer a->obu"
+        },
+        {
+          "locations": [
+            "L70"
+          ],
+          "expression": "gf_list_add(cfg->obu_array, a)",
+          "claim": "append the OBU array entry to the list"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "cfg"
+          ],
+          "claim": "cfg is a newly allocated GF_AV1Config object returned to the caller; on the reserved/marker/version error path it is released and NULL is returned instead.",
+          "evidence": "L11: cfg = gf_odf_av1_cfg_new();\nL30: gf_odf_av1_cfg_del(cfg);\nL31: return NULL;\nL80: return cfg;"
+        },
+        {
+          "entities": [
+            "state",
+            "cfg"
+          ],
+          "claim": "state is initialized and its config member is set to point to the allocated cfg object.",
+          "evidence": "L12: gf_av1_init_state(&state);\nL13: state.config = cfg;"
+        },
+        {
+          "entities": [
+            "a",
+            "a->obu"
+          ],
+          "claim": "a is allocated as a GF_AV1_OBUArrayEntry; if allocation fails the loop breaks, and if the subsequent obu buffer allocation fails a is freed and the loop breaks.",
+          "evidence": "L59: GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);\nL60: if (!a) break;\nL61: a->obu = gf_malloc((size_t)obu_size);\nL62: if (!a->obu) {\nL63: gf_free(a);\nL64: break;"
+        },
+        {
+          "entities": [
+            "a",
+            "a->obu",
+            "cfg->obu_array"
+          ],
+          "claim": "a->obu points to a heap buffer of obu_size bytes filled from the bitstream, and a is added to cfg->obu_array.",
+          "evidence": "L61: a->obu = gf_malloc((size_t)obu_size);\nL67: gf_bs_read_data(bs, (char *) a->obu, (u32)obu_size);\nL68: a->obu_length = obu_size;\nL70: gf_list_add(cfg->obu_array, a);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "size"
+          ],
+          "claim": "size is a u32 parameter; if zero it is replaced by the u32 result of gf_bs_available(bs), and if still zero the function returns NULL.",
+          "evidence": "L1: GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)\nL8: if (!size) size = (u32) gf_bs_available(bs);\nL9: if (!size) return NULL;"
+        },
+        {
+          "entities": [
+            "size"
+          ],
+          "claim": "size is decremented by 4 after the fixed header fields, so the loop's remaining size excludes those 4 bytes.",
+          "evidence": "L40: size -= 4;"
+        },
+        {
+          "entities": [
+            "obu_size",
+            "size"
+          ],
+          "claim": "obu_size is a u64; the loop subtracts (u32)obu_size from size only after checking size<obu_size, so the subtraction is guarded against underflow.",
+          "evidence": "L43: u64 pos, obu_size;\nL72: if (size<obu_size) {\nL76: size -= (u32) obu_size;"
+        },
+        {
+          "entities": [
+            "obu_size",
+            "a->obu"
+          ],
+          "claim": "a->obu is allocated with gf_malloc((size_t)obu_size) and then filled by gf_bs_read_data with (u32)obu_size bytes, so the read length is the u32 truncation of the u64 obu_size.",
+          "evidence": "L61: a->obu = gf_malloc((size_t)obu_size);\nL67: gf_bs_read_data(bs, (char *) a->obu, (u32)obu_size);"
+        },
+        {
+          "entities": [
+            "obu_size",
+            "a->obu_length"
+          ],
+          "claim": "a->obu_length is assigned the full u64 obu_size.",
+          "evidence": "L68: a->obu_length = obu_size;"
+        },
+        {
+          "entities": [
+            "pos",
+            "obu_size"
+          ],
+          "claim": "obu_size is asserted to equal the bitstream position delta gf_bs_get_position(bs) - pos after parsing the OBU.",
+          "evidence": "L47: pos = gf_bs_get_position(bs);\nL53: assert(obu_size == gf_bs_get_position(bs) - pos);"
+        },
+        {
+          "entities": [
+            "reserved"
+          ],
+          "claim": "reserved is a u8 assigned the 3-bit read value and must equal 0 for the function to continue.",
+          "evidence": "L5: u8 reserved;\nL27: reserved = gf_bs_read_int(bs, 3);\nL28: if (reserved != 0 || cfg->marker != 1 || cfg->version != 1) {"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "size"
+          ],
+          "claim": "If size is zero on entry, it is replaced by the number of available bytes; if still zero, the function returns NULL before any parsing.",
+          "evidence": "L8: if (!size) size = (u32) gf_bs_available(bs);\nL9: if (!size) return NULL;"
+        },
+        {
+          "entities": [
+            "reserved",
+            "cfg->marker",
+            "cfg->version"
+          ],
+          "claim": "Continuing past the header validation implies reserved == 0, cfg->marker == 1, and cfg->version == 1.",
+          "evidence": "L27: reserved = gf_bs_read_int(bs, 3);\nL28: if (reserved != 0 || cfg->marker != 1 || cfg->version != 1) {\nL30: gf_odf_av1_cfg_del(cfg);\nL31: return NULL;"
+        },
+        {
+          "entities": [
+            "size"
+          ],
+          "claim": "After the fixed header is consumed, size is decremented by 4; the OBU loop executes only while size is nonzero.",
+          "evidence": "L40: size -= 4;\nL42: while (size) {"
+        },
+        {
+          "entities": [
+            "obu_size",
+            "size"
+          ],
+          "claim": "Within the loop, if size < obu_size, the loop breaks before subtracting obu_size from size.",
+          "evidence": "L72: if (size<obu_size) {\nL74: break;\nL76: size -= (u32) obu_size;"
+        },
+        {
+          "entities": [
+            "a"
+          ],
+          "claim": "If allocation of the OBU array entry fails, the loop breaks.",
+          "evidence": "L59: GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);\nL60: if (!a) break;"
+        },
+        {
+          "entities": [
+            "a->obu"
+          ],
+          "claim": "If allocation of the OBU buffer fails, the entry is freed and the loop breaks.",
+          "evidence": "L61: a->obu = gf_malloc((size_t)obu_size);\nL62: if (!a->obu) {\nL63: gf_free(a);\nL64: break;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3304,
+              "output_tokens": 129,
+              "total_tokens": 3433
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3304,
+          "output_tokens": 129,
+          "total_tokens": 3433
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L61",
+                "matched": true,
+                "expression": "gf_malloc((size_t)obu_size)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L67",
+                "matched": true,
+                "expression": "gf_bs_read_data(bs, (char *) a->obu, (u32)obu_size)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L70",
+                "matched": true,
+                "expression": "gf_list_add(cfg->obu_array, a)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1907,
+              "output_tokens": 461,
+              "total_tokens": 2368
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1907,
+          "output_tokens": 461,
+          "total_tokens": 2368
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "cfg = gf_odf_av1_cfg_new();",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "gf_odf_av1_cfg_del(cfg);",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "return NULL;",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 80,
+                "fragment": "return cfg;",
+                "matched_lines": [
+                  80
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "gf_av1_init_state(&state);",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "state.config = cfg;",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 59,
+                "fragment": "GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "if (!a) break;",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "a->obu = gf_malloc((size_t)obu_size);",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "if (!a->obu) {",
+                "matched_lines": [
+                  62
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "gf_free(a);",
+                "matched_lines": [
+                  63
+                ]
+              },
+              {
+                "evidence_line": 64,
+                "fragment": "break;",
+                "matched_lines": [
+                  64
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 61,
+                "fragment": "a->obu = gf_malloc((size_t)obu_size);",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "gf_bs_read_data(bs, (char *) a->obu, (u32)obu_size);",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "a->obu_length = obu_size;",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "gf_list_add(cfg->obu_array, a);",
+                "matched_lines": [
+                  70
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2095,
+              "output_tokens": 615,
+              "total_tokens": 2710
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2095,
+          "output_tokens": 615,
+          "total_tokens": 2710
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 1,
+                "fragment": "GF_AV1Config *gf_odf_av1_cfg_read_bs_size(GF_BitStream *bs, u32 size)",
+                "matched_lines": [
+                  1
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": "if (!size) size = (u32) gf_bs_available(bs);",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "if (!size) return NULL;",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 40,
+                "fragment": "size -= 4;",
+                "matched_lines": [
+                  40
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "u64 pos, obu_size;",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 72,
+                "fragment": "if (size<obu_size) {",
+                "matched_lines": [
+                  72
+                ]
+              },
+              {
+                "evidence_line": 76,
+                "fragment": "size -= (u32) obu_size;",
+                "matched_lines": [
+                  76
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 61,
+                "fragment": "a->obu = gf_malloc((size_t)obu_size);",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "gf_bs_read_data(bs, (char *) a->obu, (u32)obu_size);",
+                "matched_lines": [
+                  67
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 68,
+                "fragment": "a->obu_length = obu_size;",
+                "matched_lines": [
+                  68
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 47,
+                "fragment": "pos = gf_bs_get_position(bs);",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "assert(obu_size == gf_bs_get_position(bs) - pos);",
+                "matched_lines": [
+                  53
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "u8 reserved;",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "reserved = gf_bs_read_int(bs, 3);",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "if (reserved != 0 || cfg->marker != 1 || cfg->version != 1) {",
+                "matched_lines": [
+                  28
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1775,
+              "output_tokens": 547,
+              "total_tokens": 2322
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1775,
+          "output_tokens": 547,
+          "total_tokens": 2322
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (!size) size = (u32) gf_bs_available(bs);",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "if (!size) return NULL;",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 27,
+                "fragment": "reserved = gf_bs_read_int(bs, 3);",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "if (reserved != 0 || cfg->marker != 1 || cfg->version != 1) {",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "gf_odf_av1_cfg_del(cfg);",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "return NULL;",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 40,
+                "fragment": "size -= 4;",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 42,
+                "fragment": "while (size) {",
+                "matched_lines": [
+                  42
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 72,
+                "fragment": "if (size<obu_size) {",
+                "matched_lines": [
+                  72
+                ]
+              },
+              {
+                "evidence_line": 74,
+                "fragment": "break;",
+                "matched_lines": [
+                  74
+                ]
+              },
+              {
+                "evidence_line": 76,
+                "fragment": "size -= (u32) obu_size;",
+                "matched_lines": [
+                  76
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 59,
+                "fragment": "GF_SAFEALLOC(a, GF_AV1_OBUArrayEntry);",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "if (!a) break;",
+                "matched_lines": [
+                  60
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 61,
+                "fragment": "a->obu = gf_malloc((size_t)obu_size);",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "if (!a->obu) {",
+                "matched_lines": [
+                  62
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "gf_free(a);",
+                "matched_lines": [
+                  63
+                ]
+              },
+              {
+                "evidence_line": 64,
+                "fragment": "break;",
+                "matched_lines": [
+                  64
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 3,
+      "states": 4,
+      "values": 7,
+      "executions": 6
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 9081,
+    "output_tokens": 1752,
+    "total_tokens": 10833
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000043",
+    "split": "test",
+    "source_hash": "b55b7adcbb02c199779f1e9492db1f8107bbebe2d1fb454710732e578665561f",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

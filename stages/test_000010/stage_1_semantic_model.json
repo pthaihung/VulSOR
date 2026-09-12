@@ -65,54 +65,46 @@
       "states": [
         {
           "entities": [
-            "trak",
-            "hmhd"
+            "hmhd",
+            "trak->Media->information->InfoHeader"
           ],
-          "claim": "hmhd points to the InfoHeader subobject of trak->Media->information; its provenance is that of that InfoHeader object.",
-          "evidence": "L3: GF_HintMediaHeaderBox *hmhd = (GF_HintMediaHeaderBox *)trak->Media->information->InfoHeader;"
+          "claim": "hmhd points to the InfoHeader object of trak's media information; its type field is read as GF_ISOM_BOX_TYPE_HMHD before any null check on hmhd.",
+          "evidence": "L3: GF_HintMediaHeaderBox *hmhd = (GF_HintMediaHeaderBox *)trak->Media->information->InfoHeader;\nL4: if (hmhd->type != GF_ISOM_BOX_TYPE_HMHD)"
         },
         {
           "entities": [
-            "hmhd",
-            "a"
+            "a",
+            "trak->Media->information->sampleTable->SampleDescription->child_boxes"
           ],
-          "claim": "a points to the first child box of trak->Media->information->sampleTable->SampleDescription->child_boxes, or is NULL if no such element exists.",
+          "claim": "a points to the first child box in the sample description's child_boxes list, or is NULL if no such element exists.",
           "evidence": "L8: GF_Box *a = (GF_Box *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, 0);"
         },
         {
           "entities": [
-            "hmhd"
-          ],
-          "claim": "hmhd->subType is assigned the type value of the first child box a when a is non-NULL.",
-          "evidence": "L10: if (a) hmhd->subType = a->type;"
-        }
-      ],
-      "values": [],
-      "executions": [
-        {
-          "entities": [
-            "hmhd"
-          ],
-          "claim": "Continuing past line 4 implies hmhd->type == GF_ISOM_BOX_TYPE_HMHD.",
-          "evidence": "L4: if (hmhd->type != GF_ISOM_BOX_TYPE_HMHD)\nL5: return 0;"
-        },
-        {
-          "entities": [
             "hmhd",
-            "hmhd->subType"
+            "a"
           ],
-          "claim": "Continuing past line 7 implies hmhd is non-null and hmhd->subType is non-null.",
-          "evidence": "L7: if (!hmhd || !hmhd->subType) {"
+          "claim": "When hmhd is NULL, the return value is a's type if a is non-NULL, otherwise 0.",
+          "evidence": "L9: if (!hmhd) return a ? a->type : 0;"
         },
         {
           "entities": [
             "hmhd",
             "a"
           ],
-          "claim": "Within the line 7 branch, if hmhd is null then execution returns a ? a->type : 0; otherwise a is checked before assigning hmhd->subType.",
-          "evidence": "L8: GF_Box *a = (GF_Box *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, 0);\nL9: if (!hmhd) return a ? a->type : 0;\nL10: if (a) hmhd->subType = a->type;"
+          "claim": "When hmhd is non-NULL and a is non-NULL, hmhd->subType is set to a->type.",
+          "evidence": "L10: if (a) hmhd->subType = a->type;"
+        },
+        {
+          "entities": [
+            "hmhd"
+          ],
+          "claim": "hmhd->subType is returned after being set from a->type or when already non-NULL.",
+          "evidence": "L11: return hmhd->subType;\nL13: return hmhd->subType;"
         }
-      ]
+      ],
+      "values": [],
+      "executions": []
     },
     "agent_quality_gates": {
       "operation_agent": {
@@ -229,8 +221,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 774,
-              "output_tokens": 237,
-              "total_tokens": 1011
+              "output_tokens": 415,
+              "total_tokens": 1189
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -238,8 +230,8 @@
         ],
         "token_usage": {
           "input_tokens": 774,
-          "output_tokens": 237,
-          "total_tokens": 1011
+          "output_tokens": 415,
+          "total_tokens": 1189
         },
         "grounding": {
           "state_agent.states[0]": {
@@ -249,6 +241,13 @@
                 "fragment": "GF_HintMediaHeaderBox *hmhd = (GF_HintMediaHeaderBox *)trak->Media->information->InfoHeader;",
                 "matched_lines": [
                   3
+                ]
+              },
+              {
+                "evidence_line": 4,
+                "fragment": "if (hmhd->type != GF_ISOM_BOX_TYPE_HMHD)",
+                "matched_lines": [
+                  4
                 ]
               }
             ],
@@ -269,10 +268,41 @@
           "state_agent.states[2]": {
             "evidence_matches": [
               {
+                "evidence_line": 9,
+                "fragment": "if (!hmhd) return a ? a->type : 0;",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
                 "evidence_line": 10,
                 "fragment": "if (a) hmhd->subType = a->type;",
                 "matched_lines": [
                   10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "return hmhd->subType;",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "return hmhd->subType;",
+                "matched_lines": [
+                  13
                 ]
               }
             ],
@@ -293,6 +323,16 @@
           {
             "action": "repair_evidence",
             "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
             "collection": "states"
           }
         ]
@@ -330,8 +370,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 642,
-              "output_tokens": 294,
-              "total_tokens": 936
+              "output_tokens": 13,
+              "total_tokens": 655
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -339,85 +379,11 @@
         ],
         "token_usage": {
           "input_tokens": 642,
-          "output_tokens": 294,
-          "total_tokens": 936
+          "output_tokens": 13,
+          "total_tokens": 655
         },
-        "grounding": {
-          "execution_agent.executions[0]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 4,
-                "fragment": "if (hmhd->type != GF_ISOM_BOX_TYPE_HMHD)",
-                "matched_lines": [
-                  4
-                ]
-              },
-              {
-                "evidence_line": 5,
-                "fragment": "return 0;",
-                "matched_lines": [
-                  5
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[1]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 7,
-                "fragment": "if (!hmhd || !hmhd->subType) {",
-                "matched_lines": [
-                  7
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[2]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 8,
-                "fragment": "GF_Box *a = (GF_Box *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->child_boxes, 0);",
-                "matched_lines": [
-                  8
-                ]
-              },
-              {
-                "evidence_line": 9,
-                "fragment": "if (!hmhd) return a ? a->type : 0;",
-                "matched_lines": [
-                  9
-                ]
-              },
-              {
-                "evidence_line": 10,
-                "fragment": "if (a) hmhd->subType = a->type;",
-                "matched_lines": [
-                  10
-                ]
-              }
-            ],
-            "status": "pass"
-          }
-        },
-        "item_recovery": [
-          {
-            "action": "repair_evidence",
-            "index": 0,
-            "collection": "executions"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 1,
-            "collection": "executions"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 2,
-            "collection": "executions"
-          }
-        ]
+        "grounding": {},
+        "item_recovery": []
       }
     }
   },
@@ -427,9 +393,9 @@
     "mode": "independent_global_views",
     "counts": {
       "operations": 8,
-      "states": 3,
+      "states": 5,
       "values": 0,
-      "executions": 3
+      "executions": 0
     },
     "schema_version": "semantic-claims-v4.13",
     "operation_normalization": {
@@ -438,8 +404,8 @@
   },
   "token_usage": {
     "input_tokens": 4549,
-    "output_tokens": 800,
-    "total_tokens": 5349
+    "output_tokens": 697,
+    "total_tokens": 5246
   },
   "artifact_metadata": {
     "schema_version": "semantic-claims-v4.13",

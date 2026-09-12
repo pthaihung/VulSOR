@@ -1,0 +1,715 @@
+{
+  "sample_id": "test_000023",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L16",
+            "L17"
+          ],
+          "expression": "input_nodes.at(i) = edge->src(); input_idx.at(i) = edge->src_output();",
+          "claim": "indexed access into input_nodes and input_idx vectors at index i"
+        },
+        {
+          "locations": [
+            "L37"
+          ],
+          "expression": "node->def().has_experimental_type()",
+          "claim": "dereference of node pointer to access its def"
+        },
+        {
+          "locations": [
+            "L38"
+          ],
+          "expression": "node->def().experimental_type()",
+          "claim": "dereference of node pointer to access its experimental type"
+        },
+        {
+          "locations": [
+            "L41"
+          ],
+          "expression": "node_t.args_size()",
+          "claim": "access to args_size of node_t"
+        },
+        {
+          "locations": [
+            "L51"
+          ],
+          "expression": "node_t.args(ix)",
+          "claim": "indexed access into node_t args at index ix"
+        },
+        {
+          "locations": [
+            "L66"
+          ],
+          "expression": "*(props_->node_def.mutable_experimental_type()) = infer_typedef;",
+          "claim": "dereference and write through pointer returned by mutable_experimental_type"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "input_nodes"
+          ],
+          "claim": "input_nodes is a vector of Node* sized to props_->input_types.size(), initialized with nullptr entries.",
+          "evidence": "L8: std::vector<Node*> input_nodes(props_->input_types.size(), nullptr);"
+        },
+        {
+          "entities": [
+            "input_nodes",
+            "edge"
+          ],
+          "claim": "For each non-control in_edge, input_nodes.at(edge->dst_input()) is set to edge->src(), establishing the source node for that input slot.",
+          "evidence": "L10: for (const auto& edge : in_edges_) {\nL11: if (edge->IsControlEdge()) {\nL12: continue;\nL13: }\nL14: DCHECK(edge->dst_input() < input_nodes.size()) << DebugString();\nL15: int i = edge->dst_input();\nL16: input_nodes.at(i) = edge->src();"
+        },
+        {
+          "entities": [
+            "input_nodes"
+          ],
+          "claim": "If any input_nodes entry remains nullptr, the function clears type info and returns, so no further type inference occurs.",
+          "evidence": "L24: for (const auto* node : input_nodes) {\nL25: if (node == nullptr) {\nL26: // Incomplete inputs, bail.\nL27: ClearTypeInfo();\nL28: return;\nL29: }\nL30: }"
+        },
+        {
+          "entities": [
+            "no_type"
+          ],
+          "claim": "no_type is a static FullTypeDef pointer allocated with new and never freed.",
+          "evidence": "L32: static FullTypeDef* no_type = new FullTypeDef();"
+        },
+        {
+          "entities": [
+            "input_types",
+            "node_t"
+          ],
+          "claim": "input_types holds references to FullTypeDef objects: either node_t.args(ix) when the node has a set experimental type, or *no_type otherwise.",
+          "evidence": "L34: std::vector<std::reference_wrapper<const FullTypeDef>> input_types;\nL51: input_types.emplace_back(node_t.args(ix));\nL53: input_types.emplace_back(*no_type);"
+        },
+        {
+          "entities": [
+            "props_->node_def"
+          ],
+          "claim": "When infer_typedef has a non-TFT_UNSET type_id, MaybeCopyOnWrite is called and props_->node_def's experimental_type is assigned infer_typedef.",
+          "evidence": "L64: if (infer_typedef.type_id() != TFT_UNSET) {\nL65: MaybeCopyOnWrite();\nL66: *(props_->node_def.mutable_experimental_type()) = infer_typedef;\nL67: }"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "input_nodes",
+            "props_->input_types.size()"
+          ],
+          "claim": "input_nodes is initialized with size equal to props_->input_types.size(), with all elements set to nullptr.",
+          "evidence": "L8: std::vector<Node*> input_nodes(props_->input_types.size(), nullptr);"
+        },
+        {
+          "entities": [
+            "input_idx",
+            "props_->input_types.size()"
+          ],
+          "claim": "input_idx is initialized with size equal to props_->input_types.size(), with all elements set to 0.",
+          "evidence": "L9: std::vector<int> input_idx(props_->input_types.size(), 0);"
+        },
+        {
+          "entities": [
+            "edge->dst_input()",
+            "input_nodes.size()"
+          ],
+          "claim": "edge->dst_input() is required to be less than input_nodes.size() before being used as an index into input_nodes and input_idx.",
+          "evidence": "L14: DCHECK(edge->dst_input() < input_nodes.size()) << DebugString();\nL15: int i = edge->dst_input();\nL16: input_nodes.at(i) = edge->src();\nL17: input_idx.at(i) = edge->src_output();"
+        },
+        {
+          "entities": [
+            "input_idx[i]",
+            "node_t.args_size()"
+          ],
+          "claim": "input_idx[i] is checked to be less than node_t.args_size() before being used as an index into node_t.args().",
+          "evidence": "L40: int ix = input_idx[i];\nL41: if (ix >= node_t.args_size()) {\nL51: input_types.emplace_back(node_t.args(ix));"
+        },
+        {
+          "entities": [
+            "input_nodes.size()",
+            "i"
+          ],
+          "claim": "The loop iterates i from 0 while i < input_nodes.size(), so i is a valid index into input_nodes and input_idx.",
+          "evidence": "L35: for (int i = 0; i < input_nodes.size(); i++) {\nL36: const auto* node = input_nodes[i];\nL40: int ix = input_idx[i];"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "i"
+          ],
+          "claim": "Continuing past the bounds check implies 0 <= i < input_nodes.size(), so input_nodes.at(i) and input_idx.at(i) are in bounds.",
+          "evidence": "L14: DCHECK(edge->dst_input() < input_nodes.size()) << DebugString();\nL15: int i = edge->dst_input();\nL16: input_nodes.at(i) = edge->src();\nL17: input_idx.at(i) = edge->src_output();"
+        },
+        {
+          "entities": [
+            "ix",
+            "node_t.args_size()"
+          ],
+          "claim": "Continuing past this check implies ix < node_t.args_size(), so node_t.args(ix) is a valid access.",
+          "evidence": "L40: int ix = input_idx[i];\nL41: if (ix >= node_t.args_size()) {\nL51: input_types.emplace_back(node_t.args(ix));"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2757,
+              "output_tokens": 224,
+              "total_tokens": 2981
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2757,
+          "output_tokens": 224,
+          "total_tokens": 2981
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L16",
+                "matched": true,
+                "expression": "input_nodes.at(i) = edge->src(); input_idx.at(i) = edge->src_output();"
+              },
+              {
+                "location": "L17",
+                "matched": true,
+                "expression": "input_nodes.at(i) = edge->src(); input_idx.at(i) = edge->src_output();"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L37",
+                "matched": true,
+                "expression": "node->def().has_experimental_type()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L38",
+                "matched": true,
+                "expression": "node->def().experimental_type()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L41",
+                "matched": true,
+                "expression": "node_t.args_size()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L51",
+                "matched": true,
+                "expression": "node_t.args(ix)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L66",
+                "matched": true,
+                "expression": "*(props_->node_def.mutable_experimental_type()) = infer_typedef;"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1360,
+              "output_tokens": 563,
+              "total_tokens": 1923
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1360,
+          "output_tokens": 563,
+          "total_tokens": 1923
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "std::vector<Node*> input_nodes(props_->input_types.size(), nullptr);",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "for (const auto& edge : in_edges_) {",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "if (edge->IsControlEdge()) {",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "continue;",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "}",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "DCHECK(edge->dst_input() < input_nodes.size()) << DebugString();",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "int i = edge->dst_input();",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "input_nodes.at(i) = edge->src();",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 24,
+                "fragment": "for (const auto* node : input_nodes) {",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "if (node == nullptr) {",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "// Incomplete inputs, bail.",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "ClearTypeInfo();",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "return;",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "}",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "}",
+                "matched_lines": [
+                  30
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 32,
+                "fragment": "static FullTypeDef* no_type = new FullTypeDef();",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 34,
+                "fragment": "std::vector<std::reference_wrapper<const FullTypeDef>> input_types;",
+                "matched_lines": [
+                  34
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "input_types.emplace_back(node_t.args(ix));",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "input_types.emplace_back(*no_type);",
+                "matched_lines": [
+                  53
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 64,
+                "fragment": "if (infer_typedef.type_id() != TFT_UNSET) {",
+                "matched_lines": [
+                  64
+                ]
+              },
+              {
+                "evidence_line": 65,
+                "fragment": "MaybeCopyOnWrite();",
+                "matched_lines": [
+                  65
+                ]
+              },
+              {
+                "evidence_line": 66,
+                "fragment": "*(props_->node_def.mutable_experimental_type()) = infer_typedef;",
+                "matched_lines": [
+                  66
+                ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "}",
+                "matched_lines": [
+                  67
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1548,
+              "output_tokens": 425,
+              "total_tokens": 1973
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1548,
+          "output_tokens": 425,
+          "total_tokens": 1973
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "std::vector<Node*> input_nodes(props_->input_types.size(), nullptr);",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "std::vector<int> input_idx(props_->input_types.size(), 0);",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "DCHECK(edge->dst_input() < input_nodes.size()) << DebugString();",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "int i = edge->dst_input();",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "input_nodes.at(i) = edge->src();",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "input_idx.at(i) = edge->src_output();",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 40,
+                "fragment": "int ix = input_idx[i];",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "if (ix >= node_t.args_size()) {",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "input_types.emplace_back(node_t.args(ix));",
+                "matched_lines": [
+                  51
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 35,
+                "fragment": "for (int i = 0; i < input_nodes.size(); i++) {",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "const auto* node = input_nodes[i];",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "int ix = input_idx[i];",
+                "matched_lines": [
+                  40
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1228,
+              "output_tokens": 212,
+              "total_tokens": 1440
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1228,
+          "output_tokens": 212,
+          "total_tokens": 1440
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "DCHECK(edge->dst_input() < input_nodes.size()) << DebugString();",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "int i = edge->dst_input();",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "input_nodes.at(i) = edge->src();",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "input_idx.at(i) = edge->src_output();",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 40,
+                "fragment": "int ix = input_idx[i];",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "if (ix >= node_t.args_size()) {",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "input_types.emplace_back(node_t.args(ix));",
+                "matched_lines": [
+                  51
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 6,
+      "states": 6,
+      "values": 5,
+      "executions": 2
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 6893,
+    "output_tokens": 1424,
+    "total_tokens": 8317
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000023",
+    "split": "test",
+    "source_hash": "6e079a7bcc1515ba1ce5d0f9f208bd28502541efd382ed223c701de6790c0efe",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

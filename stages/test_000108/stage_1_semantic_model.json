@@ -1,0 +1,353 @@
+{
+  "sample_id": "test_000108",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L4"
+          ],
+          "expression": "malloc(alloc_size)",
+          "claim": "allocate a memory region of alloc_size bytes"
+        },
+        {
+          "locations": [
+            "L6"
+          ],
+          "expression": "ret->size = size",
+          "claim": "write to the size member of the allocated TfLiteIntArray object through ret"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "ret"
+          ],
+          "claim": "ret points to a newly allocated TfLiteIntArray storage region returned by malloc; allocation is not checked for success beyond the NULL guard, and the object's size field is initialized to size before return.",
+          "evidence": "L4: TfLiteIntArray* ret = (TfLiteIntArray*)malloc(alloc_size);\nL5: if (!ret) return ret;\nL6: ret->size = size;\nL7: return ret;"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "size",
+            "alloc_size"
+          ],
+          "claim": "alloc_size is computed from size by TfLiteIntArrayGetSizeInBytes(size); alloc_size <= 0 causes NULL return before malloc, so malloc receives a positive alloc_size.",
+          "evidence": "L2: int alloc_size = TfLiteIntArrayGetSizeInBytes(size);\nL3: if (alloc_size <= 0) return NULL;\nL4: TfLiteIntArray* ret = (TfLiteIntArray*)malloc(alloc_size);"
+        },
+        {
+          "entities": [
+            "size",
+            "ret"
+          ],
+          "claim": "ret->size is assigned the original int size value, so the stored size equals the size argument used to compute alloc_size.",
+          "evidence": "L6: ret->size = size;"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "alloc_size",
+            "size"
+          ],
+          "claim": "continuing past the guard implies alloc_size > 0, where alloc_size is derived from size via TfLiteIntArrayGetSizeInBytes(size)",
+          "evidence": "L2: int alloc_size = TfLiteIntArrayGetSizeInBytes(size);\nL3: if (alloc_size <= 0) return NULL;"
+        },
+        {
+          "entities": [
+            "ret",
+            "alloc_size"
+          ],
+          "claim": "continuing past the malloc check implies ret is non-NULL and points to a block of at least alloc_size bytes",
+          "evidence": "L4: TfLiteIntArray* ret = (TfLiteIntArray*)malloc(alloc_size);\nL5: if (!ret) return ret;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2071,
+              "output_tokens": 68,
+              "total_tokens": 2139
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2071,
+          "output_tokens": 68,
+          "total_tokens": 2139
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L4",
+                "matched": true,
+                "expression": "malloc(alloc_size)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L6",
+                "matched": true,
+                "expression": "ret->size = size"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 674,
+              "output_tokens": 114,
+              "total_tokens": 788
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 674,
+          "output_tokens": 114,
+          "total_tokens": 788
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "TfLiteIntArray* ret = (TfLiteIntArray*)malloc(alloc_size);",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 5,
+                "fragment": "if (!ret) return ret;",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "ret->size = size;",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 7,
+                "fragment": "return ret;",
+                "matched_lines": [
+                  7
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 862,
+              "output_tokens": 179,
+              "total_tokens": 1041
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 862,
+          "output_tokens": 179,
+          "total_tokens": 1041
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "int alloc_size = TfLiteIntArrayGetSizeInBytes(size);",
+                "matched_lines": [
+                  2
+                ]
+              },
+              {
+                "evidence_line": 3,
+                "fragment": "if (alloc_size <= 0) return NULL;",
+                "matched_lines": [
+                  3
+                ]
+              },
+              {
+                "evidence_line": 4,
+                "fragment": "TfLiteIntArray* ret = (TfLiteIntArray*)malloc(alloc_size);",
+                "matched_lines": [
+                  4
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "ret->size = size;",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 542,
+              "output_tokens": 167,
+              "total_tokens": 709
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 542,
+          "output_tokens": 167,
+          "total_tokens": 709
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "int alloc_size = TfLiteIntArrayGetSizeInBytes(size);",
+                "matched_lines": [
+                  2
+                ]
+              },
+              {
+                "evidence_line": 3,
+                "fragment": "if (alloc_size <= 0) return NULL;",
+                "matched_lines": [
+                  3
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "TfLiteIntArray* ret = (TfLiteIntArray*)malloc(alloc_size);",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 5,
+                "fragment": "if (!ret) return ret;",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 2,
+      "states": 1,
+      "values": 2,
+      "executions": 2
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4149,
+    "output_tokens": 528,
+    "total_tokens": 4677
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000108",
+    "split": "test",
+    "source_hash": "ec2d7dfd4ec4a5fcd4e7a0f595d30519485aad3d5dfbd068c8c484200efa1203",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

@@ -1,0 +1,719 @@
+{
+  "sample_id": "test_000103",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L13"
+          ],
+          "expression": "strlcpy(cap->driver, \"v4l2 loopback\", sizeof(cap->driver))",
+          "claim": "copy a string into the fixed-size driver buffer with the buffer size supplied"
+        },
+        {
+          "locations": [
+            "L14"
+          ],
+          "expression": "snprintf(cap->card, labellen, \"%s\", dev->card_label)",
+          "claim": "format a string into the card buffer using a computed size bound"
+        },
+        {
+          "locations": [
+            "L15"
+          ],
+          "expression": "snprintf(cap->bus_info, sizeof(cap->bus_info), \"platform:v4l2loopback-%03d\", device_nr)",
+          "claim": "format a string into the fixed-size bus_info buffer with the buffer size supplied"
+        },
+        {
+          "locations": [
+            "L47"
+          ],
+          "expression": "memset(cap->reserved, 0, sizeof(cap->reserved))",
+          "claim": "zero the reserved buffer using its size"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "dev"
+          ],
+          "claim": "dev is the v4l2_loopback_device obtained from the file via v4l2loopback_getdevice(file).",
+          "evidence": "L4: struct v4l2_loopback_device *dev = v4l2loopback_getdevice(file);"
+        },
+        {
+          "entities": [
+            "dev->vdev"
+          ],
+          "claim": "dev->vdev is the video device whose driver data is retrieved and cast to struct v4l2loopback_private to obtain device_nr.",
+          "evidence": "L8: int device_nr =\nL9: ((struct v4l2loopback_private *)video_get_drvdata(dev->vdev))\nL10: ->device_nr;"
+        },
+        {
+          "entities": [
+            "cap"
+          ],
+          "claim": "cap is the caller-provided v4l2_capability output object whose driver, card, bus_info, device_caps, capabilities, and reserved fields are written.",
+          "evidence": "L2: struct v4l2_capability *cap)\nL13: strlcpy(cap->driver, \"v4l2 loopback\", sizeof(cap->driver));\nL14: snprintf(cap->card, labellen, \"%s\", dev->card_label);\nL15: snprintf(cap->bus_info, sizeof(cap->bus_info),\nL16: \"platform:v4l2loopback-%03d\", device_nr);\nL41: cap->device_caps = cap->capabilities = capabilities;\nL44: cap->capabilities |= V4L2_CAP_DEVICE_CAPS;\nL47: memset(cap->reserved, 0, sizeof(cap->reserved));"
+        },
+        {
+          "entities": [
+            "dev->card_label"
+          ],
+          "claim": "dev->card_label is the source string copied into cap->card.",
+          "evidence": "L14: snprintf(cap->card, labellen, \"%s\", dev->card_label);"
+        },
+        {
+          "entities": [
+            "dev->vdev"
+          ],
+          "claim": "dev->vdev->device_caps is assigned the computed capabilities value.",
+          "evidence": "L39: dev->vdev->device_caps =\nL41: cap->device_caps = cap->capabilities = capabilities;"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "labellen",
+            "sizeof(cap->card)",
+            "sizeof(dev->card_label)"
+          ],
+          "claim": "labellen is the minimum of sizeof(cap->card) and sizeof(dev->card_label), bounding the write length passed to snprintf for cap->card.",
+          "evidence": "L5: int labellen = (sizeof(cap->card) < sizeof(dev->card_label)) ?\nL6: sizeof(cap->card) :\nL7: sizeof(dev->card_label);\nL14: snprintf(cap->card, labellen, \"%s\", dev->card_label);"
+        },
+        {
+          "entities": [
+            "sizeof(cap->driver)",
+            "strlcpy"
+          ],
+          "claim": "strlcpy writes at most sizeof(cap->driver) bytes into cap->driver.",
+          "evidence": "L13: strlcpy(cap->driver, \"v4l2 loopback\", sizeof(cap->driver));"
+        },
+        {
+          "entities": [
+            "sizeof(cap->bus_info)",
+            "snprintf"
+          ],
+          "claim": "snprintf is bounded by sizeof(cap->bus_info) for cap->bus_info.",
+          "evidence": "L15: snprintf(cap->bus_info, sizeof(cap->bus_info),"
+        },
+        {
+          "entities": [
+            "sizeof(cap->reserved)",
+            "memset"
+          ],
+          "claim": "memset zeroes exactly sizeof(cap->reserved) bytes at cap->reserved.",
+          "evidence": "L47: memset(cap->reserved, 0, sizeof(cap->reserved));"
+        },
+        {
+          "entities": [
+            "device_nr",
+            "video_get_drvdata",
+            "struct v4l2loopback_private"
+          ],
+          "claim": "device_nr is read from the device_nr field of the v4l2loopback_private structure returned by video_get_drvdata(dev->vdev).",
+          "evidence": "L8: int device_nr =\nL9: ((struct v4l2loopback_private *)video_get_drvdata(dev->vdev))\nL10: ->device_nr;"
+        },
+        {
+          "entities": [
+            "capabilities",
+            "V4L2_CAP_STREAMING",
+            "V4L2_CAP_READWRITE"
+          ],
+          "claim": "capabilities is initialized to V4L2_CAP_STREAMING | V4L2_CAP_READWRITE.",
+          "evidence": "L11: __u32 capabilities = V4L2_CAP_STREAMING | V4L2_CAP_READWRITE;"
+        },
+        {
+          "entities": [
+            "capabilities",
+            "V4L2_CAP_VIDEO_M2M"
+          ],
+          "claim": "When V4L2_CAP_VIDEO_M2M is defined, capabilities is ORed with V4L2_CAP_VIDEO_M2M.",
+          "evidence": "L23: #ifdef V4L2_CAP_VIDEO_M2M\nL24: capabilities |= V4L2_CAP_VIDEO_M2M;"
+        },
+        {
+          "entities": [
+            "capabilities",
+            "V4L2_CAP_VIDEO_CAPTURE",
+            "V4L2_CAP_VIDEO_OUTPUT"
+          ],
+          "claim": "capabilities may be ORed with V4L2_CAP_VIDEO_CAPTURE and/or V4L2_CAP_VIDEO_OUTPUT depending on dev->announce_all_caps, dev->ready_for_capture, and dev->ready_for_output.",
+          "evidence": "L27: if (dev->announce_all_caps) {\nL28: capabilities |= V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_VIDEO_OUTPUT;\nL30: if (dev->ready_for_capture) {\nL31: capabilities |= V4L2_CAP_VIDEO_CAPTURE;\nL33: if (dev->ready_for_output) {\nL34: capabilities |= V4L2_CAP_VIDEO_OUTPUT;"
+        },
+        {
+          "entities": [
+            "cap->device_caps",
+            "cap->capabilities",
+            "capabilities"
+          ],
+          "claim": "cap->device_caps and cap->capabilities are both assigned the value of capabilities.",
+          "evidence": "L41: cap->device_caps = cap->capabilities = capabilities;"
+        },
+        {
+          "entities": [
+            "cap->capabilities",
+            "V4L2_CAP_DEVICE_CAPS"
+          ],
+          "claim": "cap->capabilities is ORed with V4L2_CAP_DEVICE_CAPS.",
+          "evidence": "L44: cap->capabilities |= V4L2_CAP_DEVICE_CAPS;"
+        }
+      ],
+      "executions": []
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2699,
+              "output_tokens": 199,
+              "total_tokens": 2898
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2699,
+          "output_tokens": 199,
+          "total_tokens": 2898
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L13",
+                "matched": true,
+                "expression": "strlcpy(cap->driver, \"v4l2 loopback\", sizeof(cap->driver))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L14",
+                "matched": true,
+                "expression": "snprintf(cap->card, labellen, \"%s\", dev->card_label)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L15",
+                "matched": true,
+                "expression": "snprintf(cap->bus_info, sizeof(cap->bus_info), \"platform:v4l2loopback-%03d\", device_nr)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L47",
+                "matched": true,
+                "expression": "memset(cap->reserved, 0, sizeof(cap->reserved))"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1302,
+              "output_tokens": 529,
+              "total_tokens": 1831
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1302,
+          "output_tokens": 529,
+          "total_tokens": 1831
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "struct v4l2_loopback_device *dev = v4l2loopback_getdevice(file);",
+                "matched_lines": [
+                  4
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "int device_nr =",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "((struct v4l2loopback_private *)video_get_drvdata(dev->vdev))",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "->device_nr;",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "struct v4l2_capability *cap)",
+                "matched_lines": [
+                  2
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "strlcpy(cap->driver, \"v4l2 loopback\", sizeof(cap->driver));",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "snprintf(cap->card, labellen, \"%s\", dev->card_label);",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "snprintf(cap->bus_info, sizeof(cap->bus_info),",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "\"platform:v4l2loopback-%03d\", device_nr);",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "cap->device_caps = cap->capabilities = capabilities;",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "cap->capabilities |= V4L2_CAP_DEVICE_CAPS;",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "memset(cap->reserved, 0, sizeof(cap->reserved));",
+                "matched_lines": [
+                  47
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "snprintf(cap->card, labellen, \"%s\", dev->card_label);",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 39,
+                "fragment": "dev->vdev->device_caps =",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "cap->device_caps = cap->capabilities = capabilities;",
+                "matched_lines": [
+                  41
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1490,
+              "output_tokens": 1002,
+              "total_tokens": 2492
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1490,
+          "output_tokens": 1002,
+          "total_tokens": 2492
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "int labellen = (sizeof(cap->card) < sizeof(dev->card_label)) ?",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "sizeof(cap->card) :",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 7,
+                "fragment": "sizeof(dev->card_label);",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "snprintf(cap->card, labellen, \"%s\", dev->card_label);",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "strlcpy(cap->driver, \"v4l2 loopback\", sizeof(cap->driver));",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "snprintf(cap->bus_info, sizeof(cap->bus_info),",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 47,
+                "fragment": "memset(cap->reserved, 0, sizeof(cap->reserved));",
+                "matched_lines": [
+                  47
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "int device_nr =",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "((struct v4l2loopback_private *)video_get_drvdata(dev->vdev))",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "->device_nr;",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "__u32 capabilities = V4L2_CAP_STREAMING | V4L2_CAP_READWRITE;",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "#ifdef V4L2_CAP_VIDEO_M2M",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "capabilities |= V4L2_CAP_VIDEO_M2M;",
+                "matched_lines": [
+                  24
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 27,
+                "fragment": "if (dev->announce_all_caps) {",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "capabilities |= V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_VIDEO_OUTPUT;",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "if (dev->ready_for_capture) {",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "capabilities |= V4L2_CAP_VIDEO_CAPTURE;",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "if (dev->ready_for_output) {",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "capabilities |= V4L2_CAP_VIDEO_OUTPUT;",
+                "matched_lines": [
+                  34
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 41,
+                "fragment": "cap->device_caps = cap->capabilities = capabilities;",
+                "matched_lines": [
+                  41
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "cap->capabilities |= V4L2_CAP_DEVICE_CAPS;",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1170,
+              "output_tokens": 13,
+              "total_tokens": 1183
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1170,
+          "output_tokens": 13,
+          "total_tokens": 1183
+        },
+        "grounding": {},
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 4,
+      "states": 5,
+      "values": 10,
+      "executions": 0
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 6661,
+    "output_tokens": 1743,
+    "total_tokens": 8404
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000103",
+    "split": "test",
+    "source_hash": "aa563ea53c611d591ca287355287605420a2a12f80087a8cdf527c049816315c",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

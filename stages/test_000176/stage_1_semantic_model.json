@@ -1,0 +1,425 @@
+{
+  "sample_id": "test_000176",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L7"
+          ],
+          "expression": "ctx->input(0).scalar<int>()()",
+          "claim": "read the scalar int value from input tensor 0"
+        },
+        {
+          "locations": [
+            "L17"
+          ],
+          "expression": "ctx->set_output(i, tuple[i])",
+          "claim": "set output tensor at index i from tuple element"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "buf"
+          ],
+          "claim": "buf is a Buffer pointer initialized to nullptr before GetBuffer may assign it.",
+          "evidence": "L2: Buffer* buf = nullptr;\nL3: OP_REQUIRES_OK(ctx, GetBuffer(ctx, def(), &buf));"
+        },
+        {
+          "entities": [
+            "buf",
+            "scope"
+          ],
+          "claim": "scope is a ScopedUnref owning a reference to buf for the duration of the function.",
+          "evidence": "L4: core::ScopedUnref scope(buf);"
+        },
+        {
+          "entities": [
+            "tuple"
+          ],
+          "claim": "tuple is a Buffer::Tuple object whose contents are populated by buf->Peek.",
+          "evidence": "L5: Buffer::Tuple tuple;\nL9: OP_REQUIRES_OK(ctx, buf->Peek(index, &tuple));"
+        },
+        {
+          "entities": [
+            "ctx",
+            "tuple"
+          ],
+          "claim": "tuple elements are used as outputs of ctx after Peek succeeds.",
+          "evidence": "L16: for (size_t i = 0; i < tuple.size(); ++i) {\nL17: ctx->set_output(i, tuple[i]);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "index",
+            "ctx->input(0).scalar<int>()()"
+          ],
+          "claim": "index is initialized from a scalar int input, so its value is a signed int converted to std::size_t.",
+          "evidence": "L7: std::size_t index = ctx->input(0).scalar<int>()();"
+        },
+        {
+          "entities": [
+            "tuple.size()",
+            "ctx->num_outputs()"
+          ],
+          "claim": "tuple.size() must equal the number of outputs cast to size_t before the loop uses tuple.size() as the bound.",
+          "evidence": "L11: OP_REQUIRES(\nL12: ctx, tuple.size() == (size_t)ctx->num_outputs(),"
+        },
+        {
+          "entities": [
+            "i",
+            "tuple.size()"
+          ],
+          "claim": "loop index i ranges from 0 to tuple.size()-1, and tuple[i] is accessed for each i.",
+          "evidence": "L16: for (size_t i = 0; i < tuple.size(); ++i) {\nL17: ctx->set_output(i, tuple[i]);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "i",
+            "tuple.size()",
+            "ctx->num_outputs()"
+          ],
+          "claim": "Continuing into the loop implies tuple.size() == ctx->num_outputs(), and each iteration has i < tuple.size(), so ctx->set_output(i, ...) is only reached for i within the validated output count.",
+          "evidence": "L11: OP_REQUIRES(\nL12: ctx, tuple.size() == (size_t)ctx->num_outputs(),\nL16: for (size_t i = 0; i < tuple.size(); ++i) {\nL17: ctx->set_output(i, tuple[i]);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2193,
+              "output_tokens": 72,
+              "total_tokens": 2265
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2193,
+          "output_tokens": 72,
+          "total_tokens": 2265
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L7",
+                "matched": true,
+                "expression": "ctx->input(0).scalar<int>()()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L17",
+                "matched": true,
+                "expression": "ctx->set_output(i, tuple[i])"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 796,
+              "output_tokens": 241,
+              "total_tokens": 1037
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 796,
+          "output_tokens": 241,
+          "total_tokens": 1037
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "Buffer* buf = nullptr;",
+                "matched_lines": [
+                  2
+                ]
+              },
+              {
+                "evidence_line": 3,
+                "fragment": "OP_REQUIRES_OK(ctx, GetBuffer(ctx, def(), &buf));",
+                "matched_lines": [
+                  3
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "core::ScopedUnref scope(buf);",
+                "matched_lines": [
+                  4
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "Buffer::Tuple tuple;",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "OP_REQUIRES_OK(ctx, buf->Peek(index, &tuple));",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "for (size_t i = 0; i < tuple.size(); ++i) {",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "ctx->set_output(i, tuple[i]);",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 984,
+              "output_tokens": 229,
+              "total_tokens": 1213
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 984,
+          "output_tokens": 229,
+          "total_tokens": 1213
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "std::size_t index = ctx->input(0).scalar<int>()();",
+                "matched_lines": [
+                  7
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "ctx, tuple.size() == (size_t)ctx->num_outputs(),",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "for (size_t i = 0; i < tuple.size(); ++i) {",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "ctx->set_output(i, tuple[i]);",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 664,
+              "output_tokens": 147,
+              "total_tokens": 811
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 664,
+          "output_tokens": 147,
+          "total_tokens": 811
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "ctx, tuple.size() == (size_t)ctx->num_outputs(),",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "for (size_t i = 0; i < tuple.size(); ++i) {",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "ctx->set_output(i, tuple[i]);",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 2,
+      "states": 4,
+      "values": 3,
+      "executions": 1
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4637,
+    "output_tokens": 689,
+    "total_tokens": 5326
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000176",
+    "split": "test",
+    "source_hash": "a2b0a754f3447ceacc72857ce39f13c1d53e335305c6f94b330cd648286267d0",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

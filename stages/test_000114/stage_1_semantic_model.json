@@ -1,0 +1,321 @@
+{
+  "sample_id": "test_000114",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L8"
+          ],
+          "expression": "ptr->entries[i].name",
+          "claim": "read the name pointer from the entries array at index i"
+        },
+        {
+          "locations": [
+            "L10"
+          ],
+          "expression": "ptr->entries",
+          "claim": "read the entries pointer field from the box structure"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "ptr",
+            "ptr->entries[i].name"
+          ],
+          "claim": "ptr->entries[i].name is a heap-allocated object that is released by gf_free for each entry index i in [0, ptr->nb_entries).",
+          "evidence": "L8: if (ptr->entries[i].name) gf_free(ptr->entries[i].name);"
+        },
+        {
+          "entities": [
+            "ptr",
+            "ptr->entries"
+          ],
+          "claim": "ptr->entries is a heap-allocated object that is released by gf_free.",
+          "evidence": "L10: if (ptr->entries) gf_free(ptr->entries);"
+        },
+        {
+          "entities": [
+            "ptr",
+            "s"
+          ],
+          "claim": "ptr is the GroupIdToNameBox object obtained by casting s, and ptr is released by gf_free.",
+          "evidence": "L5: GroupIdToNameBox *ptr = (GroupIdToNameBox *)s;\nL11: gf_free(ptr);"
+        }
+      ],
+      "values": [],
+      "executions": [
+        {
+          "entities": [
+            "i",
+            "ptr->nb_entries"
+          ],
+          "claim": "Loop body executes only while i < ptr->nb_entries, so each ptr->entries[i] access is within the entry array bounds.",
+          "evidence": "L7: for (i=0; i<ptr->nb_entries; i++) {\nL8: if (ptr->entries[i].name) gf_free(ptr->entries[i].name);"
+        },
+        {
+          "entities": [
+            "ptr"
+          ],
+          "claim": "Continuing past the early return implies ptr is non-NULL.",
+          "evidence": "L6: if (ptr == NULL) return;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2101,
+              "output_tokens": 62,
+              "total_tokens": 2163
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2101,
+          "output_tokens": 62,
+          "total_tokens": 2163
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L8",
+                "matched": true,
+                "expression": "ptr->entries[i].name"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L10",
+                "matched": true,
+                "expression": "ptr->entries"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 704,
+              "output_tokens": 209,
+              "total_tokens": 913
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 704,
+          "output_tokens": 209,
+          "total_tokens": 913
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (ptr->entries[i].name) gf_free(ptr->entries[i].name);",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "if (ptr->entries) gf_free(ptr->entries);",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "GroupIdToNameBox *ptr = (GroupIdToNameBox *)s;",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "gf_free(ptr);",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 892,
+              "output_tokens": 10,
+              "total_tokens": 902
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 892,
+          "output_tokens": 10,
+          "total_tokens": 902
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 572,
+              "output_tokens": 147,
+              "total_tokens": 719
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 572,
+          "output_tokens": 147,
+          "total_tokens": 719
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "for (i=0; i<ptr->nb_entries; i++) {",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": "if (ptr->entries[i].name) gf_free(ptr->entries[i].name);",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "if (ptr == NULL) return;",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 2,
+      "states": 3,
+      "values": 0,
+      "executions": 2
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4269,
+    "output_tokens": 428,
+    "total_tokens": 4697
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000114",
+    "split": "test",
+    "source_hash": "473cb3eea43cf9cd9355524ad6ea7dbd12a6931d225608a4d0d71b968ba5650e",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

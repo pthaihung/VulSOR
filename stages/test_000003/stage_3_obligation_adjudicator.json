@@ -19,10 +19,10 @@
       "violated",
       "violated",
       "violated",
-      "satisfied"
+      "violated"
     ],
     "obligation_count": 5,
-    "requirement_count": 7,
+    "requirement_count": 8,
     "violation": 1,
     "binary_prediction": 1,
     "label": "Vulnerable",
@@ -36,7 +36,7 @@
         ],
         "expression": "*p++",
         "requirements": [
-          "p must designate a readable byte within the pixel storage region"
+          "p must designate a readable byte within the pixel data buffer"
         ]
       },
       {
@@ -46,7 +46,7 @@
         ],
         "expression": "PushShortPixel(MSBEndian,p,&nibble)",
         "requirements": [
-          "p must designate a readable 2-byte big-endian short within the pixel storage region"
+          "p must designate a readable 16-bit value within the pixel data buffer"
         ]
       },
       {
@@ -56,7 +56,20 @@
         ],
         "expression": "PushFloatPixel(MSBEndian,p,&nibble)",
         "requirements": [
-          "p must designate a readable big-endian float within the pixel storage region"
+          "p must designate a readable floating-point value within the pixel data buffer"
+        ]
+      },
+      {
+        "index": 4,
+        "locations": [
+          "L52",
+          "L66"
+        ],
+        "expression": "SetPSDPixel(image,channels,type,packet_size,pixel,q,indexes,x)",
+        "requirements": [
+          "q must designate a writable PixelPacket within the destination pixel buffer",
+          "indexes must designate a writable IndexPacket within the destination index buffer when the image requires an index channel",
+          "x must be within the valid column extent of the destination pixel and index buffers"
         ]
       }
     ],
@@ -64,8 +77,8 @@
     "analysis_failure": false,
     "analysis_failure_reasons": [],
     "assessment_counts": {
-      "satisfied": 2,
-      "violated": 3
+      "satisfied": 1,
+      "violated": 4
     },
     "aggregation_rule": "Any violated obligation -> Vulnerable; otherwise all obligations are satisfied -> Benign."
   },
@@ -79,25 +92,25 @@
           "retry_mode": "initial",
           "errors": [],
           "token_usage": {
-            "input_tokens": 3423,
-            "output_tokens": 18,
-            "total_tokens": 3441
+            "input_tokens": 3398,
+            "output_tokens": 17,
+            "total_tokens": 3415
           },
           "max_tokens": 1024,
           "serialization_prefix_recovered": false
         }
       ],
       "token_usage": {
-        "input_tokens": 3423,
-        "output_tokens": 18,
-        "total_tokens": 3441
+        "input_tokens": 3398,
+        "output_tokens": 17,
+        "total_tokens": 3415
       }
     }
   },
   "token_usage": {
-    "input_tokens": 3423,
-    "output_tokens": 18,
-    "total_tokens": 3441
+    "input_tokens": 3398,
+    "output_tokens": 17,
+    "total_tokens": 3415
   },
   "pipeline_diagnostics": {
     "errors": [],
@@ -115,8 +128,8 @@
     "split": "test",
     "source_hash": "94918d9af06c176e1c30392f38a49cfacadc045eeb0b813d741a6d4a592ce528",
     "upstream_hashes": {
-      "semantic_model": "a407ba9a8bd792d4415c522ec3cecd7634a9535ad11ede01cc08df8bf8d433ff",
-      "rules": "053fe305314a57e4166bac7f7e847dcdf4d70a7352625943bac0eb0872596ad3"
+      "semantic_model": "33639400ecd0a81cbca1043db9b8fba9297f9d372706e786ea5a74775321bd48",
+      "rules": "c4da7ff4b52cf5ec1982971e8df1e6c0b98e8ce8f01be6474ba54565a16dd35a"
     },
     "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
   }

@@ -1,0 +1,1425 @@
+{
+  "sample_id": "test_000076",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L44"
+          ],
+          "expression": "lv_idx(s, nsym(tree))",
+          "claim": "lookup of local variable index by symbol"
+        },
+        {
+          "locations": [
+            "L47"
+          ],
+          "expression": "gen_move(s, idx, sp, val)",
+          "claim": "move value between stack slots"
+        },
+        {
+          "locations": [
+            "L52"
+          ],
+          "expression": "gen_setupvar(s, sp, nsym(tree))",
+          "claim": "set upvalue from stack slot"
+        },
+        {
+          "locations": [
+            "L66"
+          ],
+          "expression": "gen_move(s, cursp(), sp, 0)",
+          "claim": "move value between stack slots"
+        },
+        {
+          "locations": [
+            "L73"
+          ],
+          "expression": "gen_move(s, sp, cursp(), 0)",
+          "claim": "move value between stack slots"
+        },
+        {
+          "locations": [
+            "L76"
+          ],
+          "expression": "new_sym(s, nsym(tree->cdr))",
+          "claim": "create symbol from name"
+        },
+        {
+          "locations": [
+            "L100"
+          ],
+          "expression": "gen_move(s, cursp(), recv, 1)",
+          "claim": "move value between stack slots"
+        },
+        {
+          "locations": [
+            "L135"
+          ],
+          "expression": "gen_move(s, cursp(), sp, 0)",
+          "claim": "move value between stack slots"
+        },
+        {
+          "locations": [
+            "L138"
+          ],
+          "expression": "gen_move(s, top, cursp(), 1)",
+          "claim": "move value between stack slots"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "s",
+            "tree"
+          ],
+          "claim": "tree is reassigned to tree->cdr before the second switch, so subsequent nsym(tree) and tree->car/cdr accesses refer to the cdr subobject of the original lhs node.",
+          "evidence": "L37: tree = tree->cdr;"
+        },
+        {
+          "entities": [
+            "s",
+            "tree"
+          ],
+          "claim": "For NODE_COLON2, tree->car is code-generated as the receiver and tree->cdr is used to create a new symbol for OP_SETMCNST.",
+          "evidence": "L70: codegen(s, tree->car, VAL);\nL76: idx = new_sym(s, nsym(tree->cdr));\nL77: genop_2(s, OP_SETMCNST, sp, idx);"
+        },
+        {
+          "entities": [
+            "s",
+            "tree"
+          ],
+          "claim": "For NODE_CALL/NODE_SCALL, tree is advanced to tree->cdr->cdr->car, and the method symbol is taken from the original tree->cdr->car before that advance.",
+          "evidence": "L84: mrb_sym mid = nsym(tree->cdr->car);\nL103: tree = tree->cdr->cdr->car;"
+        },
+        {
+          "entities": [
+            "s",
+            "tree"
+          ],
+          "claim": "For NODE_CALL/NODE_SCALL, tree->car is code-generated as the receiver when non-NULL; otherwise noself is set and a stack slot is pushed.",
+          "evidence": "L91: if (!tree->car) {\nL92: noself = 1;\nL93: push();\nL96: codegen(s, tree->car, VAL); /* receiver */"
+        },
+        {
+          "entities": [
+            "s",
+            "tree"
+          ],
+          "claim": "For NODE_CALL/NODE_SCALL, tree->car is treated as positional arguments and tree->cdr->car as keyword arguments after the tree advance.",
+          "evidence": "L105: if (tree->car) {            /* positional arguments */\nL106: n = gen_values(s, tree->car, VAL, (tree->cdr->car)?13:14);\nL112: if (tree->cdr->car) {       /* keyword arguments */\nL119: gen_hash(s, tree->cdr->car->cdr, VAL, 0);"
+        },
+        {
+          "entities": [
+            "s",
+            "tree"
+          ],
+          "claim": "For NODE_MASGN, tree->car is passed to gen_massignment along with sp and val.",
+          "evidence": "L166: gen_massignment(s, tree->car, sp, val);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "idx",
+            "sp"
+          ],
+          "claim": "idx is the local variable index returned by lv_idx; when idx > 0 and idx != sp, gen_move is called with source index sp and destination index idx.",
+          "evidence": "L44: idx = lv_idx(s, nsym(tree));\nL45: if (idx > 0) {\nL46: if (idx != sp) {\nL47: gen_move(s, idx, sp, val);"
+        },
+        {
+          "entities": [
+            "sp",
+            "cursp()"
+          ],
+          "claim": "When rhs is present for simple lhs nodes, sp is reassigned to cursp() after codegen(rhs) and pop().",
+          "evidence": "L16: codegen(s, rhs, VAL);\nL17: pop();\nL18: sp = cursp();"
+        },
+        {
+          "entities": [
+            "sp",
+            "cursp()"
+          ],
+          "claim": "For NODE_COLON2, if sp is nonzero, gen_move copies from sp to cursp(); then sp is set to cursp() and push() is called.",
+          "evidence": "L65: if (sp) {\nL66: gen_move(s, cursp(), sp, 0);\nL68: sp = cursp();\nL69: push();"
+        },
+        {
+          "entities": [
+            "sp",
+            "cursp()"
+          ],
+          "claim": "For NODE_COLON2 with rhs, after codegen(rhs) and pop(), gen_move copies from cursp() to sp, then pop_n(2) is called.",
+          "evidence": "L72: codegen(s, rhs, VAL); pop();\nL73: gen_move(s, sp, cursp(), 0);\nL75: pop_n(2);"
+        },
+        {
+          "entities": [
+            "n",
+            "tree->cdr->car"
+          ],
+          "claim": "For NODE_CALL/NODE_SCALL positional arguments, n is assigned the return value of gen_values; if n < 0, n is set to 15 and push() is called.",
+          "evidence": "L106: n = gen_values(s, tree->car, VAL, (tree->cdr->car)?13:14);\nL107: if (n < 0) {              /* variable length */\nL108: n = 15;\nL109: push();"
+        },
+        {
+          "entities": [
+            "n"
+          ],
+          "claim": "For keyword arguments, if n == 14, pop_n(n) is called, OP_ARRAY is emitted with n, push() is called, and n is set to 15.",
+          "evidence": "L113: if (n == 14) {\nL114: pop_n(n);\nL115: genop_2(s, OP_ARRAY, cursp(), n);\nL116: push();\nL117: n = 15;"
+        },
+        {
+          "entities": [
+            "n"
+          ],
+          "claim": "After gen_hash for keyword arguments, if n < 14 then n is incremented; otherwise pop_n(2) and OP_ARYPUSH with 1 are emitted, then push() is called.",
+          "evidence": "L120: if (n < 14) {\nL121: n++;\nL123: else {\nL124: pop_n(2);\nL125: genop_2(s, OP_ARYPUSH, cursp(), 1);\nL127: push();"
+        },
+        {
+          "entities": [
+            "n"
+          ],
+          "claim": "After rhs handling, if n < 15 then n is incremented; if n becomes 15, pop_n(14) and OP_ARRAY with 15 are emitted.",
+          "evidence": "L140: if (n < 15) {\nL141: n++;\nL142: if (n == 15) {\nL143: pop_n(14);\nL144: genop_2(s, OP_ARRAY, cursp(), 15);"
+        },
+        {
+          "entities": [
+            "n"
+          ],
+          "claim": "If n is not less than 15, pop() and OP_ARYPUSH with 1 are emitted.",
+          "evidence": "L147: else {\nL148: pop();\nL149: genop_2(s, OP_ARYPUSH, cursp(), 1);"
+        },
+        {
+          "entities": [
+            "n",
+            "mid"
+          ],
+          "claim": "If mid equals MRB_OPSYM_2(s->mrb, aref) and n == 2, OP_SETIDX is emitted with cursp(); otherwise OP_SSEND or OP_SEND is emitted with n as the argument count.",
+          "evidence": "L152: if (mid == MRB_OPSYM_2(s->mrb, aref) && n == 2) {\nL153: genop_1(s, OP_SETIDX, cursp());\nL156: genop_3(s, noself ? OP_SSEND : OP_SEND, cursp(), new_sym(s, attrsym(s, mid)), n);"
+        },
+        {
+          "entities": [
+            "sp",
+            "cursp()"
+          ],
+          "claim": "For NODE_CALL/NODE_SCALL, top is set to cursp(); if val or sp == cursp(), push() is called; call is set to cursp(); if tree->car is null, noself is set to 1 and push() is called.",
+          "evidence": "L86: top = cursp();\nL87: if (val || sp == cursp()) {\nL88: push();                   /* room for retval */\nL90: call = cursp();\nL91: if (!tree->car) {\nL92: noself = 1;\nL93: push();"
+        },
+        {
+          "entities": [
+            "sp",
+            "cursp()"
+          ],
+          "claim": "For NODE_CALL/NODE_SCALL with safe, recv is cursp()-1, gen_move copies from recv to cursp(), and skip is assigned from genjmp2_0 with OP_JMPNIL and cursp().",
+          "evidence": "L99: int recv = cursp()-1;\nL100: gen_move(s, cursp(), recv, 1);\nL101: skip = genjmp2_0(s, OP_JMPNIL, cursp(), val);"
+        },
+        {
+          "entities": [
+            "sp",
+            "cursp()"
+          ],
+          "claim": "For NODE_CALL/NODE_SCALL without rhs, gen_move copies from sp to cursp(); if val, gen_move copies from cursp() to top.",
+          "evidence": "L135: gen_move(s, cursp(), sp, 0);\nL138: gen_move(s, top, cursp(), 1);"
+        },
+        {
+          "entities": [
+            "s->sp",
+            "call"
+          ],
+          "claim": "For NODE_CALL/NODE_SCALL, s->sp is set to call before the send/setidx operation, and after safe dispatch, s->sp is set to top.",
+          "evidence": "L151: s->sp = call;\nL161: s->sp = top;"
+        },
+        {
+          "entities": [
+            "sp",
+            "val"
+          ],
+          "claim": "At the end of gen_assignment, if val is nonzero, push() is called.",
+          "evidence": "L177: if (val) push();"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "idx",
+            "sp"
+          ],
+          "claim": "continuing after idx > 0 implies idx != sp is checked before gen_move; if idx == sp no move is emitted",
+          "evidence": "L45: if (idx > 0) {\nL46: if (idx != sp) {\nL47: gen_move(s, idx, sp, val);"
+        },
+        {
+          "entities": [
+            "sp",
+            "cursp()"
+          ],
+          "claim": "in NODE_COLON2, if sp is nonzero, gen_move is called with cursp() as destination and sp as source before sp is reassigned to cursp()",
+          "evidence": "L65: if (sp) {\nL66: gen_move(s, cursp(), sp, 0);\nL68: sp = cursp();"
+        },
+        {
+          "entities": [
+            "n"
+          ],
+          "claim": "in NODE_CALL/NODE_SCALL, if positional arguments produce n < 0, n is set to 15 and a push occurs",
+          "evidence": "L107: if (n < 0) {              /* variable length */\nL108: n = 15;\nL109: push();"
+        },
+        {
+          "entities": [
+            "n"
+          ],
+          "claim": "in NODE_CALL/NODE_SCALL, if keyword arguments are present and n == 14, pop_n(n) and OP_ARRAY are emitted, then n is set to 15",
+          "evidence": "L112: if (tree->cdr->car) {       /* keyword arguments */\nL113: if (n == 14) {\nL114: pop_n(n);\nL115: genop_2(s, OP_ARRAY, cursp(), n);\nL117: n = 15;"
+        },
+        {
+          "entities": [
+            "n"
+          ],
+          "claim": "in NODE_CALL/NODE_SCALL, after keyword arguments, if n < 14 then n is incremented; otherwise pop_n(2) and OP_ARYPUSH are emitted",
+          "evidence": "L120: if (n < 14) {\nL121: n++;\nL123: else {\nL124: pop_n(2);\nL125: genop_2(s, OP_ARYPUSH, cursp(), 1);"
+        },
+        {
+          "entities": [
+            "n"
+          ],
+          "claim": "in NODE_CALL/NODE_SCALL, if n < 15 then n is incremented and if it becomes 15, pop_n(14) and OP_ARRAY are emitted; otherwise pop and OP_ARYPUSH are emitted",
+          "evidence": "L140: if (n < 15) {\nL141: n++;\nL142: if (n == 15) {\nL143: pop_n(14);\nL144: genop_2(s, OP_ARRAY, cursp(), 15);\nL147: else {\nL148: pop();\nL149: genop_2(s, OP_ARYPUSH, cursp(), 1);"
+        },
+        {
+          "entities": [
+            "mid",
+            "n"
+          ],
+          "claim": "in NODE_CALL/NODE_SCALL, OP_SETIDX is emitted only when mid equals aref and n == 2; otherwise OP_SSEND or OP_SEND is emitted",
+          "evidence": "L152: if (mid == MRB_OPSYM_2(s->mrb, aref) && n == 2) {\nL153: genop_1(s, OP_SETIDX, cursp());\nL155: else {\nL156: genop_3(s, noself ? OP_SSEND : OP_SEND, cursp(), new_sym(s, attrsym(s, mid)), n);"
+        },
+        {
+          "entities": [
+            "val"
+          ],
+          "claim": "at function exit, if val is nonzero, push() is called",
+          "evidence": "L177: if (val) push();"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3771,
+              "output_tokens": 282,
+              "total_tokens": 4053
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3771,
+          "output_tokens": 282,
+          "total_tokens": 4053
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L44",
+                "matched": true,
+                "expression": "lv_idx(s, nsym(tree))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L47",
+                "matched": true,
+                "expression": "gen_move(s, idx, sp, val)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L52",
+                "matched": true,
+                "expression": "gen_setupvar(s, sp, nsym(tree))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L66",
+                "matched": true,
+                "expression": "gen_move(s, cursp(), sp, 0)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L73",
+                "matched": true,
+                "expression": "gen_move(s, sp, cursp(), 0)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L76",
+                "matched": true,
+                "expression": "new_sym(s, nsym(tree->cdr))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L100",
+                "matched": true,
+                "expression": "gen_move(s, cursp(), recv, 1)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L135",
+                "matched": true,
+                "expression": "gen_move(s, cursp(), sp, 0)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L138",
+                "matched": true,
+                "expression": "gen_move(s, top, cursp(), 1)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2374,
+              "output_tokens": 550,
+              "total_tokens": 2924
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2374,
+          "output_tokens": 550,
+          "total_tokens": 2924
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 37,
+                "fragment": "tree = tree->cdr;",
+                "matched_lines": [
+                  37
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 70,
+                "fragment": "codegen(s, tree->car, VAL);",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 76,
+                "fragment": "idx = new_sym(s, nsym(tree->cdr));",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 77,
+                "fragment": "genop_2(s, OP_SETMCNST, sp, idx);",
+                "matched_lines": [
+                  77
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 84,
+                "fragment": "mrb_sym mid = nsym(tree->cdr->car);",
+                "matched_lines": [
+                  84
+                ]
+              },
+              {
+                "evidence_line": 103,
+                "fragment": "tree = tree->cdr->cdr->car;",
+                "matched_lines": [
+                  103
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 91,
+                "fragment": "if (!tree->car) {",
+                "matched_lines": [
+                  91
+                ]
+              },
+              {
+                "evidence_line": 92,
+                "fragment": "noself = 1;",
+                "matched_lines": [
+                  92
+                ]
+              },
+              {
+                "evidence_line": 93,
+                "fragment": "push();",
+                "matched_lines": [
+                  93
+                ]
+              },
+              {
+                "evidence_line": 96,
+                "fragment": "codegen(s, tree->car, VAL); /* receiver */",
+                "matched_lines": [
+                  96
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 105,
+                "fragment": "if (tree->car) {            /* positional arguments */",
+                "matched_lines": [
+                  105
+                ]
+              },
+              {
+                "evidence_line": 106,
+                "fragment": "n = gen_values(s, tree->car, VAL, (tree->cdr->car)?13:14);",
+                "matched_lines": [
+                  106
+                ]
+              },
+              {
+                "evidence_line": 112,
+                "fragment": "if (tree->cdr->car) {       /* keyword arguments */",
+                "matched_lines": [
+                  112
+                ]
+              },
+              {
+                "evidence_line": 119,
+                "fragment": "gen_hash(s, tree->cdr->car->cdr, VAL, 0);",
+                "matched_lines": [
+                  119
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 166,
+                "fragment": "gen_massignment(s, tree->car, sp, val);",
+                "matched_lines": [
+                  166
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2562,
+              "output_tokens": 1507,
+              "total_tokens": 4069
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2562,
+          "output_tokens": 1507,
+          "total_tokens": 4069
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "idx = lv_idx(s, nsym(tree));",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "if (idx > 0) {",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "if (idx != sp) {",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "gen_move(s, idx, sp, val);",
+                "matched_lines": [
+                  47
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "codegen(s, rhs, VAL);",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "pop();",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "sp = cursp();",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 65,
+                "fragment": "if (sp) {",
+                "matched_lines": [
+                  65
+                ]
+              },
+              {
+                "evidence_line": 66,
+                "fragment": "gen_move(s, cursp(), sp, 0);",
+                "matched_lines": [
+                  66
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "sp = cursp();",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "push();",
+                "matched_lines": [
+                  69
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 72,
+                "fragment": "codegen(s, rhs, VAL); pop();",
+                "matched_lines": [
+                  72
+                ]
+              },
+              {
+                "evidence_line": 73,
+                "fragment": "gen_move(s, sp, cursp(), 0);",
+                "matched_lines": [
+                  73
+                ]
+              },
+              {
+                "evidence_line": 75,
+                "fragment": "pop_n(2);",
+                "matched_lines": [
+                  75
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 106,
+                "fragment": "n = gen_values(s, tree->car, VAL, (tree->cdr->car)?13:14);",
+                "matched_lines": [
+                  106
+                ]
+              },
+              {
+                "evidence_line": 107,
+                "fragment": "if (n < 0) {              /* variable length */",
+                "matched_lines": [
+                  107
+                ]
+              },
+              {
+                "evidence_line": 108,
+                "fragment": "n = 15;",
+                "matched_lines": [
+                  108
+                ]
+              },
+              {
+                "evidence_line": 109,
+                "fragment": "push();",
+                "matched_lines": [
+                  109
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 113,
+                "fragment": "if (n == 14) {",
+                "matched_lines": [
+                  113
+                ]
+              },
+              {
+                "evidence_line": 114,
+                "fragment": "pop_n(n);",
+                "matched_lines": [
+                  114
+                ]
+              },
+              {
+                "evidence_line": 115,
+                "fragment": "genop_2(s, OP_ARRAY, cursp(), n);",
+                "matched_lines": [
+                  115
+                ]
+              },
+              {
+                "evidence_line": 116,
+                "fragment": "push();",
+                "matched_lines": [
+                  116
+                ]
+              },
+              {
+                "evidence_line": 117,
+                "fragment": "n = 15;",
+                "matched_lines": [
+                  117
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 120,
+                "fragment": "if (n < 14) {",
+                "matched_lines": [
+                  120
+                ]
+              },
+              {
+                "evidence_line": 121,
+                "fragment": "n++;",
+                "matched_lines": [
+                  121
+                ]
+              },
+              {
+                "evidence_line": 123,
+                "fragment": "else {",
+                "matched_lines": [
+                  123
+                ]
+              },
+              {
+                "evidence_line": 124,
+                "fragment": "pop_n(2);",
+                "matched_lines": [
+                  124
+                ]
+              },
+              {
+                "evidence_line": 125,
+                "fragment": "genop_2(s, OP_ARYPUSH, cursp(), 1);",
+                "matched_lines": [
+                  125
+                ]
+              },
+              {
+                "evidence_line": 127,
+                "fragment": "push();",
+                "matched_lines": [
+                  127
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 140,
+                "fragment": "if (n < 15) {",
+                "matched_lines": [
+                  140
+                ]
+              },
+              {
+                "evidence_line": 141,
+                "fragment": "n++;",
+                "matched_lines": [
+                  141
+                ]
+              },
+              {
+                "evidence_line": 142,
+                "fragment": "if (n == 15) {",
+                "matched_lines": [
+                  142
+                ]
+              },
+              {
+                "evidence_line": 143,
+                "fragment": "pop_n(14);",
+                "matched_lines": [
+                  143
+                ]
+              },
+              {
+                "evidence_line": 144,
+                "fragment": "genop_2(s, OP_ARRAY, cursp(), 15);",
+                "matched_lines": [
+                  144
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 147,
+                "fragment": "else {",
+                "matched_lines": [
+                  147
+                ]
+              },
+              {
+                "evidence_line": 148,
+                "fragment": "pop();",
+                "matched_lines": [
+                  148
+                ]
+              },
+              {
+                "evidence_line": 149,
+                "fragment": "genop_2(s, OP_ARYPUSH, cursp(), 1);",
+                "matched_lines": [
+                  149
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 152,
+                "fragment": "if (mid == MRB_OPSYM_2(s->mrb, aref) && n == 2) {",
+                "matched_lines": [
+                  152
+                ]
+              },
+              {
+                "evidence_line": 153,
+                "fragment": "genop_1(s, OP_SETIDX, cursp());",
+                "matched_lines": [
+                  153
+                ]
+              },
+              {
+                "evidence_line": 156,
+                "fragment": "genop_3(s, noself ? OP_SSEND : OP_SEND, cursp(), new_sym(s, attrsym(s, mid)), n);",
+                "matched_lines": [
+                  156
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 86,
+                "fragment": "top = cursp();",
+                "matched_lines": [
+                  86
+                ]
+              },
+              {
+                "evidence_line": 87,
+                "fragment": "if (val || sp == cursp()) {",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 88,
+                "fragment": "push();                   /* room for retval */",
+                "matched_lines": [
+                  88
+                ]
+              },
+              {
+                "evidence_line": 90,
+                "fragment": "call = cursp();",
+                "matched_lines": [
+                  90
+                ]
+              },
+              {
+                "evidence_line": 91,
+                "fragment": "if (!tree->car) {",
+                "matched_lines": [
+                  91
+                ]
+              },
+              {
+                "evidence_line": 92,
+                "fragment": "noself = 1;",
+                "matched_lines": [
+                  92
+                ]
+              },
+              {
+                "evidence_line": 93,
+                "fragment": "push();",
+                "matched_lines": [
+                  93
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 99,
+                "fragment": "int recv = cursp()-1;",
+                "matched_lines": [
+                  99
+                ]
+              },
+              {
+                "evidence_line": 100,
+                "fragment": "gen_move(s, cursp(), recv, 1);",
+                "matched_lines": [
+                  100
+                ]
+              },
+              {
+                "evidence_line": 101,
+                "fragment": "skip = genjmp2_0(s, OP_JMPNIL, cursp(), val);",
+                "matched_lines": [
+                  101
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 135,
+                "fragment": "gen_move(s, cursp(), sp, 0);",
+                "matched_lines": [
+                  135
+                ]
+              },
+              {
+                "evidence_line": 138,
+                "fragment": "gen_move(s, top, cursp(), 1);",
+                "matched_lines": [
+                  138
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 151,
+                "fragment": "s->sp = call;",
+                "matched_lines": [
+                  151
+                ]
+              },
+              {
+                "evidence_line": 161,
+                "fragment": "s->sp = top;",
+                "matched_lines": [
+                  161
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 177,
+                "fragment": "if (val) push();",
+                "matched_lines": [
+                  177
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2242,
+              "output_tokens": 840,
+              "total_tokens": 3082
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2242,
+          "output_tokens": 840,
+          "total_tokens": 3082
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 45,
+                "fragment": "if (idx > 0) {",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "if (idx != sp) {",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "gen_move(s, idx, sp, val);",
+                "matched_lines": [
+                  47
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 65,
+                "fragment": "if (sp) {",
+                "matched_lines": [
+                  65
+                ]
+              },
+              {
+                "evidence_line": 66,
+                "fragment": "gen_move(s, cursp(), sp, 0);",
+                "matched_lines": [
+                  66
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "sp = cursp();",
+                "matched_lines": [
+                  68
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 107,
+                "fragment": "if (n < 0) {              /* variable length */",
+                "matched_lines": [
+                  107
+                ]
+              },
+              {
+                "evidence_line": 108,
+                "fragment": "n = 15;",
+                "matched_lines": [
+                  108
+                ]
+              },
+              {
+                "evidence_line": 109,
+                "fragment": "push();",
+                "matched_lines": [
+                  109
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 112,
+                "fragment": "if (tree->cdr->car) {       /* keyword arguments */",
+                "matched_lines": [
+                  112
+                ]
+              },
+              {
+                "evidence_line": 113,
+                "fragment": "if (n == 14) {",
+                "matched_lines": [
+                  113
+                ]
+              },
+              {
+                "evidence_line": 114,
+                "fragment": "pop_n(n);",
+                "matched_lines": [
+                  114
+                ]
+              },
+              {
+                "evidence_line": 115,
+                "fragment": "genop_2(s, OP_ARRAY, cursp(), n);",
+                "matched_lines": [
+                  115
+                ]
+              },
+              {
+                "evidence_line": 117,
+                "fragment": "n = 15;",
+                "matched_lines": [
+                  117
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 120,
+                "fragment": "if (n < 14) {",
+                "matched_lines": [
+                  120
+                ]
+              },
+              {
+                "evidence_line": 121,
+                "fragment": "n++;",
+                "matched_lines": [
+                  121
+                ]
+              },
+              {
+                "evidence_line": 123,
+                "fragment": "else {",
+                "matched_lines": [
+                  123
+                ]
+              },
+              {
+                "evidence_line": 124,
+                "fragment": "pop_n(2);",
+                "matched_lines": [
+                  124
+                ]
+              },
+              {
+                "evidence_line": 125,
+                "fragment": "genop_2(s, OP_ARYPUSH, cursp(), 1);",
+                "matched_lines": [
+                  125
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 140,
+                "fragment": "if (n < 15) {",
+                "matched_lines": [
+                  140
+                ]
+              },
+              {
+                "evidence_line": 141,
+                "fragment": "n++;",
+                "matched_lines": [
+                  141
+                ]
+              },
+              {
+                "evidence_line": 142,
+                "fragment": "if (n == 15) {",
+                "matched_lines": [
+                  142
+                ]
+              },
+              {
+                "evidence_line": 143,
+                "fragment": "pop_n(14);",
+                "matched_lines": [
+                  143
+                ]
+              },
+              {
+                "evidence_line": 144,
+                "fragment": "genop_2(s, OP_ARRAY, cursp(), 15);",
+                "matched_lines": [
+                  144
+                ]
+              },
+              {
+                "evidence_line": 147,
+                "fragment": "else {",
+                "matched_lines": [
+                  147
+                ]
+              },
+              {
+                "evidence_line": 148,
+                "fragment": "pop();",
+                "matched_lines": [
+                  148
+                ]
+              },
+              {
+                "evidence_line": 149,
+                "fragment": "genop_2(s, OP_ARYPUSH, cursp(), 1);",
+                "matched_lines": [
+                  149
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 152,
+                "fragment": "if (mid == MRB_OPSYM_2(s->mrb, aref) && n == 2) {",
+                "matched_lines": [
+                  152
+                ]
+              },
+              {
+                "evidence_line": 153,
+                "fragment": "genop_1(s, OP_SETIDX, cursp());",
+                "matched_lines": [
+                  153
+                ]
+              },
+              {
+                "evidence_line": 155,
+                "fragment": "else {",
+                "matched_lines": [
+                  155
+                ]
+              },
+              {
+                "evidence_line": 156,
+                "fragment": "genop_3(s, noself ? OP_SSEND : OP_SEND, cursp(), new_sym(s, attrsym(s, mid)), n);",
+                "matched_lines": [
+                  156
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 177,
+                "fragment": "if (val) push();",
+                "matched_lines": [
+                  177
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 9,
+      "states": 6,
+      "values": 15,
+      "executions": 8
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 10949,
+    "output_tokens": 3179,
+    "total_tokens": 14128
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000076",
+    "split": "test",
+    "source_hash": "c138d3f385f0a0283284fd91264d3094484a997fe32902e38b7167a1e91841f0",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

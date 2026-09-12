@@ -1,0 +1,1777 @@
+{
+  "sample_id": "test_000120",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L23",
+            "L33"
+          ],
+          "expression": "snprintf(tmpbuf, 64, \"%.*F\", dec, d)",
+          "claim": "formatting a double into the provided buffer with a bounded size"
+        },
+        {
+          "locations": [
+            "L25",
+            "L35"
+          ],
+          "expression": "isdigit((int)tmpbuf[0])",
+          "claim": "reading the first character of the formatted buffer"
+        },
+        {
+          "locations": [
+            "L43"
+          ],
+          "expression": "strpbrk(tmpbuf, \".,\")",
+          "claim": "searching the formatted buffer for a decimal point"
+        },
+        {
+          "locations": [
+            "L99"
+          ],
+          "expression": "*t-- = '0'",
+          "claim": "writing a padding character through the output pointer"
+        },
+        {
+          "locations": [
+            "L107"
+          ],
+          "expression": "memcpy(t + 1, dp + 1, declen)",
+          "claim": "copying decimal digits into the output buffer"
+        },
+        {
+          "locations": [
+            "L112"
+          ],
+          "expression": "memcpy(t + (1 - dec_point.size()), dec_point.data(), dec_point.size())",
+          "claim": "copying the decimal point string into the output buffer"
+        },
+        {
+          "locations": [
+            "L120"
+          ],
+          "expression": "*t-- = *s--",
+          "claim": "copying an integral digit from the source buffer to the output buffer"
+        },
+        {
+          "locations": [
+            "L122"
+          ],
+          "expression": "memcpy(t + (1 - thousand_sep.size()), thousand_sep.data(), thousand_sep.size())",
+          "claim": "copying the thousand separator string into the output buffer"
+        },
+        {
+          "locations": [
+            "L131"
+          ],
+          "expression": "*t-- = '-'",
+          "claim": "writing a minus sign through the output pointer"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "tmpbuf",
+            "tmpstr"
+          ],
+          "claim": "tmpbuf points to the mutable data buffer of tmpstr, a String with reserved capacity 63.",
+          "evidence": "L21: String tmpstr(63, ReserveString);\nL22: tmpbuf = tmpstr.mutableData();"
+        },
+        {
+          "entities": [
+            "tmpbuf",
+            "tmpstr"
+          ],
+          "claim": "tmpbuf is reassigned to point to the mutable data buffer of tmpstr after tmpstr is reallocated with capacity tmplen.",
+          "evidence": "L31: tmpstr = String(tmplen, ReserveString);\nL32: tmpbuf = tmpstr.mutableData();"
+        },
+        {
+          "entities": [
+            "dp",
+            "tmpbuf"
+          ],
+          "claim": "dp points to the first decimal point character within tmpbuf, or is NULL if dec is zero or no decimal point is found.",
+          "evidence": "L43: dp = strpbrk(tmpbuf, \".,\");\nL45: dp = nullptr;"
+        },
+        {
+          "entities": [
+            "resbuf",
+            "resstr"
+          ],
+          "claim": "resbuf points to the mutable data buffer of resstr, a String with reserved capacity reslen.",
+          "evidence": "L84: String resstr(reslen, ReserveString);\nL85: resbuf = resstr.mutableData();"
+        },
+        {
+          "entities": [
+            "s",
+            "tmpbuf"
+          ],
+          "claim": "s points to the last character of the formatted number in tmpbuf.",
+          "evidence": "L87: s = tmpbuf+tmplen-1;"
+        },
+        {
+          "entities": [
+            "t",
+            "resbuf"
+          ],
+          "claim": "t points to the last byte of the reserved buffer of resstr.",
+          "evidence": "L88: t = resbuf+reslen-1;"
+        },
+        {
+          "entities": [
+            "resstr"
+          ],
+          "claim": "resstr is resized to reslen before being returned.",
+          "evidence": "L134: resstr.setSize(reslen);\nL135: return resstr;"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "tmpstr",
+            "tmpbuf",
+            "tmplen"
+          ],
+          "claim": "tmpstr is reserved with capacity 63; tmpbuf points to its mutable data; snprintf is called with buffer size 64, so the first snprintf may write up to 64 bytes including the NUL terminator.",
+          "evidence": "L21: String tmpstr(63, ReserveString);\nL22: tmpbuf = tmpstr.mutableData();\nL23: tmplen = snprintf(tmpbuf, 64, \"%.*F\", dec, d);"
+        },
+        {
+          "entities": [
+            "tmplen",
+            "tmpstr",
+            "tmpbuf"
+          ],
+          "claim": "If the first snprintf returns tmplen >= 64, tmpstr is reallocated with capacity tmplen and tmpbuf is updated to the new mutable data; the second snprintf is called with buffer size tmplen + 1.",
+          "evidence": "L29: if (tmplen >= 64) {\nL31: tmpstr = String(tmplen, ReserveString);\nL32: tmpbuf = tmpstr.mutableData();\nL33: tmplen = snprintf(tmpbuf, tmplen + 1, \"%.*F\", dec, d);"
+        },
+        {
+          "entities": [
+            "dp",
+            "tmpbuf",
+            "integral",
+            "tmplen"
+          ],
+          "claim": "If dec is nonzero, dp is the first '.' or ',' in tmpbuf; otherwise dp is null. If dp is non-null, integral = dp - tmpbuf; otherwise integral = tmplen.",
+          "evidence": "L42: if (dec) {\nL43: dp = strpbrk(tmpbuf, \".,\");\nL45: dp = nullptr;\nL49: if (dp) {\nL50: integral = dp - tmpbuf;\nL53: integral = tmplen;"
+        },
+        {
+          "entities": [
+            "integral",
+            "thousand_sep"
+          ],
+          "claim": "When thousand_sep is non-empty, integral is increased by ((integral-1)/3) * thousand_sep.size(), after an overflow check.",
+          "evidence": "L57: if (!thousand_sep.empty()) {\nL58: if (integral + thousand_sep.size() * ((integral-1) / 3) < integral) {\nL63: integral += ((integral-1) / 3) * thousand_sep.size();"
+        },
+        {
+          "entities": [
+            "reslen",
+            "integral",
+            "dec",
+            "dec_point"
+          ],
+          "claim": "reslen starts as integral; if dec is nonzero, reslen is increased by dec and, if dec_point is non-empty, by dec_point.size().",
+          "evidence": "L66: reslen = integral;\nL68: if (dec) {\nL69: reslen += dec;\nL71: if (!dec_point.empty()) {\nL76: reslen += dec_point.size();"
+        },
+        {
+          "entities": [
+            "reslen",
+            "is_negative"
+          ],
+          "claim": "If is_negative is true, reslen is incremented by 1 for the minus sign.",
+          "evidence": "L81: if (is_negative) {\nL82: reslen++;"
+        },
+        {
+          "entities": [
+            "resstr",
+            "resbuf",
+            "reslen"
+          ],
+          "claim": "resstr is allocated with size reslen and resbuf points to its mutable data.",
+          "evidence": "L84: String resstr(reslen, ReserveString);\nL85: resbuf = resstr.mutableData();"
+        },
+        {
+          "entities": [
+            "s",
+            "tmpbuf",
+            "tmplen"
+          ],
+          "claim": "s is initialized to tmpbuf + tmplen - 1, pointing at the last character of the formatted number.",
+          "evidence": "L87: s = tmpbuf+tmplen-1;"
+        },
+        {
+          "entities": [
+            "t",
+            "resbuf",
+            "reslen"
+          ],
+          "claim": "t is initialized to resbuf + reslen - 1, pointing at the last byte of the result buffer.",
+          "evidence": "L88: t = resbuf+reslen-1;"
+        },
+        {
+          "entities": [
+            "declen",
+            "dp",
+            "s"
+          ],
+          "claim": "If dec is nonzero, declen is the number of characters after the decimal point: s - dp if dp is non-null, otherwise 0.",
+          "evidence": "L93: if (dec) {\nL94: int declen = dp ? s - dp : 0;"
+        },
+        {
+          "entities": [
+            "topad",
+            "dec",
+            "declen"
+          ],
+          "claim": "topad is the number of zero padding characters needed: dec - declen if dec > declen, otherwise 0.",
+          "evidence": "L95: int topad = dec > declen ? dec - declen : 0;"
+        },
+        {
+          "entities": [
+            "s",
+            "declen",
+            "dp"
+          ],
+          "claim": "If dp is non-null, s is decreased by declen + 1 to skip the decimal point and the fractional digits.",
+          "evidence": "L102: if (dp) {\nL103: s -= declen + 1; /* +1 to skip the point */"
+        },
+        {
+          "entities": [
+            "t",
+            "declen"
+          ],
+          "claim": "If dp is non-null, t is decreased by declen.",
+          "evidence": "L104: t -= declen;"
+        },
+        {
+          "entities": [
+            "memcpy",
+            "t",
+            "dp",
+            "declen"
+          ],
+          "claim": "If dp is non-null, declen bytes starting at dp+1 are copied to t+1.",
+          "evidence": "L107: memcpy(t + 1, dp + 1, declen);"
+        },
+        {
+          "entities": [
+            "memcpy",
+            "t",
+            "dec_point"
+          ],
+          "claim": "If dec_point is non-empty, dec_point.size() bytes from dec_point.data() are copied to t + (1 - dec_point.size()), and t is decreased by dec_point.size().",
+          "evidence": "L112: memcpy(t + (1 - dec_point.size()), dec_point.data(), dec_point.size());\nL113: t -= dec_point.size();"
+        },
+        {
+          "entities": [
+            "s",
+            "tmpbuf",
+            "t",
+            "count",
+            "thousand_sep"
+          ],
+          "claim": "The loop copies characters from s down to tmpbuf into t, decrementing both; every third copied character, if thousand_sep is non-empty and s is still >= tmpbuf, thousand_sep is copied to t + (1 - thousand_sep.size()) and t is decreased by thousand_sep.size().",
+          "evidence": "L119: while(s >= tmpbuf) {\nL120: *t-- = *s--;\nL121: if (thousand_sep && (++count%3)==0 && s>=tmpbuf) {\nL122: memcpy(t + (1 - thousand_sep.size()),\nL123: thousand_sep.data(),\nL124: thousand_sep.size());\nL125: t -= thousand_sep.size();"
+        },
+        {
+          "entities": [
+            "t",
+            "is_negative"
+          ],
+          "claim": "If is_negative is true, a '-' is stored at t and t is decremented.",
+          "evidence": "L130: if (is_negative) {\nL131: *t-- = '-';"
+        },
+        {
+          "entities": [
+            "resstr",
+            "reslen"
+          ],
+          "claim": "resstr is set to size reslen before being returned.",
+          "evidence": "L134: resstr.setSize(reslen);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "d",
+            "is_negative"
+          ],
+          "claim": "after the sign check, d is nonnegative and is_negative records whether the original value was negative",
+          "evidence": "L12: if (d < 0) {\nL13: is_negative = 1;\nL14: d = -d;\nL15: }"
+        },
+        {
+          "entities": [
+            "dec"
+          ],
+          "claim": "after this guard, dec is nonnegative",
+          "evidence": "L17: if (dec < 0) dec = 0;"
+        },
+        {
+          "entities": [
+            "tmpbuf",
+            "tmplen"
+          ],
+          "claim": "continuing past the first snprintf check implies tmplen >= 0 and tmpbuf is non-null with a digit as its first character",
+          "evidence": "L23: tmplen = snprintf(tmpbuf, 64, \"%.*F\", dec, d);\nL24: if (tmplen < 0) return empty_string();\nL25: if (tmpbuf == nullptr || !isdigit((int)tmpbuf[0])) {"
+        },
+        {
+          "entities": [
+            "tmpbuf",
+            "tmplen"
+          ],
+          "claim": "if the first buffer was too small, continuing after the second snprintf check implies tmplen >= 0 and tmpbuf is non-null with a digit as its first character",
+          "evidence": "L29: if (tmplen >= 64) {\nL33: tmplen = snprintf(tmpbuf, tmplen + 1, \"%.*F\", dec, d);\nL34: if (tmplen < 0) return empty_string();\nL35: if (tmpbuf == nullptr || !isdigit((int)tmpbuf[0])) {"
+        },
+        {
+          "entities": [
+            "dp",
+            "tmpbuf",
+            "dec"
+          ],
+          "claim": "if dec is nonzero, dp points to the first '.' or ',' in tmpbuf or is null; if dec is zero, dp is null",
+          "evidence": "L42: if (dec) {\nL43: dp = strpbrk(tmpbuf, \".,\");\nL44: } else {\nL45: dp = nullptr;\nL46: }"
+        },
+        {
+          "entities": [
+            "integral",
+            "dp",
+            "tmpbuf",
+            "tmplen"
+          ],
+          "claim": "integral is the offset of the decimal point from tmpbuf when dp is non-null, otherwise tmplen",
+          "evidence": "L49: if (dp) {\nL50: integral = dp - tmpbuf;\nL51: } else {\nL53: integral = tmplen;\nL54: }"
+        },
+        {
+          "entities": [
+            "integral",
+            "thousand_sep"
+          ],
+          "claim": "when thousand_sep is nonempty, integral is increased by the separator size for each complete group of three digits, after an overflow check",
+          "evidence": "L57: if (!thousand_sep.empty()) {\nL58: if (integral + thousand_sep.size() * ((integral-1) / 3) < integral) {\nL60: raise_error(\"String overflow\");\nL61: }\nL63: integral += ((integral-1) / 3) * thousand_sep.size();\nL64: }"
+        },
+        {
+          "entities": [
+            "reslen",
+            "integral"
+          ],
+          "claim": "reslen is initialized to integral",
+          "evidence": "L66: reslen = integral;"
+        },
+        {
+          "entities": [
+            "reslen",
+            "dec",
+            "dec_point"
+          ],
+          "claim": "when dec is nonzero, reslen is increased by dec and, if dec_point is nonempty, by dec_point.size() after an overflow check",
+          "evidence": "L68: if (dec) {\nL69: reslen += dec;\nL71: if (!dec_point.empty()) {\nL72: if (reslen + dec_point.size() < dec_point.size()) {\nL74: raise_error(\"String overflow\");\nL75: }\nL76: reslen += dec_point.size();\nL77: }\nL78: }"
+        },
+        {
+          "entities": [
+            "reslen",
+            "is_negative"
+          ],
+          "claim": "when is_negative is set, reslen is increased by one for the minus sign",
+          "evidence": "L81: if (is_negative) {\nL82: reslen++;\nL83: }"
+        },
+        {
+          "entities": [
+            "s",
+            "tmpbuf",
+            "tmplen"
+          ],
+          "claim": "s points to the last character of the formatted number in tmpbuf",
+          "evidence": "L87: s = tmpbuf+tmplen-1;"
+        },
+        {
+          "entities": [
+            "t",
+            "resbuf",
+            "reslen"
+          ],
+          "claim": "t points to the last byte of the reserved result buffer",
+          "evidence": "L88: t = resbuf+reslen-1;"
+        },
+        {
+          "entities": [
+            "declen",
+            "dp",
+            "s"
+          ],
+          "claim": "when dec is nonzero, declen is the number of characters after the decimal point if dp is non-null, otherwise zero",
+          "evidence": "L93: if (dec) {\nL94: int declen = dp ? s - dp : 0;"
+        },
+        {
+          "entities": [
+            "topad",
+            "dec",
+            "declen"
+          ],
+          "claim": "topad is the number of zero digits needed to pad the fractional part up to dec places",
+          "evidence": "L95: int topad = dec > declen ? dec - declen : 0;"
+        },
+        {
+          "entities": [
+            "s",
+            "t",
+            "declen",
+            "dp"
+          ],
+          "claim": "when dp is non-null, s is moved back past the decimal point and fractional digits, and t is moved back by declen before copying the fractional digits",
+          "evidence": "L102: if (dp) {\nL103: s -= declen + 1; /* +1 to skip the point */\nL104: t -= declen;\nL107: memcpy(t + 1, dp + 1, declen);\nL108: }"
+        },
+        {
+          "entities": [
+            "t",
+            "dec_point"
+          ],
+          "claim": "when dec_point is nonempty, the decimal point string is copied into the result and t is moved back by its size",
+          "evidence": "L111: if (!dec_point.empty()) {\nL112: memcpy(t + (1 - dec_point.size()), dec_point.data(), dec_point.size());\nL113: t -= dec_point.size();\nL114: }"
+        },
+        {
+          "entities": [
+            "s",
+            "t",
+            "tmpbuf",
+            "thousand_sep",
+            "count"
+          ],
+          "claim": "the loop copies digits from tmpbuf to the result while s is at or after tmpbuf, inserting thousand_sep after every third copied digit when s is still at or after tmpbuf",
+          "evidence": "L119: while(s >= tmpbuf) {\nL120: *t-- = *s--;\nL121: if (thousand_sep && (++count%3)==0 && s>=tmpbuf) {\nL122: memcpy(t + (1 - thousand_sep.size()),\nL123: thousand_sep.data(),\nL124: thousand_sep.size());\nL125: t -= thousand_sep.size();\nL126: }\nL127: }"
+        },
+        {
+          "entities": [
+            "t",
+            "is_negative"
+          ],
+          "claim": "when is_negative is set, a minus sign is written and t is decremented",
+          "evidence": "L130: if (is_negative) {\nL131: *t-- = '-';\nL132: }"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3389,
+              "output_tokens": 336,
+              "total_tokens": 3725
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3389,
+          "output_tokens": 336,
+          "total_tokens": 3725
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L23",
+                "matched": true,
+                "expression": "snprintf(tmpbuf, 64, \"%.*F\", dec, d)"
+              },
+              {
+                "location": "L33",
+                "matched": true,
+                "expression": "snprintf(tmpbuf, 64, \"%.*F\", dec, d)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L25",
+                "matched": true,
+                "expression": "isdigit((int)tmpbuf[0])"
+              },
+              {
+                "location": "L35",
+                "matched": true,
+                "expression": "isdigit((int)tmpbuf[0])"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L43",
+                "matched": true,
+                "expression": "strpbrk(tmpbuf, \".,\")"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L99",
+                "matched": true,
+                "expression": "*t-- = '0'"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L107",
+                "matched": true,
+                "expression": "memcpy(t + 1, dp + 1, declen)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L112",
+                "matched": true,
+                "expression": "memcpy(t + (1 - dec_point.size()), dec_point.data(), dec_point.size())"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L120",
+                "matched": true,
+                "expression": "*t-- = *s--"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L122",
+                "matched": true,
+                "expression": "memcpy(t + (1 - thousand_sep.size()), thousand_sep.data(), thousand_sep.size())"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L131",
+                "matched": true,
+                "expression": "*t-- = '-'"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1992,
+              "output_tokens": 400,
+              "total_tokens": 2392
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1992,
+          "output_tokens": 400,
+          "total_tokens": 2392
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 21,
+                "fragment": "String tmpstr(63, ReserveString);",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "tmpbuf = tmpstr.mutableData();",
+                "matched_lines": [
+                  22
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 31,
+                "fragment": "tmpstr = String(tmplen, ReserveString);",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "tmpbuf = tmpstr.mutableData();",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "dp = strpbrk(tmpbuf, \".,\");",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "dp = nullptr;",
+                "matched_lines": [
+                  45
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 84,
+                "fragment": "String resstr(reslen, ReserveString);",
+                "matched_lines": [
+                  84
+                ]
+              },
+              {
+                "evidence_line": 85,
+                "fragment": "resbuf = resstr.mutableData();",
+                "matched_lines": [
+                  85
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 87,
+                "fragment": "s = tmpbuf+tmplen-1;",
+                "matched_lines": [
+                  87
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 88,
+                "fragment": "t = resbuf+reslen-1;",
+                "matched_lines": [
+                  88
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 134,
+                "fragment": "resstr.setSize(reslen);",
+                "matched_lines": [
+                  134
+                ]
+              },
+              {
+                "evidence_line": 135,
+                "fragment": "return resstr;",
+                "matched_lines": [
+                  135
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2180,
+              "output_tokens": 1529,
+              "total_tokens": 3709
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2180,
+          "output_tokens": 1529,
+          "total_tokens": 3709
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 21,
+                "fragment": "String tmpstr(63, ReserveString);",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "tmpbuf = tmpstr.mutableData();",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "tmplen = snprintf(tmpbuf, 64, \"%.*F\", dec, d);",
+                "matched_lines": [
+                  23
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "if (tmplen >= 64) {",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "tmpstr = String(tmplen, ReserveString);",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "tmpbuf = tmpstr.mutableData();",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "tmplen = snprintf(tmpbuf, tmplen + 1, \"%.*F\", dec, d);",
+                "matched_lines": [
+                  33
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 42,
+                "fragment": "if (dec) {",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "dp = strpbrk(tmpbuf, \".,\");",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "dp = nullptr;",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "if (dp) {",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "integral = dp - tmpbuf;",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "integral = tmplen;",
+                "matched_lines": [
+                  53
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "if (!thousand_sep.empty()) {",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "if (integral + thousand_sep.size() * ((integral-1) / 3) < integral) {",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "integral += ((integral-1) / 3) * thousand_sep.size();",
+                "matched_lines": [
+                  63
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 66,
+                "fragment": "reslen = integral;",
+                "matched_lines": [
+                  66
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "if (dec) {",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "reslen += dec;",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 71,
+                "fragment": "if (!dec_point.empty()) {",
+                "matched_lines": [
+                  71
+                ]
+              },
+              {
+                "evidence_line": 76,
+                "fragment": "reslen += dec_point.size();",
+                "matched_lines": [
+                  76
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 81,
+                "fragment": "if (is_negative) {",
+                "matched_lines": [
+                  81
+                ]
+              },
+              {
+                "evidence_line": 82,
+                "fragment": "reslen++;",
+                "matched_lines": [
+                  82
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 84,
+                "fragment": "String resstr(reslen, ReserveString);",
+                "matched_lines": [
+                  84
+                ]
+              },
+              {
+                "evidence_line": 85,
+                "fragment": "resbuf = resstr.mutableData();",
+                "matched_lines": [
+                  85
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 87,
+                "fragment": "s = tmpbuf+tmplen-1;",
+                "matched_lines": [
+                  87
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 88,
+                "fragment": "t = resbuf+reslen-1;",
+                "matched_lines": [
+                  88
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 93,
+                "fragment": "if (dec) {",
+                "matched_lines": [
+                  93
+                ]
+              },
+              {
+                "evidence_line": 94,
+                "fragment": "int declen = dp ? s - dp : 0;",
+                "matched_lines": [
+                  94
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 95,
+                "fragment": "int topad = dec > declen ? dec - declen : 0;",
+                "matched_lines": [
+                  95
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 102,
+                "fragment": "if (dp) {",
+                "matched_lines": [
+                  102
+                ]
+              },
+              {
+                "evidence_line": 103,
+                "fragment": "s -= declen + 1; /* +1 to skip the point */",
+                "matched_lines": [
+                  103
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 104,
+                "fragment": "t -= declen;",
+                "matched_lines": [
+                  104
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 107,
+                "fragment": "memcpy(t + 1, dp + 1, declen);",
+                "matched_lines": [
+                  107
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 112,
+                "fragment": "memcpy(t + (1 - dec_point.size()), dec_point.data(), dec_point.size());",
+                "matched_lines": [
+                  112
+                ]
+              },
+              {
+                "evidence_line": 113,
+                "fragment": "t -= dec_point.size();",
+                "matched_lines": [
+                  113
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[15]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 119,
+                "fragment": "while(s >= tmpbuf) {",
+                "matched_lines": [
+                  119
+                ]
+              },
+              {
+                "evidence_line": 120,
+                "fragment": "*t-- = *s--;",
+                "matched_lines": [
+                  120
+                ]
+              },
+              {
+                "evidence_line": 121,
+                "fragment": "if (thousand_sep && (++count%3)==0 && s>=tmpbuf) {",
+                "matched_lines": [
+                  121
+                ]
+              },
+              {
+                "evidence_line": 122,
+                "fragment": "memcpy(t + (1 - thousand_sep.size()),",
+                "matched_lines": [
+                  122
+                ]
+              },
+              {
+                "evidence_line": 123,
+                "fragment": "thousand_sep.data(),",
+                "matched_lines": [
+                  123
+                ]
+              },
+              {
+                "evidence_line": 124,
+                "fragment": "thousand_sep.size());",
+                "matched_lines": [
+                  124
+                ]
+              },
+              {
+                "evidence_line": 125,
+                "fragment": "t -= thousand_sep.size();",
+                "matched_lines": [
+                  125
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[16]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 130,
+                "fragment": "if (is_negative) {",
+                "matched_lines": [
+                  130
+                ]
+              },
+              {
+                "evidence_line": 131,
+                "fragment": "*t-- = '-';",
+                "matched_lines": [
+                  131
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[17]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 134,
+                "fragment": "resstr.setSize(reslen);",
+                "matched_lines": [
+                  134
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1860,
+              "output_tokens": 1541,
+              "total_tokens": 3401
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1860,
+          "output_tokens": 1541,
+          "total_tokens": 3401
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "if (d < 0) {",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "is_negative = 1;",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "d = -d;",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "}",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "if (dec < 0) dec = 0;",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "tmplen = snprintf(tmpbuf, 64, \"%.*F\", dec, d);",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "if (tmplen < 0) return empty_string();",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "if (tmpbuf == nullptr || !isdigit((int)tmpbuf[0])) {",
+                "matched_lines": [
+                  25
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "if (tmplen >= 64) {",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "tmplen = snprintf(tmpbuf, tmplen + 1, \"%.*F\", dec, d);",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "if (tmplen < 0) return empty_string();",
+                "matched_lines": [
+                  34
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "if (tmpbuf == nullptr || !isdigit((int)tmpbuf[0])) {",
+                "matched_lines": [
+                  35
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 42,
+                "fragment": "if (dec) {",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "dp = strpbrk(tmpbuf, \".,\");",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "} else {",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "dp = nullptr;",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "}",
+                "matched_lines": [
+                  46
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 49,
+                "fragment": "if (dp) {",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "integral = dp - tmpbuf;",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "} else {",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "integral = tmplen;",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "}",
+                "matched_lines": [
+                  54
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "if (!thousand_sep.empty()) {",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "if (integral + thousand_sep.size() * ((integral-1) / 3) < integral) {",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "raise_error(\"String overflow\");",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "}",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "integral += ((integral-1) / 3) * thousand_sep.size();",
+                "matched_lines": [
+                  63
+                ]
+              },
+              {
+                "evidence_line": 64,
+                "fragment": "}",
+                "matched_lines": [
+                  64
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 66,
+                "fragment": "reslen = integral;",
+                "matched_lines": [
+                  66
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 68,
+                "fragment": "if (dec) {",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "reslen += dec;",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 71,
+                "fragment": "if (!dec_point.empty()) {",
+                "matched_lines": [
+                  71
+                ]
+              },
+              {
+                "evidence_line": 72,
+                "fragment": "if (reslen + dec_point.size() < dec_point.size()) {",
+                "matched_lines": [
+                  72
+                ]
+              },
+              {
+                "evidence_line": 74,
+                "fragment": "raise_error(\"String overflow\");",
+                "matched_lines": [
+                  74
+                ]
+              },
+              {
+                "evidence_line": 75,
+                "fragment": "}",
+                "matched_lines": [
+                  75
+                ]
+              },
+              {
+                "evidence_line": 76,
+                "fragment": "reslen += dec_point.size();",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 77,
+                "fragment": "}",
+                "matched_lines": [
+                  77
+                ]
+              },
+              {
+                "evidence_line": 78,
+                "fragment": "}",
+                "matched_lines": [
+                  78
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 81,
+                "fragment": "if (is_negative) {",
+                "matched_lines": [
+                  81
+                ]
+              },
+              {
+                "evidence_line": 82,
+                "fragment": "reslen++;",
+                "matched_lines": [
+                  82
+                ]
+              },
+              {
+                "evidence_line": 83,
+                "fragment": "}",
+                "matched_lines": [
+                  83
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 87,
+                "fragment": "s = tmpbuf+tmplen-1;",
+                "matched_lines": [
+                  87
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 88,
+                "fragment": "t = resbuf+reslen-1;",
+                "matched_lines": [
+                  88
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 93,
+                "fragment": "if (dec) {",
+                "matched_lines": [
+                  93
+                ]
+              },
+              {
+                "evidence_line": 94,
+                "fragment": "int declen = dp ? s - dp : 0;",
+                "matched_lines": [
+                  94
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 95,
+                "fragment": "int topad = dec > declen ? dec - declen : 0;",
+                "matched_lines": [
+                  95
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 102,
+                "fragment": "if (dp) {",
+                "matched_lines": [
+                  102
+                ]
+              },
+              {
+                "evidence_line": 103,
+                "fragment": "s -= declen + 1; /* +1 to skip the point */",
+                "matched_lines": [
+                  103
+                ]
+              },
+              {
+                "evidence_line": 104,
+                "fragment": "t -= declen;",
+                "matched_lines": [
+                  104
+                ]
+              },
+              {
+                "evidence_line": 107,
+                "fragment": "memcpy(t + 1, dp + 1, declen);",
+                "matched_lines": [
+                  107
+                ]
+              },
+              {
+                "evidence_line": 108,
+                "fragment": "}",
+                "matched_lines": [
+                  108
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[15]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 111,
+                "fragment": "if (!dec_point.empty()) {",
+                "matched_lines": [
+                  111
+                ]
+              },
+              {
+                "evidence_line": 112,
+                "fragment": "memcpy(t + (1 - dec_point.size()), dec_point.data(), dec_point.size());",
+                "matched_lines": [
+                  112
+                ]
+              },
+              {
+                "evidence_line": 113,
+                "fragment": "t -= dec_point.size();",
+                "matched_lines": [
+                  113
+                ]
+              },
+              {
+                "evidence_line": 114,
+                "fragment": "}",
+                "matched_lines": [
+                  114
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[16]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 119,
+                "fragment": "while(s >= tmpbuf) {",
+                "matched_lines": [
+                  119
+                ]
+              },
+              {
+                "evidence_line": 120,
+                "fragment": "*t-- = *s--;",
+                "matched_lines": [
+                  120
+                ]
+              },
+              {
+                "evidence_line": 121,
+                "fragment": "if (thousand_sep && (++count%3)==0 && s>=tmpbuf) {",
+                "matched_lines": [
+                  121
+                ]
+              },
+              {
+                "evidence_line": 122,
+                "fragment": "memcpy(t + (1 - thousand_sep.size()),",
+                "matched_lines": [
+                  122
+                ]
+              },
+              {
+                "evidence_line": 123,
+                "fragment": "thousand_sep.data(),",
+                "matched_lines": [
+                  123
+                ]
+              },
+              {
+                "evidence_line": 124,
+                "fragment": "thousand_sep.size());",
+                "matched_lines": [
+                  124
+                ]
+              },
+              {
+                "evidence_line": 125,
+                "fragment": "t -= thousand_sep.size();",
+                "matched_lines": [
+                  125
+                ]
+              },
+              {
+                "evidence_line": 126,
+                "fragment": "}",
+                "matched_lines": [
+                  126
+                ]
+              },
+              {
+                "evidence_line": 127,
+                "fragment": "}",
+                "matched_lines": [
+                  127
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[17]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 130,
+                "fragment": "if (is_negative) {",
+                "matched_lines": [
+                  130
+                ]
+              },
+              {
+                "evidence_line": 131,
+                "fragment": "*t-- = '-';",
+                "matched_lines": [
+                  131
+                ]
+              },
+              {
+                "evidence_line": 132,
+                "fragment": "}",
+                "matched_lines": [
+                  132
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 9,
+      "states": 7,
+      "values": 18,
+      "executions": 18
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 9421,
+    "output_tokens": 3806,
+    "total_tokens": 13227
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000120",
+    "split": "test",
+    "source_hash": "f8e21fec19213544a986e5b0fc2ef81e985e4be409f24850b9976356891433ef",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

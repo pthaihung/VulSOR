@@ -1,0 +1,1051 @@
+{
+  "sample_id": "test_000088",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [],
+      "states": [
+        {
+          "entities": [
+            "ptr->location_entries"
+          ],
+          "claim": "ptr->location_entries is a list that receives newly allocated GF_ItemLocationEntry objects; each entry is added to this list after allocation.",
+          "evidence": "L24: GF_ItemLocationEntry *location_entry = (GF_ItemLocationEntry *)gf_malloc(sizeof(GF_ItemLocationEntry));\nL27: gf_list_add(ptr->location_entries, location_entry);"
+        },
+        {
+          "entities": [
+            "location_entry"
+          ],
+          "claim": "location_entry is a heap-allocated GF_ItemLocationEntry object; if allocation fails, the function returns GF_OUT_OF_MEM.",
+          "evidence": "L24: GF_ItemLocationEntry *location_entry = (GF_ItemLocationEntry *)gf_malloc(sizeof(GF_ItemLocationEntry));\nL25: if (!location_entry) return GF_OUT_OF_MEM;"
+        },
+        {
+          "entities": [
+            "location_entry->extent_entries"
+          ],
+          "claim": "location_entry->extent_entries is a newly created list that receives newly allocated GF_ItemExtentEntry objects.",
+          "evidence": "L51: location_entry->extent_entries = gf_list_new();\nL53: GF_ItemExtentEntry *extent_entry = (GF_ItemExtentEntry *)gf_malloc(sizeof(GF_ItemExtentEntry));\nL56: gf_list_add(location_entry->extent_entries, extent_entry);"
+        },
+        {
+          "entities": [
+            "extent_entry"
+          ],
+          "claim": "extent_entry is a heap-allocated GF_ItemExtentEntry object; if allocation fails, the function returns GF_OUT_OF_MEM.",
+          "evidence": "L53: GF_ItemExtentEntry *extent_entry = (GF_ItemExtentEntry *)gf_malloc(sizeof(GF_ItemExtentEntry));\nL54: if (!extent_entry) return GF_OUT_OF_MEM;"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "ptr->offset_size",
+            "ptr->length_size",
+            "ptr->base_offset_size",
+            "ptr->index_size"
+          ],
+          "claim": "offset_size, length_size, base_offset_size, and index_size are each read as 4-bit values, so each is in range 0..15; index_size is only assigned when version is 1 or 2, otherwise the 4 bits are discarded.",
+          "evidence": "L7: ptr->offset_size = gf_bs_read_int(bs, 4);\nL8: ptr->length_size = gf_bs_read_int(bs, 4);\nL9: ptr->base_offset_size = gf_bs_read_int(bs, 4);\nL11: ptr->index_size = gf_bs_read_int(bs, 4);\nL13: gf_bs_read_int(bs, 4);"
+        },
+        {
+          "entities": [
+            "item_count"
+          ],
+          "claim": "item_count is read as a 16-bit unsigned value when version < 2, and as a 32-bit unsigned value when version >= 2.",
+          "evidence": "L17: item_count = gf_bs_read_u16(bs);\nL20: item_count = gf_bs_read_u32(bs);"
+        },
+        {
+          "entities": [
+            "extent_count"
+          ],
+          "claim": "extent_count is read as a 16-bit unsigned value.",
+          "evidence": "L50: extent_count = gf_bs_read_u16(bs);"
+        },
+        {
+          "entities": [
+            "location_entry->base_offset",
+            "ptr->base_offset_size"
+          ],
+          "claim": "base_offset is read as an integer of 8*base_offset_size bits, where base_offset_size is in 0..15, so the read width is 0..120 bits.",
+          "evidence": "L44: location_entry->base_offset = gf_bs_read_int(bs, 8*ptr->base_offset_size);"
+        },
+        {
+          "entities": [
+            "extent_entry->extent_index",
+            "ptr->index_size"
+          ],
+          "claim": "extent_index is read as an integer of 8*index_size bits when version is 1 or 2 and index_size > 0; otherwise it is set to 0.",
+          "evidence": "L57: if ((ptr->version == 1 || ptr->version == 2) && ptr->index_size > 0) {\nL59: extent_entry->extent_index = gf_bs_read_int(bs, 8 * ptr->index_size);\nL62: extent_entry->extent_index = 0;"
+        },
+        {
+          "entities": [
+            "extent_entry->extent_offset",
+            "ptr->offset_size"
+          ],
+          "claim": "extent_offset is read as an integer of 8*offset_size bits, where offset_size is in 0..15, so the read width is 0..120 bits.",
+          "evidence": "L66: extent_entry->extent_offset = gf_bs_read_int(bs, 8*ptr->offset_size);"
+        },
+        {
+          "entities": [
+            "extent_entry->extent_length",
+            "ptr->length_size"
+          ],
+          "claim": "extent_length is read as an integer of 8*length_size bits, where length_size is in 0..15, so the read width is 0..120 bits.",
+          "evidence": "L67: extent_entry->extent_length = gf_bs_read_int(bs, 8*ptr->length_size);"
+        },
+        {
+          "entities": [
+            "ptr->base_offset_size"
+          ],
+          "claim": "The size decrement before reading data_reference_index and base_offset is 2 + base_offset_size bytes, matching the 2-byte data_reference_index plus base_offset_size bytes of base_offset.",
+          "evidence": "L42: ISOM_DECREASE_SIZE(ptr, (2 + ptr->base_offset_size) )"
+        },
+        {
+          "entities": [
+            "ptr->offset_size",
+            "ptr->length_size"
+          ],
+          "claim": "The size decrement before reading extent_offset and extent_length is offset_size + length_size bytes, matching the byte widths of those two fields.",
+          "evidence": "L64: ISOM_DECREASE_SIZE(ptr, (ptr->offset_size+ptr->length_size) )"
+        },
+        {
+          "entities": [
+            "ptr->index_size"
+          ],
+          "claim": "The size decrement before reading extent_index is index_size bytes, matching the byte width of extent_index.",
+          "evidence": "L58: ISOM_DECREASE_SIZE(ptr, ptr->index_size)"
+        },
+        {
+          "entities": [
+            "location_entry->item_ID"
+          ],
+          "claim": "item_ID is read as a 16-bit unsigned value when version < 2, and as a 32-bit unsigned value when version >= 2.",
+          "evidence": "L30: location_entry->item_ID = gf_bs_read_u16(bs);\nL33: location_entry->item_ID = gf_bs_read_u32(bs);"
+        },
+        {
+          "entities": [
+            "location_entry->construction_method"
+          ],
+          "claim": "construction_method is read as a 16-bit unsigned value when version is 1 or 2; otherwise it is set to 0.",
+          "evidence": "L37: location_entry->construction_method = gf_bs_read_u16(bs);\nL40: location_entry->construction_method = 0;"
+        },
+        {
+          "entities": [
+            "location_entry->data_reference_index"
+          ],
+          "claim": "data_reference_index is read as a 16-bit unsigned value.",
+          "evidence": "L43: location_entry->data_reference_index = gf_bs_read_u16(bs);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "i",
+            "item_count"
+          ],
+          "claim": "Loop body executes only while i < item_count; after loop, i == item_count.",
+          "evidence": "L23: for (i = 0; i < item_count; i++) {"
+        },
+        {
+          "entities": [
+            "j",
+            "extent_count"
+          ],
+          "claim": "Inner loop body executes only while j < extent_count; after inner loop, j == extent_count.",
+          "evidence": "L52: for (j = 0; j < extent_count; j++) {"
+        },
+        {
+          "entities": [
+            "ptr->version"
+          ],
+          "claim": "If ptr->version is 1 or 2, index_size is read; otherwise index_size is not assigned here.",
+          "evidence": "L10: if (ptr->version == 1 || ptr->version == 2) {\nL11: ptr->index_size = gf_bs_read_int(bs, 4);\nL12: } else {\nL13: gf_bs_read_int(bs, 4);\nL14: }"
+        },
+        {
+          "entities": [
+            "ptr->version",
+            "item_count"
+          ],
+          "claim": "If ptr->version < 2, item_count is read as u16; otherwise item_count is read as u32.",
+          "evidence": "L15: if (ptr->version < 2) {\nL16: ISOM_DECREASE_SIZE(ptr, 2)\nL17: item_count = gf_bs_read_u16(bs);\nL18: } else {\nL19: ISOM_DECREASE_SIZE(ptr, 4)\nL20: item_count = gf_bs_read_u32(bs);\nL21: }"
+        },
+        {
+          "entities": [
+            "ptr->version",
+            "location_entry->item_ID"
+          ],
+          "claim": "If ptr->version < 2, item_ID is read as u16; otherwise item_ID is read as u32.",
+          "evidence": "L28: if (ptr->version < 2) {\nL29: ISOM_DECREASE_SIZE(ptr, 2)\nL30: location_entry->item_ID = gf_bs_read_u16(bs);\nL31: } else {\nL32: ISOM_DECREASE_SIZE(ptr, 4)\nL33: location_entry->item_ID = gf_bs_read_u32(bs);\nL34: }"
+        },
+        {
+          "entities": [
+            "ptr->version",
+            "location_entry->construction_method"
+          ],
+          "claim": "If ptr->version is 1 or 2, construction_method is read as u16; otherwise construction_method is set to 0.",
+          "evidence": "L35: if (ptr->version == 1 || ptr->version == 2) {\nL36: ISOM_DECREASE_SIZE(ptr, 2)\nL37: location_entry->construction_method = gf_bs_read_u16(bs);\nL38: }\nL39: else {\nL40: location_entry->construction_method = 0;\nL41: }"
+        },
+        {
+          "entities": [
+            "ptr->version",
+            "ptr->index_size",
+            "extent_entry->extent_index"
+          ],
+          "claim": "If ptr->version is 1 or 2 and ptr->index_size > 0, extent_index is read using index_size bits; otherwise extent_index is set to 0.",
+          "evidence": "L57: if ((ptr->version == 1 || ptr->version == 2) && ptr->index_size > 0) {\nL58: ISOM_DECREASE_SIZE(ptr, ptr->index_size)\nL59: extent_entry->extent_index = gf_bs_read_int(bs, 8 * ptr->index_size);\nL60: }\nL61: else {\nL62: extent_entry->extent_index = 0;\nL63: }"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3113,
+              "output_tokens": 207,
+              "total_tokens": 3320
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3113,
+          "output_tokens": 207,
+          "total_tokens": 3320
+        },
+        "grounding": {},
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 0,
+            "expression": "gf_malloc(sizeof(GF_ItemLocationEntry)) / gf_malloc(sizeof(GF_ItemExtentEntry))"
+          },
+          {
+            "action": "drop_ungrounded_item",
+            "index": 1,
+            "expression": "gf_list_add(ptr->location_entries, location_entry) / gf_list_add(location_entry->extent_entries, extent_entry)"
+          },
+          {
+            "action": "drop_ungrounded_item",
+            "index": 2,
+            "expression": "gf_bs_read_int(bs, 8*ptr->base_offset_size) / gf_bs_read_int(bs, 8*ptr->index_size) / gf_bs_read_int(bs, 8*ptr->offset_size) / gf_bs_read_int(bs, 8*ptr->length_size)"
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1716,
+              "output_tokens": 434,
+              "total_tokens": 2150
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1716,
+          "output_tokens": 434,
+          "total_tokens": 2150
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 24,
+                "fragment": "GF_ItemLocationEntry *location_entry = (GF_ItemLocationEntry *)gf_malloc(sizeof(GF_ItemLocationEntry));",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "gf_list_add(ptr->location_entries, location_entry);",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 24,
+                "fragment": "GF_ItemLocationEntry *location_entry = (GF_ItemLocationEntry *)gf_malloc(sizeof(GF_ItemLocationEntry));",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "if (!location_entry) return GF_OUT_OF_MEM;",
+                "matched_lines": [
+                  25
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 51,
+                "fragment": "location_entry->extent_entries = gf_list_new();",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "GF_ItemExtentEntry *extent_entry = (GF_ItemExtentEntry *)gf_malloc(sizeof(GF_ItemExtentEntry));",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "gf_list_add(location_entry->extent_entries, extent_entry);",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 53,
+                "fragment": "GF_ItemExtentEntry *extent_entry = (GF_ItemExtentEntry *)gf_malloc(sizeof(GF_ItemExtentEntry));",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "if (!extent_entry) return GF_OUT_OF_MEM;",
+                "matched_lines": [
+                  54
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1904,
+              "output_tokens": 1209,
+              "total_tokens": 3113
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1904,
+          "output_tokens": 1209,
+          "total_tokens": 3113
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "ptr->offset_size = gf_bs_read_int(bs, 4);",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": "ptr->length_size = gf_bs_read_int(bs, 4);",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "ptr->base_offset_size = gf_bs_read_int(bs, 4);",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "ptr->index_size = gf_bs_read_int(bs, 4);",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "gf_bs_read_int(bs, 4);",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "item_count = gf_bs_read_u16(bs);",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "item_count = gf_bs_read_u32(bs);",
+                "matched_lines": [
+                  20
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "extent_count = gf_bs_read_u16(bs);",
+                "matched_lines": [
+                  50
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "location_entry->base_offset = gf_bs_read_int(bs, 8*ptr->base_offset_size);",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "if ((ptr->version == 1 || ptr->version == 2) && ptr->index_size > 0) {",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "extent_entry->extent_index = gf_bs_read_int(bs, 8 * ptr->index_size);",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "extent_entry->extent_index = 0;",
+                "matched_lines": [
+                  62
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 66,
+                "fragment": "extent_entry->extent_offset = gf_bs_read_int(bs, 8*ptr->offset_size);",
+                "matched_lines": [
+                  66
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 67,
+                "fragment": "extent_entry->extent_length = gf_bs_read_int(bs, 8*ptr->length_size);",
+                "matched_lines": [
+                  67
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 42,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, (2 + ptr->base_offset_size) )",
+                "matched_lines": [
+                  42
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 64,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, (ptr->offset_size+ptr->length_size) )",
+                "matched_lines": [
+                  64
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 58,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, ptr->index_size)",
+                "matched_lines": [
+                  58
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 30,
+                "fragment": "location_entry->item_ID = gf_bs_read_u16(bs);",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "location_entry->item_ID = gf_bs_read_u32(bs);",
+                "matched_lines": [
+                  33
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 37,
+                "fragment": "location_entry->construction_method = gf_bs_read_u16(bs);",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "location_entry->construction_method = 0;",
+                "matched_lines": [
+                  40
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "location_entry->data_reference_index = gf_bs_read_u16(bs);",
+                "matched_lines": [
+                  43
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 12,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1584,
+              "output_tokens": 916,
+              "total_tokens": 2500
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1584,
+          "output_tokens": 916,
+          "total_tokens": 2500
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "for (i = 0; i < item_count; i++) {",
+                "matched_lines": [
+                  23
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 52,
+                "fragment": "for (j = 0; j < extent_count; j++) {",
+                "matched_lines": [
+                  52
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "if (ptr->version == 1 || ptr->version == 2) {",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "ptr->index_size = gf_bs_read_int(bs, 4);",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "} else {",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "gf_bs_read_int(bs, 4);",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "}",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "if (ptr->version < 2) {",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, 2)",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "item_count = gf_bs_read_u16(bs);",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "} else {",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, 4)",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "item_count = gf_bs_read_u32(bs);",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "}",
+                "matched_lines": [
+                  21
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 28,
+                "fragment": "if (ptr->version < 2) {",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, 2)",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "location_entry->item_ID = gf_bs_read_u16(bs);",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "} else {",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, 4)",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "location_entry->item_ID = gf_bs_read_u32(bs);",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "}",
+                "matched_lines": [
+                  34
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 35,
+                "fragment": "if (ptr->version == 1 || ptr->version == 2) {",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, 2)",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "location_entry->construction_method = gf_bs_read_u16(bs);",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 38,
+                "fragment": "}",
+                "matched_lines": [
+                  38
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "else {",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "location_entry->construction_method = 0;",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "}",
+                "matched_lines": [
+                  41
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "if ((ptr->version == 1 || ptr->version == 2) && ptr->index_size > 0) {",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, ptr->index_size)",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "extent_entry->extent_index = gf_bs_read_int(bs, 8 * ptr->index_size);",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "}",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "else {",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "extent_entry->extent_index = 0;",
+                "matched_lines": [
+                  62
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "}",
+                "matched_lines": [
+                  63
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 0,
+      "states": 4,
+      "values": 13,
+      "executions": 7
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 8317,
+    "output_tokens": 2766,
+    "total_tokens": 11083
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000088",
+    "split": "test",
+    "source_hash": "d82cd53324d73b2d457b737a1a9ec8b2898d951566075674061fce6b38adf0b2",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

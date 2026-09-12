@@ -1,0 +1,555 @@
+{
+  "sample_id": "test_000073",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L9"
+          ],
+          "expression": "nint(tree->car->car->car)",
+          "claim": "dereference of nested node pointers to read a node type"
+        },
+        {
+          "locations": [
+            "L21"
+          ],
+          "expression": "codegen(s, tree->car->cdr, val)",
+          "claim": "recursive code generation call on a node subtree"
+        },
+        {
+          "locations": [
+            "L31"
+          ],
+          "expression": "codegen(s, tree->car->car, val)",
+          "claim": "recursive code generation call on a node subtree"
+        },
+        {
+          "locations": [
+            "L32"
+          ],
+          "expression": "codegen(s, tree->car->cdr, val)",
+          "claim": "recursive code generation call on a node subtree"
+        },
+        {
+          "locations": [
+            "L35"
+          ],
+          "expression": "tree = tree->cdr",
+          "claim": "dereference of tree pointer to advance to the next list element"
+        }
+      ],
+      "states": [],
+      "values": [
+        {
+          "entities": [
+            "len",
+            "slimit",
+            "GEN_VAL_STACK_MAX",
+            "GEN_LIT_ARY_MAX",
+            "INT16_MAX"
+          ],
+          "claim": "slimit is initialized to GEN_VAL_STACK_MAX and is set to INT16_MAX when cursp() >= GEN_LIT_ARY_MAX; len starts at 0 and is incremented by 1 per non-KW_REST_ARGS element and reset to 0 after each flush.",
+          "evidence": "L3: int slimit = GEN_VAL_STACK_MAX;\nL4: if (cursp() >= GEN_LIT_ARY_MAX) slimit = INT16_MAX;\nL5: int len = 0;\nL33: len++;\nL28: len = 0;\nL47: len = 0;"
+        },
+        {
+          "entities": [
+            "len",
+            "pop_n"
+          ],
+          "claim": "pop_n is called with len*2 (and len*2+1 in the final flush), so the number of stack slots popped is twice the current element count.",
+          "evidence": "L11: pop_n(len*2);\nL37: pop_n(len*2);\nL52: pop_n(len*2+1);"
+        },
+        {
+          "entities": [
+            "len",
+            "genop_2",
+            "OP_HASH",
+            "OP_HASHADD"
+          ],
+          "claim": "genop_2 is passed len as the operand for OP_HASH and OP_HASHADD, so the hash size operand equals the current element count.",
+          "evidence": "L13: genop_2(s, OP_HASH, cursp(), len);\nL17: genop_2(s, OP_HASHADD, cursp(), len);\nL39: genop_2(s, OP_HASH, cursp(), len);\nL43: genop_2(s, OP_HASHADD, cursp(), len);\nL53: genop_2(s, OP_HASHADD, cursp(), len);"
+        },
+        {
+          "entities": [
+            "cursp",
+            "slimit"
+          ],
+          "claim": "The flush condition compares cursp() against slimit, where slimit is either GEN_VAL_STACK_MAX or INT16_MAX depending on whether cursp() >= GEN_LIT_ARY_MAX.",
+          "evidence": "L4: if (cursp() >= GEN_LIT_ARY_MAX) slimit = INT16_MAX;\nL36: if (val && cursp() >= slimit) {"
+        },
+        {
+          "entities": [
+            "gen_hash"
+          ],
+          "claim": "gen_hash returns len when no update occurred, and returns -1 (variable length) when update is TRUE.",
+          "evidence": "L56: return -1;                  /* variable length */\nL58: return len;"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "len",
+            "val"
+          ],
+          "claim": "In the KW_REST_ARGS branch, the flush block at lines 10-20 executes only when val is true and len > 0; after it, len is reset to 0 at line 28.",
+          "evidence": "L10: if (val && len > 0) {\nL28: len = 0;"
+        },
+        {
+          "entities": [
+            "len",
+            "val",
+            "update"
+          ],
+          "claim": "In the KW_REST_ARGS branch, the post-codegen flush at lines 22-26 executes only when val is true and (len > 0 || update) is true.",
+          "evidence": "L22: if (val && (len > 0 || update)) {"
+        },
+        {
+          "entities": [
+            "len",
+            "val",
+            "slimit",
+            "cursp()"
+          ],
+          "claim": "The loop-end flush at lines 36-48 executes only when val is true and cursp() >= slimit; after it, len is reset to 0 at line 47.",
+          "evidence": "L36: if (val && cursp() >= slimit) {\nL47: len = 0;"
+        },
+        {
+          "entities": [
+            "update"
+          ],
+          "claim": "If update is false after the loop, the function returns len (line 58).",
+          "evidence": "L58: return len;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2568,
+              "output_tokens": 181,
+              "total_tokens": 2749
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2568,
+          "output_tokens": 181,
+          "total_tokens": 2749
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L9",
+                "matched": true,
+                "expression": "nint(tree->car->car->car)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L21",
+                "matched": true,
+                "expression": "codegen(s, tree->car->cdr, val)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L31",
+                "matched": true,
+                "expression": "codegen(s, tree->car->car, val)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L32",
+                "matched": true,
+                "expression": "codegen(s, tree->car->cdr, val)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L35",
+                "matched": true,
+                "expression": "tree = tree->cdr"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1171,
+              "output_tokens": 12,
+              "total_tokens": 1183
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1171,
+          "output_tokens": 12,
+          "total_tokens": 1183
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1359,
+              "output_tokens": 581,
+              "total_tokens": 1940
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1359,
+          "output_tokens": 581,
+          "total_tokens": 1940
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "int slimit = GEN_VAL_STACK_MAX;",
+                "matched_lines": [
+                  3
+                ]
+              },
+              {
+                "evidence_line": 4,
+                "fragment": "if (cursp() >= GEN_LIT_ARY_MAX) slimit = INT16_MAX;",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 5,
+                "fragment": "int len = 0;",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "len++;",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "len = 0;",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "len = 0;",
+                "matched_lines": [
+                  47
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "pop_n(len*2);",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "pop_n(len*2);",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "pop_n(len*2+1);",
+                "matched_lines": [
+                  52
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "genop_2(s, OP_HASH, cursp(), len);",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "genop_2(s, OP_HASHADD, cursp(), len);",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "genop_2(s, OP_HASH, cursp(), len);",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "genop_2(s, OP_HASHADD, cursp(), len);",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "genop_2(s, OP_HASHADD, cursp(), len);",
+                "matched_lines": [
+                  53
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "if (cursp() >= GEN_LIT_ARY_MAX) slimit = INT16_MAX;",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "if (val && cursp() >= slimit) {",
+                "matched_lines": [
+                  36
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 56,
+                "fragment": "return -1;                  /* variable length */",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "return len;",
+                "matched_lines": [
+                  58
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1039,
+              "output_tokens": 384,
+              "total_tokens": 1423
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1039,
+          "output_tokens": 384,
+          "total_tokens": 1423
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "if (val && len > 0) {",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "len = 0;",
+                "matched_lines": [
+                  28
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 22,
+                "fragment": "if (val && (len > 0 || update)) {",
+                "matched_lines": [
+                  22
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 36,
+                "fragment": "if (val && cursp() >= slimit) {",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "len = 0;",
+                "matched_lines": [
+                  47
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 58,
+                "fragment": "return len;",
+                "matched_lines": [
+                  58
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 3,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 5,
+      "states": 0,
+      "values": 5,
+      "executions": 4
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 6137,
+    "output_tokens": 1158,
+    "total_tokens": 7295
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000073",
+    "split": "test",
+    "source_hash": "ee0572e2cf72472e44575c5bee3bc42ba1977f910e796e033391054a2d655391",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

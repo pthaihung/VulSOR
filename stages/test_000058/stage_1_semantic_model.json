@@ -1,0 +1,1361 @@
+{
+  "sample_id": "test_000058",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L10"
+          ],
+          "expression": "gf_bs_read_u8(bs)",
+          "claim": "read one byte from the bitstream"
+        },
+        {
+          "locations": [
+            "L13"
+          ],
+          "expression": "memcpy(&n_state, &avc->s_info, sizeof(AVCSliceInfo))",
+          "claim": "copy AVCSliceInfo from avc->s_info into n_state"
+        },
+        {
+          "locations": [
+            "L27"
+          ],
+          "expression": "SVC_ReadNal_header_extension(bs, &n_state.NalHeader)",
+          "claim": "read SVC NAL header extension from bitstream into n_state.NalHeader"
+        },
+        {
+          "locations": [
+            "L29"
+          ],
+          "expression": "svc_parse_slice(bs, avc, &n_state)",
+          "claim": "parse SVC slice from bitstream into n_state"
+        },
+        {
+          "locations": [
+            "L37",
+            "L40",
+            "L159"
+          ],
+          "expression": "memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo))",
+          "claim": "copy AVCSliceInfo from n_state into avc->s_info"
+        },
+        {
+          "locations": [
+            "L44"
+          ],
+          "expression": "SVC_ReadNal_header_extension(bs, &n_state.NalHeader)",
+          "claim": "read SVC NAL header extension from bitstream into n_state.NalHeader"
+        },
+        {
+          "locations": [
+            "L54"
+          ],
+          "expression": "avc_parse_slice(bs, avc, idr_flag, &n_state)",
+          "claim": "parse AVC slice from bitstream into n_state"
+        },
+        {
+          "locations": [
+            "L114",
+            "L123"
+          ],
+          "expression": "gf_avc_read_sps_bs_internal(bs, avc, 0, NULL, nal_hdr)",
+          "claim": "read SPS from bitstream into avc state"
+        },
+        {
+          "locations": [
+            "L119"
+          ],
+          "expression": "gf_avc_read_pps_bs_internal(bs, avc, nal_hdr)",
+          "claim": "read PPS from bitstream into avc state"
+        },
+        {
+          "locations": [
+            "L127"
+          ],
+          "expression": "gf_bs_read_ue(bs)",
+          "claim": "read unsigned Exp-Golomb value from bitstream"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "bs"
+          ],
+          "claim": "emulation byte removal is enabled on the bitstream",
+          "evidence": "L8: gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);"
+        },
+        {
+          "entities": [
+            "n_state",
+            "avc->s_info"
+          ],
+          "claim": "n_state is initialized as a copy of avc->s_info",
+          "evidence": "L13: memcpy(&n_state, &avc->s_info, sizeof(AVCSliceInfo));"
+        },
+        {
+          "entities": [
+            "avc->s_info",
+            "n_state"
+          ],
+          "claim": "avc->s_info is overwritten with n_state",
+          "evidence": "L37: memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo));\nL40: memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo));\nL159: memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo));"
+        },
+        {
+          "entities": [
+            "avc->s_info.sps"
+          ],
+          "claim": "avc->s_info.sps is asserted to be non-NULL",
+          "evidence": "L77: assert(avc->s_info.sps);"
+        },
+        {
+          "entities": [
+            "avc->s_info.sps",
+            "n_state.sps"
+          ],
+          "claim": "n_state.sps is dereferenced for poc_type comparison",
+          "evidence": "L79: if (avc->s_info.sps->poc_type == n_state.sps->poc_type) {"
+        },
+        {
+          "entities": [
+            "avc->s_info.sps"
+          ],
+          "claim": "avc->s_info.sps is dereferenced for poc_type and frame_num_offset_prev computation",
+          "evidence": "L80: if (!avc->s_info.sps->poc_type) {\nL90: else if (avc->s_info.sps->poc_type == 1) {\nL150: if ((avc->s_info.sps->poc_type != 2) || (avc->s_info.nal_ref_idc != 0))"
+        },
+        {
+          "entities": [
+            "avc->last_ps_idx"
+          ],
+          "claim": "avc->last_ps_idx is assigned from sequence/picture parameter parsing and checked for negative",
+          "evidence": "L114: avc->last_ps_idx = gf_avc_read_sps_bs_internal(bs, avc, 0, NULL, nal_hdr);\nL115: if (avc->last_ps_idx < 0) return -1;\nL119: avc->last_ps_idx = gf_avc_read_pps_bs_internal(bs, avc, nal_hdr);\nL120: if (avc->last_ps_idx < 0) return -1;\nL123: avc->last_ps_idx = gf_avc_read_sps_bs_internal(bs, avc, 1, NULL, nal_hdr);\nL124: if (avc->last_ps_idx < 0) return -1;\nL127: avc->last_ps_idx = (s32) gf_bs_read_ue(bs);\nL128: if (avc->last_ps_idx < 0) return -1;"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "nal_hdr",
+            "n_state.nal_unit_type"
+          ],
+          "claim": "nal_hdr is read as one byte and its low 5 bits are assigned to n_state.nal_unit_type, so nal_unit_type is in [0,31].",
+          "evidence": "L10: nal_hdr = gf_bs_read_u8(bs);\nL14: avc->last_nal_type_parsed = n_state.nal_unit_type = nal_hdr & 0x1F;"
+        },
+        {
+          "entities": [
+            "nal_hdr",
+            "n_state.nal_ref_idc"
+          ],
+          "claim": "n_state.nal_ref_idc is extracted from bits 5-6 of nal_hdr, so it is in [0,3].",
+          "evidence": "L15: n_state.nal_ref_idc = (nal_hdr >> 5) & 0x3;"
+        },
+        {
+          "entities": [
+            "n_state",
+            "avc->s_info",
+            "sizeof(AVCSliceInfo)"
+          ],
+          "claim": "n_state is initialized by copying sizeof(AVCSliceInfo) bytes from avc->s_info, and later avc->s_info is overwritten by copying sizeof(AVCSliceInfo) bytes from n_state.",
+          "evidence": "L13: memcpy(&n_state, &avc->s_info, sizeof(AVCSliceInfo));\nL37: memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo));\nL40: memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo));\nL159: memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo));"
+        },
+        {
+          "entities": [
+            "avc->last_ps_idx",
+            "gf_avc_read_sps_bs_internal"
+          ],
+          "claim": "avc->last_ps_idx is assigned the return value of gf_avc_read_sps_bs_internal and is checked for being negative before returning.",
+          "evidence": "L114: avc->last_ps_idx = gf_avc_read_sps_bs_internal(bs, avc, 0, NULL, nal_hdr);\nL115: if (avc->last_ps_idx < 0) return -1;\nL123: avc->last_ps_idx = gf_avc_read_sps_bs_internal(bs, avc, 1, NULL, nal_hdr);\nL124: if (avc->last_ps_idx < 0) return -1;"
+        },
+        {
+          "entities": [
+            "avc->last_ps_idx",
+            "gf_avc_read_pps_bs_internal"
+          ],
+          "claim": "avc->last_ps_idx is assigned the return value of gf_avc_read_pps_bs_internal and is checked for being negative before returning.",
+          "evidence": "L119: avc->last_ps_idx = gf_avc_read_pps_bs_internal(bs, avc, nal_hdr);\nL120: if (avc->last_ps_idx < 0) return -1;"
+        },
+        {
+          "entities": [
+            "avc->last_ps_idx",
+            "gf_bs_read_ue"
+          ],
+          "claim": "avc->last_ps_idx is assigned the result of casting gf_bs_read_ue(bs) to s32, and is checked for being negative before returning.",
+          "evidence": "L127: avc->last_ps_idx = (s32) gf_bs_read_ue(bs);\nL128: if (avc->last_ps_idx < 0) return -1;"
+        },
+        {
+          "entities": [
+            "ret",
+            "avc_parse_slice"
+          ],
+          "claim": "ret is assigned the return value of avc_parse_slice; if ret < 0 the function returns ret, otherwise ret is reset to 0.",
+          "evidence": "L54: ret = avc_parse_slice(bs, avc, idr_flag, &n_state);\nL55: if (ret < 0) return ret;\nL56: ret = 0;"
+        },
+        {
+          "entities": [
+            "n_state.frame_num_offset_prev",
+            "avc->s_info.frame_num_offset"
+          ],
+          "claim": "When ret is nonzero and avc->s_info.sps is non-null, n_state.frame_num_offset_prev is assigned avc->s_info.frame_num_offset.",
+          "evidence": "L148: if (ret && avc->s_info.sps) {\nL149: n_state.frame_num_offset_prev = avc->s_info.frame_num_offset;"
+        },
+        {
+          "entities": [
+            "n_state.frame_num_prev",
+            "avc->s_info.frame_num",
+            "avc->s_info.sps->poc_type",
+            "avc->s_info.nal_ref_idc"
+          ],
+          "claim": "When ret is nonzero and avc->s_info.sps is non-null, n_state.frame_num_prev is assigned avc->s_info.frame_num if poc_type is not 2 or nal_ref_idc is nonzero.",
+          "evidence": "L148: if (ret && avc->s_info.sps) {\nL150: if ((avc->s_info.sps->poc_type != 2) || (avc->s_info.nal_ref_idc != 0))\nL151: n_state.frame_num_prev = avc->s_info.frame_num;"
+        },
+        {
+          "entities": [
+            "n_state.poc_lsb_prev",
+            "n_state.poc_msb_prev",
+            "avc->s_info.poc_lsb",
+            "avc->s_info.poc_msb",
+            "avc->s_info.nal_ref_idc"
+          ],
+          "claim": "When avc->s_info.nal_ref_idc is nonzero, n_state.poc_lsb_prev and n_state.poc_msb_prev are assigned avc->s_info.poc_lsb and avc->s_info.poc_msb respectively.",
+          "evidence": "L30: if (avc->s_info.nal_ref_idc) {\nL31: n_state.poc_lsb_prev = avc->s_info.poc_lsb;\nL32: n_state.poc_msb_prev = avc->s_info.poc_msb;\nL152: if (avc->s_info.nal_ref_idc) {\nL153: n_state.poc_lsb_prev = avc->s_info.poc_lsb;\nL154: n_state.poc_msb_prev = avc->s_info.poc_msb;"
+        },
+        {
+          "entities": [
+            "slice",
+            "avc_compute_poc"
+          ],
+          "claim": "If slice is nonzero, avc_compute_poc is called with &n_state before avc->s_info is overwritten from n_state.",
+          "evidence": "L157: if (slice)\nL158: avc_compute_poc(&n_state);\nL159: memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo));"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "avc->s_info.sps"
+          ],
+          "claim": "After the assert, avc->s_info.sps is non-null and remains valid through the subsequent dereferences at lines 79-90.",
+          "evidence": "L77: assert(avc->s_info.sps);\nL79: if (avc->s_info.sps->poc_type == n_state.sps->poc_type) {\nL80: if (!avc->s_info.sps->poc_type) {\nL90: else if (avc->s_info.sps->poc_type == 1) {"
+        },
+        {
+          "entities": [
+            "ret",
+            "avc->s_info.sps"
+          ],
+          "claim": "Continuing past line 148 implies ret is nonzero and avc->s_info.sps is non-null.",
+          "evidence": "L148: if (ret && avc->s_info.sps) {"
+        },
+        {
+          "entities": [
+            "avc->s_info.sps->poc_type",
+            "avc->s_info.nal_ref_idc"
+          ],
+          "claim": "Inside the ret && avc->s_info.sps block, n_state.frame_num_prev is assigned only when poc_type != 2 or nal_ref_idc != 0.",
+          "evidence": "L150: if ((avc->s_info.sps->poc_type != 2) || (avc->s_info.nal_ref_idc != 0))\nL151: n_state.frame_num_prev = avc->s_info.frame_num;"
+        },
+        {
+          "entities": [
+            "avc->s_info.nal_ref_idc"
+          ],
+          "claim": "Inside the ret && avc->s_info.sps block, n_state.poc_lsb_prev and n_state.poc_msb_prev are assigned only when avc->s_info.nal_ref_idc is nonzero.",
+          "evidence": "L152: if (avc->s_info.nal_ref_idc) {\nL153: n_state.poc_lsb_prev = avc->s_info.poc_lsb;\nL154: n_state.poc_msb_prev = avc->s_info.poc_msb;"
+        },
+        {
+          "entities": [
+            "slice"
+          ],
+          "claim": "avc_compute_poc(&n_state) is called only when slice is nonzero.",
+          "evidence": "L157: if (slice)\nL158: avc_compute_poc(&n_state);"
+        },
+        {
+          "entities": [
+            "ret"
+          ],
+          "claim": "For the slice cases, ret is set to 0 after avc_parse_slice returns nonnegative, and may be set to 1 by the subsequent comparison breaks.",
+          "evidence": "L54: ret = avc_parse_slice(bs, avc, idr_flag, &n_state);\nL55: if (ret < 0) return ret;\nL56: ret = 0;\nL64: ret = 1;\nL69: ret = 1;\nL74: ret = 1;\nL82: ret = 1;\nL86: ret = 1;\nL92: ret = 1;\nL96: ret = 1;\nL104: ret = 1;\nL108: ret = 1;"
+        },
+        {
+          "entities": [
+            "avc->last_ps_idx"
+          ],
+          "claim": "For sequence parameter, picture parameter, and subset sequence parameter cases, a negative avc->last_ps_idx causes an immediate return of -1.",
+          "evidence": "L114: avc->last_ps_idx = gf_avc_read_sps_bs_internal(bs, avc, 0, NULL, nal_hdr);\nL115: if (avc->last_ps_idx < 0) return -1;\nL119: avc->last_ps_idx = gf_avc_read_pps_bs_internal(bs, avc, nal_hdr);\nL120: if (avc->last_ps_idx < 0) return -1;\nL123: avc->last_ps_idx = gf_avc_read_sps_bs_internal(bs, avc, 1, NULL, nal_hdr);\nL124: if (avc->last_ps_idx < 0) return -1;\nL127: avc->last_ps_idx = (s32) gf_bs_read_ue(bs);\nL128: if (avc->last_ps_idx < 0) return -1;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 4349,
+              "output_tokens": 450,
+              "total_tokens": 4799
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 4349,
+          "output_tokens": 450,
+          "total_tokens": 4799
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L10",
+                "matched": true,
+                "expression": "gf_bs_read_u8(bs)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L13",
+                "matched": true,
+                "expression": "memcpy(&n_state, &avc->s_info, sizeof(AVCSliceInfo))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L27",
+                "matched": true,
+                "expression": "SVC_ReadNal_header_extension(bs, &n_state.NalHeader)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L29",
+                "matched": true,
+                "expression": "svc_parse_slice(bs, avc, &n_state)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L37",
+                "matched": true,
+                "expression": "memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo))"
+              },
+              {
+                "location": "L40",
+                "matched": true,
+                "expression": "memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo))"
+              },
+              {
+                "location": "L159",
+                "matched": true,
+                "expression": "memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L44",
+                "matched": true,
+                "expression": "SVC_ReadNal_header_extension(bs, &n_state.NalHeader)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L54",
+                "matched": true,
+                "expression": "avc_parse_slice(bs, avc, idr_flag, &n_state)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L114",
+                "matched": true,
+                "expression": "gf_avc_read_sps_bs_internal(bs, avc, 0, NULL, nal_hdr)"
+              },
+              {
+                "location": "L123",
+                "matched": true,
+                "expression": "gf_avc_read_sps_bs_internal(bs, avc, 0, NULL, nal_hdr)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L119",
+                "matched": true,
+                "expression": "gf_avc_read_pps_bs_internal(bs, avc, nal_hdr)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[9]": {
+            "expression_matches": [
+              {
+                "location": "L127",
+                "matched": true,
+                "expression": "gf_bs_read_ue(bs)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2952,
+              "output_tokens": 753,
+              "total_tokens": 3705
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2952,
+          "output_tokens": 753,
+          "total_tokens": 3705
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "gf_bs_enable_emulation_byte_removal(bs, GF_TRUE);",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "memcpy(&n_state, &avc->s_info, sizeof(AVCSliceInfo));",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 37,
+                "fragment": "memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo));",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo));",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 159,
+                "fragment": "memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo));",
+                "matched_lines": [
+                  159
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 77,
+                "fragment": "assert(avc->s_info.sps);",
+                "matched_lines": [
+                  77
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 79,
+                "fragment": "if (avc->s_info.sps->poc_type == n_state.sps->poc_type) {",
+                "matched_lines": [
+                  79
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 80,
+                "fragment": "if (!avc->s_info.sps->poc_type) {",
+                "matched_lines": [
+                  80
+                ]
+              },
+              {
+                "evidence_line": 90,
+                "fragment": "else if (avc->s_info.sps->poc_type == 1) {",
+                "matched_lines": [
+                  90
+                ]
+              },
+              {
+                "evidence_line": 150,
+                "fragment": "if ((avc->s_info.sps->poc_type != 2) || (avc->s_info.nal_ref_idc != 0))",
+                "matched_lines": [
+                  150
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 114,
+                "fragment": "avc->last_ps_idx = gf_avc_read_sps_bs_internal(bs, avc, 0, NULL, nal_hdr);",
+                "matched_lines": [
+                  114
+                ]
+              },
+              {
+                "evidence_line": 115,
+                "fragment": "if (avc->last_ps_idx < 0) return -1;",
+                "matched_lines": [
+                  115
+                ]
+              },
+              {
+                "evidence_line": 119,
+                "fragment": "avc->last_ps_idx = gf_avc_read_pps_bs_internal(bs, avc, nal_hdr);",
+                "matched_lines": [
+                  119
+                ]
+              },
+              {
+                "evidence_line": 120,
+                "fragment": "if (avc->last_ps_idx < 0) return -1;",
+                "matched_lines": [
+                  120
+                ]
+              },
+              {
+                "evidence_line": 123,
+                "fragment": "avc->last_ps_idx = gf_avc_read_sps_bs_internal(bs, avc, 1, NULL, nal_hdr);",
+                "matched_lines": [
+                  123
+                ]
+              },
+              {
+                "evidence_line": 124,
+                "fragment": "if (avc->last_ps_idx < 0) return -1;",
+                "matched_lines": [
+                  124
+                ]
+              },
+              {
+                "evidence_line": 127,
+                "fragment": "avc->last_ps_idx = (s32) gf_bs_read_ue(bs);",
+                "matched_lines": [
+                  127
+                ]
+              },
+              {
+                "evidence_line": 128,
+                "fragment": "if (avc->last_ps_idx < 0) return -1;",
+                "matched_lines": [
+                  128
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3140,
+              "output_tokens": 1570,
+              "total_tokens": 4710
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3140,
+          "output_tokens": 1570,
+          "total_tokens": 4710
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "nal_hdr = gf_bs_read_u8(bs);",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "avc->last_nal_type_parsed = n_state.nal_unit_type = nal_hdr & 0x1F;",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "n_state.nal_ref_idc = (nal_hdr >> 5) & 0x3;",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "memcpy(&n_state, &avc->s_info, sizeof(AVCSliceInfo));",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo));",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo));",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 159,
+                "fragment": "memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo));",
+                "matched_lines": [
+                  159
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 114,
+                "fragment": "avc->last_ps_idx = gf_avc_read_sps_bs_internal(bs, avc, 0, NULL, nal_hdr);",
+                "matched_lines": [
+                  114
+                ]
+              },
+              {
+                "evidence_line": 115,
+                "fragment": "if (avc->last_ps_idx < 0) return -1;",
+                "matched_lines": [
+                  115
+                ]
+              },
+              {
+                "evidence_line": 123,
+                "fragment": "avc->last_ps_idx = gf_avc_read_sps_bs_internal(bs, avc, 1, NULL, nal_hdr);",
+                "matched_lines": [
+                  123
+                ]
+              },
+              {
+                "evidence_line": 124,
+                "fragment": "if (avc->last_ps_idx < 0) return -1;",
+                "matched_lines": [
+                  124
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 119,
+                "fragment": "avc->last_ps_idx = gf_avc_read_pps_bs_internal(bs, avc, nal_hdr);",
+                "matched_lines": [
+                  119
+                ]
+              },
+              {
+                "evidence_line": 120,
+                "fragment": "if (avc->last_ps_idx < 0) return -1;",
+                "matched_lines": [
+                  120
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 127,
+                "fragment": "avc->last_ps_idx = (s32) gf_bs_read_ue(bs);",
+                "matched_lines": [
+                  127
+                ]
+              },
+              {
+                "evidence_line": 128,
+                "fragment": "if (avc->last_ps_idx < 0) return -1;",
+                "matched_lines": [
+                  128
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 54,
+                "fragment": "ret = avc_parse_slice(bs, avc, idr_flag, &n_state);",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "if (ret < 0) return ret;",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "ret = 0;",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 148,
+                "fragment": "if (ret && avc->s_info.sps) {",
+                "matched_lines": [
+                  148
+                ]
+              },
+              {
+                "evidence_line": 149,
+                "fragment": "n_state.frame_num_offset_prev = avc->s_info.frame_num_offset;",
+                "matched_lines": [
+                  149
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 148,
+                "fragment": "if (ret && avc->s_info.sps) {",
+                "matched_lines": [
+                  148
+                ]
+              },
+              {
+                "evidence_line": 150,
+                "fragment": "if ((avc->s_info.sps->poc_type != 2) || (avc->s_info.nal_ref_idc != 0))",
+                "matched_lines": [
+                  150
+                ]
+              },
+              {
+                "evidence_line": 151,
+                "fragment": "n_state.frame_num_prev = avc->s_info.frame_num;",
+                "matched_lines": [
+                  151
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 30,
+                "fragment": "if (avc->s_info.nal_ref_idc) {",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "n_state.poc_lsb_prev = avc->s_info.poc_lsb;",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "n_state.poc_msb_prev = avc->s_info.poc_msb;",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 152,
+                "fragment": "if (avc->s_info.nal_ref_idc) {",
+                "matched_lines": [
+                  152
+                ]
+              },
+              {
+                "evidence_line": 153,
+                "fragment": "n_state.poc_lsb_prev = avc->s_info.poc_lsb;",
+                "matched_lines": [
+                  153
+                ]
+              },
+              {
+                "evidence_line": 154,
+                "fragment": "n_state.poc_msb_prev = avc->s_info.poc_msb;",
+                "matched_lines": [
+                  154
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 157,
+                "fragment": "if (slice)",
+                "matched_lines": [
+                  157
+                ]
+              },
+              {
+                "evidence_line": 158,
+                "fragment": "avc_compute_poc(&n_state);",
+                "matched_lines": [
+                  158
+                ]
+              },
+              {
+                "evidence_line": 159,
+                "fragment": "memcpy(&avc->s_info, &n_state, sizeof(AVCSliceInfo));",
+                "matched_lines": [
+                  159
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2820,
+              "output_tokens": 1076,
+              "total_tokens": 3896
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2820,
+          "output_tokens": 1076,
+          "total_tokens": 3896
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 77,
+                "fragment": "assert(avc->s_info.sps);",
+                "matched_lines": [
+                  77
+                ]
+              },
+              {
+                "evidence_line": 79,
+                "fragment": "if (avc->s_info.sps->poc_type == n_state.sps->poc_type) {",
+                "matched_lines": [
+                  79
+                ]
+              },
+              {
+                "evidence_line": 80,
+                "fragment": "if (!avc->s_info.sps->poc_type) {",
+                "matched_lines": [
+                  80
+                ]
+              },
+              {
+                "evidence_line": 90,
+                "fragment": "else if (avc->s_info.sps->poc_type == 1) {",
+                "matched_lines": [
+                  90
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 148,
+                "fragment": "if (ret && avc->s_info.sps) {",
+                "matched_lines": [
+                  148
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 150,
+                "fragment": "if ((avc->s_info.sps->poc_type != 2) || (avc->s_info.nal_ref_idc != 0))",
+                "matched_lines": [
+                  150
+                ]
+              },
+              {
+                "evidence_line": 151,
+                "fragment": "n_state.frame_num_prev = avc->s_info.frame_num;",
+                "matched_lines": [
+                  151
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 152,
+                "fragment": "if (avc->s_info.nal_ref_idc) {",
+                "matched_lines": [
+                  152
+                ]
+              },
+              {
+                "evidence_line": 153,
+                "fragment": "n_state.poc_lsb_prev = avc->s_info.poc_lsb;",
+                "matched_lines": [
+                  153
+                ]
+              },
+              {
+                "evidence_line": 154,
+                "fragment": "n_state.poc_msb_prev = avc->s_info.poc_msb;",
+                "matched_lines": [
+                  154
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 157,
+                "fragment": "if (slice)",
+                "matched_lines": [
+                  157
+                ]
+              },
+              {
+                "evidence_line": 158,
+                "fragment": "avc_compute_poc(&n_state);",
+                "matched_lines": [
+                  158
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 54,
+                "fragment": "ret = avc_parse_slice(bs, avc, idr_flag, &n_state);",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "if (ret < 0) return ret;",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "ret = 0;",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 64,
+                "fragment": "ret = 1;",
+                "matched_lines": [
+                  64
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "ret = 1;",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 74,
+                "fragment": "ret = 1;",
+                "matched_lines": [
+                  74
+                ]
+              },
+              {
+                "evidence_line": 82,
+                "fragment": "ret = 1;",
+                "matched_lines": [
+                  82
+                ]
+              },
+              {
+                "evidence_line": 86,
+                "fragment": "ret = 1;",
+                "matched_lines": [
+                  86
+                ]
+              },
+              {
+                "evidence_line": 92,
+                "fragment": "ret = 1;",
+                "matched_lines": [
+                  92
+                ]
+              },
+              {
+                "evidence_line": 96,
+                "fragment": "ret = 1;",
+                "matched_lines": [
+                  96
+                ]
+              },
+              {
+                "evidence_line": 104,
+                "fragment": "ret = 1;",
+                "matched_lines": [
+                  104
+                ]
+              },
+              {
+                "evidence_line": 108,
+                "fragment": "ret = 1;",
+                "matched_lines": [
+                  108
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 114,
+                "fragment": "avc->last_ps_idx = gf_avc_read_sps_bs_internal(bs, avc, 0, NULL, nal_hdr);",
+                "matched_lines": [
+                  114
+                ]
+              },
+              {
+                "evidence_line": 115,
+                "fragment": "if (avc->last_ps_idx < 0) return -1;",
+                "matched_lines": [
+                  115
+                ]
+              },
+              {
+                "evidence_line": 119,
+                "fragment": "avc->last_ps_idx = gf_avc_read_pps_bs_internal(bs, avc, nal_hdr);",
+                "matched_lines": [
+                  119
+                ]
+              },
+              {
+                "evidence_line": 120,
+                "fragment": "if (avc->last_ps_idx < 0) return -1;",
+                "matched_lines": [
+                  120
+                ]
+              },
+              {
+                "evidence_line": 123,
+                "fragment": "avc->last_ps_idx = gf_avc_read_sps_bs_internal(bs, avc, 1, NULL, nal_hdr);",
+                "matched_lines": [
+                  123
+                ]
+              },
+              {
+                "evidence_line": 124,
+                "fragment": "if (avc->last_ps_idx < 0) return -1;",
+                "matched_lines": [
+                  124
+                ]
+              },
+              {
+                "evidence_line": 127,
+                "fragment": "avc->last_ps_idx = (s32) gf_bs_read_ue(bs);",
+                "matched_lines": [
+                  127
+                ]
+              },
+              {
+                "evidence_line": 128,
+                "fragment": "if (avc->last_ps_idx < 0) return -1;",
+                "matched_lines": [
+                  128
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 10,
+      "states": 7,
+      "values": 11,
+      "executions": 7
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 13261,
+    "output_tokens": 3849,
+    "total_tokens": 17110
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000058",
+    "split": "test",
+    "source_hash": "a38c72eaec9a71a6a43c7d1818566071182af6998a8abaaee2f99765919350ac",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

@@ -11,49 +11,56 @@
             "L12"
           ],
           "expression": "delete input.tensor / delete output.tensor",
-          "claim": "deleting a Tensor object through a pointer that must be a valid, live allocation owned by the cleanup scope"
+          "claim": "deleting a Tensor object through a pointer that must be valid and owned"
         },
         {
           "locations": [
             "L31"
           ],
           "expression": "input_node->attr().at(\"value\").tensor()",
-          "claim": "accessing the \"value\" attribute entry in the node's attribute map, which must exist to avoid an out-of-range map access"
+          "claim": "accessing the map element for key \"value\" and reading its tensor field"
         },
         {
           "locations": [
             "L44"
           ],
           "expression": "new Tensor(raw_val.dtype(), raw_val.tensor_shape())",
-          "claim": "allocating a Tensor with the given data type and shape, which must be a valid, representable tensor configuration"
+          "claim": "allocating a Tensor with the given data type and shape"
         },
         {
           "locations": [
             "L45"
           ],
           "expression": "value->FromProto(raw_val)",
-          "claim": "populating a Tensor from a TensorProto, which must be compatible with the tensor's allocated type and shape"
+          "claim": "populating a Tensor from a TensorProto under the tensor's shape and dtype contract"
         },
         {
           "locations": [
             "L52"
           ],
           "expression": "value->TotalBytes()",
-          "claim": "computing the total byte size of the tensor, which must be representable without overflow"
+          "claim": "computing the total byte size of a Tensor"
+        },
+        {
+          "locations": [
+            "L60"
+          ],
+          "expression": "outputs->resize(output_tensors.size())",
+          "claim": "resizing the outputs vector to the number of output tensors"
         },
         {
           "locations": [
             "L67"
           ],
           "expression": "CreateNodeDef(node_name, output_tensors[i], &outputs->at(i), total_inputs_size)",
-          "claim": "creating a NodeDef from the output tensor and writing it into the outputs vector element, which must be a valid writable slot"
+          "claim": "creating a NodeDef from an output tensor and storing it into the outputs vector"
         },
         {
           "locations": [
             "L76"
           ],
           "expression": "outputs->at(i) = NodeDef()",
-          "claim": "assigning to the outputs vector element at index i, which must be within the vector's bounds"
+          "claim": "assigning a default NodeDef to the i-th element of the outputs vector"
         }
       ],
       "states": [
@@ -62,39 +69,38 @@
             "inputs",
             "input.tensor"
           ],
-          "claim": "Each Tensor allocated with new is stored in inputs; the cleanup handler deletes every input.tensor on scope exit.",
-          "evidence": "L6: auto inputs_cleanup = gtl::MakeCleanup([&inputs, &output_tensors] {\nL7: for (const auto& input : inputs) {\nL8: delete input.tensor;\nL9: }\nL51: inputs.emplace_back(value);"
+          "claim": "Each Tensor allocated with new and successfully populated via FromProto is stored in inputs; the cleanup lambda deletes every input.tensor on scope exit.",
+          "evidence": "L6: auto inputs_cleanup = gtl::MakeCleanup([&inputs, &output_tensors] {\nL7: for (const auto& input : inputs) {\nL8: delete input.tensor;\nL9: }"
+        },
+        {
+          "entities": [
+            "value"
+          ],
+          "claim": "A Tensor allocated with new whose FromProto fails is deleted before returning an error.",
+          "evidence": "L44: Tensor* value = new Tensor(raw_val.dtype(), raw_val.tensor_shape());\nL45: if (!value->FromProto(raw_val)) {\nL46: delete (value);"
         },
         {
           "entities": [
             "output_tensors",
             "output.tensor"
           ],
-          "claim": "The cleanup handler deletes each non-null output.tensor in output_tensors on scope exit.",
-          "evidence": "L10: for (const auto& output : output_tensors) {\nL11: if (output.tensor) {\nL12: delete output.tensor;\nL13: }\nL14: }"
+          "claim": "The cleanup lambda deletes each non-null output.tensor in output_tensors on scope exit.",
+          "evidence": "L10: for (const auto& output : output_tensors) {\nL11: if (output.tensor) {\nL12: delete output.tensor;\nL13: }"
         },
         {
           "entities": [
-            "value"
+            "outputs"
           ],
-          "claim": "value is a newly allocated Tensor; if FromProto fails, value is deleted before returning.",
-          "evidence": "L44: Tensor* value = new Tensor(raw_val.dtype(), raw_val.tensor_shape());\nL45: if (!value->FromProto(raw_val)) {\nL46: delete (value);"
-        },
-        {
-          "entities": [
-            "value",
-            "inputs"
-          ],
-          "claim": "On successful FromProto, value is appended to inputs and ownership is transferred to the inputs cleanup handler.",
-          "evidence": "L51: inputs.emplace_back(value);"
+          "claim": "outputs is resized to hold output_tensors.size() NodeDef elements before being populated.",
+          "evidence": "L60: outputs->resize(output_tensors.size());"
         },
         {
           "entities": [
             "outputs",
-            "outputs->at(i)"
+            "output_tensors"
           ],
-          "claim": "outputs is resized to output_tensors.size(); each element is either populated by CreateNodeDef or replaced with an empty NodeDef for dead outputs.",
-          "evidence": "L60: outputs->resize(output_tensors.size());\nL67: Status s = CreateNodeDef(node_name, output_tensors[i], &outputs->at(i),\nL76: outputs->at(i) = NodeDef();"
+          "claim": "For each output_tensors element with a non-null tensor, CreateNodeDef populates the corresponding outputs element; otherwise that outputs element is assigned a default-constructed NodeDef.",
+          "evidence": "L66: if (output_tensors[i].tensor) {\nL67: Status s = CreateNodeDef(node_name, output_tensors[i], &outputs->at(i),\nL68: total_inputs_size);\nL76: outputs->at(i) = NodeDef();"
         }
       ],
       "values": [
@@ -111,15 +117,15 @@
             "outputs",
             "output_tensors.size()"
           ],
-          "claim": "outputs is resized to output_tensors.size(), and the loop iterates i from 0 to output_tensors.size()-1, indexing outputs->at(i).",
-          "evidence": "L60: outputs->resize(output_tensors.size());\nL61: for (size_t i = 0; i < output_tensors.size(); i++) {"
+          "claim": "outputs is resized to output_tensors.size(), and the loop indexes outputs->at(i) for i in [0, output_tensors.size()).",
+          "evidence": "L60: outputs->resize(output_tensors.size());\nL61: for (size_t i = 0; i < output_tensors.size(); i++) {\nL67: Status s = CreateNodeDef(node_name, output_tensors[i], &outputs->at(i),\nL76: outputs->at(i) = NodeDef();"
         },
         {
           "entities": [
             "total_inputs_size",
             "CreateNodeDef"
           ],
-          "claim": "total_inputs_size is passed as an argument to CreateNodeDef for each output tensor.",
+          "claim": "total_inputs_size is passed as the size argument to CreateNodeDef for each output node.",
           "evidence": "L67: Status s = CreateNodeDef(node_name, output_tensors[i], &outputs->at(i),\nL68: total_inputs_size);"
         }
       ],
@@ -128,51 +134,60 @@
           "entities": [
             "input_tensor.index()"
           ],
-          "claim": "continuing past this check implies input_tensor.index() >= 0; otherwise the loop breaks and no further inputs are processed",
+          "claim": "Continuing past this check implies input_tensor.index() >= 0; otherwise the loop breaks and no further inputs are processed.",
           "evidence": "L20: if (input_tensor.index() < 0) {\nL22: break;"
         },
         {
           "entities": [
-            "raw_val.dtype()"
+            "input_node",
+            "IsReallyConstant(*input_node)"
           ],
-          "claim": "continuing past this check implies raw_val.dtype() != DT_INVALID",
-          "evidence": "L32: if (raw_val.dtype() == DT_INVALID) {"
+          "claim": "Continuing past this check implies the input node is really constant; otherwise the function returns INVALID_ARGUMENT.",
+          "evidence": "L25: if (!IsReallyConstant(*input_node)) {\nL26: return Status(error::INVALID_ARGUMENT,"
         },
         {
           "entities": [
             "raw_val.dtype()"
           ],
-          "claim": "continuing past this check implies raw_val.dtype() is not a reference type",
-          "evidence": "L39: if (IsRefType(raw_val.dtype())) {"
+          "claim": "Continuing past this check implies raw_val.dtype() != DT_INVALID; otherwise the function returns INVALID_ARGUMENT.",
+          "evidence": "L32: if (raw_val.dtype() == DT_INVALID) {\nL33: return Status("
         },
         {
           "entities": [
-            "value"
+            "raw_val.dtype()"
           ],
-          "claim": "continuing past this check implies value->FromProto(raw_val) succeeded; otherwise value is deleted and execution returns",
-          "evidence": "L45: if (!value->FromProto(raw_val)) {\nL46: delete (value);"
+          "claim": "Continuing past this check implies raw_val.dtype() is not a ref type; otherwise the function returns InvalidArgument.",
+          "evidence": "L39: if (IsRefType(raw_val.dtype())) {\nL40: return errors::InvalidArgument("
+        },
+        {
+          "entities": [
+            "value",
+            "value->FromProto(raw_val)"
+          ],
+          "claim": "Continuing past this check implies value->FromProto(raw_val) succeeded; otherwise value is deleted and the function returns InvalidArgument.",
+          "evidence": "L45: if (!value->FromProto(raw_val)) {\nL46: delete (value);\nL40: return errors::InvalidArgument("
         },
         {
           "entities": [
             "output_tensors"
           ],
-          "claim": "continuing past this check implies output_tensors is non-empty",
-          "evidence": "L56: if (output_tensors.empty()) {"
+          "claim": "Continuing past this check implies output_tensors is non-empty; otherwise the function returns INVALID_ARGUMENT.",
+          "evidence": "L56: if (output_tensors.empty()) {\nL57: return Status(error::INVALID_ARGUMENT, \"Expected at least one output.\");"
         },
         {
           "entities": [
             "i",
             "output_tensors.size()"
           ],
-          "claim": "loop body executes only while i < output_tensors.size()",
+          "claim": "Within the loop, i is bounded by output_tensors.size(): 0 <= i < output_tensors.size().",
           "evidence": "L61: for (size_t i = 0; i < output_tensors.size(); i++) {"
         },
         {
           "entities": [
             "output_tensors[i].tensor"
           ],
-          "claim": "the CreateNodeDef branch is taken only when output_tensors[i].tensor is non-null; otherwise an empty NodeDef is assigned",
-          "evidence": "L66: if (output_tensors[i].tensor) {\nL73: } else {"
+          "claim": "If output_tensors[i].tensor is non-null, CreateNodeDef is called and a failure sets *result_too_large = true and returns the error status; otherwise an empty NodeDef is assigned.",
+          "evidence": "L66: if (output_tensors[i].tensor) {\nL67: Status s = CreateNodeDef(node_name, output_tensors[i], &outputs->at(i),\nL68: total_inputs_size);\nL69: if (!s.ok()) {\nL70: *result_too_large = true;\nL71: return s;\nL72: }\nL73: } else {"
         }
       ]
     },
@@ -186,8 +201,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 2924,
-              "output_tokens": 339,
-              "total_tokens": 3263
+              "output_tokens": 319,
+              "total_tokens": 3243
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -195,8 +210,8 @@
         ],
         "token_usage": {
           "input_tokens": 2924,
-          "output_tokens": 339,
-          "total_tokens": 3263
+          "output_tokens": 319,
+          "total_tokens": 3243
         },
         "grounding": {
           "operation_agent.operations[0]": {
@@ -257,6 +272,16 @@
           "operation_agent.operations[5]": {
             "expression_matches": [
               {
+                "location": "L60",
+                "matched": true,
+                "expression": "outputs->resize(output_tensors.size())"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
                 "location": "L67",
                 "matched": true,
                 "expression": "CreateNodeDef(node_name, output_tensors[i], &outputs->at(i), total_inputs_size)"
@@ -264,7 +289,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[6]": {
+          "operation_agent.operations[7]": {
             "expression_matches": [
               {
                 "location": "L76",
@@ -286,8 +311,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 1527,
-              "output_tokens": 435,
-              "total_tokens": 1962
+              "output_tokens": 453,
+              "total_tokens": 1980
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -295,8 +320,8 @@
         ],
         "token_usage": {
           "input_tokens": 1527,
-          "output_tokens": 435,
-          "total_tokens": 1962
+          "output_tokens": 453,
+          "total_tokens": 1980
         },
         "grounding": {
           "state_agent.states[0]": {
@@ -328,18 +353,37 @@
                 "matched_lines": [
                   9
                 ]
-              },
-              {
-                "evidence_line": 51,
-                "fragment": "inputs.emplace_back(value);",
-                "matched_lines": [
-                  51
-                ]
               }
             ],
             "status": "pass"
           },
           "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "Tensor* value = new Tensor(raw_val.dtype(), raw_val.tensor_shape());",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "if (!value->FromProto(raw_val)) {",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "delete (value);",
+                "matched_lines": [
+                  46
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
             "evidence_matches": [
               {
                 "evidence_line": 10,
@@ -368,39 +412,6 @@
                 "matched_lines": [
                   13
                 ]
-              },
-              {
-                "evidence_line": 14,
-                "fragment": "}",
-                "matched_lines": [
-                  14
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "state_agent.states[2]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 44,
-                "fragment": "Tensor* value = new Tensor(raw_val.dtype(), raw_val.tensor_shape());",
-                "matched_lines": [
-                  44
-                ]
-              },
-              {
-                "evidence_line": 45,
-                "fragment": "if (!value->FromProto(raw_val)) {",
-                "matched_lines": [
-                  45
-                ]
-              },
-              {
-                "evidence_line": 46,
-                "fragment": "delete (value);",
-                "matched_lines": [
-                  46
-                ]
               }
             ],
             "status": "pass"
@@ -408,10 +419,10 @@
           "state_agent.states[3]": {
             "evidence_matches": [
               {
-                "evidence_line": 51,
-                "fragment": "inputs.emplace_back(value);",
+                "evidence_line": 60,
+                "fragment": "outputs->resize(output_tensors.size());",
                 "matched_lines": [
-                  51
+                  60
                 ]
               }
             ],
@@ -420,10 +431,10 @@
           "state_agent.states[4]": {
             "evidence_matches": [
               {
-                "evidence_line": 60,
-                "fragment": "outputs->resize(output_tensors.size());",
+                "evidence_line": 66,
+                "fragment": "if (output_tensors[i].tensor) {",
                 "matched_lines": [
-                  60
+                  66
                 ]
               },
               {
@@ -431,6 +442,13 @@
                 "fragment": "Status s = CreateNodeDef(node_name, output_tensors[i], &outputs->at(i),",
                 "matched_lines": [
                   67
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "total_inputs_size);",
+                "matched_lines": [
+                  68
                 ]
               },
               {
@@ -444,7 +462,33 @@
             "status": "pass"
           }
         },
-        "item_recovery": []
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          }
+        ]
       },
       "value_agent": {
         "status": "passed",
@@ -455,8 +499,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 1715,
-              "output_tokens": 254,
-              "total_tokens": 1969
+              "output_tokens": 290,
+              "total_tokens": 2005
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -464,8 +508,8 @@
         ],
         "token_usage": {
           "input_tokens": 1715,
-          "output_tokens": 254,
-          "total_tokens": 1969
+          "output_tokens": 290,
+          "total_tokens": 2005
         },
         "grounding": {
           "value_agent.values[0]": {
@@ -502,6 +546,20 @@
                 "matched_lines": [
                   61
                 ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "Status s = CreateNodeDef(node_name, output_tensors[i], &outputs->at(i),",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 76,
+                "fragment": "outputs->at(i) = NodeDef();",
+                "matched_lines": [
+                  76
+                ]
               }
             ],
             "status": "pass"
@@ -537,8 +595,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 1395,
-              "output_tokens": 386,
-              "total_tokens": 1781
+              "output_tokens": 663,
+              "total_tokens": 2058
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -546,8 +604,8 @@
         ],
         "token_usage": {
           "input_tokens": 1395,
-          "output_tokens": 386,
-          "total_tokens": 1781
+          "output_tokens": 663,
+          "total_tokens": 2058
         },
         "grounding": {
           "execution_agent.executions[0]": {
@@ -572,10 +630,17 @@
           "execution_agent.executions[1]": {
             "evidence_matches": [
               {
-                "evidence_line": 32,
-                "fragment": "if (raw_val.dtype() == DT_INVALID) {",
+                "evidence_line": 25,
+                "fragment": "if (!IsReallyConstant(*input_node)) {",
                 "matched_lines": [
-                  32
+                  25
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "return Status(error::INVALID_ARGUMENT,",
+                "matched_lines": [
+                  26
                 ]
               }
             ],
@@ -584,16 +649,42 @@
           "execution_agent.executions[2]": {
             "evidence_matches": [
               {
-                "evidence_line": 39,
-                "fragment": "if (IsRefType(raw_val.dtype())) {",
+                "evidence_line": 32,
+                "fragment": "if (raw_val.dtype() == DT_INVALID) {",
                 "matched_lines": [
-                  39
+                  32
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "return Status(",
+                "matched_lines": [
+                  33
                 ]
               }
             ],
             "status": "pass"
           },
           "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 39,
+                "fragment": "if (IsRefType(raw_val.dtype())) {",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "return errors::InvalidArgument(",
+                "matched_lines": [
+                  40
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
             "evidence_matches": [
               {
                 "evidence_line": 45,
@@ -608,11 +699,18 @@
                 "matched_lines": [
                   46
                 ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "return errors::InvalidArgument(",
+                "matched_lines": [
+                  40
+                ]
               }
             ],
             "status": "pass"
           },
-          "execution_agent.executions[4]": {
+          "execution_agent.executions[5]": {
             "evidence_matches": [
               {
                 "evidence_line": 56,
@@ -620,11 +718,18 @@
                 "matched_lines": [
                   56
                 ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "return Status(error::INVALID_ARGUMENT, \"Expected at least one output.\");",
+                "matched_lines": [
+                  57
+                ]
               }
             ],
             "status": "pass"
           },
-          "execution_agent.executions[5]": {
+          "execution_agent.executions[6]": {
             "evidence_matches": [
               {
                 "evidence_line": 61,
@@ -636,13 +741,55 @@
             ],
             "status": "pass"
           },
-          "execution_agent.executions[6]": {
+          "execution_agent.executions[7]": {
             "evidence_matches": [
               {
                 "evidence_line": 66,
                 "fragment": "if (output_tensors[i].tensor) {",
                 "matched_lines": [
                   66
+                ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "Status s = CreateNodeDef(node_name, output_tensors[i], &outputs->at(i),",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "total_inputs_size);",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "if (!s.ok()) {",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "*result_too_large = true;",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 71,
+                "fragment": "return s;",
+                "matched_lines": [
+                  71
+                ]
+              },
+              {
+                "evidence_line": 72,
+                "fragment": "}",
+                "matched_lines": [
+                  72
                 ]
               },
               {
@@ -656,7 +803,13 @@
             "status": "pass"
           }
         },
-        "item_recovery": []
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          }
+        ]
       }
     }
   },
@@ -665,10 +818,10 @@
     "agent_count": 4,
     "mode": "independent_global_views",
     "counts": {
-      "operations": 7,
+      "operations": 8,
       "states": 5,
       "values": 3,
-      "executions": 7
+      "executions": 8
     },
     "schema_version": "semantic-claims-v4.13",
     "operation_normalization": {
@@ -677,8 +830,8 @@
   },
   "token_usage": {
     "input_tokens": 7561,
-    "output_tokens": 1414,
-    "total_tokens": 8975
+    "output_tokens": 1725,
+    "total_tokens": 9286
   },
   "artifact_metadata": {
     "schema_version": "semantic-claims-v4.13",

@@ -47,17 +47,17 @@
         },
         {
           "entities": [
+            "session_uid"
+          ],
+          "claim": "session_uid is a heap-allocated string obtained from get_session_id or generate_session_id; it is released with o_free on each path where it is assigned.",
+          "evidence": "L20: if ((session_uid = get_session_id(config, request)) == NULL) {\nL21: session_uid = generate_session_id();\nL30: o_free(session_uid);\nL45: session_uid = get_session_id(config, request);\nL61: o_free(session_uid);\nL77: if ((session_uid = get_session_id(config, request)) == NULL) {\nL78: session_uid = generate_session_id();\nL87: o_free(session_uid);\nL110: if ((session_uid = get_session_id(config, request)) == NULL) {\nL111: session_uid = generate_session_id();\nL120: o_free(session_uid);"
+        },
+        {
+          "entities": [
             "issued_for"
           ],
           "claim": "issued_for is a heap-allocated string returned by get_client_hostname and is released with o_free at function end.",
           "evidence": "L5: char * issued_for = get_client_hostname(request);\nL134: o_free(issued_for);"
-        },
-        {
-          "entities": [
-            "session_uid"
-          ],
-          "claim": "session_uid is a heap-allocated string obtained from get_session_id or generate_session_id and is released with o_free on each path where it is assigned.",
-          "evidence": "L20: if ((session_uid = get_session_id(config, request)) == NULL) {\nL21: session_uid = generate_session_id();\nL30: o_free(session_uid);\nL45: session_uid = get_session_id(config, request);\nL61: o_free(session_uid);\nL77: if ((session_uid = get_session_id(config, request)) == NULL) {\nL78: session_uid = generate_session_id();\nL87: o_free(session_uid);\nL110: if ((session_uid = get_session_id(config, request)) == NULL) {\nL111: session_uid = generate_session_id();\nL120: o_free(session_uid);"
         },
         {
           "entities": [
@@ -68,10 +68,17 @@
         },
         {
           "entities": [
-            "response"
+            "ip_source"
           ],
-          "claim": "response is the callback response object whose status and body are set on various paths.",
-          "evidence": "L25: response->status = 500;\nL37: response->status = 401;\nL43: ulfius_set_string_body_response(response, 400, \"password must be a string\");\nL51: response->status = 500;\nL56: response->status = 401;\nL59: response->status = 500;\nL68: ulfius_set_string_body_response(response, 400, \"bad scheme response\");\nL71: response->status = 401;\nL75: response->status = 404;\nL82: response->status = 500;\nL92: response->status = 500;\nL96: ulfius_set_string_body_response(response, 400, \"scheme_type, scheme_name and value are mandatory\");\nL103: ulfius_set_string_body_response(response, 400, \"bad scheme response\");\nL106: response->status = 401;\nL108: response->status = 404;\nL115: response->status = 500;\nL123: response->status = 500;\nL127: ulfius_set_string_body_response(response, 400, \"username is mandatory\");\nL131: ulfius_set_string_body_response(response, 400, \"Input parameters must be in JSON format\");"
+          "claim": "ip_source is a pointer returned by get_ip_source and is used as a string in logging.",
+          "evidence": "L4: const char * ip_source = get_ip_source(request);"
+        },
+        {
+          "entities": [
+            "expires"
+          ],
+          "claim": "expires is a 129-byte stack buffer initialized by strftime with a formatted expiration string.",
+          "evidence": "L6: char * session_uid, expires[129];\nL13: strftime(expires, 128, \"%a, %d %b %Y %T %Z\", &ts);"
         }
       ],
       "values": [
@@ -79,10 +86,9 @@
           "entities": [
             "expires",
             "strftime",
-            "now",
-            "ts"
+            "expires[129]"
           ],
-          "claim": "strftime writes at most 128 bytes into the 129-byte buffer expires, leaving room for the terminating NUL.",
+          "claim": "expires is a 129-byte buffer; strftime is called with max size 128, leaving room for the terminating NUL.",
           "evidence": "L6: char * session_uid, expires[129];\nL13: strftime(expires, 128, \"%a, %d %b %Y %T %Z\", &ts);"
         },
         {
@@ -91,7 +97,7 @@
             "GLEWLWYD_DEFAULT_SESSION_EXPIRATION_COOKIE",
             "time_t"
           ],
-          "claim": "now is set to the current time and then incremented by GLEWLWYD_DEFAULT_SESSION_EXPIRATION_COOKIE before being converted to struct tm.",
+          "claim": "now is a time_t set to current time then incremented by GLEWLWYD_DEFAULT_SESSION_EXPIRATION_COOKIE before being converted to struct tm.",
           "evidence": "L10: time(&now);\nL11: now += GLEWLWYD_DEFAULT_SESSION_EXPIRATION_COOKIE;\nL12: gmtime_r(&now, &ts);"
         }
       ],
@@ -105,169 +111,59 @@
         },
         {
           "entities": [
-            "j_param",
-            "username"
+            "j_param"
           ],
-          "claim": "Entering the password/scheme branch at line 16 implies json_string_length(json_object_get(j_param, \"username\")) is nonzero.",
-          "evidence": "L15: if (json_string_length(json_object_get(j_param, \"username\"))) {\nL16: if (json_object_get(j_param, \"scheme_type\") == NULL || 0 == o_strcmp(json_string_value(json_object_get(j_param, \"scheme_type\")), \"password\")) {"
+          "claim": "Within the j_param != NULL branch, continuing past line 15 implies json_string_length(json_object_get(j_param, \"username\")) is nonzero.",
+          "evidence": "L15: if (json_string_length(json_object_get(j_param, \"username\"))) {"
         },
         {
           "entities": [
-            "j_param",
-            "scheme_type"
+            "j_param"
           ],
-          "claim": "Entering the password branch at line 17 implies scheme_type is NULL or equals \"password\".",
+          "claim": "Within the username-present branch, continuing past line 16 implies scheme_type is NULL or equals \"password\".",
           "evidence": "L16: if (json_object_get(j_param, \"scheme_type\") == NULL || 0 == o_strcmp(json_string_value(json_object_get(j_param, \"scheme_type\")), \"password\")) {"
         },
         {
           "entities": [
-            "j_param",
-            "password"
+            "j_param"
           ],
-          "claim": "Entering the credentials-check branch at line 18 implies json_string_length(json_object_get(j_param, \"password\")) is nonzero.",
-          "evidence": "L17: if (json_string_length(json_object_get(j_param, \"password\"))) {\nL18: j_result = auth_check_user_credentials(config, json_string_value(json_object_get(j_param, \"username\")), json_string_value(json_object_get(j_param, \"password\")));"
+          "claim": "Within the password-scheme branch, continuing past line 17 implies json_string_length(json_object_get(j_param, \"password\")) is nonzero.",
+          "evidence": "L17: if (json_string_length(json_object_get(j_param, \"password\"))) {"
         },
         {
           "entities": [
-            "j_result"
+            "j_param"
           ],
-          "claim": "Entering the success branch at line 20 implies check_result_value(j_result, G_OK) is true.",
-          "evidence": "L19: if (check_result_value(j_result, G_OK)) {\nL20: if ((session_uid = get_session_id(config, request)) == NULL) {"
-        },
-        {
-          "entities": [
-            "session_uid"
-          ],
-          "claim": "After line 22, session_uid is non-NULL: either get_session_id returned non-NULL or generate_session_id was assigned.",
-          "evidence": "L20: if ((session_uid = get_session_id(config, request)) == NULL) {\nL21: session_uid = generate_session_id();\nL22: }"
-        },
-        {
-          "entities": [
-            "j_param",
-            "password"
-          ],
-          "claim": "Entering the branch at line 42 implies password is present and not a JSON string.",
+          "claim": "Within the password-scheme branch, the else-if at line 42 is reached only when password is absent or empty; it then requires password to be non-NULL and not a JSON string.",
           "evidence": "L42: } else if (json_object_get(j_param, \"password\") != NULL && !json_is_string(json_object_get(j_param, \"password\"))) {"
         },
         {
           "entities": [
-            "j_param",
-            "password"
+            "j_param"
           ],
-          "claim": "Entering the branch at line 45 implies password is absent or is a JSON string (not the non-string-present case).",
-          "evidence": "L42: } else if (json_object_get(j_param, \"password\") != NULL && !json_is_string(json_object_get(j_param, \"password\"))) {\nL44: } else {\nL45: session_uid = get_session_id(config, request);"
-        },
-        {
-          "entities": [
-            "j_result"
-          ],
-          "claim": "Entering the branch at line 47 implies check_result_value(j_result, G_OK) is true.",
-          "evidence": "L47: if (check_result_value(j_result, G_OK)) {"
-        },
-        {
-          "entities": [
-            "j_result"
-          ],
-          "claim": "Entering the branch at line 55 implies check_result_value(j_result, G_ERROR_NOT_FOUND) is true.",
-          "evidence": "L55: } else if (check_result_value(j_result, G_ERROR_NOT_FOUND)) {"
-        },
-        {
-          "entities": [
-            "j_param",
-            "scheme_type",
-            "scheme_name",
-            "value"
-          ],
-          "claim": "Entering the non-password scheme branch at line 65 implies scheme_type and scheme_name are non-empty strings and value is a JSON object.",
+          "claim": "Within the username-present, non-password-scheme branch, continuing past line 65 implies scheme_type and scheme_name are non-empty strings and value is a JSON object.",
           "evidence": "L65: if (json_string_length(json_object_get(j_param, \"scheme_type\")) && json_string_length(json_object_get(j_param, \"scheme_name\")) && json_is_object(json_object_get(j_param, \"value\"))) {"
         },
         {
           "entities": [
-            "j_result"
+            "j_param"
           ],
-          "claim": "Entering the branch at line 67 implies check_result_value(j_result, G_ERROR_PARAM) is true.",
-          "evidence": "L67: if (check_result_value(j_result, G_ERROR_PARAM)) {"
-        },
-        {
-          "entities": [
-            "j_result"
-          ],
-          "claim": "Entering the branch at line 69 implies check_result_value(j_result, G_ERROR_UNAUTHORIZED) is true.",
-          "evidence": "L69: } else if (check_result_value(j_result, G_ERROR_UNAUTHORIZED)) {"
-        },
-        {
-          "entities": [
-            "j_result"
-          ],
-          "claim": "Entering the branch at line 74 implies check_result_value(j_result, G_ERROR_NOT_FOUND) is true.",
-          "evidence": "L74: } else if (check_result_value(j_result, G_ERROR_NOT_FOUND)) {"
-        },
-        {
-          "entities": [
-            "j_result"
-          ],
-          "claim": "Entering the branch at line 76 implies check_result_value(j_result, G_OK) is true.",
-          "evidence": "L76: } else if (check_result_value(j_result, G_OK)) {"
+          "claim": "Within the username-absent branch, continuing past line 100 implies scheme_type and scheme_name are non-empty strings and value is a JSON object.",
+          "evidence": "L100: if (json_string_length(json_object_get(j_param, \"scheme_type\")) && json_string_length(json_object_get(j_param, \"scheme_name\")) && json_is_object(json_object_get(j_param, \"value\"))) {"
         },
         {
           "entities": [
             "session_uid"
           ],
-          "claim": "After line 79, session_uid is non-NULL: either get_session_id returned non-NULL or generate_session_id was assigned.",
-          "evidence": "L77: if ((session_uid = get_session_id(config, request)) == NULL) {\nL78: session_uid = generate_session_id();\nL79: }"
+          "claim": "At lines 20-22, 77-79, and 110-112, if get_session_id returns NULL then session_uid is assigned generate_session_id(); otherwise session_uid is the non-NULL result of get_session_id.",
+          "evidence": "L20: if ((session_uid = get_session_id(config, request)) == NULL) {\nL21: session_uid = generate_session_id();\nL77: if ((session_uid = get_session_id(config, request)) == NULL) {\nL78: session_uid = generate_session_id();\nL110: if ((session_uid = get_session_id(config, request)) == NULL) {\nL111: session_uid = generate_session_id();"
         },
         {
           "entities": [
-            "j_param",
-            "username"
+            "expires"
           ],
-          "claim": "Entering the branch at line 100 implies json_string_length(json_object_get(j_param, \"username\")) is zero.",
-          "evidence": "L99: } else {\nL100: if (json_string_length(json_object_get(j_param, \"scheme_type\")) && json_string_length(json_object_get(j_param, \"scheme_name\")) && json_is_object(json_object_get(j_param, \"value\"))) {"
-        },
-        {
-          "entities": [
-            "j_param",
-            "scheme_type",
-            "scheme_name",
-            "value"
-          ],
-          "claim": "Entering the identify-scheme branch at line 101 implies scheme_type and scheme_name are non-empty strings and value is a JSON object.",
-          "evidence": "L100: if (json_string_length(json_object_get(j_param, \"scheme_type\")) && json_string_length(json_object_get(j_param, \"scheme_name\")) && json_is_object(json_object_get(j_param, \"value\"))) {\nL101: j_result = auth_check_identify_scheme(config, json_string_value(json_object_get(j_param, \"scheme_type\")), json_string_value(json_object_get(j_param, \"scheme_name\")), json_object_get(j_param, \"value\"), request);"
-        },
-        {
-          "entities": [
-            "j_result"
-          ],
-          "claim": "Entering the branch at line 102 implies check_result_value(j_result, G_ERROR_PARAM) is true.",
-          "evidence": "L102: if (check_result_value(j_result, G_ERROR_PARAM)) {"
-        },
-        {
-          "entities": [
-            "j_result"
-          ],
-          "claim": "Entering the branch at line 104 implies check_result_value(j_result, G_ERROR_UNAUTHORIZED) is true.",
-          "evidence": "L104: } else if (check_result_value(j_result, G_ERROR_UNAUTHORIZED)) {"
-        },
-        {
-          "entities": [
-            "j_result"
-          ],
-          "claim": "Entering the branch at line 107 implies check_result_value(j_result, G_ERROR_NOT_FOUND) is true.",
-          "evidence": "L107: } else if (check_result_value(j_result, G_ERROR_NOT_FOUND)) {"
-        },
-        {
-          "entities": [
-            "j_result"
-          ],
-          "claim": "Entering the branch at line 109 implies check_result_value(j_result, G_OK) is true.",
-          "evidence": "L109: } else if (check_result_value(j_result, G_OK)) {"
-        },
-        {
-          "entities": [
-            "session_uid"
-          ],
-          "claim": "After line 112, session_uid is non-NULL: either get_session_id returned non-NULL or generate_session_id was assigned.",
-          "evidence": "L110: if ((session_uid = get_session_id(config, request)) == NULL) {\nL111: session_uid = generate_session_id();\nL112: }"
+          "claim": "expires is a 129-byte buffer written by strftime with a size argument of 128, so at most 128 bytes plus the terminating NUL are written.",
+          "evidence": "L6: char * session_uid, expires[129];\nL13: strftime(expires, 128, \"%a, %d %b %Y %T %Z\", &ts);"
         }
       ]
     },
@@ -357,8 +253,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 3480,
-              "output_tokens": 1122,
-              "total_tokens": 4602
+              "output_tokens": 907,
+              "total_tokens": 4387
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -366,8 +262,8 @@
         ],
         "token_usage": {
           "input_tokens": 3480,
-          "output_tokens": 1122,
-          "total_tokens": 4602
+          "output_tokens": 907,
+          "total_tokens": 4387
         },
         "grounding": {
           "state_agent.states[0]": {
@@ -460,25 +356,6 @@
           "state_agent.states[2]": {
             "evidence_matches": [
               {
-                "evidence_line": 5,
-                "fragment": "char * issued_for = get_client_hostname(request);",
-                "matched_lines": [
-                  5
-                ]
-              },
-              {
-                "evidence_line": 134,
-                "fragment": "o_free(issued_for);",
-                "matched_lines": [
-                  134
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "state_agent.states[3]": {
-            "evidence_matches": [
-              {
                 "evidence_line": 20,
                 "fragment": "if ((session_uid = get_session_id(config, request)) == NULL) {",
                 "matched_lines": [
@@ -558,6 +435,25 @@
             ],
             "status": "pass"
           },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "char * issued_for = get_client_hostname(request);",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 134,
+                "fragment": "o_free(issued_for);",
+                "matched_lines": [
+                  134
+                ]
+              }
+            ],
+            "status": "pass"
+          },
           "state_agent.states[4]": {
             "evidence_matches": [
               {
@@ -573,136 +469,29 @@
           "state_agent.states[5]": {
             "evidence_matches": [
               {
-                "evidence_line": 25,
-                "fragment": "response->status = 500;",
+                "evidence_line": 4,
+                "fragment": "const char * ip_source = get_ip_source(request);",
                 "matched_lines": [
-                  25
+                  4
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "char * session_uid, expires[129];",
+                "matched_lines": [
+                  6
                 ]
               },
               {
-                "evidence_line": 37,
-                "fragment": "response->status = 401;",
+                "evidence_line": 13,
+                "fragment": "strftime(expires, 128, \"%a, %d %b %Y %T %Z\", &ts);",
                 "matched_lines": [
-                  37
-                ]
-              },
-              {
-                "evidence_line": 43,
-                "fragment": "ulfius_set_string_body_response(response, 400, \"password must be a string\");",
-                "matched_lines": [
-                  43
-                ]
-              },
-              {
-                "evidence_line": 51,
-                "fragment": "response->status = 500;",
-                "matched_lines": [
-                  51
-                ]
-              },
-              {
-                "evidence_line": 56,
-                "fragment": "response->status = 401;",
-                "matched_lines": [
-                  56
-                ]
-              },
-              {
-                "evidence_line": 59,
-                "fragment": "response->status = 500;",
-                "matched_lines": [
-                  59
-                ]
-              },
-              {
-                "evidence_line": 68,
-                "fragment": "ulfius_set_string_body_response(response, 400, \"bad scheme response\");",
-                "matched_lines": [
-                  68
-                ]
-              },
-              {
-                "evidence_line": 71,
-                "fragment": "response->status = 401;",
-                "matched_lines": [
-                  71
-                ]
-              },
-              {
-                "evidence_line": 75,
-                "fragment": "response->status = 404;",
-                "matched_lines": [
-                  75
-                ]
-              },
-              {
-                "evidence_line": 82,
-                "fragment": "response->status = 500;",
-                "matched_lines": [
-                  82
-                ]
-              },
-              {
-                "evidence_line": 92,
-                "fragment": "response->status = 500;",
-                "matched_lines": [
-                  92
-                ]
-              },
-              {
-                "evidence_line": 96,
-                "fragment": "ulfius_set_string_body_response(response, 400, \"scheme_type, scheme_name and value are mandatory\");",
-                "matched_lines": [
-                  96
-                ]
-              },
-              {
-                "evidence_line": 103,
-                "fragment": "ulfius_set_string_body_response(response, 400, \"bad scheme response\");",
-                "matched_lines": [
-                  103
-                ]
-              },
-              {
-                "evidence_line": 106,
-                "fragment": "response->status = 401;",
-                "matched_lines": [
-                  106
-                ]
-              },
-              {
-                "evidence_line": 108,
-                "fragment": "response->status = 404;",
-                "matched_lines": [
-                  108
-                ]
-              },
-              {
-                "evidence_line": 115,
-                "fragment": "response->status = 500;",
-                "matched_lines": [
-                  115
-                ]
-              },
-              {
-                "evidence_line": 123,
-                "fragment": "response->status = 500;",
-                "matched_lines": [
-                  123
-                ]
-              },
-              {
-                "evidence_line": 127,
-                "fragment": "ulfius_set_string_body_response(response, 400, \"username is mandatory\");",
-                "matched_lines": [
-                  127
-                ]
-              },
-              {
-                "evidence_line": 131,
-                "fragment": "ulfius_set_string_body_response(response, 400, \"Input parameters must be in JSON format\");",
-                "matched_lines": [
-                  131
+                  13
                 ]
               }
             ],
@@ -720,8 +509,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 3668,
-              "output_tokens": 218,
-              "total_tokens": 3886
+              "output_tokens": 224,
+              "total_tokens": 3892
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -729,8 +518,8 @@
         ],
         "token_usage": {
           "input_tokens": 3668,
-          "output_tokens": 218,
-          "total_tokens": 3886
+          "output_tokens": 224,
+          "total_tokens": 3892
         },
         "grounding": {
           "value_agent.values[0]": {
@@ -801,8 +590,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 3348,
-              "output_tokens": 1873,
-              "total_tokens": 5221
+              "output_tokens": 821,
+              "total_tokens": 4169
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -810,8 +599,8 @@
         ],
         "token_usage": {
           "input_tokens": 3348,
-          "output_tokens": 1873,
-          "total_tokens": 5221
+          "output_tokens": 821,
+          "total_tokens": 4169
         },
         "grounding": {
           "execution_agent.executions[0]": {
@@ -841,13 +630,6 @@
                 "matched_lines": [
                   15
                 ]
-              },
-              {
-                "evidence_line": 16,
-                "fragment": "if (json_object_get(j_param, \"scheme_type\") == NULL || 0 == o_strcmp(json_string_value(json_object_get(j_param, \"scheme_type\")), \"password\")) {",
-                "matched_lines": [
-                  16
-                ]
               }
             ],
             "status": "pass"
@@ -872,13 +654,6 @@
                 "matched_lines": [
                   17
                 ]
-              },
-              {
-                "evidence_line": 18,
-                "fragment": "j_result = auth_check_user_credentials(config, json_string_value(json_object_get(j_param, \"username\")), json_string_value(json_object_get(j_param, \"password\")));",
-                "matched_lines": [
-                  18
-                ]
               }
             ],
             "status": "pass"
@@ -886,23 +661,40 @@
           "execution_agent.executions[4]": {
             "evidence_matches": [
               {
-                "evidence_line": 19,
-                "fragment": "if (check_result_value(j_result, G_OK)) {",
+                "evidence_line": 42,
+                "fragment": "} else if (json_object_get(j_param, \"password\") != NULL && !json_is_string(json_object_get(j_param, \"password\"))) {",
                 "matched_lines": [
-                  19
-                ]
-              },
-              {
-                "evidence_line": 20,
-                "fragment": "if ((session_uid = get_session_id(config, request)) == NULL) {",
-                "matched_lines": [
-                  20
+                  42
                 ]
               }
             ],
             "status": "pass"
           },
           "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 65,
+                "fragment": "if (json_string_length(json_object_get(j_param, \"scheme_type\")) && json_string_length(json_object_get(j_param, \"scheme_name\")) && json_is_object(json_object_get(j_param, \"value\"))) {",
+                "matched_lines": [
+                  65
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 100,
+                "fragment": "if (json_string_length(json_object_get(j_param, \"scheme_type\")) && json_string_length(json_object_get(j_param, \"scheme_name\")) && json_is_object(json_object_get(j_param, \"value\"))) {",
+                "matched_lines": [
+                  100
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
             "evidence_matches": [
               {
                 "evidence_line": 20,
@@ -919,140 +711,6 @@
                 ]
               },
               {
-                "evidence_line": 22,
-                "fragment": "}",
-                "matched_lines": [
-                  22
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[6]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 42,
-                "fragment": "} else if (json_object_get(j_param, \"password\") != NULL && !json_is_string(json_object_get(j_param, \"password\"))) {",
-                "matched_lines": [
-                  42
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[7]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 42,
-                "fragment": "} else if (json_object_get(j_param, \"password\") != NULL && !json_is_string(json_object_get(j_param, \"password\"))) {",
-                "matched_lines": [
-                  42
-                ]
-              },
-              {
-                "evidence_line": 44,
-                "fragment": "} else {",
-                "matched_lines": [
-                  44
-                ]
-              },
-              {
-                "evidence_line": 45,
-                "fragment": "session_uid = get_session_id(config, request);",
-                "matched_lines": [
-                  45
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[8]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 47,
-                "fragment": "if (check_result_value(j_result, G_OK)) {",
-                "matched_lines": [
-                  47
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[9]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 55,
-                "fragment": "} else if (check_result_value(j_result, G_ERROR_NOT_FOUND)) {",
-                "matched_lines": [
-                  55
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[10]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 65,
-                "fragment": "if (json_string_length(json_object_get(j_param, \"scheme_type\")) && json_string_length(json_object_get(j_param, \"scheme_name\")) && json_is_object(json_object_get(j_param, \"value\"))) {",
-                "matched_lines": [
-                  65
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[11]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 67,
-                "fragment": "if (check_result_value(j_result, G_ERROR_PARAM)) {",
-                "matched_lines": [
-                  67
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[12]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 69,
-                "fragment": "} else if (check_result_value(j_result, G_ERROR_UNAUTHORIZED)) {",
-                "matched_lines": [
-                  69
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[13]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 74,
-                "fragment": "} else if (check_result_value(j_result, G_ERROR_NOT_FOUND)) {",
-                "matched_lines": [
-                  74
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[14]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 76,
-                "fragment": "} else if (check_result_value(j_result, G_OK)) {",
-                "matched_lines": [
-                  76
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[15]": {
-            "evidence_matches": [
-              {
                 "evidence_line": 77,
                 "fragment": "if ((session_uid = get_session_id(config, request)) == NULL) {",
                 "matched_lines": [
@@ -1067,104 +725,6 @@
                 ]
               },
               {
-                "evidence_line": 79,
-                "fragment": "}",
-                "matched_lines": [
-                  79
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[16]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 99,
-                "fragment": "} else {",
-                "matched_lines": [
-                  99
-                ]
-              },
-              {
-                "evidence_line": 100,
-                "fragment": "if (json_string_length(json_object_get(j_param, \"scheme_type\")) && json_string_length(json_object_get(j_param, \"scheme_name\")) && json_is_object(json_object_get(j_param, \"value\"))) {",
-                "matched_lines": [
-                  100
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[17]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 100,
-                "fragment": "if (json_string_length(json_object_get(j_param, \"scheme_type\")) && json_string_length(json_object_get(j_param, \"scheme_name\")) && json_is_object(json_object_get(j_param, \"value\"))) {",
-                "matched_lines": [
-                  100
-                ]
-              },
-              {
-                "evidence_line": 101,
-                "fragment": "j_result = auth_check_identify_scheme(config, json_string_value(json_object_get(j_param, \"scheme_type\")), json_string_value(json_object_get(j_param, \"scheme_name\")), json_object_get(j_param, \"value\"), request);",
-                "matched_lines": [
-                  101
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[18]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 102,
-                "fragment": "if (check_result_value(j_result, G_ERROR_PARAM)) {",
-                "matched_lines": [
-                  102
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[19]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 104,
-                "fragment": "} else if (check_result_value(j_result, G_ERROR_UNAUTHORIZED)) {",
-                "matched_lines": [
-                  104
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[20]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 107,
-                "fragment": "} else if (check_result_value(j_result, G_ERROR_NOT_FOUND)) {",
-                "matched_lines": [
-                  107
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[21]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 109,
-                "fragment": "} else if (check_result_value(j_result, G_OK)) {",
-                "matched_lines": [
-                  109
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[22]": {
-            "evidence_matches": [
-              {
                 "evidence_line": 110,
                 "fragment": "if ((session_uid = get_session_id(config, request)) == NULL) {",
                 "matched_lines": [
@@ -1177,12 +737,24 @@
                 "matched_lines": [
                   111
                 ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "char * session_uid, expires[129];",
+                "matched_lines": [
+                  6
+                ]
               },
               {
-                "evidence_line": 112,
-                "fragment": "}",
+                "evidence_line": 13,
+                "fragment": "strftime(expires, 128, \"%a, %d %b %Y %T %Z\", &ts);",
                 "matched_lines": [
-                  112
+                  13
                 ]
               }
             ],
@@ -1199,9 +771,9 @@
     "mode": "independent_global_views",
     "counts": {
       "operations": 3,
-      "states": 6,
+      "states": 7,
       "values": 2,
-      "executions": 23
+      "executions": 9
     },
     "schema_version": "semantic-claims-v4.13",
     "operation_normalization": {
@@ -1210,8 +782,8 @@
   },
   "token_usage": {
     "input_tokens": 15373,
-    "output_tokens": 3367,
-    "total_tokens": 18740
+    "output_tokens": 2106,
+    "total_tokens": 17479
   },
   "artifact_metadata": {
     "schema_version": "semantic-claims-v4.13",

@@ -1,0 +1,1533 @@
+{
+  "sample_id": "test_000187",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L81",
+            "L118",
+            "L172"
+          ],
+          "expression": "buf64[size64] = 0",
+          "claim": "write to buf64 at index size64"
+        },
+        {
+          "locations": [
+            "L91",
+            "L127"
+          ],
+          "expression": "strcpy(esd->URLString, sdpLine)",
+          "claim": "copy sdpLine into allocated esd->URLString buffer"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "iod"
+          ],
+          "claim": "iod points to the root object descriptor returned by gf_isom_get_root_od; it is non-NULL after the NULL check and is later consumed by gf_odf_desc_write and gf_odf_desc_del.",
+          "evidence": "L50: iod = (GF_InitialObjectDescriptor *) gf_isom_get_root_od(file);\nL51: if (!iod) return GF_NOT_SUPPORTED;\nL167: gf_odf_desc_write((GF_Descriptor *) iod, &buffer, &size);\nL168: gf_odf_desc_del((GF_Descriptor *)iod);"
+        },
+        {
+          "entities": [
+            "iod->ESDescriptors"
+          ],
+          "claim": "iod->ESDescriptors is an existing descriptor list that is emptied and then repopulated with esd entries during ISMA processing.",
+          "evidence": "L57: while (gf_list_count(iod->ESDescriptors)) {\nL60: gf_list_rem(iod->ESDescriptors, 0);\nL102: gf_list_add(iod->ESDescriptors, esd);\nL137: gf_list_add(iod->ESDescriptors, esd);"
+        },
+        {
+          "entities": [
+            "esd"
+          ],
+          "claim": "esd is a descriptor obtained from gf_isom_get_esd; in the OD branch it is conditionally assigned a newly allocated URLString buffer, and in the scene branch it is assigned a newly allocated URLString buffer before being added to iod->ESDescriptors.",
+          "evidence": "L66: esd = gf_isom_get_esd(file, odT, 1);\nL90: esd->URLString = (char*)gf_malloc(sizeof(char) * size64);\nL91: strcpy(esd->URLString, sdpLine);\nL105: esd = gf_isom_get_esd(file, sceneT, 1);\nL126: esd->URLString = (char*)gf_malloc(sizeof(char) * (strlen(sdpLine)+1));\nL127: strcpy(esd->URLString, sdpLine);"
+        },
+        {
+          "entities": [
+            "samp"
+          ],
+          "claim": "samp is a sample obtained from gf_isom_get_sample and is released with gf_isom_sample_del after use in each branch.",
+          "evidence": "L68: samp = gf_isom_get_sample(file, odT, 1, &descIndex);\nL96: gf_isom_sample_del(&samp);\nL107: samp = gf_isom_get_sample(file, sceneT, 1, &descIndex);\nL132: gf_isom_sample_del(&samp);"
+        },
+        {
+          "entities": [
+            "buffer"
+          ],
+          "claim": "buffer is initialized to NULL, receives an allocated descriptor encoding from gf_odf_desc_write, and is released with gf_free after base64 encoding.",
+          "evidence": "L165: buffer = NULL;\nL167: gf_odf_desc_write((GF_Descriptor *) iod, &buffer, &size);\nL173: gf_free(buffer);"
+        },
+        {
+          "entities": [
+            "buf64"
+          ],
+          "claim": "buf64 is a local character buffer used for formatted SDP lines and base64 output; it is explicitly NUL-terminated after base64 encoding.",
+          "evidence": "L9: char buf64[5000], sdpLine[5100];\nL81: buf64[size64] = 0;\nL118: buf64[size64] = 0;\nL172: buf64[size64] = 0;"
+        },
+        {
+          "entities": [
+            "sdpLine"
+          ],
+          "claim": "sdpLine is a local character buffer used to hold formatted SDP lines before being added to the file.",
+          "evidence": "L9: char buf64[5000], sdpLine[5100];\nL82: sprintf(sdpLine, \"data:application/mpeg4-od-au;base64,%s\", buf64);\nL119: sprintf(sdpLine, \"data:application/mpeg4-bifs-au;base64,%s\", buf64);\nL175: sprintf(sdpLine, \"a=mpeg4-iod:\\\"data:application/mpeg4-iod;base64,%s\\\"\", buf64);"
+        },
+        {
+          "entities": [
+            "slc"
+          ],
+          "claim": "slc is a local SLConfig structure initialized by InitSL_NULL before its fields are set and before it is passed to gf_isom_set_extraction_slc.",
+          "evidence": "L5: GF_SLConfig slc;\nL70: InitSL_NULL(&slc);\nL78: gf_isom_set_extraction_slc(file, odT, 1, &slc);\nL109: InitSL_NULL(&slc);\nL115: gf_isom_set_extraction_slc(file, sceneT, 1, &slc);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "buf64",
+            "size64",
+            "gf_base64_encode"
+          ],
+          "claim": "gf_base64_encode writes at most 2000 bytes into buf64; its return value size64 is used as an index into buf64, so buf64[size64] is in bounds only if size64 < 5000.",
+          "evidence": "L80: size64 = gf_base64_encode(samp->data, samp->dataLength, buf64, 2000);\nL81: buf64[size64] = 0;\nL117: size64 = gf_base64_encode(samp->data, samp->dataLength, buf64, 2000);\nL118: buf64[size64] = 0;\nL171: size64 = gf_base64_encode(buffer, size, buf64, 2000);\nL172: buf64[size64] = 0;"
+        },
+        {
+          "entities": [
+            "sdpLine",
+            "buf64",
+            "sprintf"
+          ],
+          "claim": "sdpLine is 5100 bytes and receives a formatted string containing buf64 (up to 2000 base64 chars plus NUL), so the formatted result can exceed sdpLine's capacity.",
+          "evidence": "L9: char buf64[5000], sdpLine[5100];\nL82: sprintf(sdpLine, \"data:application/mpeg4-od-au;base64,%s\", buf64);\nL119: sprintf(sdpLine, \"data:application/mpeg4-bifs-au;base64,%s\", buf64);\nL175: sprintf(sdpLine, \"a=mpeg4-iod:\\\"data:application/mpeg4-iod;base64,%s\\\"\", buf64);"
+        },
+        {
+          "entities": [
+            "size64",
+            "sdpLine",
+            "strlen",
+            "gf_malloc"
+          ],
+          "claim": "size64 is set to strlen(sdpLine)+1 and used as the allocation size for esd->URLString, then strcpy copies sdpLine into that allocation.",
+          "evidence": "L89: size64 = (u32) strlen(sdpLine)+1;\nL90: esd->URLString = (char*)gf_malloc(sizeof(char) * size64);\nL91: strcpy(esd->URLString, sdpLine);\nL126: esd->URLString = (char*)gf_malloc(sizeof(char) * (strlen(sdpLine)+1));\nL127: strcpy(esd->URLString, sdpLine);"
+        },
+        {
+          "entities": [
+            "size",
+            "buffer",
+            "gf_odf_desc_write",
+            "gf_base64_encode"
+          ],
+          "claim": "gf_odf_desc_write sets buffer and size; size is then passed as the input length to gf_base64_encode with output capacity 2000.",
+          "evidence": "L166: size = 0;\nL167: gf_odf_desc_write((GF_Descriptor *) iod, &buffer, &size);\nL171: size64 = gf_base64_encode(buffer, size, buf64, 2000);"
+        },
+        {
+          "entities": [
+            "buf64",
+            "bandwidth",
+            "sprintf"
+          ],
+          "claim": "buf64 is 5000 bytes and receives sprintf output for bandwidth and copyright strings.",
+          "evidence": "L9: char buf64[5000], sdpLine[5100];\nL15: sprintf(buf64, \"b=AS:%d\", bandwidth);\nL20: sprintf(buf64, \"a=x-copyright: %s\", \"MP4/3GP File hinted with GPAC - (c) Telecom ParisTech (http://gpac.io)\");\nL22: sprintf(buf64, \"a=x-copyright: MP4/3GP File hinted with GPAC %s - %s\", gf_gpac_version(), gf_gpac_copyright() );"
+        },
+        {
+          "entities": [
+            "i",
+            "gf_isom_get_track_count",
+            "gf_isom_is_track_in_root_od",
+            "gf_isom_get_media_type"
+          ],
+          "claim": "Loop index i runs from 0 to gf_isom_get_track_count(file)-1; track numbers passed to gf_isom_is_track_in_root_od and gf_isom_get_media_type are i+1.",
+          "evidence": "L29: for (i=0; i<gf_isom_get_track_count(file); i++) {\nL30: if (!gf_isom_is_track_in_root_od(file, i+1)) continue;\nL31: switch (gf_isom_get_media_type(file,i+1)) {"
+        },
+        {
+          "entities": [
+            "odT",
+            "sceneT",
+            "i"
+          ],
+          "claim": "odT and sceneT are assigned i+1 for tracks whose media type is OD or SCENE respectively.",
+          "evidence": "L33: odT = i+1;\nL36: sceneT = i+1;"
+        },
+        {
+          "entities": [
+            "samp",
+            "samp->data",
+            "samp->dataLength",
+            "gf_hinter_can_embbed_data"
+          ],
+          "claim": "samp->data and samp->dataLength are passed to gf_hinter_can_embbed_data to decide whether the sample can be embedded.",
+          "evidence": "L69: if (samp && gf_hinter_can_embbed_data(samp->data, samp->dataLength, GF_STREAM_OD)) {\nL108: if (samp && gf_hinter_can_embbed_data(samp->data, samp->dataLength, GF_STREAM_SCENE)) {"
+        },
+        {
+          "entities": [
+            "esd->decoderConfig->bufferSizeDB",
+            "samp->dataLength"
+          ],
+          "claim": "esd->decoderConfig->bufferSizeDB is assigned samp->dataLength.",
+          "evidence": "L86: esd->decoderConfig->bufferSizeDB = samp->dataLength;\nL123: esd->decoderConfig->bufferSizeDB = samp->dataLength;"
+        },
+        {
+          "entities": [
+            "slc.startCTS",
+            "samp->DTS",
+            "samp->CTS_Offset"
+          ],
+          "claim": "slc.startCTS is set to samp->DTS + samp->CTS_Offset.",
+          "evidence": "L75: slc.startCTS = samp->DTS+samp->CTS_Offset;\nL112: slc.startCTS = samp->DTS+samp->CTS_Offset;"
+        },
+        {
+          "entities": [
+            "slc.startDTS",
+            "samp->DTS"
+          ],
+          "claim": "slc.startDTS is set to samp->DTS.",
+          "evidence": "L76: slc.startDTS = samp->DTS;\nL113: slc.startDTS = samp->DTS;"
+        },
+        {
+          "entities": [
+            "has_i_v",
+            "has_i_a"
+          ],
+          "claim": "has_i_v and has_i_a are incremented for MPEG-4 Part 2 visual and AAC MPEG-4 audio tracks respectively; the ISMA compliance line is added only when has_i_v<=1 and has_i_a<=1.",
+          "evidence": "L147: if (esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2) has_i_v ++;\nL150: if (esd->decoderConfig->objectTypeIndication==GF_CODECID_AAC_MPEG4) has_i_a ++;\nL157: if (!has_v && !has_a && (has_i_v<=1) && (has_i_a<=1)) {"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "buf64",
+            "sdpLine"
+          ],
+          "claim": "sprintf into buf64 and sdpLine is bounded by fixed buffer sizes; base64 encoding is limited to 2000 bytes into buf64, and sdpLine is 5100 bytes, so no overflow occurs from these writes.",
+          "evidence": "L9: char buf64[5000], sdpLine[5100];\nL80: size64 = gf_base64_encode(samp->data, samp->dataLength, buf64, 2000);\nL82: sprintf(sdpLine, \"data:application/mpeg4-od-au;base64,%s\", buf64);\nL117: size64 = gf_base64_encode(samp->data, samp->dataLength, buf64, 2000);\nL119: sprintf(sdpLine, \"data:application/mpeg4-bifs-au;base64,%s\", buf64);\nL171: size64 = gf_base64_encode(buffer, size, buf64, 2000);\nL175: sprintf(sdpLine, \"a=mpeg4-iod:\\\"data:application/mpeg4-iod;base64,%s\\\"\", buf64);"
+        },
+        {
+          "entities": [
+            "i"
+          ],
+          "claim": "Loop over tracks: i ranges from 0 to track_count-1; track index passed to gf_isom functions is i+1, so valid track numbers are 1..track_count.",
+          "evidence": "L29: for (i=0; i<gf_isom_get_track_count(file); i++) {\nL30: if (!gf_isom_is_track_in_root_od(file, i+1)) continue;\nL31: switch (gf_isom_get_media_type(file,i+1)) {"
+        },
+        {
+          "entities": [
+            "sceneT"
+          ],
+          "claim": "If IOD_Profile is GF_SDP_IOD_ISMA, sceneT must be nonzero; otherwise the function returns GF_BAD_PARAM before proceeding.",
+          "evidence": "L47: if ( (IOD_Profile == GF_SDP_IOD_ISMA) && !sceneT ) return GF_BAD_PARAM;"
+        },
+        {
+          "entities": [
+            "iod"
+          ],
+          "claim": "If gf_isom_get_root_od returns NULL, the function returns GF_NOT_SUPPORTED; otherwise iod is a valid pointer used in subsequent operations.",
+          "evidence": "L50: iod = (GF_InitialObjectDescriptor *) gf_isom_get_root_od(file);\nL51: if (!iod) return GF_NOT_SUPPORTED;"
+        },
+        {
+          "entities": [
+            "samp"
+          ],
+          "claim": "When embedding OD data, samp is obtained from gf_isom_get_sample; if samp is non-NULL and gf_hinter_can_embbed_data returns true, samp->data and samp->dataLength are used for base64 encoding; otherwise is_ok is set to 0.",
+          "evidence": "L68: samp = gf_isom_get_sample(file, odT, 1, &descIndex);\nL69: if (samp && gf_hinter_can_embbed_data(samp->data, samp->dataLength, GF_STREAM_OD)) {\nL80: size64 = gf_base64_encode(samp->data, samp->dataLength, buf64, 2000);\nL94: is_ok = 0;"
+        },
+        {
+          "entities": [
+            "samp"
+          ],
+          "claim": "When embedding scene data, samp is obtained from gf_isom_get_sample; if samp is non-NULL and gf_hinter_can_embbed_data returns true, samp->data and samp->dataLength are used for base64 encoding; otherwise is_ok is set to 0.",
+          "evidence": "L107: samp = gf_isom_get_sample(file, sceneT, 1, &descIndex);\nL108: if (samp && gf_hinter_can_embbed_data(samp->data, samp->dataLength, GF_STREAM_SCENE)) {\nL117: size64 = gf_base64_encode(samp->data, samp->dataLength, buf64, 2000);\nL130: is_ok = 0;"
+        },
+        {
+          "entities": [
+            "esd"
+          ],
+          "claim": "If esd->decoderConfig is non-NULL, its fields avgBitrate, bufferSizeDB, and maxBitrate are set; otherwise these assignments are skipped.",
+          "evidence": "L84: if (esd->decoderConfig) {\nL85: esd->decoderConfig->avgBitrate = 0;\nL86: esd->decoderConfig->bufferSizeDB = samp->dataLength;\nL87: esd->decoderConfig->maxBitrate = 0;\nL121: if (esd->decoderConfig) {\nL122: esd->decoderConfig->avgBitrate = 0;\nL123: esd->decoderConfig->bufferSizeDB = samp->dataLength;\nL124: esd->decoderConfig->maxBitrate = 0;"
+        },
+        {
+          "entities": [
+            "esd"
+          ],
+          "claim": "If remove_ocr is true, esd->OCRESID is set to 0; otherwise, if esd->OCRESID equals esd->ESID, it is set to 0.",
+          "evidence": "L98: if (remove_ocr) esd->OCRESID = 0;\nL99: else if (esd->OCRESID == esd->ESID) esd->OCRESID = 0;\nL134: if (remove_ocr) esd->OCRESID = 0;\nL135: else if (esd->OCRESID == esd->ESID) esd->OCRESID = 0;"
+        },
+        {
+          "entities": [
+            "esd"
+          ],
+          "claim": "In the ISMA compliance check loop, esd is obtained for each track; if esd is NULL, the loop continues to the next iteration; otherwise esd->decoderConfig is checked and esd is freed.",
+          "evidence": "L143: esd = gf_isom_get_esd(file, i+1, 1);\nL144: if (!esd) continue;\nL145: if (esd->decoderConfig) {\nL154: gf_odf_desc_del((GF_Descriptor *)esd);"
+        },
+        {
+          "entities": [
+            "has_v",
+            "has_a",
+            "has_i_v",
+            "has_i_a"
+          ],
+          "claim": "The ISMA compliance line is added only if has_v and has_a are both zero and has_i_v and has_i_a are each at most 1.",
+          "evidence": "L157: if (!has_v && !has_a && (has_i_v<=1) && (has_i_a<=1)) {\nL158: sprintf(sdpLine, \"a=isma-compliance:1,1.0,1\");\nL159: gf_isom_sdp_add_line(file, sdpLine);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 4855,
+              "output_tokens": 131,
+              "total_tokens": 4986
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 4855,
+          "output_tokens": 131,
+          "total_tokens": 4986
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L81",
+                "matched": true,
+                "expression": "buf64[size64] = 0"
+              },
+              {
+                "location": "L118",
+                "matched": true,
+                "expression": "buf64[size64] = 0"
+              },
+              {
+                "location": "L172",
+                "matched": true,
+                "expression": "buf64[size64] = 0"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L91",
+                "matched": true,
+                "expression": "strcpy(esd->URLString, sdpLine)"
+              },
+              {
+                "location": "L127",
+                "matched": true,
+                "expression": "strcpy(esd->URLString, sdpLine)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 2,
+            "expression": "sprintf(buf64/sdpLine, ...)"
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3458,
+              "output_tokens": 1163,
+              "total_tokens": 4621
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3458,
+          "output_tokens": 1163,
+          "total_tokens": 4621
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "iod = (GF_InitialObjectDescriptor *) gf_isom_get_root_od(file);",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "if (!iod) return GF_NOT_SUPPORTED;",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 167,
+                "fragment": "gf_odf_desc_write((GF_Descriptor *) iod, &buffer, &size);",
+                "matched_lines": [
+                  167
+                ]
+              },
+              {
+                "evidence_line": 168,
+                "fragment": "gf_odf_desc_del((GF_Descriptor *)iod);",
+                "matched_lines": [
+                  168
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "while (gf_list_count(iod->ESDescriptors)) {",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "gf_list_rem(iod->ESDescriptors, 0);",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 102,
+                "fragment": "gf_list_add(iod->ESDescriptors, esd);",
+                "matched_lines": [
+                  102
+                ]
+              },
+              {
+                "evidence_line": 137,
+                "fragment": "gf_list_add(iod->ESDescriptors, esd);",
+                "matched_lines": [
+                  137
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 66,
+                "fragment": "esd = gf_isom_get_esd(file, odT, 1);",
+                "matched_lines": [
+                  66
+                ]
+              },
+              {
+                "evidence_line": 90,
+                "fragment": "esd->URLString = (char*)gf_malloc(sizeof(char) * size64);",
+                "matched_lines": [
+                  90
+                ]
+              },
+              {
+                "evidence_line": 91,
+                "fragment": "strcpy(esd->URLString, sdpLine);",
+                "matched_lines": [
+                  91
+                ]
+              },
+              {
+                "evidence_line": 105,
+                "fragment": "esd = gf_isom_get_esd(file, sceneT, 1);",
+                "matched_lines": [
+                  105
+                ]
+              },
+              {
+                "evidence_line": 126,
+                "fragment": "esd->URLString = (char*)gf_malloc(sizeof(char) * (strlen(sdpLine)+1));",
+                "matched_lines": [
+                  126
+                ]
+              },
+              {
+                "evidence_line": 127,
+                "fragment": "strcpy(esd->URLString, sdpLine);",
+                "matched_lines": [
+                  127
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 68,
+                "fragment": "samp = gf_isom_get_sample(file, odT, 1, &descIndex);",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 96,
+                "fragment": "gf_isom_sample_del(&samp);",
+                "matched_lines": [
+                  96
+                ]
+              },
+              {
+                "evidence_line": 107,
+                "fragment": "samp = gf_isom_get_sample(file, sceneT, 1, &descIndex);",
+                "matched_lines": [
+                  107
+                ]
+              },
+              {
+                "evidence_line": 132,
+                "fragment": "gf_isom_sample_del(&samp);",
+                "matched_lines": [
+                  132
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 165,
+                "fragment": "buffer = NULL;",
+                "matched_lines": [
+                  165
+                ]
+              },
+              {
+                "evidence_line": 167,
+                "fragment": "gf_odf_desc_write((GF_Descriptor *) iod, &buffer, &size);",
+                "matched_lines": [
+                  167
+                ]
+              },
+              {
+                "evidence_line": 173,
+                "fragment": "gf_free(buffer);",
+                "matched_lines": [
+                  173
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "char buf64[5000], sdpLine[5100];",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 81,
+                "fragment": "buf64[size64] = 0;",
+                "matched_lines": [
+                  81
+                ]
+              },
+              {
+                "evidence_line": 118,
+                "fragment": "buf64[size64] = 0;",
+                "matched_lines": [
+                  118
+                ]
+              },
+              {
+                "evidence_line": 172,
+                "fragment": "buf64[size64] = 0;",
+                "matched_lines": [
+                  172
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "char buf64[5000], sdpLine[5100];",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 82,
+                "fragment": "sprintf(sdpLine, \"data:application/mpeg4-od-au;base64,%s\", buf64);",
+                "matched_lines": [
+                  82
+                ]
+              },
+              {
+                "evidence_line": 119,
+                "fragment": "sprintf(sdpLine, \"data:application/mpeg4-bifs-au;base64,%s\", buf64);",
+                "matched_lines": [
+                  119
+                ]
+              },
+              {
+                "evidence_line": 175,
+                "fragment": "sprintf(sdpLine, \"a=mpeg4-iod:\\\"data:application/mpeg4-iod;base64,%s\\\"\", buf64);",
+                "matched_lines": [
+                  175
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "GF_SLConfig slc;",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "InitSL_NULL(&slc);",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 78,
+                "fragment": "gf_isom_set_extraction_slc(file, odT, 1, &slc);",
+                "matched_lines": [
+                  78
+                ]
+              },
+              {
+                "evidence_line": 109,
+                "fragment": "InitSL_NULL(&slc);",
+                "matched_lines": [
+                  109
+                ]
+              },
+              {
+                "evidence_line": 115,
+                "fragment": "gf_isom_set_extraction_slc(file, sceneT, 1, &slc);",
+                "matched_lines": [
+                  115
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3646,
+              "output_tokens": 1727,
+              "total_tokens": 5373
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3646,
+          "output_tokens": 1727,
+          "total_tokens": 5373
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 80,
+                "fragment": "size64 = gf_base64_encode(samp->data, samp->dataLength, buf64, 2000);",
+                "matched_lines": [
+                  80
+                ]
+              },
+              {
+                "evidence_line": 81,
+                "fragment": "buf64[size64] = 0;",
+                "matched_lines": [
+                  81
+                ]
+              },
+              {
+                "evidence_line": 117,
+                "fragment": "size64 = gf_base64_encode(samp->data, samp->dataLength, buf64, 2000);",
+                "matched_lines": [
+                  117
+                ]
+              },
+              {
+                "evidence_line": 118,
+                "fragment": "buf64[size64] = 0;",
+                "matched_lines": [
+                  118
+                ]
+              },
+              {
+                "evidence_line": 171,
+                "fragment": "size64 = gf_base64_encode(buffer, size, buf64, 2000);",
+                "matched_lines": [
+                  171
+                ]
+              },
+              {
+                "evidence_line": 172,
+                "fragment": "buf64[size64] = 0;",
+                "matched_lines": [
+                  172
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "char buf64[5000], sdpLine[5100];",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 82,
+                "fragment": "sprintf(sdpLine, \"data:application/mpeg4-od-au;base64,%s\", buf64);",
+                "matched_lines": [
+                  82
+                ]
+              },
+              {
+                "evidence_line": 119,
+                "fragment": "sprintf(sdpLine, \"data:application/mpeg4-bifs-au;base64,%s\", buf64);",
+                "matched_lines": [
+                  119
+                ]
+              },
+              {
+                "evidence_line": 175,
+                "fragment": "sprintf(sdpLine, \"a=mpeg4-iod:\\\"data:application/mpeg4-iod;base64,%s\\\"\", buf64);",
+                "matched_lines": [
+                  175
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 89,
+                "fragment": "size64 = (u32) strlen(sdpLine)+1;",
+                "matched_lines": [
+                  89
+                ]
+              },
+              {
+                "evidence_line": 90,
+                "fragment": "esd->URLString = (char*)gf_malloc(sizeof(char) * size64);",
+                "matched_lines": [
+                  90
+                ]
+              },
+              {
+                "evidence_line": 91,
+                "fragment": "strcpy(esd->URLString, sdpLine);",
+                "matched_lines": [
+                  91
+                ]
+              },
+              {
+                "evidence_line": 126,
+                "fragment": "esd->URLString = (char*)gf_malloc(sizeof(char) * (strlen(sdpLine)+1));",
+                "matched_lines": [
+                  126
+                ]
+              },
+              {
+                "evidence_line": 127,
+                "fragment": "strcpy(esd->URLString, sdpLine);",
+                "matched_lines": [
+                  127
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 166,
+                "fragment": "size = 0;",
+                "matched_lines": [
+                  166
+                ]
+              },
+              {
+                "evidence_line": 167,
+                "fragment": "gf_odf_desc_write((GF_Descriptor *) iod, &buffer, &size);",
+                "matched_lines": [
+                  167
+                ]
+              },
+              {
+                "evidence_line": 171,
+                "fragment": "size64 = gf_base64_encode(buffer, size, buf64, 2000);",
+                "matched_lines": [
+                  171
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "char buf64[5000], sdpLine[5100];",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "sprintf(buf64, \"b=AS:%d\", bandwidth);",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "sprintf(buf64, \"a=x-copyright: %s\", \"MP4/3GP File hinted with GPAC - (c) Telecom ParisTech (http://gpac.io)\");",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "sprintf(buf64, \"a=x-copyright: MP4/3GP File hinted with GPAC %s - %s\", gf_gpac_version(), gf_gpac_copyright() );",
+                "matched_lines": [
+                  22
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "for (i=0; i<gf_isom_get_track_count(file); i++) {",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "if (!gf_isom_is_track_in_root_od(file, i+1)) continue;",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "switch (gf_isom_get_media_type(file,i+1)) {",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 33,
+                "fragment": "odT = i+1;",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "sceneT = i+1;",
+                "matched_lines": [
+                  36
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 69,
+                "fragment": "if (samp && gf_hinter_can_embbed_data(samp->data, samp->dataLength, GF_STREAM_OD)) {",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 108,
+                "fragment": "if (samp && gf_hinter_can_embbed_data(samp->data, samp->dataLength, GF_STREAM_SCENE)) {",
+                "matched_lines": [
+                  108
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 86,
+                "fragment": "esd->decoderConfig->bufferSizeDB = samp->dataLength;",
+                "matched_lines": [
+                  86
+                ]
+              },
+              {
+                "evidence_line": 123,
+                "fragment": "esd->decoderConfig->bufferSizeDB = samp->dataLength;",
+                "matched_lines": [
+                  123
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 75,
+                "fragment": "slc.startCTS = samp->DTS+samp->CTS_Offset;",
+                "matched_lines": [
+                  75
+                ]
+              },
+              {
+                "evidence_line": 112,
+                "fragment": "slc.startCTS = samp->DTS+samp->CTS_Offset;",
+                "matched_lines": [
+                  112
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 76,
+                "fragment": "slc.startDTS = samp->DTS;",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 113,
+                "fragment": "slc.startDTS = samp->DTS;",
+                "matched_lines": [
+                  113
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 147,
+                "fragment": "if (esd->decoderConfig->objectTypeIndication==GF_CODECID_MPEG4_PART2) has_i_v ++;",
+                "matched_lines": [
+                  147
+                ]
+              },
+              {
+                "evidence_line": 150,
+                "fragment": "if (esd->decoderConfig->objectTypeIndication==GF_CODECID_AAC_MPEG4) has_i_a ++;",
+                "matched_lines": [
+                  150
+                ]
+              },
+              {
+                "evidence_line": 157,
+                "fragment": "if (!has_v && !has_a && (has_i_v<=1) && (has_i_a<=1)) {",
+                "matched_lines": [
+                  157
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3326,
+              "output_tokens": 1703,
+              "total_tokens": 5029
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3326,
+          "output_tokens": 1703,
+          "total_tokens": 5029
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "char buf64[5000], sdpLine[5100];",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 80,
+                "fragment": "size64 = gf_base64_encode(samp->data, samp->dataLength, buf64, 2000);",
+                "matched_lines": [
+                  80
+                ]
+              },
+              {
+                "evidence_line": 82,
+                "fragment": "sprintf(sdpLine, \"data:application/mpeg4-od-au;base64,%s\", buf64);",
+                "matched_lines": [
+                  82
+                ]
+              },
+              {
+                "evidence_line": 117,
+                "fragment": "size64 = gf_base64_encode(samp->data, samp->dataLength, buf64, 2000);",
+                "matched_lines": [
+                  117
+                ]
+              },
+              {
+                "evidence_line": 119,
+                "fragment": "sprintf(sdpLine, \"data:application/mpeg4-bifs-au;base64,%s\", buf64);",
+                "matched_lines": [
+                  119
+                ]
+              },
+              {
+                "evidence_line": 171,
+                "fragment": "size64 = gf_base64_encode(buffer, size, buf64, 2000);",
+                "matched_lines": [
+                  171
+                ]
+              },
+              {
+                "evidence_line": 175,
+                "fragment": "sprintf(sdpLine, \"a=mpeg4-iod:\\\"data:application/mpeg4-iod;base64,%s\\\"\", buf64);",
+                "matched_lines": [
+                  175
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "for (i=0; i<gf_isom_get_track_count(file); i++) {",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "if (!gf_isom_is_track_in_root_od(file, i+1)) continue;",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "switch (gf_isom_get_media_type(file,i+1)) {",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 47,
+                "fragment": "if ( (IOD_Profile == GF_SDP_IOD_ISMA) && !sceneT ) return GF_BAD_PARAM;",
+                "matched_lines": [
+                  47
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "iod = (GF_InitialObjectDescriptor *) gf_isom_get_root_od(file);",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "if (!iod) return GF_NOT_SUPPORTED;",
+                "matched_lines": [
+                  51
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 68,
+                "fragment": "samp = gf_isom_get_sample(file, odT, 1, &descIndex);",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "if (samp && gf_hinter_can_embbed_data(samp->data, samp->dataLength, GF_STREAM_OD)) {",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 80,
+                "fragment": "size64 = gf_base64_encode(samp->data, samp->dataLength, buf64, 2000);",
+                "matched_lines": [
+                  80
+                ]
+              },
+              {
+                "evidence_line": 94,
+                "fragment": "is_ok = 0;",
+                "matched_lines": [
+                  94
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 107,
+                "fragment": "samp = gf_isom_get_sample(file, sceneT, 1, &descIndex);",
+                "matched_lines": [
+                  107
+                ]
+              },
+              {
+                "evidence_line": 108,
+                "fragment": "if (samp && gf_hinter_can_embbed_data(samp->data, samp->dataLength, GF_STREAM_SCENE)) {",
+                "matched_lines": [
+                  108
+                ]
+              },
+              {
+                "evidence_line": 117,
+                "fragment": "size64 = gf_base64_encode(samp->data, samp->dataLength, buf64, 2000);",
+                "matched_lines": [
+                  117
+                ]
+              },
+              {
+                "evidence_line": 130,
+                "fragment": "is_ok = 0;",
+                "matched_lines": [
+                  130
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 84,
+                "fragment": "if (esd->decoderConfig) {",
+                "matched_lines": [
+                  84
+                ]
+              },
+              {
+                "evidence_line": 85,
+                "fragment": "esd->decoderConfig->avgBitrate = 0;",
+                "matched_lines": [
+                  85
+                ]
+              },
+              {
+                "evidence_line": 86,
+                "fragment": "esd->decoderConfig->bufferSizeDB = samp->dataLength;",
+                "matched_lines": [
+                  86
+                ]
+              },
+              {
+                "evidence_line": 87,
+                "fragment": "esd->decoderConfig->maxBitrate = 0;",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 121,
+                "fragment": "if (esd->decoderConfig) {",
+                "matched_lines": [
+                  121
+                ]
+              },
+              {
+                "evidence_line": 122,
+                "fragment": "esd->decoderConfig->avgBitrate = 0;",
+                "matched_lines": [
+                  122
+                ]
+              },
+              {
+                "evidence_line": 123,
+                "fragment": "esd->decoderConfig->bufferSizeDB = samp->dataLength;",
+                "matched_lines": [
+                  123
+                ]
+              },
+              {
+                "evidence_line": 124,
+                "fragment": "esd->decoderConfig->maxBitrate = 0;",
+                "matched_lines": [
+                  124
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 98,
+                "fragment": "if (remove_ocr) esd->OCRESID = 0;",
+                "matched_lines": [
+                  98
+                ]
+              },
+              {
+                "evidence_line": 99,
+                "fragment": "else if (esd->OCRESID == esd->ESID) esd->OCRESID = 0;",
+                "matched_lines": [
+                  99
+                ]
+              },
+              {
+                "evidence_line": 134,
+                "fragment": "if (remove_ocr) esd->OCRESID = 0;",
+                "matched_lines": [
+                  134
+                ]
+              },
+              {
+                "evidence_line": 135,
+                "fragment": "else if (esd->OCRESID == esd->ESID) esd->OCRESID = 0;",
+                "matched_lines": [
+                  135
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 143,
+                "fragment": "esd = gf_isom_get_esd(file, i+1, 1);",
+                "matched_lines": [
+                  143
+                ]
+              },
+              {
+                "evidence_line": 144,
+                "fragment": "if (!esd) continue;",
+                "matched_lines": [
+                  144
+                ]
+              },
+              {
+                "evidence_line": 145,
+                "fragment": "if (esd->decoderConfig) {",
+                "matched_lines": [
+                  145
+                ]
+              },
+              {
+                "evidence_line": 154,
+                "fragment": "gf_odf_desc_del((GF_Descriptor *)esd);",
+                "matched_lines": [
+                  154
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 157,
+                "fragment": "if (!has_v && !has_a && (has_i_v<=1) && (has_i_a<=1)) {",
+                "matched_lines": [
+                  157
+                ]
+              },
+              {
+                "evidence_line": 158,
+                "fragment": "sprintf(sdpLine, \"a=isma-compliance:1,1.0,1\");",
+                "matched_lines": [
+                  158
+                ]
+              },
+              {
+                "evidence_line": 159,
+                "fragment": "gf_isom_sdp_add_line(file, sdpLine);",
+                "matched_lines": [
+                  159
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 2,
+      "states": 8,
+      "values": 12,
+      "executions": 10
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 15285,
+    "output_tokens": 4724,
+    "total_tokens": 20009
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000187",
+    "split": "test",
+    "source_hash": "aa3a65a9750a09fc6960338675fb491092ad216e855a95aa0acfc162cf378a25",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

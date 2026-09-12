@@ -1,0 +1,688 @@
+{
+  "sample_id": "test_000047",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L12",
+            "L15"
+          ],
+          "expression": "Helper<T>::Decode(a, content, N) / FromProtoField<T>(a, proto, N)",
+          "claim": "decode tensor content into a newly allocated buffer using allocator a, content, and element count N"
+        },
+        {
+          "locations": [
+            "L31"
+          ],
+          "expression": "UnrefIfNonNull(buf_)",
+          "claim": "release the existing tensor buffer reference"
+        },
+        {
+          "locations": [
+            "L35"
+          ],
+          "expression": "buf_->data()",
+          "claim": "dereference buf_ to access its data pointer"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "p"
+          ],
+          "claim": "p is initialized to nullptr before any allocation attempt.",
+          "evidence": "L3: TensorBuffer* p = nullptr;"
+        },
+        {
+          "entities": [
+            "p"
+          ],
+          "claim": "p may be assigned a newly decoded TensorBuffer from Helper<T>::Decode when tensor_content is non-empty and dtype matches.",
+          "evidence": "L12: CASES_WITH_DEFAULT(proto.dtype(), p = Helper<T>::Decode(a, content, N),"
+        },
+        {
+          "entities": [
+            "p"
+          ],
+          "claim": "p may be assigned a newly decoded TensorBuffer from FromProtoField<T> when tensor_content is empty and dtype matches.",
+          "evidence": "L15: CASES_WITH_DEFAULT(proto.dtype(), p = FromProtoField<T>(a, proto, N),"
+        },
+        {
+          "entities": [
+            "p"
+          ],
+          "claim": "p is checked for nullptr before being stored into buf_.",
+          "evidence": "L18: if (dtype_error || p == nullptr) return false;"
+        },
+        {
+          "entities": [
+            "buf_"
+          ],
+          "claim": "buf_ is released via UnrefIfNonNull before being reassigned.",
+          "evidence": "L31: UnrefIfNonNull(buf_);"
+        },
+        {
+          "entities": [
+            "buf_",
+            "p"
+          ],
+          "claim": "buf_ is assigned the TensorBuffer pointer p, transferring the decoded buffer into the tensor.",
+          "evidence": "L32: buf_ = p;"
+        },
+        {
+          "entities": [
+            "buf_"
+          ],
+          "claim": "buf_ may be non-null and its data() may be non-null when memory logging is enabled.",
+          "evidence": "L35: if (MemoryLoggingEnabled() && buf_ != nullptr && buf_->data() != nullptr) {"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "N",
+            "shape.num_elements()"
+          ],
+          "claim": "N is the element count of the tensor shape; N > 0 selects the decode path, N == 0 or N == -1 selects the empty/incomplete-shape path.",
+          "evidence": "L7: const int64_t N = shape.num_elements();\nL8: if (N > 0 && proto.dtype()) {\nL20: // Handle the case of empty tensors (N = 0) or tensors with incomplete shape\nL21: // (N = -1). All other values of `shape.num_elements()` should be invalid by"
+        },
+        {
+          "entities": [
+            "N",
+            "Helper<T>::Decode",
+            "FromProtoField<T>"
+          ],
+          "claim": "N is passed as the element count to both decode helpers, so it constrains the number of elements read from the proto content or fields.",
+          "evidence": "L12: CASES_WITH_DEFAULT(proto.dtype(), p = Helper<T>::Decode(a, content, N),\nL15: CASES_WITH_DEFAULT(proto.dtype(), p = FromProtoField<T>(a, proto, N),"
+        },
+        {
+          "entities": [
+            "content",
+            "proto.tensor_content()"
+          ],
+          "claim": "content aliases proto.tensor_content(); its emptiness selects the tensor_content decode path versus the field decode path.",
+          "evidence": "L10: if (!proto.tensor_content().empty()) {\nL11: const auto& content = proto.tensor_content();"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "a"
+          ],
+          "claim": "Continuing past CHECK_NOTNULL(a) implies a is non-null.",
+          "evidence": "L2: CHECK_NOTNULL(a);"
+        },
+        {
+          "entities": [
+            "proto.tensor_shape()"
+          ],
+          "claim": "Continuing past the first guard implies proto.tensor_shape() is a valid TensorShape.",
+          "evidence": "L4: if (!TensorShape::IsValid(proto.tensor_shape())) return false;"
+        },
+        {
+          "entities": [
+            "proto.dtype()"
+          ],
+          "claim": "Continuing past the second guard implies proto.dtype() != DT_INVALID.",
+          "evidence": "L5: if (proto.dtype() == DT_INVALID) return false;"
+        },
+        {
+          "entities": [
+            "N",
+            "proto.dtype()"
+          ],
+          "claim": "Entering the allocation branch implies N > 0 and proto.dtype() is nonzero.",
+          "evidence": "L8: if (N > 0 && proto.dtype()) {"
+        },
+        {
+          "entities": [
+            "p",
+            "dtype_error"
+          ],
+          "claim": "Continuing past the allocation branch check implies dtype_error is false and p is non-null.",
+          "evidence": "L18: if (dtype_error || p == nullptr) return false;"
+        },
+        {
+          "entities": [
+            "N",
+            "proto.dtype()"
+          ],
+          "claim": "Entering the empty/incomplete-shape branch implies N <= 0 or proto.dtype() is zero.",
+          "evidence": "L8: if (N > 0 && proto.dtype()) {\nL19: } else {"
+        },
+        {
+          "entities": [
+            "dtype_error"
+          ],
+          "claim": "Continuing past the empty/incomplete-shape branch check implies dtype_error is false.",
+          "evidence": "L27: if (dtype_error) return false;"
+        },
+        {
+          "entities": [
+            "buf_"
+          ],
+          "claim": "Before reassignment, buf_ is unreferenced if non-null.",
+          "evidence": "L31: UnrefIfNonNull(buf_);"
+        },
+        {
+          "entities": [
+            "buf_",
+            "p"
+          ],
+          "claim": "After assignment, buf_ equals p.",
+          "evidence": "L32: buf_ = p;"
+        },
+        {
+          "entities": [
+            "buf_"
+          ],
+          "claim": "Entering the memory-logging block implies buf_ is non-null and buf_->data() is non-null.",
+          "evidence": "L35: if (MemoryLoggingEnabled() && buf_ != nullptr && buf_->data() != nullptr) {"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2522,
+              "output_tokens": 118,
+              "total_tokens": 2640
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2522,
+          "output_tokens": 118,
+          "total_tokens": 2640
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L12",
+                "matched": true,
+                "expression": "Helper<T>::Decode(a, content, N) / FromProtoField<T>(a, proto, N)"
+              },
+              {
+                "location": "L15",
+                "matched": true,
+                "expression": "Helper<T>::Decode(a, content, N) / FromProtoField<T>(a, proto, N)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L31",
+                "matched": true,
+                "expression": "UnrefIfNonNull(buf_)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L35",
+                "matched": true,
+                "expression": "buf_->data()"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1125,
+              "output_tokens": 370,
+              "total_tokens": 1495
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1125,
+          "output_tokens": 370,
+          "total_tokens": 1495
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "TensorBuffer* p = nullptr;",
+                "matched_lines": [
+                  3
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "CASES_WITH_DEFAULT(proto.dtype(), p = Helper<T>::Decode(a, content, N),",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "CASES_WITH_DEFAULT(proto.dtype(), p = FromProtoField<T>(a, proto, N),",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "if (dtype_error || p == nullptr) return false;",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 31,
+                "fragment": "UnrefIfNonNull(buf_);",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 32,
+                "fragment": "buf_ = p;",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 35,
+                "fragment": "if (MemoryLoggingEnabled() && buf_ != nullptr && buf_->data() != nullptr) {",
+                "matched_lines": [
+                  35
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1313,
+              "output_tokens": 335,
+              "total_tokens": 1648
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1313,
+          "output_tokens": 335,
+          "total_tokens": 1648
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "const int64_t N = shape.num_elements();",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": "if (N > 0 && proto.dtype()) {",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "// Handle the case of empty tensors (N = 0) or tensors with incomplete shape",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "// (N = -1). All other values of `shape.num_elements()` should be invalid by",
+                "matched_lines": [
+                  21
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "CASES_WITH_DEFAULT(proto.dtype(), p = Helper<T>::Decode(a, content, N),",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "CASES_WITH_DEFAULT(proto.dtype(), p = FromProtoField<T>(a, proto, N),",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "if (!proto.tensor_content().empty()) {",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "const auto& content = proto.tensor_content();",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 993,
+              "output_tokens": 514,
+              "total_tokens": 1507
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 993,
+          "output_tokens": 514,
+          "total_tokens": 1507
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "CHECK_NOTNULL(a);",
+                "matched_lines": [
+                  2
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "if (!TensorShape::IsValid(proto.tensor_shape())) return false;",
+                "matched_lines": [
+                  4
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "if (proto.dtype() == DT_INVALID) return false;",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (N > 0 && proto.dtype()) {",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "if (dtype_error || p == nullptr) return false;",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (N > 0 && proto.dtype()) {",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "} else {",
+                "matched_lines": [
+                  19
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 27,
+                "fragment": "if (dtype_error) return false;",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 31,
+                "fragment": "UnrefIfNonNull(buf_);",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 32,
+                "fragment": "buf_ = p;",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 35,
+                "fragment": "if (MemoryLoggingEnabled() && buf_ != nullptr && buf_->data() != nullptr) {",
+                "matched_lines": [
+                  35
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 3,
+      "states": 7,
+      "values": 3,
+      "executions": 10
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 5953,
+    "output_tokens": 1337,
+    "total_tokens": 7290
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000047",
+    "split": "test",
+    "source_hash": "bf1151e44869174689eb1b1a61f8ac97839f3739dd7ae62ed43a6a399aa04404",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

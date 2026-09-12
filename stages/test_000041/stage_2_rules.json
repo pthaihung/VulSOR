@@ -1,0 +1,92 @@
+{
+  "sample_id": "test_000041",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "rules",
+  "agent_key": "obligation_reasoner",
+  "output": {
+    "rules": [
+      {
+        "locations": [
+          "L62",
+          "L69",
+          "L80"
+        ],
+        "expression": "output->flat<uint8>().data() / output->flat<uint16>().data() / buffer.get()",
+        "requirements": [
+          "the storage region designated by the obtained data pointer must be at least decode.channels * width * sizeof(element) bytes for the corresponding element type"
+        ]
+      },
+      {
+        "locations": [
+          "L77"
+        ],
+        "expression": "new uint16[height * width * decode.channels]",
+        "requirements": [
+          "the element count height * width * decode.channels must be representable as a valid array length for uint16"
+        ]
+      },
+      {
+        "locations": [
+          "L88"
+        ],
+        "expression": "TTypes<uint16, 3>::UnalignedConstTensor buf(buffer.get(), height, width, decode.channels)",
+        "requirements": [
+          "the storage designated by buffer.get() must be at least height * width * decode.channels uint16 elements"
+        ]
+      },
+      {
+        "locations": [
+          "L92"
+        ],
+        "expression": "output->tensor<float, 3>().device(device) = buf.cast<float>() * scale",
+        "requirements": [
+          "the output tensor view must have dimensions compatible with the dimensions of buf for the element-wise assignment"
+        ]
+      }
+    ]
+  },
+  "quality_gate": {
+    "status": "passed",
+    "attempts": [
+      {
+        "attempt": 1,
+        "retry_mode": "initial",
+        "errors": [],
+        "token_usage": {
+          "input_tokens": 3249,
+          "output_tokens": 241,
+          "total_tokens": 3490
+        },
+        "max_tokens": 8192,
+        "serialization_prefix_recovered": false
+      }
+    ],
+    "token_usage": {
+      "input_tokens": 3249,
+      "output_tokens": 241,
+      "total_tokens": 3490
+    },
+    "safety_relevance_filter": {
+      "input_operation_groups": 4,
+      "kept_obligations": 4,
+      "filtered_non_safety_candidates": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 3249,
+    "output_tokens": 241,
+    "total_tokens": 3490
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "rules",
+    "sample_id": "test_000041",
+    "split": "test",
+    "source_hash": "f8b8fd6b15ea1a41c72d1e6e4ff9306b9e3c2f9dfdcf3d97f85872020d948a7a",
+    "upstream_hashes": {
+      "semantic_model": "e1acbe50eff4be434d6a13cc46cb5f05bf09ea7a52a884881313a7ef66085847"
+    },
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

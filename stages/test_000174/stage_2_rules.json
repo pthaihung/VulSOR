@@ -1,0 +1,161 @@
+{
+  "sample_id": "test_000174",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "rules",
+  "agent_key": "obligation_reasoner",
+  "output": {
+    "rules": [
+      {
+        "locations": [
+          "L5",
+          "L6",
+          "L18",
+          "L22"
+        ],
+        "expression": "input.dim_size(ndims - 1)",
+        "requirements": [
+          "the index ndims - 1 must be within the valid dimension range of input"
+        ]
+      },
+      {
+        "locations": [
+          "L67",
+          "L68",
+          "L69"
+        ],
+        "expression": "device.memcpy(input_copy.flat<Scalar>().data(), input.flat<Scalar>().data(), input.NumElements() * sizeof(Scalar))",
+        "requirements": [
+          "the source range of input.NumElements() * sizeof(Scalar) bytes starting at input.flat<Scalar>().data() must be readable",
+          "the destination range of input.NumElements() * sizeof(Scalar) bytes starting at input_copy.flat<Scalar>().data() must be writable"
+        ]
+      },
+      {
+        "locations": [
+          "L105"
+        ],
+        "expression": "solver->GetrfBatched(n, input_copy_ptrs_base, n, pivots_mat.data(), &dev_info.back(), batch_size)",
+        "requirements": [
+          "each of the batch_size matrices referenced by input_copy_ptrs_base must have at least n rows and n columns",
+          "the pivots_mat buffer must have at least batch_size * n writable int elements",
+          "the dev_info buffer must have at least batch_size writable elements"
+        ]
+      },
+      {
+        "locations": [
+          "L115",
+          "L116"
+        ],
+        "expression": "solver->Getrf(n, n, &input_copy_reshaped(batch, 0, 0), n, &pivots_mat(batch, 0), &dev_info.back()(batch))",
+        "requirements": [
+          "the matrix at &input_copy_reshaped(batch, 0, 0) must have at least n rows and n columns",
+          "the pivots_mat buffer starting at &pivots_mat(batch, 0) must have at least n writable int elements",
+          "the dev_info element at &dev_info.back()(batch) must be writable"
+        ]
+      },
+      {
+        "locations": [
+          "L138",
+          "L139",
+          "L140"
+        ],
+        "expression": "device.memcpy(transposed_rhs.flat<Scalar>().data(), rhs.flat<Scalar>().data(), rhs.NumElements() * sizeof(Scalar))",
+        "requirements": [
+          "the source range of rhs.NumElements() * sizeof(Scalar) bytes starting at rhs.flat<Scalar>().data() must be readable",
+          "the destination range of rhs.NumElements() * sizeof(Scalar) bytes starting at transposed_rhs.flat<Scalar>().data() must be writable"
+        ]
+      },
+      {
+        "locations": [
+          "L171"
+        ],
+        "expression": "solver->GetrsBatched(adjoint_ ? CUBLAS_OP_C : CUBLAS_OP_T, n, nrhs, input_copy_ptrs_base, n, pivots_mat.data(), transposed_rhs_ptrs_base, n, &host_info, batch_size)",
+        "requirements": [
+          "each of the batch_size matrices referenced by input_copy_ptrs_base must have at least n rows and n columns",
+          "the pivots_mat buffer must have at least batch_size * n readable int elements",
+          "each of the batch_size matrices referenced by transposed_rhs_ptrs_base must have at least n rows and nrhs columns",
+          "the host_info object must be writable"
+        ]
+      },
+      {
+        "locations": [
+          "L187",
+          "L188",
+          "L189",
+          "L190"
+        ],
+        "expression": "solver->Getrs(adjoint_ ? CUBLAS_OP_C : CUBLAS_OP_T, n, nrhs, &input_copy_reshaped(batch, 0, 0), n, &pivots_mat(batch, 0), &transposed_rhs_reshaped(batch, 0, 0), n, &dev_info.back()(batch))",
+        "requirements": [
+          "the matrix at &input_copy_reshaped(batch, 0, 0) must have at least n rows and n columns",
+          "the pivots_mat buffer starting at &pivots_mat(batch, 0) must have at least n readable int elements",
+          "the matrix at &transposed_rhs_reshaped(batch, 0, 0) must have at least n rows and nrhs columns",
+          "the dev_info element at &dev_info.back()(batch) must be writable"
+        ]
+      },
+      {
+        "locations": [
+          "L201",
+          "L202",
+          "L203"
+        ],
+        "expression": "device.memcpy(output->flat<Scalar>().data(), transposed_rhs.flat<Scalar>().data(), transposed_rhs.NumElements() * sizeof(Scalar))",
+        "requirements": [
+          "the source range of transposed_rhs.NumElements() * sizeof(Scalar) bytes starting at transposed_rhs.flat<Scalar>().data() must be readable",
+          "the destination range of transposed_rhs.NumElements() * sizeof(Scalar) bytes starting at output->flat<Scalar>().data() must be writable"
+        ]
+      },
+      {
+        "locations": [
+          "L218"
+        ],
+        "expression": "host_infos[0].data()[i]",
+        "requirements": [
+          "the index i must be within the valid readable extent of host_infos[0]"
+        ]
+      }
+    ]
+  },
+  "quality_gate": {
+    "status": "passed",
+    "attempts": [
+      {
+        "attempt": 1,
+        "retry_mode": "initial",
+        "errors": [],
+        "token_usage": {
+          "input_tokens": 7662,
+          "output_tokens": 1200,
+          "total_tokens": 8862
+        },
+        "max_tokens": 8192,
+        "serialization_prefix_recovered": false
+      }
+    ],
+    "token_usage": {
+      "input_tokens": 7662,
+      "output_tokens": 1200,
+      "total_tokens": 8862
+    },
+    "safety_relevance_filter": {
+      "input_operation_groups": 12,
+      "kept_obligations": 9,
+      "filtered_non_safety_candidates": 3
+    }
+  },
+  "token_usage": {
+    "input_tokens": 7662,
+    "output_tokens": 1200,
+    "total_tokens": 8862
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "rules",
+    "sample_id": "test_000174",
+    "split": "test",
+    "source_hash": "0bbcff27f85b842329c570e99ff49406503a31176f7d16312a664ae7df5d25ca",
+    "upstream_hashes": {
+      "semantic_model": "6572c1e72b5009c18a1294f659cc6d11be20319b67fcd15cde7e6df8a4b78c34"
+    },
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

@@ -1,0 +1,678 @@
+{
+  "sample_id": "test_000039",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L13"
+          ],
+          "expression": "avc->pps[pps_id]",
+          "claim": "indexed access into the pps array using pps_id"
+        },
+        {
+          "locations": [
+            "L17"
+          ],
+          "expression": "avc->sps[si->pps->sps_id + GF_SVC_SSPS_ID_SHIFT]",
+          "claim": "indexed access into the sps array using a shifted sps_id"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "si->pps",
+            "avc->pps"
+          ],
+          "claim": "si->pps points to the element of avc->pps at index pps_id, establishing provenance to that PPS object.",
+          "evidence": "L13: si->pps = &avc->pps[pps_id];"
+        },
+        {
+          "entities": [
+            "si->sps",
+            "avc->sps",
+            "si->pps"
+          ],
+          "claim": "si->sps points to the element of avc->sps at index si->pps->sps_id + GF_SVC_SSPS_ID_SHIFT, establishing provenance to that SPS object.",
+          "evidence": "L17: si->sps = &avc->sps[si->pps->sps_id + GF_SVC_SSPS_ID_SHIFT];"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "pps_id",
+            "avc->pps",
+            "si->pps"
+          ],
+          "claim": "pps_id is validated to be in [0, 255] before indexing avc->pps[pps_id]; the array must have at least 256 elements.",
+          "evidence": "L10: pps_id = gf_bs_read_ue_log(bs, \"pps_id\");\nL11: if ((pps_id<0) || (pps_id > 255))\nL12: return -1;\nL13: si->pps = &avc->pps[pps_id];"
+        },
+        {
+          "entities": [
+            "si->pps->sps_id",
+            "GF_SVC_SSPS_ID_SHIFT",
+            "avc->sps",
+            "si->sps"
+          ],
+          "claim": "si->sps is set to &avc->sps[si->pps->sps_id + GF_SVC_SSPS_ID_SHIFT]; the index is the sum of sps_id and the shift constant.",
+          "evidence": "L17: si->sps = &avc->sps[si->pps->sps_id + GF_SVC_SSPS_ID_SHIFT];"
+        },
+        {
+          "entities": [
+            "si->sps->log2_max_frame_num",
+            "si->frame_num"
+          ],
+          "claim": "si->frame_num is read as an unsigned Exp-Golomb value with bit width si->sps->log2_max_frame_num.",
+          "evidence": "L21: si->frame_num = gf_bs_read_int_log(bs, si->sps->log2_max_frame_num, \"frame_num\");"
+        },
+        {
+          "entities": [
+            "si->sps->log2_max_poc_lsb",
+            "si->poc_lsb"
+          ],
+          "claim": "si->poc_lsb is read as an integer of width si->sps->log2_max_poc_lsb.",
+          "evidence": "L35: si->poc_lsb = gf_bs_read_int_log(bs, si->sps->log2_max_poc_lsb, \"poc_lsb\");"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "si->slice_type"
+          ],
+          "claim": "continuing past this check implies si->slice_type <= 9",
+          "evidence": "L8: if (si->slice_type > 9) return -1;"
+        },
+        {
+          "entities": [
+            "pps_id"
+          ],
+          "claim": "continuing past this check implies 0 <= pps_id <= 255",
+          "evidence": "L11: if ((pps_id<0) || (pps_id > 255))\nL12: return -1;"
+        },
+        {
+          "entities": [
+            "si->pps->slice_group_count"
+          ],
+          "claim": "continuing past this check implies si->pps->slice_group_count != 0",
+          "evidence": "L15: if (!si->pps->slice_group_count)\nL16: return -2;"
+        },
+        {
+          "entities": [
+            "si->sps->log2_max_frame_num"
+          ],
+          "claim": "continuing past this check implies si->sps->log2_max_frame_num != 0",
+          "evidence": "L18: if (!si->sps->log2_max_frame_num)\nL19: return -2;"
+        },
+        {
+          "entities": [
+            "si->field_pic_flag"
+          ],
+          "claim": "if si->sps->frame_mbs_only_flag is false, si->field_pic_flag is read as 1 bit; if true, si->field_pic_flag remains 0",
+          "evidence": "L23: si->field_pic_flag = 0;\nL24: if (si->sps->frame_mbs_only_flag) {\nL28: si->field_pic_flag = gf_bs_read_int_log(bs, 1, \"field_pic_flag\");"
+        },
+        {
+          "entities": [
+            "si->bottom_field_flag"
+          ],
+          "claim": "si->bottom_field_flag is read only when si->field_pic_flag is nonzero",
+          "evidence": "L29: if (si->field_pic_flag) si->bottom_field_flag = gf_bs_read_int_log(bs, 1, \"bottom_field_flag\");"
+        },
+        {
+          "entities": [
+            "si->idr_pic_id"
+          ],
+          "claim": "si->idr_pic_id is read only when si->nal_unit_type == GF_AVC_NALU_IDR_SLICE or si->NalHeader.idr_pic_flag is nonzero",
+          "evidence": "L31: if (si->nal_unit_type == GF_AVC_NALU_IDR_SLICE || si->NalHeader.idr_pic_flag)\nL32: si->idr_pic_id = gf_bs_read_ue_log(bs, \"idr_pic_id\");"
+        },
+        {
+          "entities": [
+            "si->delta_poc_bottom"
+          ],
+          "claim": "si->delta_poc_bottom is read only when si->sps->poc_type == 0, si->pps->pic_order_present is nonzero, and si->field_pic_flag is 0",
+          "evidence": "L34: if (si->sps->poc_type == 0) {\nL36: if (si->pps->pic_order_present && !si->field_pic_flag) {\nL37: si->delta_poc_bottom = gf_bs_read_se_log(bs, \"delta_poc_bottom\");"
+        },
+        {
+          "entities": [
+            "si->delta_poc[1]"
+          ],
+          "claim": "si->delta_poc[1] is read only when si->sps->poc_type == 1, si->sps->delta_pic_order_always_zero_flag is 0, si->pps->pic_order_present == 1, and si->field_pic_flag is 0",
+          "evidence": "L40: else if ((si->sps->poc_type == 1) && !si->sps->delta_pic_order_always_zero_flag) {\nL42: if ((si->pps->pic_order_present == 1) && !si->field_pic_flag)\nL43: si->delta_poc[1] = gf_bs_read_se_log(bs, \"delta_poc1\");"
+        },
+        {
+          "entities": [
+            "si->redundant_pic_cnt"
+          ],
+          "claim": "si->redundant_pic_cnt is read only when si->pps->redundant_pic_cnt_present is nonzero",
+          "evidence": "L45: if (si->pps->redundant_pic_cnt_present) {\nL46: si->redundant_pic_cnt = gf_bs_read_ue_log(bs, \"redundant_pic_cnt\");"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2838,
+              "output_tokens": 91,
+              "total_tokens": 2929
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2838,
+          "output_tokens": 91,
+          "total_tokens": 2929
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L13",
+                "matched": true,
+                "expression": "avc->pps[pps_id]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L17",
+                "matched": true,
+                "expression": "avc->sps[si->pps->sps_id + GF_SVC_SSPS_ID_SHIFT]"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1441,
+              "output_tokens": 188,
+              "total_tokens": 1629
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1441,
+          "output_tokens": 188,
+          "total_tokens": 1629
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "si->pps = &avc->pps[pps_id];",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "si->sps = &avc->sps[si->pps->sps_id + GF_SVC_SSPS_ID_SHIFT];",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1629,
+              "output_tokens": 470,
+              "total_tokens": 2099
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1629,
+          "output_tokens": 470,
+          "total_tokens": 2099
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "pps_id = gf_bs_read_ue_log(bs, \"pps_id\");",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "if ((pps_id<0) || (pps_id > 255))",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "return -1;",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "si->pps = &avc->pps[pps_id];",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "si->sps = &avc->sps[si->pps->sps_id + GF_SVC_SSPS_ID_SHIFT];",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 21,
+                "fragment": "si->frame_num = gf_bs_read_int_log(bs, si->sps->log2_max_frame_num, \"frame_num\");",
+                "matched_lines": [
+                  21
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 35,
+                "fragment": "si->poc_lsb = gf_bs_read_int_log(bs, si->sps->log2_max_poc_lsb, \"poc_lsb\");",
+                "matched_lines": [
+                  35
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1309,
+              "output_tokens": 1065,
+              "total_tokens": 2374
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1309,
+          "output_tokens": 1065,
+          "total_tokens": 2374
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (si->slice_type > 9) return -1;",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "if ((pps_id<0) || (pps_id > 255))",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "return -1;",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "if (!si->pps->slice_group_count)",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "return -2;",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "if (!si->sps->log2_max_frame_num)",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "return -2;",
+                "matched_lines": [
+                  19
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "si->field_pic_flag = 0;",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "if (si->sps->frame_mbs_only_flag) {",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "si->field_pic_flag = gf_bs_read_int_log(bs, 1, \"field_pic_flag\");",
+                "matched_lines": [
+                  28
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "if (si->field_pic_flag) si->bottom_field_flag = gf_bs_read_int_log(bs, 1, \"bottom_field_flag\");",
+                "matched_lines": [
+                  29
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 31,
+                "fragment": "if (si->nal_unit_type == GF_AVC_NALU_IDR_SLICE || si->NalHeader.idr_pic_flag)",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "si->idr_pic_id = gf_bs_read_ue_log(bs, \"idr_pic_id\");",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 34,
+                "fragment": "if (si->sps->poc_type == 0) {",
+                "matched_lines": [
+                  34
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "if (si->pps->pic_order_present && !si->field_pic_flag) {",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "si->delta_poc_bottom = gf_bs_read_se_log(bs, \"delta_poc_bottom\");",
+                "matched_lines": [
+                  37
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 40,
+                "fragment": "else if ((si->sps->poc_type == 1) && !si->sps->delta_pic_order_always_zero_flag) {",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 42,
+                "fragment": "if ((si->pps->pic_order_present == 1) && !si->field_pic_flag)",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "si->delta_poc[1] = gf_bs_read_se_log(bs, \"delta_poc1\");",
+                "matched_lines": [
+                  43
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 45,
+                "fragment": "if (si->pps->redundant_pic_cnt_present) {",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "si->redundant_pic_cnt = gf_bs_read_ue_log(bs, \"redundant_pic_cnt\");",
+                "matched_lines": [
+                  46
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 2,
+      "states": 2,
+      "values": 4,
+      "executions": 10
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 7217,
+    "output_tokens": 1814,
+    "total_tokens": 9031
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000039",
+    "split": "test",
+    "source_hash": "3ae949a834e0a96d11f7a0d7cd6dd8e85050d81d6626e81e93071e1147d3d1c2",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

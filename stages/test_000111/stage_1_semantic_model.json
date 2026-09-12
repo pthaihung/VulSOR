@@ -1,0 +1,1826 @@
+{
+  "sample_id": "test_000111",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L16"
+          ],
+          "expression": "tensor_in.dim_size(i)",
+          "claim": "read the dimension size of the input tensor at index i"
+        },
+        {
+          "locations": [
+            "L19"
+          ],
+          "expression": "pooling_ratio_[i]",
+          "claim": "index into pooling_ratio_ at position i"
+        },
+        {
+          "locations": [
+            "L30"
+          ],
+          "expression": "input_size[i] / pooling_ratio_[i]",
+          "claim": "divide input dimension size by pooling ratio"
+        },
+        {
+          "locations": [
+            "L39",
+            "L41"
+          ],
+          "expression": "GeneratePoolingSequence(input_size[1], output_size[1], &generator, pseudo_random_)",
+          "claim": "generate pooling sequence from input and output sizes"
+        },
+        {
+          "locations": [
+            "L64"
+          ],
+          "expression": "tensor_in.flat<T>().data()",
+          "claim": "obtain data pointer from input tensor flat view"
+        },
+        {
+          "locations": [
+            "L67"
+          ],
+          "expression": "output_tensor->flat<T>().data()",
+          "claim": "obtain data pointer from output tensor flat view"
+        },
+        {
+          "locations": [
+            "L71"
+          ],
+          "expression": "output_tensor->flat<T>().setConstant(Eigen::NumTraits<T>::lowest())",
+          "claim": "set all elements of output tensor flat view to lowest value"
+        },
+        {
+          "locations": [
+            "L78"
+          ],
+          "expression": "output_height_seq_flat(i)",
+          "claim": "write to output height sequence tensor at index i"
+        },
+        {
+          "locations": [
+            "L82"
+          ],
+          "expression": "output_width_seq_flat(i)",
+          "claim": "write to output width sequence tensor at index i"
+        },
+        {
+          "locations": [
+            "L114",
+            "L115"
+          ],
+          "expression": "out_mat.col(out_offset)",
+          "claim": "access output matrix column at out_offset"
+        },
+        {
+          "locations": [
+            "L115"
+          ],
+          "expression": "in_mat.col(in_offset)",
+          "claim": "access input matrix column at in_offset"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "tensor_in",
+            "in_mat"
+          ],
+          "claim": "in_mat is an Eigen matrix map over the storage of tensor_in's flat<T>() data, with input_size[3] columns and input_size[2]*input_size[1]*input_size[0] rows.",
+          "evidence": "L9: const Tensor& tensor_in = context->input(0);\nL64: ConstEigenMatrixMap in_mat(tensor_in.flat<T>().data(), input_size[3],\nL65: input_size[2] * input_size[1] * input_size[0]);"
+        },
+        {
+          "entities": [
+            "output_tensor",
+            "out_mat"
+          ],
+          "claim": "out_mat is an Eigen matrix map over the storage of output_tensor's flat<T>() data, with output_size[3] columns and output_size[2]*output_size[1]*output_size[0] rows.",
+          "evidence": "L45: Tensor* output_tensor = nullptr;\nL46: OP_REQUIRES_OK(context, context->allocate_output(\nL67: EigenMatrixMap out_mat(output_tensor->flat<T>().data(), output_size[3],\nL68: output_size[2] * output_size[1] * output_size[0]);"
+        },
+        {
+          "entities": [
+            "output_tensor"
+          ],
+          "claim": "output_tensor is allocated as output 0 with shape {output_size[0], output_size[1], output_size[2], output_size[3]}.",
+          "evidence": "L46: OP_REQUIRES_OK(context, context->allocate_output(\nL47: 0,\nL48: TensorShape({output_size[0], output_size[1],\nL49: output_size[2], output_size[3]}),\nL50: &output_tensor));"
+        },
+        {
+          "entities": [
+            "output_height_seq_tensor"
+          ],
+          "claim": "output_height_seq_tensor is allocated as output 1 with shape {height_cum_seq.size()}.",
+          "evidence": "L51: Tensor* output_height_seq_tensor = nullptr;\nL52: OP_REQUIRES_OK(\nL53: context,\nL54: context->allocate_output(\nL55: 1, TensorShape({static_cast<int64_t>(height_cum_seq.size())}),\nL56: &output_height_seq_tensor));"
+        },
+        {
+          "entities": [
+            "output_width_seq_tensor"
+          ],
+          "claim": "output_width_seq_tensor is allocated as output 2 with shape {width_cum_seq.size()}.",
+          "evidence": "L57: Tensor* output_width_seq_tensor = nullptr;\nL58: OP_REQUIRES_OK(\nL59: context,\nL60: context->allocate_output(\nL61: 2, TensorShape({static_cast<int64_t>(width_cum_seq.size())}),\nL62: &output_width_seq_tensor));"
+        },
+        {
+          "entities": [
+            "output_height_seq_flat",
+            "output_height_seq_tensor"
+          ],
+          "claim": "output_height_seq_flat is a flat<int64_t> view over output_height_seq_tensor's storage.",
+          "evidence": "L73: auto output_height_seq_flat = output_height_seq_tensor->flat<int64_t>();"
+        },
+        {
+          "entities": [
+            "output_width_seq_flat",
+            "output_width_seq_tensor"
+          ],
+          "claim": "output_width_seq_flat is a flat<int64_t> view over output_width_seq_tensor's storage.",
+          "evidence": "L74: auto output_width_seq_flat = output_width_seq_tensor->flat<int64_t>();"
+        },
+        {
+          "entities": [
+            "output_tensor"
+          ],
+          "claim": "output_tensor's flat<T>() storage is initialized to Eigen::NumTraits<T>::lowest().",
+          "evidence": "L71: output_tensor->flat<T>().setConstant(Eigen::NumTraits<T>::lowest());"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "tensor_in_and_out_dims",
+            "input_size",
+            "output_size"
+          ],
+          "claim": "input_size and output_size are vectors of length 4 (tensor_in_and_out_dims).",
+          "evidence": "L7: constexpr int tensor_in_and_out_dims = 4;\nL13: std::vector<int> input_size(tensor_in_and_out_dims);\nL14: std::vector<int> output_size(tensor_in_and_out_dims);"
+        },
+        {
+          "entities": [
+            "input_size",
+            "tensor_in",
+            "pooling_ratio_"
+          ],
+          "claim": "For each i in [0,4), input_size[i] = tensor_in.dim_size(i) and is required to be >= pooling_ratio_[i].",
+          "evidence": "L16: input_size[i] = tensor_in.dim_size(i);\nL19: context, input_size[i] >= pooling_ratio_[i],"
+        },
+        {
+          "entities": [
+            "output_size",
+            "input_size",
+            "pooling_ratio_"
+          ],
+          "claim": "output_size[i] = static_cast<int>(std::floor(input_size[i] / pooling_ratio_[i])) for each i in [0,4).",
+          "evidence": "L29: output_size[i] =\nL30: static_cast<int>(std::floor(input_size[i] / pooling_ratio_[i]));"
+        },
+        {
+          "entities": [
+            "output_tensor",
+            "output_size"
+          ],
+          "claim": "output_tensor is allocated with shape {output_size[0], output_size[1], output_size[2], output_size[3]}.",
+          "evidence": "L46: OP_REQUIRES_OK(context, context->allocate_output(\nL48: TensorShape({output_size[0], output_size[1],\nL49: output_size[2], output_size[3]}),"
+        },
+        {
+          "entities": [
+            "output_height_seq_tensor",
+            "height_cum_seq"
+          ],
+          "claim": "output_height_seq_tensor is allocated with shape {static_cast<int64_t>(height_cum_seq.size())}.",
+          "evidence": "L55: 1, TensorShape({static_cast<int64_t>(height_cum_seq.size())}),"
+        },
+        {
+          "entities": [
+            "output_width_seq_tensor",
+            "width_cum_seq"
+          ],
+          "claim": "output_width_seq_tensor is allocated with shape {static_cast<int64_t>(width_cum_seq.size())}.",
+          "evidence": "L61: 2, TensorShape({static_cast<int64_t>(width_cum_seq.size())}),"
+        },
+        {
+          "entities": [
+            "in_mat",
+            "tensor_in",
+            "input_size"
+          ],
+          "claim": "in_mat maps tensor_in data as a matrix with input_size[3] rows and input_size[2]*input_size[1]*input_size[0] columns.",
+          "evidence": "L64: ConstEigenMatrixMap in_mat(tensor_in.flat<T>().data(), input_size[3],\nL65: input_size[2] * input_size[1] * input_size[0]);"
+        },
+        {
+          "entities": [
+            "out_mat",
+            "output_tensor",
+            "output_size"
+          ],
+          "claim": "out_mat maps output_tensor data as a matrix with output_size[3] rows and output_size[2]*output_size[1]*output_size[0] columns.",
+          "evidence": "L67: EigenMatrixMap out_mat(output_tensor->flat<T>().data(), output_size[3],\nL68: output_size[2] * output_size[1] * output_size[0]);"
+        },
+        {
+          "entities": [
+            "height_max",
+            "input_size"
+          ],
+          "claim": "height_max = input_size[1] - 1.",
+          "evidence": "L90: const int64_t height_max = input_size[1] - 1;"
+        },
+        {
+          "entities": [
+            "width_max",
+            "input_size"
+          ],
+          "claim": "width_max = input_size[2] - 1.",
+          "evidence": "L91: const int64_t width_max = input_size[2] - 1;"
+        },
+        {
+          "entities": [
+            "out_offset",
+            "b",
+            "output_size",
+            "hs",
+            "ws"
+          ],
+          "claim": "out_offset = (b * output_size[1] + hs) * output_size[2] + ws.",
+          "evidence": "L103: const int64_t out_offset =\nL104: (b * output_size[1] + hs) * output_size[2] + ws;"
+        },
+        {
+          "entities": [
+            "in_offset",
+            "b",
+            "input_size",
+            "h",
+            "w"
+          ],
+          "claim": "in_offset = (b * input_size[1] + h) * input_size[2] + w.",
+          "evidence": "L112: const int64_t in_offset =\nL113: (b * input_size[1] + h) * input_size[2] + w;"
+        },
+        {
+          "entities": [
+            "height_start",
+            "height_cum_seq",
+            "hs"
+          ],
+          "claim": "height_start = height_cum_seq[hs].",
+          "evidence": "L96: const int64_t height_start = height_cum_seq[hs];"
+        },
+        {
+          "entities": [
+            "height_end",
+            "height_cum_seq",
+            "hs",
+            "overlapping_",
+            "height_max"
+          ],
+          "claim": "height_end = overlapping_ ? height_cum_seq[hs+1] : height_cum_seq[hs+1]-1, then clamped to min(height_end, height_max).",
+          "evidence": "L97: int64_t height_end =\nL98: overlapping_ ? height_cum_seq[hs + 1] : height_cum_seq[hs + 1] - 1;\nL99: height_end = std::min(height_end, height_max);"
+        },
+        {
+          "entities": [
+            "width_start",
+            "width_cum_seq",
+            "ws"
+          ],
+          "claim": "width_start = width_cum_seq[ws].",
+          "evidence": "L106: const int64_t width_start = width_cum_seq[ws];"
+        },
+        {
+          "entities": [
+            "width_end",
+            "width_cum_seq",
+            "ws",
+            "overlapping_",
+            "width_max"
+          ],
+          "claim": "width_end = overlapping_ ? width_cum_seq[ws+1] : width_cum_seq[ws+1]-1, then clamped to min(width_end, width_max).",
+          "evidence": "L107: int64_t width_end =\nL108: overlapping_ ? width_cum_seq[ws + 1] : width_cum_seq[ws + 1] - 1;\nL109: width_end = std::min(width_end, width_max);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "tensor_in",
+            "tensor_in.dims()"
+          ],
+          "claim": "continuing past this check implies tensor_in has exactly 4 dimensions",
+          "evidence": "L10: OP_REQUIRES(context, tensor_in.dims() == tensor_in_and_out_dims,\nL11: errors::InvalidArgument(\"tensor_in must be 4-dimensional\"));"
+        },
+        {
+          "entities": [
+            "input_size[i]",
+            "pooling_ratio_[i]"
+          ],
+          "claim": "for each dimension i in [0,4), continuing past the check implies input_size[i] >= pooling_ratio_[i]",
+          "evidence": "L18: OP_REQUIRES(\nL19: context, input_size[i] >= pooling_ratio_[i],"
+        },
+        {
+          "entities": [
+            "output_size[i]",
+            "input_size[i]",
+            "pooling_ratio_[i]"
+          ],
+          "claim": "output_size[i] is floor(input_size[i] / pooling_ratio_[i]) and is asserted positive in debug builds",
+          "evidence": "L29: output_size[i] =\nL30: static_cast<int>(std::floor(input_size[i] / pooling_ratio_[i]));\nL31: DCHECK_GT(output_size[i], 0);"
+        },
+        {
+          "entities": [
+            "height_cum_seq",
+            "input_size[1]",
+            "output_size[1]"
+          ],
+          "claim": "height_cum_seq is generated from input_size[1] and output_size[1]",
+          "evidence": "L39: height_cum_seq = GeneratePoolingSequence(input_size[1], output_size[1],\nL40: &generator, pseudo_random_);"
+        },
+        {
+          "entities": [
+            "width_cum_seq",
+            "input_size[2]",
+            "output_size[2]"
+          ],
+          "claim": "width_cum_seq is generated from input_size[2] and output_size[2]",
+          "evidence": "L41: width_cum_seq = GeneratePoolingSequence(input_size[2], output_size[2],\nL42: &generator, pseudo_random_);"
+        },
+        {
+          "entities": [
+            "output_tensor",
+            "output_size"
+          ],
+          "claim": "output_tensor is allocated with shape {output_size[0], output_size[1], output_size[2], output_size[3]}",
+          "evidence": "L46: OP_REQUIRES_OK(context, context->allocate_output(\nL47: 0,\nL48: TensorShape({output_size[0], output_size[1],\nL49: output_size[2], output_size[3]}),\nL50: &output_tensor));"
+        },
+        {
+          "entities": [
+            "output_height_seq_tensor",
+            "height_cum_seq"
+          ],
+          "claim": "output_height_seq_tensor is allocated with size height_cum_seq.size()",
+          "evidence": "L52: OP_REQUIRES_OK(\nL53: context,\nL54: context->allocate_output(\nL55: 1, TensorShape({static_cast<int64_t>(height_cum_seq.size())}),\nL56: &output_height_seq_tensor));"
+        },
+        {
+          "entities": [
+            "output_width_seq_tensor",
+            "width_cum_seq"
+          ],
+          "claim": "output_width_seq_tensor is allocated with size width_cum_seq.size()",
+          "evidence": "L58: OP_REQUIRES_OK(\nL59: context,\nL60: context->allocate_output(\nL61: 2, TensorShape({static_cast<int64_t>(width_cum_seq.size())}),\nL62: &output_width_seq_tensor));"
+        },
+        {
+          "entities": [
+            "in_mat",
+            "tensor_in",
+            "input_size"
+          ],
+          "claim": "in_mat maps tensor_in data with rows input_size[3] and cols input_size[2]*input_size[1]*input_size[0]",
+          "evidence": "L64: ConstEigenMatrixMap in_mat(tensor_in.flat<T>().data(), input_size[3],\nL65: input_size[2] * input_size[1] * input_size[0]);"
+        },
+        {
+          "entities": [
+            "out_mat",
+            "output_tensor",
+            "output_size"
+          ],
+          "claim": "out_mat maps output_tensor data with rows output_size[3] and cols output_size[2]*output_size[1]*output_size[0]",
+          "evidence": "L67: EigenMatrixMap out_mat(output_tensor->flat<T>().data(), output_size[3],\nL68: output_size[2] * output_size[1] * output_size[0]);"
+        },
+        {
+          "entities": [
+            "output_height_seq_flat",
+            "height_cum_seq"
+          ],
+          "claim": "loop writes height_cum_seq[i] into output_height_seq_flat(i) for i in [0, height_cum_seq.size())",
+          "evidence": "L77: for (int i = 0; i < height_cum_seq.size(); ++i) {\nL78: output_height_seq_flat(i) = height_cum_seq[i];"
+        },
+        {
+          "entities": [
+            "output_width_seq_flat",
+            "width_cum_seq"
+          ],
+          "claim": "loop writes width_cum_seq[i] into output_width_seq_flat(i) for i in [0, width_cum_seq.size())",
+          "evidence": "L81: for (int i = 0; i < width_cum_seq.size(); ++i) {\nL82: output_width_seq_flat(i) = width_cum_seq[i];"
+        },
+        {
+          "entities": [
+            "height_max",
+            "input_size[1]"
+          ],
+          "claim": "height_max equals input_size[1] - 1",
+          "evidence": "L90: const int64_t height_max = input_size[1] - 1;"
+        },
+        {
+          "entities": [
+            "width_max",
+            "input_size[2]"
+          ],
+          "claim": "width_max equals input_size[2] - 1",
+          "evidence": "L91: const int64_t width_max = input_size[2] - 1;"
+        },
+        {
+          "entities": [
+            "b",
+            "input_size[0]"
+          ],
+          "claim": "outer loop iterates b in [0, input_size[0])",
+          "evidence": "L92: for (int64_t b = 0; b < input_size[0]; ++b) {"
+        },
+        {
+          "entities": [
+            "hs",
+            "height_cum_seq"
+          ],
+          "claim": "height sequence loop iterates hs in [0, height_cum_seq.size() - 1)",
+          "evidence": "L94: for (int64_t hs = 0; hs < height_cum_seq.size() - 1; ++hs) {"
+        },
+        {
+          "entities": [
+            "height_start",
+            "height_cum_seq",
+            "hs"
+          ],
+          "claim": "height_start equals height_cum_seq[hs]",
+          "evidence": "L96: const int64_t height_start = height_cum_seq[hs];"
+        },
+        {
+          "entities": [
+            "height_end",
+            "height_cum_seq",
+            "hs",
+            "overlapping_",
+            "height_max"
+          ],
+          "claim": "height_end is height_cum_seq[hs+1] if overlapping_ else height_cum_seq[hs+1]-1, then clamped to at most height_max",
+          "evidence": "L97: int64_t height_end =\nL98: overlapping_ ? height_cum_seq[hs + 1] : height_cum_seq[hs + 1] - 1;\nL99: height_end = std::min(height_end, height_max);"
+        },
+        {
+          "entities": [
+            "ws",
+            "width_cum_seq"
+          ],
+          "claim": "width sequence loop iterates ws in [0, width_cum_seq.size() - 1)",
+          "evidence": "L102: for (int64_t ws = 0; ws < width_cum_seq.size() - 1; ++ws) {"
+        },
+        {
+          "entities": [
+            "out_offset",
+            "b",
+            "output_size",
+            "hs",
+            "ws"
+          ],
+          "claim": "out_offset equals (b*output_size[1]+hs)*output_size[2]+ws",
+          "evidence": "L103: const int64_t out_offset =\nL104: (b * output_size[1] + hs) * output_size[2] + ws;"
+        },
+        {
+          "entities": [
+            "width_start",
+            "width_cum_seq",
+            "ws"
+          ],
+          "claim": "width_start equals width_cum_seq[ws]",
+          "evidence": "L106: const int64_t width_start = width_cum_seq[ws];"
+        },
+        {
+          "entities": [
+            "width_end",
+            "width_cum_seq",
+            "ws",
+            "overlapping_",
+            "width_max"
+          ],
+          "claim": "width_end is width_cum_seq[ws+1] if overlapping_ else width_cum_seq[ws+1]-1, then clamped to at most width_max",
+          "evidence": "L107: int64_t width_end =\nL108: overlapping_ ? width_cum_seq[ws + 1] : width_cum_seq[ws + 1] - 1;\nL109: width_end = std::min(width_end, width_max);"
+        },
+        {
+          "entities": [
+            "h",
+            "height_start",
+            "height_end"
+          ],
+          "claim": "inner height loop iterates h in [height_start, height_end]",
+          "evidence": "L110: for (int64_t h = height_start; h <= height_end; ++h) {"
+        },
+        {
+          "entities": [
+            "w",
+            "width_start",
+            "width_end"
+          ],
+          "claim": "inner width loop iterates w in [width_start, width_end]",
+          "evidence": "L111: for (int64_t w = width_start; w <= width_end; ++w) {"
+        },
+        {
+          "entities": [
+            "in_offset",
+            "b",
+            "input_size",
+            "h",
+            "w"
+          ],
+          "claim": "in_offset equals (b*input_size[1]+h)*input_size[2]+w",
+          "evidence": "L112: const int64_t in_offset =\nL113: (b * input_size[1] + h) * input_size[2] + w;"
+        },
+        {
+          "entities": [
+            "out_mat",
+            "out_offset",
+            "in_mat",
+            "in_offset"
+          ],
+          "claim": "out_mat column out_offset is updated with cwiseMax against in_mat column in_offset",
+          "evidence": "L114: out_mat.col(out_offset) =\nL115: out_mat.col(out_offset).cwiseMax(in_mat.col(in_offset));"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3644,
+              "output_tokens": 407,
+              "total_tokens": 4051
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3644,
+          "output_tokens": 407,
+          "total_tokens": 4051
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L16",
+                "matched": true,
+                "expression": "tensor_in.dim_size(i)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L19",
+                "matched": true,
+                "expression": "pooling_ratio_[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L30",
+                "matched": true,
+                "expression": "input_size[i] / pooling_ratio_[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L39",
+                "matched": true,
+                "expression": "GeneratePoolingSequence(input_size[1], output_size[1], &generator, pseudo_random_)"
+              },
+              {
+                "location": "L41",
+                "matched": true,
+                "expression": "GeneratePoolingSequence(input_size[1], output_size[1], &generator, pseudo_random_)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L64",
+                "matched": true,
+                "expression": "tensor_in.flat<T>().data()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L67",
+                "matched": true,
+                "expression": "output_tensor->flat<T>().data()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L71",
+                "matched": true,
+                "expression": "output_tensor->flat<T>().setConstant(Eigen::NumTraits<T>::lowest())"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L78",
+                "matched": true,
+                "expression": "output_height_seq_flat(i)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L82",
+                "matched": true,
+                "expression": "output_width_seq_flat(i)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[9]": {
+            "expression_matches": [
+              {
+                "location": "L114",
+                "matched": true,
+                "expression": "out_mat.col(out_offset)"
+              },
+              {
+                "location": "L115",
+                "matched": true,
+                "expression": "out_mat.col(out_offset)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[10]": {
+            "expression_matches": [
+              {
+                "location": "L115",
+                "matched": true,
+                "expression": "in_mat.col(in_offset)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 9,
+            "expression": "height_cum_seq[hs]"
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2247,
+              "output_tokens": 797,
+              "total_tokens": 3044
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2247,
+          "output_tokens": 797,
+          "total_tokens": 3044
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "const Tensor& tensor_in = context->input(0);",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 64,
+                "fragment": "ConstEigenMatrixMap in_mat(tensor_in.flat<T>().data(), input_size[3],",
+                "matched_lines": [
+                  64
+                ]
+              },
+              {
+                "evidence_line": 65,
+                "fragment": "input_size[2] * input_size[1] * input_size[0]);",
+                "matched_lines": [
+                  65
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 45,
+                "fragment": "Tensor* output_tensor = nullptr;",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "OP_REQUIRES_OK(context, context->allocate_output(",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "EigenMatrixMap out_mat(output_tensor->flat<T>().data(), output_size[3],",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "output_size[2] * output_size[1] * output_size[0]);",
+                "matched_lines": [
+                  68
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 46,
+                "fragment": "OP_REQUIRES_OK(context, context->allocate_output(",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "0,",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "TensorShape({output_size[0], output_size[1],",
+                "matched_lines": [
+                  48
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "output_size[2], output_size[3]}),",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "&output_tensor));",
+                "matched_lines": [
+                  50
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 51,
+                "fragment": "Tensor* output_height_seq_tensor = nullptr;",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "OP_REQUIRES_OK(",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "context,",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "context->allocate_output(",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "1, TensorShape({static_cast<int64_t>(height_cum_seq.size())}),",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "&output_height_seq_tensor));",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "Tensor* output_width_seq_tensor = nullptr;",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "OP_REQUIRES_OK(",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "context,",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "context->allocate_output(",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "2, TensorShape({static_cast<int64_t>(width_cum_seq.size())}),",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "&output_width_seq_tensor));",
+                "matched_lines": [
+                  62
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 73,
+                "fragment": "auto output_height_seq_flat = output_height_seq_tensor->flat<int64_t>();",
+                "matched_lines": [
+                  73
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 74,
+                "fragment": "auto output_width_seq_flat = output_width_seq_tensor->flat<int64_t>();",
+                "matched_lines": [
+                  74
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 71,
+                "fragment": "output_tensor->flat<T>().setConstant(Eigen::NumTraits<T>::lowest());",
+                "matched_lines": [
+                  71
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2435,
+              "output_tokens": 1318,
+              "total_tokens": 3753
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2435,
+          "output_tokens": 1318,
+          "total_tokens": 3753
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "constexpr int tensor_in_and_out_dims = 4;",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "std::vector<int> input_size(tensor_in_and_out_dims);",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "std::vector<int> output_size(tensor_in_and_out_dims);",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "input_size[i] = tensor_in.dim_size(i);",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "context, input_size[i] >= pooling_ratio_[i],",
+                "matched_lines": [
+                  19
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "output_size[i] =",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "static_cast<int>(std::floor(input_size[i] / pooling_ratio_[i]));",
+                "matched_lines": [
+                  30
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 46,
+                "fragment": "OP_REQUIRES_OK(context, context->allocate_output(",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "TensorShape({output_size[0], output_size[1],",
+                "matched_lines": [
+                  48
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "output_size[2], output_size[3]}),",
+                "matched_lines": [
+                  49
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 55,
+                "fragment": "1, TensorShape({static_cast<int64_t>(height_cum_seq.size())}),",
+                "matched_lines": [
+                  55
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 61,
+                "fragment": "2, TensorShape({static_cast<int64_t>(width_cum_seq.size())}),",
+                "matched_lines": [
+                  61
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 64,
+                "fragment": "ConstEigenMatrixMap in_mat(tensor_in.flat<T>().data(), input_size[3],",
+                "matched_lines": [
+                  64
+                ]
+              },
+              {
+                "evidence_line": 65,
+                "fragment": "input_size[2] * input_size[1] * input_size[0]);",
+                "matched_lines": [
+                  65
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 67,
+                "fragment": "EigenMatrixMap out_mat(output_tensor->flat<T>().data(), output_size[3],",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "output_size[2] * output_size[1] * output_size[0]);",
+                "matched_lines": [
+                  68
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 90,
+                "fragment": "const int64_t height_max = input_size[1] - 1;",
+                "matched_lines": [
+                  90
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 91,
+                "fragment": "const int64_t width_max = input_size[2] - 1;",
+                "matched_lines": [
+                  91
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 103,
+                "fragment": "const int64_t out_offset =",
+                "matched_lines": [
+                  103
+                ]
+              },
+              {
+                "evidence_line": 104,
+                "fragment": "(b * output_size[1] + hs) * output_size[2] + ws;",
+                "matched_lines": [
+                  104
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 112,
+                "fragment": "const int64_t in_offset =",
+                "matched_lines": [
+                  112
+                ]
+              },
+              {
+                "evidence_line": 113,
+                "fragment": "(b * input_size[1] + h) * input_size[2] + w;",
+                "matched_lines": [
+                  113
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 96,
+                "fragment": "const int64_t height_start = height_cum_seq[hs];",
+                "matched_lines": [
+                  96
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 97,
+                "fragment": "int64_t height_end =",
+                "matched_lines": [
+                  97
+                ]
+              },
+              {
+                "evidence_line": 98,
+                "fragment": "overlapping_ ? height_cum_seq[hs + 1] : height_cum_seq[hs + 1] - 1;",
+                "matched_lines": [
+                  98
+                ]
+              },
+              {
+                "evidence_line": 99,
+                "fragment": "height_end = std::min(height_end, height_max);",
+                "matched_lines": [
+                  99
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 106,
+                "fragment": "const int64_t width_start = width_cum_seq[ws];",
+                "matched_lines": [
+                  106
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[15]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 107,
+                "fragment": "int64_t width_end =",
+                "matched_lines": [
+                  107
+                ]
+              },
+              {
+                "evidence_line": 108,
+                "fragment": "overlapping_ ? width_cum_seq[ws + 1] : width_cum_seq[ws + 1] - 1;",
+                "matched_lines": [
+                  108
+                ]
+              },
+              {
+                "evidence_line": 109,
+                "fragment": "width_end = std::min(width_end, width_max);",
+                "matched_lines": [
+                  109
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2115,
+              "output_tokens": 2070,
+              "total_tokens": 4185
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2115,
+          "output_tokens": 2070,
+          "total_tokens": 4185
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "OP_REQUIRES(context, tensor_in.dims() == tensor_in_and_out_dims,",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "errors::InvalidArgument(\"tensor_in must be 4-dimensional\"));",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "context, input_size[i] >= pooling_ratio_[i],",
+                "matched_lines": [
+                  19
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "output_size[i] =",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "static_cast<int>(std::floor(input_size[i] / pooling_ratio_[i]));",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "DCHECK_GT(output_size[i], 0);",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 39,
+                "fragment": "height_cum_seq = GeneratePoolingSequence(input_size[1], output_size[1],",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "&generator, pseudo_random_);",
+                "matched_lines": [
+                  40
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 41,
+                "fragment": "width_cum_seq = GeneratePoolingSequence(input_size[2], output_size[2],",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 42,
+                "fragment": "&generator, pseudo_random_);",
+                "matched_lines": [
+                  42
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 46,
+                "fragment": "OP_REQUIRES_OK(context, context->allocate_output(",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "0,",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "TensorShape({output_size[0], output_size[1],",
+                "matched_lines": [
+                  48
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "output_size[2], output_size[3]}),",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "&output_tensor));",
+                "matched_lines": [
+                  50
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 52,
+                "fragment": "OP_REQUIRES_OK(",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "context,",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "context->allocate_output(",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "1, TensorShape({static_cast<int64_t>(height_cum_seq.size())}),",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "&output_height_seq_tensor));",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 58,
+                "fragment": "OP_REQUIRES_OK(",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "context,",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "context->allocate_output(",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "2, TensorShape({static_cast<int64_t>(width_cum_seq.size())}),",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "&output_width_seq_tensor));",
+                "matched_lines": [
+                  62
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 64,
+                "fragment": "ConstEigenMatrixMap in_mat(tensor_in.flat<T>().data(), input_size[3],",
+                "matched_lines": [
+                  64
+                ]
+              },
+              {
+                "evidence_line": 65,
+                "fragment": "input_size[2] * input_size[1] * input_size[0]);",
+                "matched_lines": [
+                  65
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 67,
+                "fragment": "EigenMatrixMap out_mat(output_tensor->flat<T>().data(), output_size[3],",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "output_size[2] * output_size[1] * output_size[0]);",
+                "matched_lines": [
+                  68
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 77,
+                "fragment": "for (int i = 0; i < height_cum_seq.size(); ++i) {",
+                "matched_lines": [
+                  77
+                ]
+              },
+              {
+                "evidence_line": 78,
+                "fragment": "output_height_seq_flat(i) = height_cum_seq[i];",
+                "matched_lines": [
+                  78
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 81,
+                "fragment": "for (int i = 0; i < width_cum_seq.size(); ++i) {",
+                "matched_lines": [
+                  81
+                ]
+              },
+              {
+                "evidence_line": 82,
+                "fragment": "output_width_seq_flat(i) = width_cum_seq[i];",
+                "matched_lines": [
+                  82
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 90,
+                "fragment": "const int64_t height_max = input_size[1] - 1;",
+                "matched_lines": [
+                  90
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 91,
+                "fragment": "const int64_t width_max = input_size[2] - 1;",
+                "matched_lines": [
+                  91
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 92,
+                "fragment": "for (int64_t b = 0; b < input_size[0]; ++b) {",
+                "matched_lines": [
+                  92
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[15]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 94,
+                "fragment": "for (int64_t hs = 0; hs < height_cum_seq.size() - 1; ++hs) {",
+                "matched_lines": [
+                  94
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[16]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 96,
+                "fragment": "const int64_t height_start = height_cum_seq[hs];",
+                "matched_lines": [
+                  96
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[17]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 97,
+                "fragment": "int64_t height_end =",
+                "matched_lines": [
+                  97
+                ]
+              },
+              {
+                "evidence_line": 98,
+                "fragment": "overlapping_ ? height_cum_seq[hs + 1] : height_cum_seq[hs + 1] - 1;",
+                "matched_lines": [
+                  98
+                ]
+              },
+              {
+                "evidence_line": 99,
+                "fragment": "height_end = std::min(height_end, height_max);",
+                "matched_lines": [
+                  99
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[18]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 102,
+                "fragment": "for (int64_t ws = 0; ws < width_cum_seq.size() - 1; ++ws) {",
+                "matched_lines": [
+                  102
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[19]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 103,
+                "fragment": "const int64_t out_offset =",
+                "matched_lines": [
+                  103
+                ]
+              },
+              {
+                "evidence_line": 104,
+                "fragment": "(b * output_size[1] + hs) * output_size[2] + ws;",
+                "matched_lines": [
+                  104
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[20]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 106,
+                "fragment": "const int64_t width_start = width_cum_seq[ws];",
+                "matched_lines": [
+                  106
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[21]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 107,
+                "fragment": "int64_t width_end =",
+                "matched_lines": [
+                  107
+                ]
+              },
+              {
+                "evidence_line": 108,
+                "fragment": "overlapping_ ? width_cum_seq[ws + 1] : width_cum_seq[ws + 1] - 1;",
+                "matched_lines": [
+                  108
+                ]
+              },
+              {
+                "evidence_line": 109,
+                "fragment": "width_end = std::min(width_end, width_max);",
+                "matched_lines": [
+                  109
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[22]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 110,
+                "fragment": "for (int64_t h = height_start; h <= height_end; ++h) {",
+                "matched_lines": [
+                  110
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[23]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 111,
+                "fragment": "for (int64_t w = width_start; w <= width_end; ++w) {",
+                "matched_lines": [
+                  111
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[24]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 112,
+                "fragment": "const int64_t in_offset =",
+                "matched_lines": [
+                  112
+                ]
+              },
+              {
+                "evidence_line": 113,
+                "fragment": "(b * input_size[1] + h) * input_size[2] + w;",
+                "matched_lines": [
+                  113
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[25]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 114,
+                "fragment": "out_mat.col(out_offset) =",
+                "matched_lines": [
+                  114
+                ]
+              },
+              {
+                "evidence_line": 115,
+                "fragment": "out_mat.col(out_offset).cwiseMax(in_mat.col(in_offset));",
+                "matched_lines": [
+                  115
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 11,
+      "states": 8,
+      "values": 16,
+      "executions": 26
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 10441,
+    "output_tokens": 4592,
+    "total_tokens": 15033
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000111",
+    "split": "test",
+    "source_hash": "3d8f2627100ab68249f765e06d57d47c9529a90e70c3c3198e867e016cfe9f99",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

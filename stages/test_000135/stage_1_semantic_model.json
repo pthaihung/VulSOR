@@ -1,0 +1,638 @@
+{
+  "sample_id": "test_000135",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L23",
+            "L26",
+            "L32",
+            "L65",
+            "L72",
+            "L73"
+          ],
+          "expression": "conn.readCodec->setZeroRttReadCipher(std::move(zeroRttReadCipher))",
+          "claim": "calling a member function through the readCodec pointer, which must point to a valid object"
+        },
+        {
+          "locations": [
+            "L20",
+            "L37",
+            "L60"
+          ],
+          "expression": "conn.qLogger->addTransportStateUpdate(...)",
+          "claim": "calling a member function through the qLogger pointer, which must point to a valid object"
+        },
+        {
+          "locations": [
+            "L56"
+          ],
+          "expression": "processClientInitialParams(conn, std::move(*clientParams))",
+          "claim": "dereferencing clientParams, which must be a valid optional value"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "conn.readCodec",
+            "zeroRttReadCipher"
+          ],
+          "claim": "conn.readCodec's zero-RTT read cipher is set from zeroRttReadCipher when zeroRttReadCipher is non-NULL.",
+          "evidence": "L23: conn.readCodec->setZeroRttReadCipher(std::move(zeroRttReadCipher));"
+        },
+        {
+          "entities": [
+            "conn.readCodec",
+            "zeroRttHeaderCipher"
+          ],
+          "claim": "conn.readCodec's zero-RTT header cipher is set from zeroRttHeaderCipher when zeroRttHeaderCipher is non-NULL.",
+          "evidence": "L26: conn.readCodec->setZeroRttHeaderCipher(std::move(zeroRttHeaderCipher));"
+        },
+        {
+          "entities": [
+            "conn.oneRttWriteHeaderCipher",
+            "oneRttWriteHeaderCipher"
+          ],
+          "claim": "conn.oneRttWriteHeaderCipher is set from oneRttWriteHeaderCipher when oneRttWriteHeaderCipher is non-NULL.",
+          "evidence": "L29: conn.oneRttWriteHeaderCipher = std::move(oneRttWriteHeaderCipher);"
+        },
+        {
+          "entities": [
+            "conn.readCodec",
+            "oneRttReadHeaderCipher"
+          ],
+          "claim": "conn.readCodec's one-RTT header cipher is set from oneRttReadHeaderCipher when oneRttReadHeaderCipher is non-NULL.",
+          "evidence": "L32: conn.readCodec->setOneRttHeaderCipher(std::move(oneRttReadHeaderCipher));"
+        },
+        {
+          "entities": [
+            "conn.oneRttWriteCipher",
+            "oneRttWriteCipher"
+          ],
+          "claim": "conn.oneRttWriteCipher is set from oneRttWriteCipher when oneRttWriteCipher is non-NULL and conn.oneRttWriteCipher was previously NULL.",
+          "evidence": "L40: if (conn.oneRttWriteCipher) {\nL44: conn.oneRttWriteCipher = std::move(oneRttWriteCipher);"
+        },
+        {
+          "entities": [
+            "conn.readCodec",
+            "oneRttReadCipher"
+          ],
+          "claim": "conn.readCodec's one-RTT read cipher is set from oneRttReadCipher when oneRttReadCipher is non-NULL.",
+          "evidence": "L65: conn.readCodec->setOneRttReadCipher(std::move(oneRttReadCipher));"
+        },
+        {
+          "entities": [
+            "conn.readCodec",
+            "handshakeReadCipher",
+            "handshakeReadHeaderCipher"
+          ],
+          "claim": "conn.readCodec's handshake read cipher and handshake header cipher are set from handshakeReadCipher and handshakeReadHeaderCipher when handshakeReadCipher is non-NULL.",
+          "evidence": "L72: conn.readCodec->setHandshakeReadCipher(std::move(handshakeReadCipher));\nL73: conn.readCodec->setHandshakeHeaderCipher(\nL74: std::move(handshakeReadHeaderCipher));"
+        },
+        {
+          "entities": [
+            "conn.sentHandshakeDone"
+          ],
+          "claim": "conn.sentHandshakeDone is set to true after sending a HandshakeDoneFrame.",
+          "evidence": "L80: conn.sentHandshakeDone = true;"
+        }
+      ],
+      "values": [],
+      "executions": [
+        {
+          "entities": [
+            "conn.oneRttWriteCipher"
+          ],
+          "claim": "Reaching the assignment of conn.oneRttWriteCipher implies conn.oneRttWriteCipher was previously null/false, otherwise a QuicTransportException is thrown.",
+          "evidence": "L40: if (conn.oneRttWriteCipher) {\nL41: throw QuicTransportException(\nL44: conn.oneRttWriteCipher = std::move(oneRttWriteCipher);"
+        },
+        {
+          "entities": [
+            "clientParams"
+          ],
+          "claim": "Continuing past the client transport params check implies clientParams is non-null; otherwise a QuicTransportException is thrown.",
+          "evidence": "L50: auto clientParams = handshakeLayer->getClientTransportParams();\nL51: if (!clientParams) {\nL52: throw QuicTransportException(\nL56: processClientInitialParams(conn, std::move(*clientParams));"
+        },
+        {
+          "entities": [
+            "handshakeReadHeaderCipher"
+          ],
+          "claim": "When handshakeReadCipher is non-null, handshakeReadHeaderCipher is asserted non-null via CHECK before use.",
+          "evidence": "L70: if (handshakeReadCipher) {\nL71: CHECK(handshakeReadHeaderCipher);\nL73: conn.readCodec->setHandshakeHeaderCipher("
+        },
+        {
+          "entities": [
+            "conn.oneRttWriteCipher"
+          ],
+          "claim": "When the handshake is done, conn.oneRttWriteCipher is asserted non-null via CHECK.",
+          "evidence": "L76: if (handshakeLayer->isHandshakeDone()) {\nL77: CHECK(conn.oneRttWriteCipher);"
+        },
+        {
+          "entities": [
+            "conn.sentHandshakeDone"
+          ],
+          "claim": "sendSimpleFrame for HandshakeDoneFrame is only executed when conn.version is not MVFST_D24 and conn.sentHandshakeDone is false; after sending, conn.sentHandshakeDone is set true.",
+          "evidence": "L78: if (conn.version != QuicVersion::MVFST_D24 && !conn.sentHandshakeDone) {\nL79: sendSimpleFrame(conn, HandshakeDoneFrame());\nL80: conn.sentHandshakeDone = true;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3192,
+              "output_tokens": 265,
+              "total_tokens": 3457
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3192,
+          "output_tokens": 265,
+          "total_tokens": 3457
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L23",
+                "matched": true,
+                "expression": "conn.readCodec->setZeroRttReadCipher(std::move(zeroRttReadCipher))"
+              },
+              {
+                "location": "L26",
+                "matched": true,
+                "expression": "conn.readCodec->setZeroRttReadCipher(std::move(zeroRttReadCipher))"
+              },
+              {
+                "location": "L32",
+                "matched": true,
+                "expression": "conn.readCodec->setZeroRttReadCipher(std::move(zeroRttReadCipher))"
+              },
+              {
+                "location": "L65",
+                "matched": true,
+                "expression": "conn.readCodec->setZeroRttReadCipher(std::move(zeroRttReadCipher))"
+              },
+              {
+                "location": "L72",
+                "matched": true,
+                "expression": "conn.readCodec->setZeroRttReadCipher(std::move(zeroRttReadCipher))"
+              },
+              {
+                "location": "L73",
+                "matched": true,
+                "expression": "conn.readCodec->setZeroRttReadCipher(std::move(zeroRttReadCipher))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L20",
+                "matched": true,
+                "expression": "conn.qLogger->addTransportStateUpdate(...)"
+              },
+              {
+                "location": "L37",
+                "matched": true,
+                "expression": "conn.qLogger->addTransportStateUpdate(...)"
+              },
+              {
+                "location": "L60",
+                "matched": true,
+                "expression": "conn.qLogger->addTransportStateUpdate(...)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L56",
+                "matched": true,
+                "expression": "processClientInitialParams(conn, std::move(*clientParams))"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 0,
+            "expression": "handshakeLayer->getZeroRttReadCipher()"
+          },
+          {
+            "action": "drop_ungrounded_item",
+            "index": 4,
+            "expression": "CHECK(handshakeReadHeaderCipher)"
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1795,
+              "output_tokens": 746,
+              "total_tokens": 2541
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1795,
+          "output_tokens": 746,
+          "total_tokens": 2541
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "conn.readCodec->setZeroRttReadCipher(std::move(zeroRttReadCipher));",
+                "matched_lines": [
+                  23
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 26,
+                "fragment": "conn.readCodec->setZeroRttHeaderCipher(std::move(zeroRttHeaderCipher));",
+                "matched_lines": [
+                  26
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "conn.oneRttWriteHeaderCipher = std::move(oneRttWriteHeaderCipher);",
+                "matched_lines": [
+                  29
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 32,
+                "fragment": "conn.readCodec->setOneRttHeaderCipher(std::move(oneRttReadHeaderCipher));",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 40,
+                "fragment": "if (conn.oneRttWriteCipher) {",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "conn.oneRttWriteCipher = std::move(oneRttWriteCipher);",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 65,
+                "fragment": "conn.readCodec->setOneRttReadCipher(std::move(oneRttReadCipher));",
+                "matched_lines": [
+                  65
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 72,
+                "fragment": "conn.readCodec->setHandshakeReadCipher(std::move(handshakeReadCipher));",
+                "matched_lines": [
+                  72
+                ]
+              },
+              {
+                "evidence_line": 73,
+                "fragment": "conn.readCodec->setHandshakeHeaderCipher(",
+                "matched_lines": [
+                  73
+                ]
+              },
+              {
+                "evidence_line": 74,
+                "fragment": "std::move(handshakeReadHeaderCipher));",
+                "matched_lines": [
+                  74
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 80,
+                "fragment": "conn.sentHandshakeDone = true;",
+                "matched_lines": [
+                  80
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1983,
+              "output_tokens": 10,
+              "total_tokens": 1993
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1983,
+          "output_tokens": 10,
+          "total_tokens": 1993
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1663,
+              "output_tokens": 511,
+              "total_tokens": 2174
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1663,
+          "output_tokens": 511,
+          "total_tokens": 2174
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 40,
+                "fragment": "if (conn.oneRttWriteCipher) {",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "throw QuicTransportException(",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "conn.oneRttWriteCipher = std::move(oneRttWriteCipher);",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "auto clientParams = handshakeLayer->getClientTransportParams();",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "if (!clientParams) {",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "throw QuicTransportException(",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "processClientInitialParams(conn, std::move(*clientParams));",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 70,
+                "fragment": "if (handshakeReadCipher) {",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 71,
+                "fragment": "CHECK(handshakeReadHeaderCipher);",
+                "matched_lines": [
+                  71
+                ]
+              },
+              {
+                "evidence_line": 73,
+                "fragment": "conn.readCodec->setHandshakeHeaderCipher(",
+                "matched_lines": [
+                  73
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 76,
+                "fragment": "if (handshakeLayer->isHandshakeDone()) {",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 77,
+                "fragment": "CHECK(conn.oneRttWriteCipher);",
+                "matched_lines": [
+                  77
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 78,
+                "fragment": "if (conn.version != QuicVersion::MVFST_D24 && !conn.sentHandshakeDone) {",
+                "matched_lines": [
+                  78
+                ]
+              },
+              {
+                "evidence_line": 79,
+                "fragment": "sendSimpleFrame(conn, HandshakeDoneFrame());",
+                "matched_lines": [
+                  79
+                ]
+              },
+              {
+                "evidence_line": 80,
+                "fragment": "conn.sentHandshakeDone = true;",
+                "matched_lines": [
+                  80
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 3,
+      "states": 8,
+      "values": 0,
+      "executions": 5
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 8633,
+    "output_tokens": 1532,
+    "total_tokens": 10165
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000135",
+    "split": "test",
+    "source_hash": "a9ecb0e00de53be66812b6d14513e4ca2c4c81b785a56b2dbf7ff0cb1819ce04",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

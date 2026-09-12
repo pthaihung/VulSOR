@@ -1,0 +1,405 @@
+{
+  "sample_id": "test_000145",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L8"
+          ],
+          "expression": "epsilon_t->scalar<float>()()",
+          "claim": "read a float scalar from the epsilon tensor"
+        },
+        {
+          "locations": [
+            "L15"
+          ],
+          "expression": "num_streams_t->scalar<int64>()()",
+          "claim": "read an int64 scalar from the num_streams tensor"
+        },
+        {
+          "locations": [
+            "L21"
+          ],
+          "expression": "new QuantileStreamResource(epsilon, max_elements_, num_streams)",
+          "claim": "allocate a QuantileStreamResource object"
+        },
+        {
+          "locations": [
+            "L22"
+          ],
+          "expression": "CreateResource(context, HandleFromInput(context, 0), result)",
+          "claim": "create a resource from the allocated object"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "result",
+            "QuantileStreamResource"
+          ],
+          "claim": "result points to a newly allocated QuantileStreamResource object.",
+          "evidence": "L20: auto result =\nL21: new QuantileStreamResource(epsilon, max_elements_, num_streams);"
+        },
+        {
+          "entities": [
+            "result",
+            "CreateResource",
+            "HandleFromInput(context, 0)"
+          ],
+          "claim": "result is passed to CreateResource for the resource handle derived from input 0; ownership/lifetime is managed by CreateResource.",
+          "evidence": "L22: auto status = CreateResource(context, HandleFromInput(context, 0), result);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "epsilon",
+            "epsilon_t"
+          ],
+          "claim": "epsilon is read as a float scalar from epsilon_t and is required to be > 0 before use.",
+          "evidence": "L8: float epsilon = epsilon_t->scalar<float>()();\nL10: context, epsilon > 0,"
+        },
+        {
+          "entities": [
+            "num_streams",
+            "num_streams_t"
+          ],
+          "claim": "num_streams is read as an int64 scalar from num_streams_t and is required to be >= 0 before use.",
+          "evidence": "L15: int64_t num_streams = num_streams_t->scalar<int64>()();\nL16: OP_REQUIRES(context, num_streams >= 0,"
+        },
+        {
+          "entities": [
+            "num_streams",
+            "QuantileStreamResource"
+          ],
+          "claim": "num_streams is passed as the stream-count argument to the QuantileStreamResource constructor.",
+          "evidence": "L21: new QuantileStreamResource(epsilon, max_elements_, num_streams);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "epsilon"
+          ],
+          "claim": "epsilon is strictly positive after the OP_REQUIRES check",
+          "evidence": "L9: OP_REQUIRES(\nL10: context, epsilon > 0,\nL11: errors::InvalidArgument(\"An epsilon value of zero is not allowed.\"));"
+        },
+        {
+          "entities": [
+            "num_streams"
+          ],
+          "claim": "num_streams is non-negative after the OP_REQUIRES check",
+          "evidence": "L16: OP_REQUIRES(context, num_streams >= 0,\nL17: errors::InvalidArgument(\nL18: \"Num_streams input cannot be a negative integer\"));"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2340,
+              "output_tokens": 143,
+              "total_tokens": 2483
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2340,
+          "output_tokens": 143,
+          "total_tokens": 2483
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L8",
+                "matched": true,
+                "expression": "epsilon_t->scalar<float>()()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L15",
+                "matched": true,
+                "expression": "num_streams_t->scalar<int64>()()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L21",
+                "matched": true,
+                "expression": "new QuantileStreamResource(epsilon, max_elements_, num_streams)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L22",
+                "matched": true,
+                "expression": "CreateResource(context, HandleFromInput(context, 0), result)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 943,
+              "output_tokens": 148,
+              "total_tokens": 1091
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 943,
+          "output_tokens": 148,
+          "total_tokens": 1091
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "auto result =",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "new QuantileStreamResource(epsilon, max_elements_, num_streams);",
+                "matched_lines": [
+                  21
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 22,
+                "fragment": "auto status = CreateResource(context, HandleFromInput(context, 0), result);",
+                "matched_lines": [
+                  22
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1131,
+              "output_tokens": 212,
+              "total_tokens": 1343
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1131,
+          "output_tokens": 212,
+          "total_tokens": 1343
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "float epsilon = epsilon_t->scalar<float>()();",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "context, epsilon > 0,",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "int64_t num_streams = num_streams_t->scalar<int64>()();",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "OP_REQUIRES(context, num_streams >= 0,",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 21,
+                "fragment": "new QuantileStreamResource(epsilon, max_elements_, num_streams);",
+                "matched_lines": [
+                  21
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 811,
+              "output_tokens": 160,
+              "total_tokens": 971
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 811,
+          "output_tokens": 160,
+          "total_tokens": 971
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "context, epsilon > 0,",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "errors::InvalidArgument(\"An epsilon value of zero is not allowed.\"));",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "OP_REQUIRES(context, num_streams >= 0,",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "errors::InvalidArgument(",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "\"Num_streams input cannot be a negative integer\"));",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 4,
+      "states": 2,
+      "values": 3,
+      "executions": 2
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 5225,
+    "output_tokens": 663,
+    "total_tokens": 5888
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000145",
+    "split": "test",
+    "source_hash": "7aae2de23b57eda442447c97de41462cca37a0a68a759175c3a676862230d015",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

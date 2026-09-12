@@ -1,0 +1,1373 @@
+{
+  "sample_id": "test_000092",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L76"
+          ],
+          "expression": "orig_input_tensor_shape_flat(i)",
+          "claim": "indexed access into the flat tensor of original input shape elements"
+        },
+        {
+          "locations": [
+            "L119"
+          ],
+          "expression": "out_backprop_mat.coeffRef(d, out_index)",
+          "claim": "coefficient access into the Eigen matrix map of out_backprop"
+        },
+        {
+          "locations": [
+            "L121"
+          ],
+          "expression": "in_backprop_tensor_temp_mat.coeffRef(d, in_index)",
+          "claim": "coefficient access into the Eigen matrix map of the temporary in_backprop tensor"
+        },
+        {
+          "locations": [
+            "L138",
+            "L139"
+          ],
+          "expression": "in_backprop_tensor_flat(i) = static_cast<T>(in_backprop_tensor_temp_flat(i))",
+          "claim": "indexed write into the output flat tensor and indexed read from the temporary flat tensor"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "in_backprop_tensor_temp"
+          ],
+          "claim": "in_backprop_tensor_temp is allocated as a temporary tensor of double type with shape in_shape via forward_input_or_allocate_temp, and its flat<double> storage is zero-initialized.",
+          "evidence": "L81: OP_REQUIRES_OK(context, context->forward_input_or_allocate_temp(\nL82: {0}, DataTypeToEnum<double>::v(), in_shape,\nL83: &in_backprop_tensor_temp));\nL84: in_backprop_tensor_temp.flat<double>().setZero();"
+        },
+        {
+          "entities": [
+            "in_backprop_tensor_temp_mat",
+            "in_backprop_tensor_temp"
+          ],
+          "claim": "in_backprop_tensor_temp_mat is an Eigen double matrix map over the storage of in_backprop_tensor_temp's flat<double> data.",
+          "evidence": "L86: EigenDoubleMatrixMap in_backprop_tensor_temp_mat(\nL87: in_backprop_tensor_temp.flat<double>().data(), in_depth,\nL88: in_cols * in_rows * in_batch);"
+        },
+        {
+          "entities": [
+            "out_backprop_mat",
+            "out_backprop"
+          ],
+          "claim": "out_backprop_mat is a const Eigen matrix map over the storage of out_backprop's flat<T> data.",
+          "evidence": "L89: ConstEigenMatrixMap out_backprop_mat(out_backprop.flat<T>().data(),\nL90: out_depth,\nL91: out_cols * out_rows * out_batch);"
+        },
+        {
+          "entities": [
+            "in_backprop_tensor"
+          ],
+          "claim": "in_backprop_tensor is allocated as an output tensor of type T with shape in_shape via forward_input_or_allocate_output.",
+          "evidence": "L132: Tensor* in_backprop_tensor = nullptr;\nL133: OP_REQUIRES_OK(context, context->forward_input_or_allocate_output(\nL134: {0}, 0, in_shape, &in_backprop_tensor));"
+        },
+        {
+          "entities": [
+            "in_backprop_tensor_flat",
+            "in_backprop_tensor"
+          ],
+          "claim": "in_backprop_tensor_flat is a flat<T> view over the storage of in_backprop_tensor.",
+          "evidence": "L135: auto in_backprop_tensor_flat = in_backprop_tensor->flat<T>();"
+        },
+        {
+          "entities": [
+            "in_backprop_tensor_temp_flat",
+            "in_backprop_tensor_temp"
+          ],
+          "claim": "in_backprop_tensor_temp_flat is a flat<double> view over the storage of in_backprop_tensor_temp.",
+          "evidence": "L136: auto in_backprop_tensor_temp_flat = in_backprop_tensor_temp.flat<double>();"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "out_batch",
+            "out_rows",
+            "out_cols",
+            "out_depth"
+          ],
+          "claim": "out_backprop dimensions: out_batch=dim_size(0), out_rows=dim_size(1), out_cols=dim_size(2), out_depth=dim_size(3).",
+          "evidence": "L33: const int64_t out_batch = out_backprop.dim_size(0);\nL34: const int64_t out_rows = out_backprop.dim_size(1);\nL35: const int64_t out_cols = out_backprop.dim_size(2);\nL36: const int64_t out_depth = out_backprop.dim_size(3);"
+        },
+        {
+          "entities": [
+            "row_seq_tensor",
+            "out_rows"
+          ],
+          "claim": "row_seq_tensor.NumElements() > out_rows is required.",
+          "evidence": "L38: OP_REQUIRES(context, row_seq_tensor.NumElements() > out_rows,"
+        },
+        {
+          "entities": [
+            "col_seq_tensor",
+            "out_cols"
+          ],
+          "claim": "col_seq_tensor.NumElements() > out_cols is required.",
+          "evidence": "L44: OP_REQUIRES(context, col_seq_tensor.NumElements() > out_cols,"
+        },
+        {
+          "entities": [
+            "in_batch",
+            "in_rows",
+            "in_cols",
+            "in_depth"
+          ],
+          "claim": "in_batch, in_rows, in_cols, in_depth are read from orig_input_tensor_shape_flat indices 0..3 and each must be nonzero.",
+          "evidence": "L55: const int64_t in_batch = orig_input_tensor_shape_flat(0);\nL56: const int64_t in_rows = orig_input_tensor_shape_flat(1);\nL57: const int64_t in_cols = orig_input_tensor_shape_flat(2);\nL58: const int64_t in_depth = orig_input_tensor_shape_flat(3);\nL59: OP_REQUIRES(\nL60: context, in_batch != 0,"
+        },
+        {
+          "entities": [
+            "in_shape",
+            "tensor_in_and_out_dims"
+          ],
+          "claim": "in_shape is built by adding tensor_in_and_out_dims=4 dimensions from orig_input_tensor_shape_flat(0..3).",
+          "evidence": "L72: constexpr int tensor_in_and_out_dims = 4;\nL75: for (auto i = 0; i < tensor_in_and_out_dims; ++i) {\nL76: in_shape.AddDim(orig_input_tensor_shape_flat(i));"
+        },
+        {
+          "entities": [
+            "in_backprop_tensor_temp_mat",
+            "in_depth",
+            "in_cols",
+            "in_rows",
+            "in_batch"
+          ],
+          "claim": "in_backprop_tensor_temp_mat maps in_backprop_tensor_temp data as a matrix with in_depth rows and in_cols*in_rows*in_batch columns.",
+          "evidence": "L86: EigenDoubleMatrixMap in_backprop_tensor_temp_mat(\nL87: in_backprop_tensor_temp.flat<double>().data(), in_depth,\nL88: in_cols * in_rows * in_batch);"
+        },
+        {
+          "entities": [
+            "out_backprop_mat",
+            "out_depth",
+            "out_cols",
+            "out_rows",
+            "out_batch"
+          ],
+          "claim": "out_backprop_mat maps out_backprop data as a matrix with out_depth rows and out_cols*out_rows*out_batch columns.",
+          "evidence": "L89: ConstEigenMatrixMap out_backprop_mat(out_backprop.flat<T>().data(),\nL90: out_depth,\nL91: out_cols * out_rows * out_batch);"
+        },
+        {
+          "entities": [
+            "in_max_row_index",
+            "in_rows"
+          ],
+          "claim": "in_max_row_index = in_rows - 1.",
+          "evidence": "L94: const int64_t in_max_row_index = in_rows - 1;"
+        },
+        {
+          "entities": [
+            "in_max_col_index",
+            "in_cols"
+          ],
+          "claim": "in_max_col_index = in_cols - 1.",
+          "evidence": "L95: const int64_t in_max_col_index = in_cols - 1;"
+        },
+        {
+          "entities": [
+            "in_row_start",
+            "row_seq_tensor_flat",
+            "r"
+          ],
+          "claim": "in_row_start = row_seq_tensor_flat(r).",
+          "evidence": "L98: const int64_t in_row_start = row_seq_tensor_flat(r);"
+        },
+        {
+          "entities": [
+            "in_row_end",
+            "row_seq_tensor_flat",
+            "r",
+            "overlapping_",
+            "in_max_row_index"
+          ],
+          "claim": "in_row_end = row_seq_tensor_flat(r+1) if overlapping_ else row_seq_tensor_flat(r+1)-1, then clamped to min(in_row_end, in_max_row_index).",
+          "evidence": "L99: int64_t in_row_end = overlapping_ ? row_seq_tensor_flat(r + 1)\nL100: : row_seq_tensor_flat(r + 1) - 1;\nL101: in_row_end = std::min(in_row_end, in_max_row_index);"
+        },
+        {
+          "entities": [
+            "in_col_start",
+            "col_seq_tensor_flat",
+            "c"
+          ],
+          "claim": "in_col_start = col_seq_tensor_flat(c).",
+          "evidence": "L103: const int64_t in_col_start = col_seq_tensor_flat(c);"
+        },
+        {
+          "entities": [
+            "in_col_end",
+            "col_seq_tensor_flat",
+            "c",
+            "overlapping_",
+            "in_max_col_index"
+          ],
+          "claim": "in_col_end = col_seq_tensor_flat(c+1) if overlapping_ else col_seq_tensor_flat(c+1)-1, then clamped to min(in_col_end, in_max_col_index).",
+          "evidence": "L104: int64_t in_col_end = overlapping_ ? col_seq_tensor_flat(c + 1)\nL105: : col_seq_tensor_flat(c + 1) - 1;\nL106: in_col_end = std::min(in_col_end, in_max_col_index);"
+        },
+        {
+          "entities": [
+            "num_elements_in_pooling_cell",
+            "in_row_end",
+            "in_row_start",
+            "in_col_end",
+            "in_col_start"
+          ],
+          "claim": "num_elements_in_pooling_cell = (in_row_end - in_row_start + 1) * (in_col_end - in_col_start + 1).",
+          "evidence": "L108: const int64_t num_elements_in_pooling_cell =\nL109: (in_row_end - in_row_start + 1) * (in_col_end - in_col_start + 1);"
+        },
+        {
+          "entities": [
+            "out_index",
+            "b",
+            "out_rows",
+            "r",
+            "out_cols",
+            "c"
+          ],
+          "claim": "out_index = (b * out_rows + r) * out_cols + c.",
+          "evidence": "L110: const int64_t out_index = (b * out_rows + r) * out_cols + c;"
+        },
+        {
+          "entities": [
+            "in_index",
+            "b",
+            "in_rows",
+            "in_r",
+            "in_cols",
+            "in_c"
+          ],
+          "claim": "in_index = (b * in_rows + in_r) * in_cols + in_c.",
+          "evidence": "L115: const int64_t in_index = (b * in_rows + in_r) * in_cols + in_c;"
+        },
+        {
+          "entities": [
+            "out_backprop_element",
+            "out_backprop_mat",
+            "d",
+            "out_index"
+          ],
+          "claim": "out_backprop_element is static_cast<double>(out_backprop_mat.coeffRef(d, out_index)).",
+          "evidence": "L118: const double out_backprop_element = static_cast<double>(\nL119: out_backprop_mat.coeffRef(d, out_index));"
+        },
+        {
+          "entities": [
+            "in_backprop_ref",
+            "in_backprop_tensor_temp_mat",
+            "d",
+            "in_index"
+          ],
+          "claim": "in_backprop_ref is a double reference to in_backprop_tensor_temp_mat.coeffRef(d, in_index).",
+          "evidence": "L120: double& in_backprop_ref =\nL121: in_backprop_tensor_temp_mat.coeffRef(d, in_index);"
+        },
+        {
+          "entities": [
+            "in_backprop_ref",
+            "out_backprop_element",
+            "num_elements_in_pooling_cell"
+          ],
+          "claim": "in_backprop_ref is incremented by out_backprop_element / num_elements_in_pooling_cell.",
+          "evidence": "L122: in_backprop_ref +=\nL123: out_backprop_element / num_elements_in_pooling_cell;"
+        },
+        {
+          "entities": [
+            "in_backprop_tensor_flat",
+            "in_backprop_tensor_temp_flat"
+          ],
+          "claim": "in_backprop_tensor_flat(i) = static_cast<T>(in_backprop_tensor_temp_flat(i)) for i in [0, in_backprop_tensor_flat.size()).",
+          "evidence": "L137: for (int64_t i = 0; i < in_backprop_tensor_flat.size(); ++i) {\nL138: in_backprop_tensor_flat(i) =\nL139: static_cast<T>(in_backprop_tensor_temp_flat(i));"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "orig_input_tensor_shape"
+          ],
+          "claim": "continuing past this check implies orig_input_tensor_shape has rank 1 and exactly 4 elements",
+          "evidence": "L24: OP_REQUIRES(context,\nL25: orig_input_tensor_shape.dims() == 1 &&\nL26: orig_input_tensor_shape.NumElements() == 4,"
+        },
+        {
+          "entities": [
+            "row_seq_tensor",
+            "out_rows"
+          ],
+          "claim": "continuing past this check implies row_seq_tensor.NumElements() > out_rows",
+          "evidence": "L38: OP_REQUIRES(context, row_seq_tensor.NumElements() > out_rows,"
+        },
+        {
+          "entities": [
+            "col_seq_tensor",
+            "out_cols"
+          ],
+          "claim": "continuing past this check implies col_seq_tensor.NumElements() > out_cols",
+          "evidence": "L44: OP_REQUIRES(context, col_seq_tensor.NumElements() > out_cols,"
+        },
+        {
+          "entities": [
+            "in_batch"
+          ],
+          "claim": "continuing past this check implies in_batch != 0",
+          "evidence": "L59: OP_REQUIRES(\nL60: context, in_batch != 0,"
+        },
+        {
+          "entities": [
+            "in_rows"
+          ],
+          "claim": "continuing past this check implies in_rows != 0",
+          "evidence": "L62: OP_REQUIRES(\nL63: context, in_rows != 0,"
+        },
+        {
+          "entities": [
+            "in_cols"
+          ],
+          "claim": "continuing past this check implies in_cols != 0",
+          "evidence": "L65: OP_REQUIRES(\nL66: context, in_cols != 0,"
+        },
+        {
+          "entities": [
+            "in_depth"
+          ],
+          "claim": "continuing past this check implies in_depth != 0",
+          "evidence": "L68: OP_REQUIRES(\nL69: context, in_depth != 0,"
+        },
+        {
+          "entities": [
+            "in_row_end",
+            "in_max_row_index"
+          ],
+          "claim": "after this assignment, in_row_end <= in_max_row_index = in_rows - 1",
+          "evidence": "L101: in_row_end = std::min(in_row_end, in_max_row_index);"
+        },
+        {
+          "entities": [
+            "in_col_end",
+            "in_max_col_index"
+          ],
+          "claim": "after this assignment, in_col_end <= in_max_col_index = in_cols - 1",
+          "evidence": "L106: in_col_end = std::min(in_col_end, in_max_col_index);"
+        },
+        {
+          "entities": [
+            "in_r",
+            "in_row_start",
+            "in_row_end"
+          ],
+          "claim": "loop body executes only while in_row_start <= in_r <= in_row_end",
+          "evidence": "L113: for (int64_t in_r = in_row_start; in_r <= in_row_end; ++in_r) {"
+        },
+        {
+          "entities": [
+            "in_c",
+            "in_col_start",
+            "in_col_end"
+          ],
+          "claim": "loop body executes only while in_col_start <= in_c <= in_col_end",
+          "evidence": "L114: for (int64_t in_c = in_col_start; in_c <= in_col_end; ++in_c) {"
+        },
+        {
+          "entities": [
+            "d",
+            "out_depth"
+          ],
+          "claim": "loop body executes only while 0 <= d < out_depth",
+          "evidence": "L117: for (int64_t d = 0; d < out_depth; ++d) {"
+        },
+        {
+          "entities": [
+            "i",
+            "in_backprop_tensor_flat"
+          ],
+          "claim": "loop body executes only while 0 <= i < in_backprop_tensor_flat.size()",
+          "evidence": "L137: for (int64_t i = 0; i < in_backprop_tensor_flat.size(); ++i) {"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 4208,
+              "output_tokens": 282,
+              "total_tokens": 4490
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 4208,
+          "output_tokens": 282,
+          "total_tokens": 4490
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L76",
+                "matched": true,
+                "expression": "orig_input_tensor_shape_flat(i)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L119",
+                "matched": true,
+                "expression": "out_backprop_mat.coeffRef(d, out_index)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L121",
+                "matched": true,
+                "expression": "in_backprop_tensor_temp_mat.coeffRef(d, in_index)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L138",
+                "matched": true,
+                "expression": "in_backprop_tensor_flat(i) = static_cast<T>(in_backprop_tensor_temp_flat(i))"
+              },
+              {
+                "location": "L139",
+                "matched": true,
+                "expression": "in_backprop_tensor_flat(i) = static_cast<T>(in_backprop_tensor_temp_flat(i))"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 0,
+            "expression": "orig_input_tensor_shape_flat(i)"
+          },
+          {
+            "action": "drop_ungrounded_item",
+            "index": 2,
+            "expression": "row_seq_tensor_flat(r) / col_seq_tensor_flat(c)"
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2811,
+              "output_tokens": 602,
+              "total_tokens": 3413
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2811,
+          "output_tokens": 602,
+          "total_tokens": 3413
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 81,
+                "fragment": "OP_REQUIRES_OK(context, context->forward_input_or_allocate_temp(",
+                "matched_lines": [
+                  81
+                ]
+              },
+              {
+                "evidence_line": 82,
+                "fragment": "{0}, DataTypeToEnum<double>::v(), in_shape,",
+                "matched_lines": [
+                  82
+                ]
+              },
+              {
+                "evidence_line": 83,
+                "fragment": "&in_backprop_tensor_temp));",
+                "matched_lines": [
+                  83
+                ]
+              },
+              {
+                "evidence_line": 84,
+                "fragment": "in_backprop_tensor_temp.flat<double>().setZero();",
+                "matched_lines": [
+                  84
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 86,
+                "fragment": "EigenDoubleMatrixMap in_backprop_tensor_temp_mat(",
+                "matched_lines": [
+                  86
+                ]
+              },
+              {
+                "evidence_line": 87,
+                "fragment": "in_backprop_tensor_temp.flat<double>().data(), in_depth,",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 88,
+                "fragment": "in_cols * in_rows * in_batch);",
+                "matched_lines": [
+                  88
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 89,
+                "fragment": "ConstEigenMatrixMap out_backprop_mat(out_backprop.flat<T>().data(),",
+                "matched_lines": [
+                  89
+                ]
+              },
+              {
+                "evidence_line": 90,
+                "fragment": "out_depth,",
+                "matched_lines": [
+                  90
+                ]
+              },
+              {
+                "evidence_line": 91,
+                "fragment": "out_cols * out_rows * out_batch);",
+                "matched_lines": [
+                  91
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 132,
+                "fragment": "Tensor* in_backprop_tensor = nullptr;",
+                "matched_lines": [
+                  132
+                ]
+              },
+              {
+                "evidence_line": 133,
+                "fragment": "OP_REQUIRES_OK(context, context->forward_input_or_allocate_output(",
+                "matched_lines": [
+                  133
+                ]
+              },
+              {
+                "evidence_line": 134,
+                "fragment": "{0}, 0, in_shape, &in_backprop_tensor));",
+                "matched_lines": [
+                  134
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 135,
+                "fragment": "auto in_backprop_tensor_flat = in_backprop_tensor->flat<T>();",
+                "matched_lines": [
+                  135
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 136,
+                "fragment": "auto in_backprop_tensor_temp_flat = in_backprop_tensor_temp.flat<double>();",
+                "matched_lines": [
+                  136
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2999,
+              "output_tokens": 2030,
+              "total_tokens": 5029
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2999,
+          "output_tokens": 2030,
+          "total_tokens": 5029
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 33,
+                "fragment": "const int64_t out_batch = out_backprop.dim_size(0);",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "const int64_t out_rows = out_backprop.dim_size(1);",
+                "matched_lines": [
+                  34
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "const int64_t out_cols = out_backprop.dim_size(2);",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "const int64_t out_depth = out_backprop.dim_size(3);",
+                "matched_lines": [
+                  36
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 38,
+                "fragment": "OP_REQUIRES(context, row_seq_tensor.NumElements() > out_rows,",
+                "matched_lines": [
+                  38
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "OP_REQUIRES(context, col_seq_tensor.NumElements() > out_cols,",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 55,
+                "fragment": "const int64_t in_batch = orig_input_tensor_shape_flat(0);",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "const int64_t in_rows = orig_input_tensor_shape_flat(1);",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "const int64_t in_cols = orig_input_tensor_shape_flat(2);",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "const int64_t in_depth = orig_input_tensor_shape_flat(3);",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "context, in_batch != 0,",
+                "matched_lines": [
+                  60
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 72,
+                "fragment": "constexpr int tensor_in_and_out_dims = 4;",
+                "matched_lines": [
+                  72
+                ]
+              },
+              {
+                "evidence_line": 75,
+                "fragment": "for (auto i = 0; i < tensor_in_and_out_dims; ++i) {",
+                "matched_lines": [
+                  75
+                ]
+              },
+              {
+                "evidence_line": 76,
+                "fragment": "in_shape.AddDim(orig_input_tensor_shape_flat(i));",
+                "matched_lines": [
+                  76
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 86,
+                "fragment": "EigenDoubleMatrixMap in_backprop_tensor_temp_mat(",
+                "matched_lines": [
+                  86
+                ]
+              },
+              {
+                "evidence_line": 87,
+                "fragment": "in_backprop_tensor_temp.flat<double>().data(), in_depth,",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 88,
+                "fragment": "in_cols * in_rows * in_batch);",
+                "matched_lines": [
+                  88
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 89,
+                "fragment": "ConstEigenMatrixMap out_backprop_mat(out_backprop.flat<T>().data(),",
+                "matched_lines": [
+                  89
+                ]
+              },
+              {
+                "evidence_line": 90,
+                "fragment": "out_depth,",
+                "matched_lines": [
+                  90
+                ]
+              },
+              {
+                "evidence_line": 91,
+                "fragment": "out_cols * out_rows * out_batch);",
+                "matched_lines": [
+                  91
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 94,
+                "fragment": "const int64_t in_max_row_index = in_rows - 1;",
+                "matched_lines": [
+                  94
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 95,
+                "fragment": "const int64_t in_max_col_index = in_cols - 1;",
+                "matched_lines": [
+                  95
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 98,
+                "fragment": "const int64_t in_row_start = row_seq_tensor_flat(r);",
+                "matched_lines": [
+                  98
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 99,
+                "fragment": "int64_t in_row_end = overlapping_ ? row_seq_tensor_flat(r + 1)",
+                "matched_lines": [
+                  99
+                ]
+              },
+              {
+                "evidence_line": 100,
+                "fragment": ": row_seq_tensor_flat(r + 1) - 1;",
+                "matched_lines": [
+                  100
+                ]
+              },
+              {
+                "evidence_line": 101,
+                "fragment": "in_row_end = std::min(in_row_end, in_max_row_index);",
+                "matched_lines": [
+                  101
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 103,
+                "fragment": "const int64_t in_col_start = col_seq_tensor_flat(c);",
+                "matched_lines": [
+                  103
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 104,
+                "fragment": "int64_t in_col_end = overlapping_ ? col_seq_tensor_flat(c + 1)",
+                "matched_lines": [
+                  104
+                ]
+              },
+              {
+                "evidence_line": 105,
+                "fragment": ": col_seq_tensor_flat(c + 1) - 1;",
+                "matched_lines": [
+                  105
+                ]
+              },
+              {
+                "evidence_line": 106,
+                "fragment": "in_col_end = std::min(in_col_end, in_max_col_index);",
+                "matched_lines": [
+                  106
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 108,
+                "fragment": "const int64_t num_elements_in_pooling_cell =",
+                "matched_lines": [
+                  108
+                ]
+              },
+              {
+                "evidence_line": 109,
+                "fragment": "(in_row_end - in_row_start + 1) * (in_col_end - in_col_start + 1);",
+                "matched_lines": [
+                  109
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 110,
+                "fragment": "const int64_t out_index = (b * out_rows + r) * out_cols + c;",
+                "matched_lines": [
+                  110
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[15]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 115,
+                "fragment": "const int64_t in_index = (b * in_rows + in_r) * in_cols + in_c;",
+                "matched_lines": [
+                  115
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[16]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 118,
+                "fragment": "const double out_backprop_element = static_cast<double>(",
+                "matched_lines": [
+                  118
+                ]
+              },
+              {
+                "evidence_line": 119,
+                "fragment": "out_backprop_mat.coeffRef(d, out_index));",
+                "matched_lines": [
+                  119
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[17]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 120,
+                "fragment": "double& in_backprop_ref =",
+                "matched_lines": [
+                  120
+                ]
+              },
+              {
+                "evidence_line": 121,
+                "fragment": "in_backprop_tensor_temp_mat.coeffRef(d, in_index);",
+                "matched_lines": [
+                  121
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[18]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 122,
+                "fragment": "in_backprop_ref +=",
+                "matched_lines": [
+                  122
+                ]
+              },
+              {
+                "evidence_line": 123,
+                "fragment": "out_backprop_element / num_elements_in_pooling_cell;",
+                "matched_lines": [
+                  123
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[19]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 137,
+                "fragment": "for (int64_t i = 0; i < in_backprop_tensor_flat.size(); ++i) {",
+                "matched_lines": [
+                  137
+                ]
+              },
+              {
+                "evidence_line": 138,
+                "fragment": "in_backprop_tensor_flat(i) =",
+                "matched_lines": [
+                  138
+                ]
+              },
+              {
+                "evidence_line": 139,
+                "fragment": "static_cast<T>(in_backprop_tensor_temp_flat(i));",
+                "matched_lines": [
+                  139
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2679,
+              "output_tokens": 819,
+              "total_tokens": 3498
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2679,
+          "output_tokens": 819,
+          "total_tokens": 3498
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 24,
+                "fragment": "OP_REQUIRES(context,",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "orig_input_tensor_shape.dims() == 1 &&",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "orig_input_tensor_shape.NumElements() == 4,",
+                "matched_lines": [
+                  26
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 38,
+                "fragment": "OP_REQUIRES(context, row_seq_tensor.NumElements() > out_rows,",
+                "matched_lines": [
+                  38
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "OP_REQUIRES(context, col_seq_tensor.NumElements() > out_cols,",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 59,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "context, in_batch != 0,",
+                "matched_lines": [
+                  60
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 62,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  62
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "context, in_rows != 0,",
+                "matched_lines": [
+                  63
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 65,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  65
+                ]
+              },
+              {
+                "evidence_line": 66,
+                "fragment": "context, in_cols != 0,",
+                "matched_lines": [
+                  66
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 68,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "context, in_depth != 0,",
+                "matched_lines": [
+                  69
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 101,
+                "fragment": "in_row_end = std::min(in_row_end, in_max_row_index);",
+                "matched_lines": [
+                  101
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 106,
+                "fragment": "in_col_end = std::min(in_col_end, in_max_col_index);",
+                "matched_lines": [
+                  106
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 113,
+                "fragment": "for (int64_t in_r = in_row_start; in_r <= in_row_end; ++in_r) {",
+                "matched_lines": [
+                  113
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 114,
+                "fragment": "for (int64_t in_c = in_col_start; in_c <= in_col_end; ++in_c) {",
+                "matched_lines": [
+                  114
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 117,
+                "fragment": "for (int64_t d = 0; d < out_depth; ++d) {",
+                "matched_lines": [
+                  117
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 137,
+                "fragment": "for (int64_t i = 0; i < in_backprop_tensor_flat.size(); ++i) {",
+                "matched_lines": [
+                  137
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 4,
+      "states": 6,
+      "values": 20,
+      "executions": 13
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 12697,
+    "output_tokens": 3733,
+    "total_tokens": 16430
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000092",
+    "split": "test",
+    "source_hash": "1d96868262da68a9fcd75f3666c615df12c49d8bab5fc68c8ac5dafb492bd7f1",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

@@ -1,0 +1,659 @@
+{
+  "sample_id": "test_000116",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L43"
+          ],
+          "expression": "indices->matrix<int64_t>()(i, 0)",
+          "claim": "indexed access into the indices tensor matrix at row i, column 0"
+        },
+        {
+          "locations": [
+            "L55"
+          ],
+          "expression": "dense_shape->vec<int64_t>()",
+          "claim": "typed vector access into the dense_shape tensor"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "indices"
+          ],
+          "claim": "indices points to a Tensor object obtained from ctx input \"indices\".",
+          "evidence": "L4: const Tensor* indices;\nL5: OP_REQUIRES_OK(ctx, ctx->input(\"indices\", &indices));"
+        },
+        {
+          "entities": [
+            "values"
+          ],
+          "claim": "values points to a Tensor object obtained from ctx input \"values\".",
+          "evidence": "L6: const Tensor* values;\nL7: OP_REQUIRES_OK(ctx, ctx->input(\"values\", &values));"
+        },
+        {
+          "entities": [
+            "dense_shape"
+          ],
+          "claim": "dense_shape points to a Tensor object obtained from ctx input \"dense_shape\".",
+          "evidence": "L8: const Tensor* dense_shape;\nL9: OP_REQUIRES_OK(ctx, ctx->input(\"dense_shape\", &dense_shape));"
+        },
+        {
+          "entities": [
+            "tensor"
+          ],
+          "claim": "tensor is a sparse::SparseTensor object initialized by sparse::SparseTensor::Create from *indices, *values, and dense_shape data.",
+          "evidence": "L52: sparse::SparseTensor tensor;\nL53: OP_REQUIRES_OK(\nL54: ctx, sparse::SparseTensor::Create(\nL55: *indices, *values, TensorShape(dense_shape->vec<int64_t>()),\nL56: std_order, &tensor));"
+        },
+        {
+          "entities": [
+            "output"
+          ],
+          "claim": "*output points to a newly allocated Dataset<T> object constructed from ctx and the moved tensor.",
+          "evidence": "L57: *output = new Dataset<T>(ctx, std::move(tensor));"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "indices->NumElements()",
+            "num_indices"
+          ],
+          "claim": "num_indices is the total element count of the indices tensor.",
+          "evidence": "L16: const auto num_indices = indices->NumElements();"
+        },
+        {
+          "entities": [
+            "values->NumElements()",
+            "num_values"
+          ],
+          "claim": "num_values is the total element count of the values tensor.",
+          "evidence": "L17: const auto num_values = values->NumElements();"
+        },
+        {
+          "entities": [
+            "num_indices",
+            "num_values"
+          ],
+          "claim": "When either num_indices or num_values is zero, the other must be equal to it.",
+          "evidence": "L18: if (num_indices == 0 || num_values == 0) {\nL19: OP_REQUIRES(ctx, num_indices == num_values,"
+        },
+        {
+          "entities": [
+            "indices->dim_size(0)",
+            "i"
+          ],
+          "claim": "The loop bound is indices->dim_size(0), the first dimension size of the indices matrix.",
+          "evidence": "L42: for (int64_t i = 0; i < indices->dim_size(0); ++i) {"
+        },
+        {
+          "entities": [
+            "indices->matrix<int64_t>()",
+            "i",
+            "next_batch_index"
+          ],
+          "claim": "next_batch_index is read from the int64_t matrix view of indices at row i, column 0.",
+          "evidence": "L43: int64_t next_batch_index = indices->matrix<int64_t>()(i, 0);"
+        },
+        {
+          "entities": [
+            "previous_batch_index",
+            "next_batch_index"
+          ],
+          "claim": "previous_batch_index is initialized to -1 and updated to next_batch_index each iteration.",
+          "evidence": "L41: int64_t previous_batch_index = -1;\nL49: previous_batch_index = next_batch_index;"
+        },
+        {
+          "entities": [
+            "std_order",
+            "dense_shape->NumElements()"
+          ],
+          "claim": "std_order is an InlinedVector<int64_t, 8> with size equal to dense_shape->NumElements(), initialized to zeros.",
+          "evidence": "L51: gtl::InlinedVector<int64_t, 8> std_order(dense_shape->NumElements(), 0);"
+        },
+        {
+          "entities": [
+            "TensorShape(dense_shape->vec<int64_t>())",
+            "dense_shape"
+          ],
+          "claim": "The dense shape passed to SparseTensor::Create is constructed from the int64_t vector view of dense_shape.",
+          "evidence": "L55: *indices, *values, TensorShape(dense_shape->vec<int64_t>()),"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "indices",
+            "values"
+          ],
+          "claim": "continuing past the empty-input check implies num_indices != 0 and num_values != 0, or num_indices == num_values",
+          "evidence": "L18: if (num_indices == 0 || num_values == 0) {\nL19: OP_REQUIRES(ctx, num_indices == num_values,"
+        },
+        {
+          "entities": [
+            "indices"
+          ],
+          "claim": "continuing past this check implies indices->shape() is a matrix",
+          "evidence": "L11: OP_REQUIRES(ctx, TensorShapeUtils::IsMatrix(indices->shape()),"
+        },
+        {
+          "entities": [
+            "values"
+          ],
+          "claim": "continuing past this check implies values->shape() is a vector",
+          "evidence": "L26: OP_REQUIRES(ctx, TensorShapeUtils::IsVector(values->shape()),"
+        },
+        {
+          "entities": [
+            "dense_shape"
+          ],
+          "claim": "continuing past this check implies dense_shape->shape() is a vector",
+          "evidence": "L30: OP_REQUIRES(ctx, TensorShapeUtils::IsVector(dense_shape->shape()),"
+        },
+        {
+          "entities": [
+            "i",
+            "indices"
+          ],
+          "claim": "within the loop, 0 <= i < indices->dim_size(0)",
+          "evidence": "L42: for (int64_t i = 0; i < indices->dim_size(0); ++i) {"
+        },
+        {
+          "entities": [
+            "next_batch_index",
+            "previous_batch_index"
+          ],
+          "claim": "continuing past the ordering check implies next_batch_index >= previous_batch_index",
+          "evidence": "L44: OP_REQUIRES(\nL45: ctx, next_batch_index >= previous_batch_index,"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2825,
+              "output_tokens": 79,
+              "total_tokens": 2904
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2825,
+          "output_tokens": 79,
+          "total_tokens": 2904
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L43",
+                "matched": true,
+                "expression": "indices->matrix<int64_t>()(i, 0)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L55",
+                "matched": true,
+                "expression": "dense_shape->vec<int64_t>()"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1428,
+              "output_tokens": 377,
+              "total_tokens": 1805
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1428,
+          "output_tokens": 377,
+          "total_tokens": 1805
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "const Tensor* indices;",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 5,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"indices\", &indices));",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "const Tensor* values;",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 7,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"values\", &values));",
+                "matched_lines": [
+                  7
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "const Tensor* dense_shape;",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"dense_shape\", &dense_shape));",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 52,
+                "fragment": "sparse::SparseTensor tensor;",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "OP_REQUIRES_OK(",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "ctx, sparse::SparseTensor::Create(",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "*indices, *values, TensorShape(dense_shape->vec<int64_t>()),",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "std_order, &tensor));",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "*output = new Dataset<T>(ctx, std::move(tensor));",
+                "matched_lines": [
+                  57
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1616,
+              "output_tokens": 547,
+              "total_tokens": 2163
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1616,
+          "output_tokens": 547,
+          "total_tokens": 2163
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "const auto num_indices = indices->NumElements();",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "const auto num_values = values->NumElements();",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "if (num_indices == 0 || num_values == 0) {",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "OP_REQUIRES(ctx, num_indices == num_values,",
+                "matched_lines": [
+                  19
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 42,
+                "fragment": "for (int64_t i = 0; i < indices->dim_size(0); ++i) {",
+                "matched_lines": [
+                  42
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "int64_t next_batch_index = indices->matrix<int64_t>()(i, 0);",
+                "matched_lines": [
+                  43
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 41,
+                "fragment": "int64_t previous_batch_index = -1;",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "previous_batch_index = next_batch_index;",
+                "matched_lines": [
+                  49
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 51,
+                "fragment": "gtl::InlinedVector<int64_t, 8> std_order(dense_shape->NumElements(), 0);",
+                "matched_lines": [
+                  51
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 55,
+                "fragment": "*indices, *values, TensorShape(dense_shape->vec<int64_t>()),",
+                "matched_lines": [
+                  55
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1296,
+              "output_tokens": 354,
+              "total_tokens": 1650
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1296,
+          "output_tokens": 354,
+          "total_tokens": 1650
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "if (num_indices == 0 || num_values == 0) {",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "OP_REQUIRES(ctx, num_indices == num_values,",
+                "matched_lines": [
+                  19
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "OP_REQUIRES(ctx, TensorShapeUtils::IsMatrix(indices->shape()),",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 26,
+                "fragment": "OP_REQUIRES(ctx, TensorShapeUtils::IsVector(values->shape()),",
+                "matched_lines": [
+                  26
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 30,
+                "fragment": "OP_REQUIRES(ctx, TensorShapeUtils::IsVector(dense_shape->shape()),",
+                "matched_lines": [
+                  30
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 42,
+                "fragment": "for (int64_t i = 0; i < indices->dim_size(0); ++i) {",
+                "matched_lines": [
+                  42
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "ctx, next_batch_index >= previous_batch_index,",
+                "matched_lines": [
+                  45
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 2,
+      "states": 5,
+      "values": 8,
+      "executions": 6
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 7165,
+    "output_tokens": 1357,
+    "total_tokens": 8522
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000116",
+    "split": "test",
+    "source_hash": "83023cd0a50197261280991699fa877747f4bd7a808c00c53a004fa9c21c27dc",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

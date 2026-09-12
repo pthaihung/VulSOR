@@ -1,0 +1,340 @@
+{
+  "sample_id": "test_000096",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "rules",
+  "agent_key": "obligation_reasoner",
+  "output": {
+    "rules": [
+      {
+        "locations": [
+          "L67",
+          "L69"
+        ],
+        "expression": "conn->addr_cur->ai_next",
+        "requirements": [
+          "conn->addr_cur must designate a live addrinfo object whose ai_next member is readable"
+        ]
+      },
+      {
+        "locations": [
+          "L117"
+        ],
+        "expression": "conn->connhost[conn->whichhost]",
+        "requirements": [
+          "conn->whichhost must be within the valid readable extent of the conn->connhost array"
+        ]
+      },
+      {
+        "locations": [
+          "L125"
+        ],
+        "expression": "ch->port[0]",
+        "requirements": [
+          "ch->port must designate a readable NUL-terminated string"
+        ]
+      },
+      {
+        "locations": [
+          "L281",
+          "L282"
+        ],
+        "expression": "memcpy(&conn->raddr.addr, addr_cur->ai_addr, addr_cur->ai_addrlen)",
+        "requirements": [
+          "addr_cur->ai_addr must designate a readable range of at least addr_cur->ai_addrlen bytes",
+          "&conn->raddr.addr must designate a writable range of at least addr_cur->ai_addrlen bytes",
+          "the source range addr_cur->ai_addr[0..addr_cur->ai_addrlen) and the destination range &conn->raddr.addr[0..addr_cur->ai_addrlen) must not overlap"
+        ]
+      },
+      {
+        "locations": [
+          "L299"
+        ],
+        "expression": "socket(addr_cur->ai_family, SOCK_STREAM, 0)",
+        "requirements": [
+          "addr_cur->ai_family must be a valid address family accepted by socket()"
+        ]
+      },
+      {
+        "locations": [
+          "L356"
+        ],
+        "expression": "fcntl(conn->sock, F_SETFD, FD_CLOEXEC)",
+        "requirements": [
+          "conn->sock must be a valid open file descriptor"
+        ]
+      },
+      {
+        "locations": [
+          "L385",
+          "L386",
+          "L387"
+        ],
+        "expression": "setsockopt(conn->sock, SOL_SOCKET, SO_KEEPALIVE, (char *) &on, sizeof(on))",
+        "requirements": [
+          "conn->sock must be a valid open socket descriptor",
+          "&on must designate a readable range of at least sizeof(on) bytes"
+        ]
+      },
+      {
+        "locations": [
+          "L448",
+          "L449"
+        ],
+        "expression": "setsockopt(conn->sock, SOL_SOCKET, SO_NOSIGPIPE, (char *) &optval, sizeof(optval))",
+        "requirements": [
+          "conn->sock must be a valid open socket descriptor",
+          "&optval must designate a readable range of at least sizeof(optval) bytes"
+        ]
+      },
+      {
+        "locations": [
+          "L460",
+          "L461"
+        ],
+        "expression": "connect(conn->sock, addr_cur->ai_addr, addr_cur->ai_addrlen)",
+        "requirements": [
+          "conn->sock must be a valid open socket descriptor",
+          "addr_cur->ai_addr must designate a readable range of at least addr_cur->ai_addrlen bytes"
+        ]
+      },
+      {
+        "locations": [
+          "L514",
+          "L515"
+        ],
+        "expression": "getsockopt(conn->sock, SOL_SOCKET, SO_ERROR, (char *) &optval, &optlen)",
+        "requirements": [
+          "conn->sock must be a valid open socket descriptor",
+          "&optval must designate a writable range of at least optlen bytes",
+          "&optlen must designate a readable and writable object"
+        ]
+      },
+      {
+        "locations": [
+          "L541",
+          "L542",
+          "L543"
+        ],
+        "expression": "getsockname(conn->sock, (struct sockaddr *) &conn->laddr.addr, &conn->laddr.salen)",
+        "requirements": [
+          "conn->sock must be a valid open socket descriptor",
+          "&conn->laddr.addr must designate a writable range of at least conn->laddr.salen bytes",
+          "&conn->laddr.salen must designate a readable and writable object"
+        ]
+      },
+      {
+        "locations": [
+          "L580"
+        ],
+        "expression": "getpeereid(conn->sock, &uid, &gid)",
+        "requirements": [
+          "conn->sock must be a valid open socket descriptor",
+          "&uid and &gid must designate writable objects"
+        ]
+      },
+      {
+        "locations": [
+          "L597"
+        ],
+        "expression": "pqGetpwuid(uid, &pass_buf, pwdbuf, sizeof(pwdbuf), &pass)",
+        "requirements": [
+          "pwdbuf must designate a writable range of at least sizeof(pwdbuf) bytes",
+          "&pass_buf and &pass must designate writable objects"
+        ]
+      },
+      {
+        "locations": [
+          "L612"
+        ],
+        "expression": "strcmp(pass->pw_name, conn->requirepeer)",
+        "requirements": [
+          "pass->pw_name must designate a readable NUL-terminated string",
+          "conn->requirepeer must designate a readable NUL-terminated string"
+        ]
+      },
+      {
+        "locations": [
+          "L786"
+        ],
+        "expression": "pqGetc(&SSLok, conn)",
+        "requirements": [
+          "&SSLok must designate a writable object"
+        ]
+      },
+      {
+        "locations": [
+          "L905"
+        ],
+        "expression": "pqGetc(&gss_ok, conn)",
+        "requirements": [
+          "&gss_ok must designate a writable object"
+        ]
+      },
+      {
+        "locations": [
+          "L996"
+        ],
+        "expression": "pqGetc(&beresp, conn)",
+        "requirements": [
+          "&beresp must designate a writable object"
+        ]
+      },
+      {
+        "locations": [
+          "L1016"
+        ],
+        "expression": "pqGetInt(&msgLength, 4, conn)",
+        "requirements": [
+          "&msgLength must designate a writable object of at least 4 bytes"
+        ]
+      },
+      {
+        "locations": [
+          "L1044"
+        ],
+        "expression": "pqGets_append(&conn->errorMessage, conn)",
+        "requirements": [
+          "&conn->errorMessage must designate a valid PQExpBuffer"
+        ]
+      },
+      {
+        "locations": [
+          "L1057",
+          "L1058"
+        ],
+        "expression": "conn->errorMessage.data[conn->errorMessage.len - 1]",
+        "requirements": [
+          "conn->errorMessage.len must be greater than 0",
+          "conn->errorMessage.data must designate a readable range of at least conn->errorMessage.len bytes"
+        ]
+      },
+      {
+        "locations": [
+          "L1078"
+        ],
+        "expression": "pqCheckInBufferSpace(conn->inCursor + (size_t) msgLength, conn)",
+        "requirements": [
+          "conn->inCursor + (size_t) msgLength must not exceed the maximum representable size_t value"
+        ]
+      },
+      {
+        "locations": [
+          "L1168"
+        ],
+        "expression": "pqGetInt((int *) &areq, 4, conn)",
+        "requirements": [
+          "&areq must designate a writable object of at least 4 bytes"
+        ]
+      },
+      {
+        "locations": [
+          "L1240"
+        ],
+        "expression": "res->resultStatus",
+        "requirements": [
+          "res must designate a live PGresult object whose resultStatus member is readable"
+        ]
+      },
+      {
+        "locations": [
+          "L1258"
+        ],
+        "expression": "PQresultErrorField(res, PG_DIAG_SQLSTATE)",
+        "requirements": [
+          "res must designate a live PGresult object"
+        ]
+      },
+      {
+        "locations": [
+          "L1275",
+          "L1276"
+        ],
+        "expression": "conn->errorMessage.data[conn->errorMessage.len - 1]",
+        "requirements": [
+          "conn->errorMessage.len must be greater than 0",
+          "conn->errorMessage.data must designate a readable range of at least conn->errorMessage.len bytes"
+        ]
+      },
+      {
+        "locations": [
+          "L1478"
+        ],
+        "expression": "PQgetvalue(res, 0, 0)",
+        "requirements": [
+          "res must designate a live PGresult object with at least one row and one column"
+        ]
+      },
+      {
+        "locations": [
+          "L1489"
+        ],
+        "expression": "strncmp(val, \"on\", 2)",
+        "requirements": [
+          "val must designate a readable range of at least 2 bytes"
+        ]
+      },
+      {
+        "locations": [
+          "L1545"
+        ],
+        "expression": "PQgetvalue(res, 0, 0)",
+        "requirements": [
+          "res must designate a live PGresult object with at least one row and one column"
+        ]
+      },
+      {
+        "locations": [
+          "L1547"
+        ],
+        "expression": "strncmp(val, \"t\", 1)",
+        "requirements": [
+          "val must designate a readable range of at least 1 byte"
+        ]
+      }
+    ]
+  },
+  "quality_gate": {
+    "status": "passed",
+    "attempts": [
+      {
+        "attempt": 1,
+        "retry_mode": "initial",
+        "errors": [],
+        "token_usage": {
+          "input_tokens": 12396,
+          "output_tokens": 1754,
+          "total_tokens": 14150
+        },
+        "max_tokens": 8192,
+        "serialization_prefix_recovered": false
+      }
+    ],
+    "token_usage": {
+      "input_tokens": 12396,
+      "output_tokens": 1754,
+      "total_tokens": 14150
+    },
+    "safety_relevance_filter": {
+      "input_operation_groups": 35,
+      "kept_obligations": 29,
+      "filtered_non_safety_candidates": 6
+    }
+  },
+  "token_usage": {
+    "input_tokens": 12396,
+    "output_tokens": 1754,
+    "total_tokens": 14150
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "rules",
+    "sample_id": "test_000096",
+    "split": "test",
+    "source_hash": "8197a7f7e23e8d9dc645d8b87d5d87102799204ed42e9ca8a6e65de3e9e90931",
+    "upstream_hashes": {
+      "semantic_model": "2fb5a8c08d6f53046e35f802a9cc2eed470b8847ee99693da34a565e7f830d51"
+    },
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

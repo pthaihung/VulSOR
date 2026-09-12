@@ -1,0 +1,1190 @@
+{
+  "sample_id": "test_000184",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L37",
+            "L49"
+          ],
+          "expression": "example_weights_t->flat<float>()",
+          "claim": "accessing the tensor's flat data as float values"
+        },
+        {
+          "locations": [
+            "L61"
+          ],
+          "expression": "&examples_[example_id]",
+          "claim": "taking the address of an element in the examples_ vector"
+        },
+        {
+          "locations": [
+            "L62",
+            "L63"
+          ],
+          "expression": "example->sparse_features_.resize(num_sparse_features)",
+          "claim": "resizing the sparse_features_ vector member of an Example"
+        },
+        {
+          "locations": [
+            "L56",
+            "L57",
+            "L58",
+            "L59"
+          ],
+          "expression": "examples_.resize(num_examples)",
+          "claim": "resizing the examples_ and related vectors to num_examples"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "examples_"
+          ],
+          "claim": "examples_ is resized to hold num_examples Example objects, each with sparse_features_ and dense_vectors_ resized; elements are initialized with example_weight_ and example_label_ values.",
+          "evidence": "L55: examples_.clear();\nL56: examples_.resize(num_examples);\nL61: Example* const example = &examples_[example_id];\nL62: example->sparse_features_.resize(num_sparse_features);\nL63: example->dense_vectors_.resize(num_dense_features);\nL64: example->example_weight_ = example_weights(example_id);\nL65: example->example_label_ = example_labels(example_id);"
+        },
+        {
+          "entities": [
+            "probabilities_",
+            "sampled_index_",
+            "sampled_count_"
+          ],
+          "claim": "probabilities_, sampled_index_, and sampled_count_ are resized to num_examples.",
+          "evidence": "L57: probabilities_.resize(num_examples);\nL58: sampled_index_.resize(num_examples);\nL59: sampled_count_.resize(num_examples);"
+        },
+        {
+          "entities": [
+            "example_weights_t",
+            "example_weights"
+          ],
+          "claim": "example_weights_t points to the tensor obtained from context input \"example_weights\"; example_weights is a flat<float> view over that tensor.",
+          "evidence": "L35: const Tensor* example_weights_t;\nL36: TF_RETURN_IF_ERROR(context->input(\"example_weights\", &example_weights_t));\nL37: auto example_weights = example_weights_t->flat<float>();"
+        },
+        {
+          "entities": [
+            "example_labels_t",
+            "example_labels"
+          ],
+          "claim": "example_labels_t points to the tensor obtained from context input \"example_labels\"; example_labels is a flat<float> view over that tensor.",
+          "evidence": "L47: const Tensor* example_labels_t;\nL48: TF_RETURN_IF_ERROR(context->input(\"example_labels\", &example_labels_t));\nL49: auto example_labels = example_labels_t->flat<float>();"
+        },
+        {
+          "entities": [
+            "sparse_example_indices_inputs"
+          ],
+          "claim": "sparse_example_indices_inputs is populated by context->input_list(\"sparse_example_indices\").",
+          "evidence": "L8: OpInputList sparse_example_indices_inputs;\nL9: TF_RETURN_IF_ERROR(context->input_list(\"sparse_example_indices\",\nL10: &sparse_example_indices_inputs));"
+        },
+        {
+          "entities": [
+            "sparse_feature_indices_inputs"
+          ],
+          "claim": "sparse_feature_indices_inputs is populated by context->input_list(\"sparse_feature_indices\").",
+          "evidence": "L16: OpInputList sparse_feature_indices_inputs;\nL17: TF_RETURN_IF_ERROR(context->input_list(\"sparse_feature_indices\",\nL18: &sparse_feature_indices_inputs));"
+        },
+        {
+          "entities": [
+            "sparse_feature_values_inputs"
+          ],
+          "claim": "When num_sparse_features_with_values > 0, sparse_feature_values_inputs is populated by context->input_list(\"sparse_feature_values\").",
+          "evidence": "L24: OpInputList sparse_feature_values_inputs;\nL25: if (num_sparse_features_with_values > 0) {\nL26: TF_RETURN_IF_ERROR(context->input_list(\"sparse_feature_values\",\nL27: &sparse_feature_values_inputs));"
+        },
+        {
+          "entities": [
+            "dense_features_inputs"
+          ],
+          "claim": "dense_features_inputs is populated by context->input_list(\"dense_features\").",
+          "evidence": "L51: OpInputList dense_features_inputs;\nL52: TF_RETURN_IF_ERROR(\nL53: context->input_list(\"dense_features\", &dense_features_inputs));"
+        },
+        {
+          "entities": [
+            "worker_threads"
+          ],
+          "claim": "worker_threads references the CPU worker threads from context->device().",
+          "evidence": "L67: const DeviceBase::CpuWorkerThreads& worker_threads =\nL68: *context->device()->tensorflow_cpu_worker_threads();"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "num_features_",
+            "num_sparse_features",
+            "num_dense_features"
+          ],
+          "claim": "num_features_ is assigned the sum num_sparse_features + num_dense_features.",
+          "evidence": "L6: num_features_ = num_sparse_features + num_dense_features;"
+        },
+        {
+          "entities": [
+            "sparse_example_indices_inputs",
+            "num_sparse_features"
+          ],
+          "claim": "sparse_example_indices_inputs.size() must equal num_sparse_features.",
+          "evidence": "L11: if (sparse_example_indices_inputs.size() != num_sparse_features)"
+        },
+        {
+          "entities": [
+            "sparse_feature_indices_inputs",
+            "num_sparse_features"
+          ],
+          "claim": "sparse_feature_indices_inputs.size() must equal num_sparse_features.",
+          "evidence": "L19: if (sparse_feature_indices_inputs.size() != num_sparse_features)"
+        },
+        {
+          "entities": [
+            "sparse_feature_values_inputs",
+            "num_sparse_features_with_values"
+          ],
+          "claim": "When num_sparse_features_with_values > 0, sparse_feature_values_inputs.size() must equal num_sparse_features_with_values.",
+          "evidence": "L25: if (num_sparse_features_with_values > 0) {\nL28: if (sparse_feature_values_inputs.size() != num_sparse_features_with_values)"
+        },
+        {
+          "entities": [
+            "example_weights",
+            "std::numeric_limits<int>::max()"
+          ],
+          "claim": "example_weights.size() is checked to be strictly less than std::numeric_limits<int>::max().",
+          "evidence": "L39: if (example_weights.size() >= std::numeric_limits<int>::max()) {"
+        },
+        {
+          "entities": [
+            "num_examples",
+            "example_weights"
+          ],
+          "claim": "num_examples is static_cast<int>(example_weights.size()), valid because the size is strictly less than int max.",
+          "evidence": "L46: const int num_examples = static_cast<int>(example_weights.size());"
+        },
+        {
+          "entities": [
+            "examples_",
+            "num_examples"
+          ],
+          "claim": "examples_ is resized to num_examples.",
+          "evidence": "L56: examples_.resize(num_examples);"
+        },
+        {
+          "entities": [
+            "probabilities_",
+            "num_examples"
+          ],
+          "claim": "probabilities_ is resized to num_examples.",
+          "evidence": "L57: probabilities_.resize(num_examples);"
+        },
+        {
+          "entities": [
+            "sampled_index_",
+            "num_examples"
+          ],
+          "claim": "sampled_index_ is resized to num_examples.",
+          "evidence": "L58: sampled_index_.resize(num_examples);"
+        },
+        {
+          "entities": [
+            "sampled_count_",
+            "num_examples"
+          ],
+          "claim": "sampled_count_ is resized to num_examples.",
+          "evidence": "L59: sampled_count_.resize(num_examples);"
+        },
+        {
+          "entities": [
+            "example_id",
+            "num_examples",
+            "examples_"
+          ],
+          "claim": "example_id ranges from 0 to num_examples-1, indexing examples_ within its resized extent.",
+          "evidence": "L60: for (int example_id = 0; example_id < num_examples; ++example_id) {\nL61: Example* const example = &examples_[example_id];"
+        },
+        {
+          "entities": [
+            "example->sparse_features_",
+            "num_sparse_features"
+          ],
+          "claim": "Each example's sparse_features_ is resized to num_sparse_features.",
+          "evidence": "L62: example->sparse_features_.resize(num_sparse_features);"
+        },
+        {
+          "entities": [
+            "example->dense_vectors_",
+            "num_dense_features"
+          ],
+          "claim": "Each example's dense_vectors_ is resized to num_dense_features.",
+          "evidence": "L63: example->dense_vectors_.resize(num_dense_features);"
+        },
+        {
+          "entities": [
+            "example_weights",
+            "example_id",
+            "num_examples"
+          ],
+          "claim": "example_weights(example_id) is accessed for example_id in [0, num_examples), within example_weights.size() = num_examples.",
+          "evidence": "L64: example->example_weight_ = example_weights(example_id);"
+        },
+        {
+          "entities": [
+            "example_labels",
+            "example_id",
+            "num_examples"
+          ],
+          "claim": "example_labels(example_id) is accessed for example_id in [0, num_examples).",
+          "evidence": "L65: example->example_label_ = example_labels(example_id);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "sparse_example_indices_inputs.size()",
+            "num_sparse_features"
+          ],
+          "claim": "continuing past this check implies sparse_example_indices_inputs.size() == num_sparse_features",
+          "evidence": "L11: if (sparse_example_indices_inputs.size() != num_sparse_features)\nL12: return errors::InvalidArgument("
+        },
+        {
+          "entities": [
+            "sparse_feature_indices_inputs.size()",
+            "num_sparse_features"
+          ],
+          "claim": "continuing past this check implies sparse_feature_indices_inputs.size() == num_sparse_features",
+          "evidence": "L19: if (sparse_feature_indices_inputs.size() != num_sparse_features)\nL20: return errors::InvalidArgument("
+        },
+        {
+          "entities": [
+            "sparse_feature_values_inputs.size()",
+            "num_sparse_features_with_values"
+          ],
+          "claim": "if num_sparse_features_with_values > 0, continuing past this check implies sparse_feature_values_inputs.size() == num_sparse_features_with_values",
+          "evidence": "L25: if (num_sparse_features_with_values > 0) {\nL28: if (sparse_feature_values_inputs.size() != num_sparse_features_with_values)\nL29: return errors::InvalidArgument("
+        },
+        {
+          "entities": [
+            "example_weights.size()"
+          ],
+          "claim": "continuing past this check implies example_weights.size() < std::numeric_limits<int>::max()",
+          "evidence": "L39: if (example_weights.size() >= std::numeric_limits<int>::max()) {\nL40: return errors::InvalidArgument(strings::Printf("
+        },
+        {
+          "entities": [
+            "num_examples",
+            "example_weights.size()"
+          ],
+          "claim": "after the size check, num_examples is the static_cast<int> of example_weights.size(), so 0 <= num_examples < INT_MAX",
+          "evidence": "L46: const int num_examples = static_cast<int>(example_weights.size());"
+        },
+        {
+          "entities": [
+            "example_id",
+            "num_examples"
+          ],
+          "claim": "loop body executes only while 0 <= example_id < num_examples",
+          "evidence": "L60: for (int example_id = 0; example_id < num_examples; ++example_id) {"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3122,
+              "output_tokens": 189,
+              "total_tokens": 3311
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3122,
+          "output_tokens": 189,
+          "total_tokens": 3311
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L37",
+                "matched": true,
+                "expression": "example_weights_t->flat<float>()"
+              },
+              {
+                "location": "L49",
+                "matched": true,
+                "expression": "example_weights_t->flat<float>()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L61",
+                "matched": true,
+                "expression": "&examples_[example_id]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L62",
+                "matched": true,
+                "expression": "example->sparse_features_.resize(num_sparse_features)"
+              },
+              {
+                "location": "L63",
+                "matched": true,
+                "expression": "example->sparse_features_.resize(num_sparse_features)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L56",
+                "matched": true,
+                "expression": "examples_.resize(num_examples)"
+              },
+              {
+                "location": "L57",
+                "matched": true,
+                "expression": "examples_.resize(num_examples)"
+              },
+              {
+                "location": "L58",
+                "matched": true,
+                "expression": "examples_.resize(num_examples)"
+              },
+              {
+                "location": "L59",
+                "matched": true,
+                "expression": "examples_.resize(num_examples)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 1,
+            "expression": "example_weights(example_id)"
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1725,
+              "output_tokens": 942,
+              "total_tokens": 2667
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1725,
+          "output_tokens": 942,
+          "total_tokens": 2667
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 55,
+                "fragment": "examples_.clear();",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "examples_.resize(num_examples);",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "Example* const example = &examples_[example_id];",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "example->sparse_features_.resize(num_sparse_features);",
+                "matched_lines": [
+                  62
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "example->dense_vectors_.resize(num_dense_features);",
+                "matched_lines": [
+                  63
+                ]
+              },
+              {
+                "evidence_line": 64,
+                "fragment": "example->example_weight_ = example_weights(example_id);",
+                "matched_lines": [
+                  64
+                ]
+              },
+              {
+                "evidence_line": 65,
+                "fragment": "example->example_label_ = example_labels(example_id);",
+                "matched_lines": [
+                  65
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "probabilities_.resize(num_examples);",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "sampled_index_.resize(num_examples);",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "sampled_count_.resize(num_examples);",
+                "matched_lines": [
+                  59
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 35,
+                "fragment": "const Tensor* example_weights_t;",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "TF_RETURN_IF_ERROR(context->input(\"example_weights\", &example_weights_t));",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "auto example_weights = example_weights_t->flat<float>();",
+                "matched_lines": [
+                  37
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 47,
+                "fragment": "const Tensor* example_labels_t;",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "TF_RETURN_IF_ERROR(context->input(\"example_labels\", &example_labels_t));",
+                "matched_lines": [
+                  48
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "auto example_labels = example_labels_t->flat<float>();",
+                "matched_lines": [
+                  49
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "OpInputList sparse_example_indices_inputs;",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "TF_RETURN_IF_ERROR(context->input_list(\"sparse_example_indices\",",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "&sparse_example_indices_inputs));",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "OpInputList sparse_feature_indices_inputs;",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "TF_RETURN_IF_ERROR(context->input_list(\"sparse_feature_indices\",",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "&sparse_feature_indices_inputs));",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 24,
+                "fragment": "OpInputList sparse_feature_values_inputs;",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "if (num_sparse_features_with_values > 0) {",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "TF_RETURN_IF_ERROR(context->input_list(\"sparse_feature_values\",",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "&sparse_feature_values_inputs));",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 51,
+                "fragment": "OpInputList dense_features_inputs;",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "TF_RETURN_IF_ERROR(",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "context->input_list(\"dense_features\", &dense_features_inputs));",
+                "matched_lines": [
+                  53
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 67,
+                "fragment": "const DeviceBase::CpuWorkerThreads& worker_threads =",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "*context->device()->tensorflow_cpu_worker_threads();",
+                "matched_lines": [
+                  68
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [
+              "Expecting ':' delimiter: line 1 column 1075 (char 1074)"
+            ],
+            "token_usage": {
+              "input_tokens": 1913,
+              "output_tokens": 908,
+              "total_tokens": 2821
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          },
+          {
+            "attempt": 2,
+            "retry_mode": "semantic_regeneration",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3069,
+              "output_tokens": 908,
+              "total_tokens": 3977
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 4982,
+          "output_tokens": 1816,
+          "total_tokens": 6798
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "num_features_ = num_sparse_features + num_dense_features;",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "if (sparse_example_indices_inputs.size() != num_sparse_features)",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 19,
+                "fragment": "if (sparse_feature_indices_inputs.size() != num_sparse_features)",
+                "matched_lines": [
+                  19
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 25,
+                "fragment": "if (num_sparse_features_with_values > 0) {",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "if (sparse_feature_values_inputs.size() != num_sparse_features_with_values)",
+                "matched_lines": [
+                  28
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 39,
+                "fragment": "if (example_weights.size() >= std::numeric_limits<int>::max()) {",
+                "matched_lines": [
+                  39
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 46,
+                "fragment": "const int num_examples = static_cast<int>(example_weights.size());",
+                "matched_lines": [
+                  46
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 56,
+                "fragment": "examples_.resize(num_examples);",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "probabilities_.resize(num_examples);",
+                "matched_lines": [
+                  57
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 58,
+                "fragment": "sampled_index_.resize(num_examples);",
+                "matched_lines": [
+                  58
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 59,
+                "fragment": "sampled_count_.resize(num_examples);",
+                "matched_lines": [
+                  59
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 60,
+                "fragment": "for (int example_id = 0; example_id < num_examples; ++example_id) {",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "Example* const example = &examples_[example_id];",
+                "matched_lines": [
+                  61
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 62,
+                "fragment": "example->sparse_features_.resize(num_sparse_features);",
+                "matched_lines": [
+                  62
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 63,
+                "fragment": "example->dense_vectors_.resize(num_dense_features);",
+                "matched_lines": [
+                  63
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 64,
+                "fragment": "example->example_weight_ = example_weights(example_id);",
+                "matched_lines": [
+                  64
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 65,
+                "fragment": "example->example_label_ = example_labels(example_id);",
+                "matched_lines": [
+                  65
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 12,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 13,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 14,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1593,
+              "output_tokens": 499,
+              "total_tokens": 2092
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1593,
+          "output_tokens": 499,
+          "total_tokens": 2092
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "if (sparse_example_indices_inputs.size() != num_sparse_features)",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "return errors::InvalidArgument(",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 19,
+                "fragment": "if (sparse_feature_indices_inputs.size() != num_sparse_features)",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "return errors::InvalidArgument(",
+                "matched_lines": [
+                  20
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 25,
+                "fragment": "if (num_sparse_features_with_values > 0) {",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "if (sparse_feature_values_inputs.size() != num_sparse_features_with_values)",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "return errors::InvalidArgument(",
+                "matched_lines": [
+                  29
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 39,
+                "fragment": "if (example_weights.size() >= std::numeric_limits<int>::max()) {",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "return errors::InvalidArgument(strings::Printf(",
+                "matched_lines": [
+                  40
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 46,
+                "fragment": "const int num_examples = static_cast<int>(example_weights.size());",
+                "matched_lines": [
+                  46
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 60,
+                "fragment": "for (int example_id = 0; example_id < num_examples; ++example_id) {",
+                "matched_lines": [
+                  60
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 4,
+      "states": 9,
+      "values": 15,
+      "executions": 6
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 11422,
+    "output_tokens": 3446,
+    "total_tokens": 14868
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000184",
+    "split": "test",
+    "source_hash": "044c23261c9f1c57bbe8a971c1f8b21355d8162283a9d56c30cdfaa14ca7c9ca",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

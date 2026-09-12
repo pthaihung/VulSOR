@@ -1,0 +1,101 @@
+{
+  "sample_id": "test_000021",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "rules",
+  "agent_key": "obligation_reasoner",
+  "output": {
+    "rules": [
+      {
+        "locations": [
+          "L72",
+          "L79"
+        ],
+        "expression": "output->flat<uint8>().data() / output->flat<uint16>().data()",
+        "requirements": [
+          "the output tensor storage region addressed by output->flat<uint8>().data() or output->flat<uint16>().data() must be large enough to hold decode.channels * width elements of the corresponding element type"
+        ]
+      },
+      {
+        "locations": [
+          "L87"
+        ],
+        "expression": "new uint16[height * width * decode.channels]",
+        "requirements": [
+          "the allocation size height * width * decode.channels must be representable as a valid array length for uint16"
+        ]
+      },
+      {
+        "locations": [
+          "L90"
+        ],
+        "expression": "buffer.get()",
+        "requirements": [
+          "the buffer storage region addressed by buffer.get() must be large enough to hold height * width * decode.channels uint16 elements"
+        ]
+      },
+      {
+        "locations": [
+          "L98"
+        ],
+        "expression": "TTypes<uint16, 3>::UnalignedConstTensor buf(buffer.get(), height, width, decode.channels)",
+        "requirements": [
+          "the storage region addressed by buffer.get() must contain at least height * width * decode.channels readable uint16 elements"
+        ]
+      },
+      {
+        "locations": [
+          "L102"
+        ],
+        "expression": "output->tensor<float, 3>().device(device) = buf.cast<float>() * scale",
+        "requirements": [
+          "the output tensor storage region addressed by output->tensor<float, 3>() must be large enough to hold height * width * decode.channels float elements",
+          "the tensor view buf must provide at least height * width * decode.channels readable uint16 elements"
+        ]
+      }
+    ]
+  },
+  "quality_gate": {
+    "status": "passed",
+    "attempts": [
+      {
+        "attempt": 1,
+        "retry_mode": "initial",
+        "errors": [],
+        "token_usage": {
+          "input_tokens": 3421,
+          "output_tokens": 325,
+          "total_tokens": 3746
+        },
+        "max_tokens": 8192,
+        "serialization_prefix_recovered": false
+      }
+    ],
+    "token_usage": {
+      "input_tokens": 3421,
+      "output_tokens": 325,
+      "total_tokens": 3746
+    },
+    "safety_relevance_filter": {
+      "input_operation_groups": 5,
+      "kept_obligations": 5,
+      "filtered_non_safety_candidates": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 3421,
+    "output_tokens": 325,
+    "total_tokens": 3746
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "rules",
+    "sample_id": "test_000021",
+    "split": "test",
+    "source_hash": "541095a058e3aac1bad7e7d6ad51434adc9baf382b877783ba9be3bb753963ba",
+    "upstream_hashes": {
+      "semantic_model": "c1d337750c96a4492beba847b2087aab23602d0facd57a01bbe3ad9df544b6ac"
+    },
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

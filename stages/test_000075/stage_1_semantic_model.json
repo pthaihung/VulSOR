@@ -1,0 +1,463 @@
+{
+  "sample_id": "test_000075",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L27"
+          ],
+          "expression": "values_tensor[i]",
+          "claim": "indexed access into the values input list"
+        },
+        {
+          "locations": [
+            "L31"
+          ],
+          "expression": "map->put(&key, indices_tensor, &tuple)",
+          "claim": "insertion into the staging map using the key, indices, and tuple"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "map"
+          ],
+          "claim": "map is a pointer to a StagingMap<Ordered> object obtained via GetStagingMap; ownership is managed by a ScopedUnref scope.",
+          "evidence": "L2: StagingMap<Ordered>* map = nullptr;\nL3: OP_REQUIRES_OK(ctx, GetStagingMap(ctx, def(), &map));\nL4: core::ScopedUnref scope(map);"
+        },
+        {
+          "entities": [
+            "key_tensor"
+          ],
+          "claim": "key_tensor points to the Tensor input named \"key\".",
+          "evidence": "L7: const Tensor* key_tensor;\nL11: OP_REQUIRES_OK(ctx, ctx->input(\"key\", &key_tensor));"
+        },
+        {
+          "entities": [
+            "indices_tensor"
+          ],
+          "claim": "indices_tensor points to the Tensor input named \"indices\".",
+          "evidence": "L8: const Tensor* indices_tensor;\nL12: OP_REQUIRES_OK(ctx, ctx->input(\"indices\", &indices_tensor));"
+        },
+        {
+          "entities": [
+            "values_tensor"
+          ],
+          "claim": "values_tensor is an OpInputList populated from the input list named \"values\".",
+          "evidence": "L9: OpInputList values_tensor;\nL13: OP_REQUIRES_OK(ctx, ctx->input_list(\"values\", &values_tensor));"
+        },
+        {
+          "entities": [
+            "key"
+          ],
+          "claim": "key is a Tensor copy constructed from *key_tensor.",
+          "evidence": "L23: Tensor key(*key_tensor);"
+        },
+        {
+          "entities": [
+            "tuple"
+          ],
+          "claim": "tuple is an OptionalTuple populated with copies of the tensors in values_tensor.",
+          "evidence": "L5: typename StagingMap<Ordered>::OptionalTuple tuple;\nL26: for (std::size_t i = 0; i < values_tensor.size(); ++i) {\nL27: tuple.push_back(values_tensor[i]);\nL28: }"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "values_tensor.size()",
+            "tuple"
+          ],
+          "claim": "The loop bound is values_tensor.size(), and each iteration appends one element to tuple, so tuple's element count equals values_tensor.size().",
+          "evidence": "L26: for (std::size_t i = 0; i < values_tensor.size(); ++i) {\nL27: tuple.push_back(values_tensor[i]);"
+        },
+        {
+          "entities": [
+            "key_tensor->NumElements()"
+          ],
+          "claim": "key_tensor->NumElements() is required to be greater than 0 and equal to 1 before key is copied.",
+          "evidence": "L14: OP_REQUIRES(ctx, key_tensor->NumElements() > 0,\nL17: OP_REQUIRES(ctx, key_tensor->NumElements() == 1,"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "key_tensor"
+          ],
+          "claim": "continuing past these checks implies key_tensor->NumElements() == 1 (and thus > 0)",
+          "evidence": "L14: OP_REQUIRES(ctx, key_tensor->NumElements() > 0,\nL17: OP_REQUIRES(ctx, key_tensor->NumElements() == 1,"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2388,
+              "output_tokens": 73,
+              "total_tokens": 2461
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2388,
+          "output_tokens": 73,
+          "total_tokens": 2461
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L27",
+                "matched": true,
+                "expression": "values_tensor[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L31",
+                "matched": true,
+                "expression": "map->put(&key, indices_tensor, &tuple)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 991,
+              "output_tokens": 444,
+              "total_tokens": 1435
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 991,
+          "output_tokens": 444,
+          "total_tokens": 1435
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "StagingMap<Ordered>* map = nullptr;",
+                "matched_lines": [
+                  2
+                ]
+              },
+              {
+                "evidence_line": 3,
+                "fragment": "OP_REQUIRES_OK(ctx, GetStagingMap(ctx, def(), &map));",
+                "matched_lines": [
+                  3
+                ]
+              },
+              {
+                "evidence_line": 4,
+                "fragment": "core::ScopedUnref scope(map);",
+                "matched_lines": [
+                  4
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "const Tensor* key_tensor;",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"key\", &key_tensor));",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "const Tensor* indices_tensor;",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"indices\", &indices_tensor));",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "OpInputList values_tensor;",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input_list(\"values\", &values_tensor));",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "Tensor key(*key_tensor);",
+                "matched_lines": [
+                  23
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "typename StagingMap<Ordered>::OptionalTuple tuple;",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "for (std::size_t i = 0; i < values_tensor.size(); ++i) {",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "tuple.push_back(values_tensor[i]);",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "}",
+                "matched_lines": [
+                  28
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1179,
+              "output_tokens": 185,
+              "total_tokens": 1364
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1179,
+          "output_tokens": 185,
+          "total_tokens": 1364
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 26,
+                "fragment": "for (std::size_t i = 0; i < values_tensor.size(); ++i) {",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "tuple.push_back(values_tensor[i]);",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "OP_REQUIRES(ctx, key_tensor->NumElements() > 0,",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "OP_REQUIRES(ctx, key_tensor->NumElements() == 1,",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 859,
+              "output_tokens": 92,
+              "total_tokens": 951
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 859,
+          "output_tokens": 92,
+          "total_tokens": 951
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "OP_REQUIRES(ctx, key_tensor->NumElements() > 0,",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "OP_REQUIRES(ctx, key_tensor->NumElements() == 1,",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 2,
+      "states": 6,
+      "values": 2,
+      "executions": 1
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 5417,
+    "output_tokens": 794,
+    "total_tokens": 6211
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000075",
+    "split": "test",
+    "source_hash": "0d177db7c3ac0ba2714640828163e9dfc134748adf4777b46fa7be7b670f5fc8",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

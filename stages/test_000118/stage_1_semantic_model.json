@@ -1,0 +1,1149 @@
+{
+  "sample_id": "test_000118",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L21"
+          ],
+          "expression": "argv[arg_start][0]",
+          "claim": "read the first character of the argument selected by arg_start"
+        },
+        {
+          "locations": [
+            "L24"
+          ],
+          "expression": "argv[arg_start] + 1",
+          "claim": "form a pointer one past the start of the argument selected by arg_start"
+        },
+        {
+          "locations": [
+            "L25"
+          ],
+          "expression": "argv_eol[arg_start + 1]",
+          "claim": "read the end-of-line argument at index arg_start + 1"
+        },
+        {
+          "locations": [
+            "L29"
+          ],
+          "expression": "argv[arg_start]",
+          "claim": "read the argument selected by arg_start"
+        },
+        {
+          "locations": [
+            "L30"
+          ],
+          "expression": "argv[arg_start + 1] + 1",
+          "claim": "form a pointer one past the start of the argument at index arg_start + 1"
+        },
+        {
+          "locations": [
+            "L31"
+          ],
+          "expression": "argv_eol[arg_start + 2]",
+          "claim": "read the end-of-line argument at index arg_start + 2"
+        },
+        {
+          "locations": [
+            "L42"
+          ],
+          "expression": "strlen (argv[4]) + 1 + strlen (argv[5]) + 1",
+          "claim": "compute the combined length of argv[4] and argv[5] plus separators"
+        },
+        {
+          "locations": [
+            "L43"
+          ],
+          "expression": "malloc (length)",
+          "claim": "allocate a buffer of the computed length"
+        },
+        {
+          "locations": [
+            "L46"
+          ],
+          "expression": "snprintf (str_host, length, \"%s@%s\", argv[4], argv[5])",
+          "claim": "write the formatted host string into the allocated buffer"
+        },
+        {
+          "locations": [
+            "L48"
+          ],
+          "expression": "free (str_host)",
+          "claim": "release the allocated host buffer"
+        },
+        {
+          "locations": [
+            "L56"
+          ],
+          "expression": "pos_attr[0]",
+          "claim": "read the first character of the attribute string"
+        },
+        {
+          "locations": [
+            "L62",
+            "L63"
+          ],
+          "expression": "ptr_nick->realname",
+          "claim": "read and free the existing realname pointer of the nick"
+        },
+        {
+          "locations": [
+            "L67"
+          ],
+          "expression": "strdup (pos_realname)",
+          "claim": "duplicate the realname string"
+        },
+        {
+          "locations": [
+            "L87"
+          ],
+          "expression": "argv[3]",
+          "claim": "read the channel argument"
+        },
+        {
+          "locations": [
+            "L89"
+          ],
+          "expression": "irc_nick_color_for_msg (server, 1, NULL, argv[7])",
+          "claim": "obtain a color for the nick argument"
+        },
+        {
+          "locations": [
+            "L90"
+          ],
+          "expression": "argv[7]",
+          "claim": "read the nick argument"
+        },
+        {
+          "locations": [
+            "L93"
+          ],
+          "expression": "argv[4]",
+          "claim": "read the user argument"
+        },
+        {
+          "locations": [
+            "L94"
+          ],
+          "expression": "argv[5]",
+          "claim": "read the host argument"
+        },
+        {
+          "locations": [
+            "L97"
+          ],
+          "expression": "pos_attr",
+          "claim": "read the attribute string"
+        },
+        {
+          "locations": [
+            "L99"
+          ],
+          "expression": "pos_hopcount",
+          "claim": "read the hopcount string"
+        },
+        {
+          "locations": [
+            "L101"
+          ],
+          "expression": "pos_realname",
+          "claim": "read the realname string"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "str_host"
+          ],
+          "claim": "str_host is allocated by malloc with size length; if allocation succeeds it is initialized via snprintf and then freed, ending its lifetime.",
+          "evidence": "L43: str_host = malloc (length);\nL46: snprintf (str_host, length, \"%s@%s\", argv[4], argv[5]);\nL48: free (str_host);"
+        },
+        {
+          "entities": [
+            "ptr_nick",
+            "ptr_nick->realname"
+          ],
+          "claim": "ptr_nick->realname is released by free when non-NULL, then reassigned to either a strdup of pos_realname or NULL.",
+          "evidence": "L62: if (ptr_nick->realname)\nL63: free (ptr_nick->realname);\nL67: ptr_nick->realname = strdup (pos_realname);\nL71: ptr_nick->realname = NULL;"
+        },
+        {
+          "entities": [
+            "pos_attr",
+            "pos_hopcount",
+            "pos_realname"
+          ],
+          "claim": "pos_attr, pos_hopcount, and pos_realname are initialized to NULL and may be set to point into argv/argv_eol storage or remain NULL.",
+          "evidence": "L14: pos_attr = NULL;\nL15: pos_hopcount = NULL;\nL16: pos_realname = NULL;\nL24: pos_hopcount = (argc > arg_start) ? argv[arg_start] + 1 : NULL;\nL25: pos_realname = (argc > arg_start + 1) ? argv_eol[arg_start + 1] : NULL;\nL29: pos_attr = argv[arg_start];\nL30: pos_hopcount = (argc > arg_start + 1) ? argv[arg_start + 1] + 1 : NULL;\nL31: pos_realname = (argc > arg_start + 2) ? argv_eol[arg_start + 2] : NULL;"
+        },
+        {
+          "entities": [
+            "ptr_channel",
+            "ptr_nick"
+          ],
+          "claim": "ptr_channel is set from irc_channel_search; ptr_nick is set from irc_nick_search only when ptr_channel is non-NULL, otherwise NULL.",
+          "evidence": "L35: ptr_channel = irc_channel_search (server, argv[3]);\nL36: ptr_nick = (ptr_channel) ?\nL37: irc_nick_search (server, ptr_channel, argv[7]) : NULL;"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "length",
+            "argv[4]",
+            "argv[5]",
+            "str_host"
+          ],
+          "claim": "length = strlen(argv[4]) + 1 + strlen(argv[5]) + 1, the allocation size passed to malloc and the size argument to snprintf.",
+          "evidence": "L42: length = strlen (argv[4]) + 1 + strlen (argv[5]) + 1;\nL43: str_host = malloc (length);\nL46: snprintf (str_host, length, \"%s@%s\", argv[4], argv[5]);"
+        },
+        {
+          "entities": [
+            "arg_start",
+            "argc",
+            "argv",
+            "argv_eol"
+          ],
+          "claim": "arg_start is 9 when argv[8] equals \"*\", otherwise 8; subsequent argv/argv_eol accesses use arg_start, arg_start+1, arg_start+2 guarded by argc comparisons.",
+          "evidence": "L20: arg_start = (strcmp (argv[8], \"*\") == 0) ? 9 : 8;\nL24: pos_hopcount = (argc > arg_start) ? argv[arg_start] + 1 : NULL;\nL25: pos_realname = (argc > arg_start + 1) ? argv_eol[arg_start + 1] : NULL;\nL29: pos_attr = argv[arg_start];\nL30: pos_hopcount = (argc > arg_start + 1) ? argv[arg_start + 1] + 1 : NULL;\nL31: pos_realname = (argc > arg_start + 2) ? argv_eol[arg_start + 2] : NULL;"
+        },
+        {
+          "entities": [
+            "pos_hopcount",
+            "argv"
+          ],
+          "claim": "pos_hopcount is set to argv[arg_start]+1 or argv[arg_start+1]+1, i.e. a pointer advanced one byte past the start of the argument string.",
+          "evidence": "L24: pos_hopcount = (argc > arg_start) ? argv[arg_start] + 1 : NULL;\nL30: pos_hopcount = (argc > arg_start + 1) ? argv[arg_start + 1] + 1 : NULL;"
+        },
+        {
+          "entities": [
+            "pos_attr"
+          ],
+          "claim": "pos_attr[0] is read only when pos_attr is non-NULL; pos_attr is argv[arg_start] in the non-colon branch.",
+          "evidence": "L29: pos_attr = argv[arg_start];\nL53: if (ptr_channel && ptr_nick && pos_attr)\nL56: (pos_attr[0] == 'G') ? 1 : 0);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "argc",
+            "argv",
+            "arg_start"
+          ],
+          "claim": "continuing past the argc<8 check implies argc>=8; when argc>8, arg_start is 9 if argv[8]==\"*\" else 8, and argv[arg_start] is dereferenced, so arg_start must be a valid index into argv",
+          "evidence": "L11: if (argc < 8)\nL20: arg_start = (strcmp (argv[8], \"*\") == 0) ? 9 : 8;\nL21: if (argv[arg_start][0] == ':')"
+        },
+        {
+          "entities": [
+            "pos_hopcount",
+            "pos_realname",
+            "argc",
+            "arg_start"
+          ],
+          "claim": "in the argv[arg_start][0]==':' branch, pos_hopcount is argv[arg_start]+1 only if argc>arg_start, and pos_realname is argv_eol[arg_start+1] only if argc>arg_start+1; otherwise they are NULL",
+          "evidence": "L24: pos_hopcount = (argc > arg_start) ? argv[arg_start] + 1 : NULL;\nL25: pos_realname = (argc > arg_start + 1) ? argv_eol[arg_start + 1] : NULL;"
+        },
+        {
+          "entities": [
+            "pos_attr",
+            "pos_hopcount",
+            "pos_realname",
+            "argc",
+            "arg_start"
+          ],
+          "claim": "in the else branch, pos_attr is argv[arg_start], pos_hopcount is argv[arg_start+1]+1 only if argc>arg_start+1, and pos_realname is argv_eol[arg_start+2] only if argc>arg_start+2; otherwise they are NULL",
+          "evidence": "L29: pos_attr = argv[arg_start];\nL30: pos_hopcount = (argc > arg_start + 1) ? argv[arg_start + 1] + 1 : NULL;\nL31: pos_realname = (argc > arg_start + 2) ? argv_eol[arg_start + 2] : NULL;"
+        },
+        {
+          "entities": [
+            "ptr_nick",
+            "ptr_channel",
+            "argv"
+          ],
+          "claim": "ptr_nick is non-NULL only if ptr_channel is non-NULL and irc_nick_search returns a nick; the host update block executes only when ptr_nick is non-NULL",
+          "evidence": "L36: ptr_nick = (ptr_channel) ?\nL37: irc_nick_search (server, ptr_channel, argv[7]) : NULL;\nL40: if (ptr_nick)"
+        },
+        {
+          "entities": [
+            "length",
+            "str_host",
+            "argv"
+          ],
+          "claim": "when ptr_nick is non-NULL, length is strlen(argv[4])+1+strlen(argv[5])+1 and str_host is malloc(length); the snprintf writes at most length bytes",
+          "evidence": "L42: length = strlen (argv[4]) + 1 + strlen (argv[5]) + 1;\nL43: str_host = malloc (length);\nL46: snprintf (str_host, length, \"%s@%s\", argv[4], argv[5]);"
+        },
+        {
+          "entities": [
+            "pos_attr",
+            "ptr_channel",
+            "ptr_nick"
+          ],
+          "claim": "the away-flag update executes only when ptr_channel, ptr_nick, and pos_attr are all non-NULL, so pos_attr[0] is dereferenced only under those conditions",
+          "evidence": "L53: if (ptr_channel && ptr_nick && pos_attr)\nL56: (pos_attr[0] == 'G') ? 1 : 0);"
+        },
+        {
+          "entities": [
+            "pos_realname",
+            "ptr_channel",
+            "ptr_nick",
+            "ptr_nick->realname"
+          ],
+          "claim": "the realname update executes only when ptr_channel, ptr_nick, and pos_realname are all non-NULL; ptr_nick->realname is freed if non-NULL, then set to strdup(pos_realname) only if the extended-join capability is present, else set to NULL",
+          "evidence": "L60: if (ptr_channel && ptr_nick && pos_realname)\nL62: if (ptr_nick->realname)\nL63: free (ptr_nick->realname);\nL64: if (pos_realname &&\nL65: weechat_hashtable_has_key (server->cap_list, \"extended-join\"))\nL67: ptr_nick->realname = strdup (pos_realname);\nL71: ptr_nick->realname = NULL;"
+        },
+        {
+          "entities": [
+            "ptr_channel",
+            "pos_attr",
+            "pos_hopcount",
+            "pos_realname"
+          ],
+          "claim": "the who output block executes only when ptr_channel is NULL or ptr_channel->checking_whox <= 0; within it, pos_attr, pos_hopcount, and pos_realname are each conditionally dereferenced only when non-NULL",
+          "evidence": "L76: if (!ptr_channel || (ptr_channel->checking_whox <= 0))\nL97: (pos_attr) ? pos_attr : \"\",\nL99: (pos_hopcount) ? pos_hopcount : \"\",\nL101: (pos_realname) ? pos_realname : \"\");"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3258,
+              "output_tokens": 644,
+              "total_tokens": 3902
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3258,
+          "output_tokens": 644,
+          "total_tokens": 3902
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L21",
+                "matched": true,
+                "expression": "argv[arg_start][0]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L24",
+                "matched": true,
+                "expression": "argv[arg_start] + 1"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L25",
+                "matched": true,
+                "expression": "argv_eol[arg_start + 1]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L29",
+                "matched": true,
+                "expression": "argv[arg_start]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L30",
+                "matched": true,
+                "expression": "argv[arg_start + 1] + 1"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L31",
+                "matched": true,
+                "expression": "argv_eol[arg_start + 2]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L42",
+                "matched": true,
+                "expression": "strlen (argv[4]) + 1 + strlen (argv[5]) + 1"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L43",
+                "matched": true,
+                "expression": "malloc (length)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L46",
+                "matched": true,
+                "expression": "snprintf (str_host, length, \"%s@%s\", argv[4], argv[5])"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[9]": {
+            "expression_matches": [
+              {
+                "location": "L48",
+                "matched": true,
+                "expression": "free (str_host)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[10]": {
+            "expression_matches": [
+              {
+                "location": "L56",
+                "matched": true,
+                "expression": "pos_attr[0]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[11]": {
+            "expression_matches": [
+              {
+                "location": "L62",
+                "matched": true,
+                "expression": "ptr_nick->realname"
+              },
+              {
+                "location": "L63",
+                "matched": true,
+                "expression": "ptr_nick->realname"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[12]": {
+            "expression_matches": [
+              {
+                "location": "L67",
+                "matched": true,
+                "expression": "strdup (pos_realname)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[13]": {
+            "expression_matches": [
+              {
+                "location": "L87",
+                "matched": true,
+                "expression": "argv[3]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[14]": {
+            "expression_matches": [
+              {
+                "location": "L89",
+                "matched": true,
+                "expression": "irc_nick_color_for_msg (server, 1, NULL, argv[7])"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[15]": {
+            "expression_matches": [
+              {
+                "location": "L90",
+                "matched": true,
+                "expression": "argv[7]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[16]": {
+            "expression_matches": [
+              {
+                "location": "L93",
+                "matched": true,
+                "expression": "argv[4]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[17]": {
+            "expression_matches": [
+              {
+                "location": "L94",
+                "matched": true,
+                "expression": "argv[5]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[18]": {
+            "expression_matches": [
+              {
+                "location": "L97",
+                "matched": true,
+                "expression": "pos_attr"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[19]": {
+            "expression_matches": [
+              {
+                "location": "L99",
+                "matched": true,
+                "expression": "pos_hopcount"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[20]": {
+            "expression_matches": [
+              {
+                "location": "L101",
+                "matched": true,
+                "expression": "pos_realname"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1861,
+              "output_tokens": 564,
+              "total_tokens": 2425
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1861,
+          "output_tokens": 564,
+          "total_tokens": 2425
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "str_host = malloc (length);",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "snprintf (str_host, length, \"%s@%s\", argv[4], argv[5]);",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "free (str_host);",
+                "matched_lines": [
+                  48
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 62,
+                "fragment": "if (ptr_nick->realname)",
+                "matched_lines": [
+                  62
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "free (ptr_nick->realname);",
+                "matched_lines": [
+                  63
+                ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "ptr_nick->realname = strdup (pos_realname);",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 71,
+                "fragment": "ptr_nick->realname = NULL;",
+                "matched_lines": [
+                  71
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "pos_attr = NULL;",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "pos_hopcount = NULL;",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "pos_realname = NULL;",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "pos_hopcount = (argc > arg_start) ? argv[arg_start] + 1 : NULL;",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "pos_realname = (argc > arg_start + 1) ? argv_eol[arg_start + 1] : NULL;",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "pos_attr = argv[arg_start];",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "pos_hopcount = (argc > arg_start + 1) ? argv[arg_start + 1] + 1 : NULL;",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "pos_realname = (argc > arg_start + 2) ? argv_eol[arg_start + 2] : NULL;",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 35,
+                "fragment": "ptr_channel = irc_channel_search (server, argv[3]);",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "ptr_nick = (ptr_channel) ?",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "irc_nick_search (server, ptr_channel, argv[7]) : NULL;",
+                "matched_lines": [
+                  37
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2049,
+              "output_tokens": 604,
+              "total_tokens": 2653
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2049,
+          "output_tokens": 604,
+          "total_tokens": 2653
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 42,
+                "fragment": "length = strlen (argv[4]) + 1 + strlen (argv[5]) + 1;",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "str_host = malloc (length);",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "snprintf (str_host, length, \"%s@%s\", argv[4], argv[5]);",
+                "matched_lines": [
+                  46
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "arg_start = (strcmp (argv[8], \"*\") == 0) ? 9 : 8;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "pos_hopcount = (argc > arg_start) ? argv[arg_start] + 1 : NULL;",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "pos_realname = (argc > arg_start + 1) ? argv_eol[arg_start + 1] : NULL;",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "pos_attr = argv[arg_start];",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "pos_hopcount = (argc > arg_start + 1) ? argv[arg_start + 1] + 1 : NULL;",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "pos_realname = (argc > arg_start + 2) ? argv_eol[arg_start + 2] : NULL;",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 24,
+                "fragment": "pos_hopcount = (argc > arg_start) ? argv[arg_start] + 1 : NULL;",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "pos_hopcount = (argc > arg_start + 1) ? argv[arg_start + 1] + 1 : NULL;",
+                "matched_lines": [
+                  30
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "pos_attr = argv[arg_start];",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "if (ptr_channel && ptr_nick && pos_attr)",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "(pos_attr[0] == 'G') ? 1 : 0);",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1729,
+              "output_tokens": 1145,
+              "total_tokens": 2874
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1729,
+          "output_tokens": 1145,
+          "total_tokens": 2874
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "if (argc < 8)",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "arg_start = (strcmp (argv[8], \"*\") == 0) ? 9 : 8;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "if (argv[arg_start][0] == ':')",
+                "matched_lines": [
+                  21
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 24,
+                "fragment": "pos_hopcount = (argc > arg_start) ? argv[arg_start] + 1 : NULL;",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "pos_realname = (argc > arg_start + 1) ? argv_eol[arg_start + 1] : NULL;",
+                "matched_lines": [
+                  25
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "pos_attr = argv[arg_start];",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "pos_hopcount = (argc > arg_start + 1) ? argv[arg_start + 1] + 1 : NULL;",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "pos_realname = (argc > arg_start + 2) ? argv_eol[arg_start + 2] : NULL;",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 36,
+                "fragment": "ptr_nick = (ptr_channel) ?",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "irc_nick_search (server, ptr_channel, argv[7]) : NULL;",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "if (ptr_nick)",
+                "matched_lines": [
+                  40
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 42,
+                "fragment": "length = strlen (argv[4]) + 1 + strlen (argv[5]) + 1;",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "str_host = malloc (length);",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "snprintf (str_host, length, \"%s@%s\", argv[4], argv[5]);",
+                "matched_lines": [
+                  46
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 53,
+                "fragment": "if (ptr_channel && ptr_nick && pos_attr)",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "(pos_attr[0] == 'G') ? 1 : 0);",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 60,
+                "fragment": "if (ptr_channel && ptr_nick && pos_realname)",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "if (ptr_nick->realname)",
+                "matched_lines": [
+                  62
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "free (ptr_nick->realname);",
+                "matched_lines": [
+                  63
+                ]
+              },
+              {
+                "evidence_line": 64,
+                "fragment": "if (pos_realname &&",
+                "matched_lines": [
+                  64
+                ]
+              },
+              {
+                "evidence_line": 65,
+                "fragment": "weechat_hashtable_has_key (server->cap_list, \"extended-join\"))",
+                "matched_lines": [
+                  65
+                ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "ptr_nick->realname = strdup (pos_realname);",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 71,
+                "fragment": "ptr_nick->realname = NULL;",
+                "matched_lines": [
+                  71
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 76,
+                "fragment": "if (!ptr_channel || (ptr_channel->checking_whox <= 0))",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 97,
+                "fragment": "(pos_attr) ? pos_attr : \"\",",
+                "matched_lines": [
+                  97
+                ]
+              },
+              {
+                "evidence_line": 99,
+                "fragment": "(pos_hopcount) ? pos_hopcount : \"\",",
+                "matched_lines": [
+                  99
+                ]
+              },
+              {
+                "evidence_line": 101,
+                "fragment": "(pos_realname) ? pos_realname : \"\");",
+                "matched_lines": [
+                  101
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 21,
+      "states": 4,
+      "values": 4,
+      "executions": 8
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 8897,
+    "output_tokens": 2957,
+    "total_tokens": 11854
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000118",
+    "split": "test",
+    "source_hash": "4b86566024b88d29345825854c68343dae17c430e43ce8df28d9fb729226ff55",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

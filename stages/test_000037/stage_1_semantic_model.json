@@ -1,0 +1,4386 @@
+{
+  "sample_id": "test_000037",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L31"
+          ],
+          "expression": "gf_filter_pck_get_data(pck, &pck_size)",
+          "claim": "retrieves the packet data pointer and size from the filter packet"
+        },
+        {
+          "locations": [
+            "L70"
+          ],
+          "expression": "gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc)",
+          "claim": "reallocates the header store buffer to the requested allocation size"
+        },
+        {
+          "locations": [
+            "L72"
+          ],
+          "expression": "memcpy(ctx->hdr_store + ctx->hdr_store_size, data, sizeof(char)*pck_size)",
+          "claim": "copies pck_size bytes from the packet data into the header store at the current store size"
+        },
+        {
+          "locations": [
+            "L91"
+          ],
+          "expression": "ctx->hdr_store + ctx->resume_from",
+          "claim": "computes a pointer into the header store at the resume offset"
+        },
+        {
+          "locations": [
+            "L102"
+          ],
+          "expression": "gf_bs_new(start, remain, GF_BITSTREAM_READ)",
+          "claim": "creates a bitstream reader over the start buffer with remain bytes"
+        },
+        {
+          "locations": [
+            "L104"
+          ],
+          "expression": "gf_bs_reassign_buffer(ctx->bs, start, remain)",
+          "claim": "reassigns the bitstream reader to the start buffer with remain bytes"
+        },
+        {
+          "locations": [
+            "L129"
+          ],
+          "expression": "memcpy(ctx->hdr_store, start, remain)",
+          "claim": "copies remain bytes from start into the header store"
+        },
+        {
+          "locations": [
+            "L139"
+          ],
+          "expression": "memcpy(ctx->hdr_store + ctx->bytes_in_header, start, 8 - ctx->bytes_in_header)",
+          "claim": "copies bytes from start into the header store after the existing header bytes"
+        },
+        {
+          "locations": [
+            "L140"
+          ],
+          "expression": "mpgviddmx_next_start_code(ctx->hdr_store, 8)",
+          "claim": "scans the header store for a start code within 8 bytes"
+        },
+        {
+          "locations": [
+            "L151"
+          ],
+          "expression": "memcpy(pck_data, ctx->hdr_store, ctx->bytes_in_header)",
+          "claim": "copies the stored header bytes into the newly allocated packet data"
+        },
+        {
+          "locations": [
+            "L172"
+          ],
+          "expression": "ctx->hdr_store[current+3]",
+          "claim": "reads the forced start code type byte from the header store at current+3"
+        },
+        {
+          "locations": [
+            "L174"
+          ],
+          "expression": "start[hdr_offset-1]",
+          "claim": "reads the forced start code type byte from start at hdr_offset-1"
+        },
+        {
+          "locations": [
+            "L182"
+          ],
+          "expression": "mpgviddmx_next_start_code(start, remain)",
+          "claim": "scans the start buffer for a start code within remain bytes"
+        },
+        {
+          "locations": [
+            "L191"
+          ],
+          "expression": "start[remain-3]",
+          "claim": "reads the byte at remain-3 from start"
+        },
+        {
+          "locations": [
+            "L192"
+          ],
+          "expression": "start[remain-2]",
+          "claim": "reads the byte at remain-2 from start"
+        },
+        {
+          "locations": [
+            "L193"
+          ],
+          "expression": "start[remain-1]",
+          "claim": "reads the byte at remain-1 from start"
+        },
+        {
+          "locations": [
+            "L202"
+          ],
+          "expression": "gf_filter_pck_new_alloc(ctx->opid, (u32) size, &pck_data)",
+          "claim": "allocates a new output packet of size bytes and returns its data pointer"
+        },
+        {
+          "locations": [
+            "L206"
+          ],
+          "expression": "memcpy(pck_data, start, (size_t) size)",
+          "claim": "copies size bytes from start into the allocated packet data"
+        },
+        {
+          "locations": [
+            "L217"
+          ],
+          "expression": "memcpy(ctx->hdr_store, start+remain-3, 3)",
+          "claim": "copies the last 3 bytes of start into the header store"
+        },
+        {
+          "locations": [
+            "L242"
+          ],
+          "expression": "gf_filter_pck_new_alloc(ctx->opid, current, &pck_data)",
+          "claim": "allocates a new output packet of current bytes and returns its data pointer"
+        },
+        {
+          "locations": [
+            "L256"
+          ],
+          "expression": "memcpy(pck_data, ctx->hdr_store, current)",
+          "claim": "copies current bytes from the header store into the allocated packet data"
+        },
+        {
+          "locations": [
+            "L262"
+          ],
+          "expression": "memcpy(pck_data, start, current)",
+          "claim": "copies current bytes from start into the allocated packet data"
+        },
+        {
+          "locations": [
+            "L275"
+          ],
+          "expression": "memcpy(ctx->hdr_store, start, remain)",
+          "claim": "copies remain bytes from start into the header store"
+        },
+        {
+          "locations": [
+            "L283"
+          ],
+          "expression": "gf_bs_reassign_buffer(ctx->bs, start + hdr_offset, remain - hdr_offset)",
+          "claim": "reassigns the bitstream reader to start+hdr_offset with remain-hdr_offset bytes"
+        },
+        {
+          "locations": [
+            "L286"
+          ],
+          "expression": "gf_bs_reassign_buffer(ctx->bs, start, remain)",
+          "claim": "reassigns the bitstream reader to start with remain bytes"
+        },
+        {
+          "locations": [
+            "L287"
+          ],
+          "expression": "gf_bs_read_int(ctx->bs, 24)",
+          "claim": "reads 24 bits from the bitstream reader"
+        },
+        {
+          "locations": [
+            "L288"
+          ],
+          "expression": "gf_bs_read_int(ctx->bs, 8)",
+          "claim": "reads 8 bits from the bitstream reader"
+        },
+        {
+          "locations": [
+            "L295"
+          ],
+          "expression": "gf_bs_reassign_buffer(ctx->bs, start, remain)",
+          "claim": "reassigns the bitstream reader to start with remain bytes"
+        },
+        {
+          "locations": [
+            "L301"
+          ],
+          "expression": "memmove(ctx->hdr_store, start, remain)",
+          "claim": "moves remain bytes from start to the header store"
+        },
+        {
+          "locations": [
+            "L306"
+          ],
+          "expression": "gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc)",
+          "claim": "reallocates the header store buffer to the requested allocation size"
+        },
+        {
+          "locations": [
+            "L308"
+          ],
+          "expression": "memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start))",
+          "claim": "copies pck_size-vosh_start bytes from data+vosh_start into the header store at the current store size"
+        },
+        {
+          "locations": [
+            "L329"
+          ],
+          "expression": "gf_bs_read_u8(ctx->bs)",
+          "claim": "reads one byte from the bitstream reader"
+        },
+        {
+          "locations": [
+            "L337"
+          ],
+          "expression": "gf_bs_reassign_buffer(ctx->bs, start, remain)",
+          "claim": "reassigns the bitstream reader to start with remain bytes"
+        },
+        {
+          "locations": [
+            "L345"
+          ],
+          "expression": "memmove(ctx->hdr_store, start, remain)",
+          "claim": "moves remain bytes from start to the header store"
+        },
+        {
+          "locations": [
+            "L350"
+          ],
+          "expression": "gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc)",
+          "claim": "reallocates the header store buffer to the requested allocation size"
+        },
+        {
+          "locations": [
+            "L352"
+          ],
+          "expression": "memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start))",
+          "claim": "copies pck_size-vosh_start bytes from data+vosh_start into the header store at the current store size"
+        },
+        {
+          "locations": [
+            "L430"
+          ],
+          "expression": "start[remain-3]",
+          "claim": "reads the byte at remain-3 from start"
+        },
+        {
+          "locations": [
+            "L431"
+          ],
+          "expression": "start[remain-2]",
+          "claim": "reads the byte at remain-2 from start"
+        },
+        {
+          "locations": [
+            "L432"
+          ],
+          "expression": "start[remain-1]",
+          "claim": "reads the byte at remain-1 from start"
+        },
+        {
+          "locations": [
+            "L486"
+          ],
+          "expression": "gf_filter_pck_new_alloc(ctx->opid, (u32) size, &pck_data)",
+          "claim": "allocates a new output packet of size bytes and returns its data pointer"
+        },
+        {
+          "locations": [
+            "L492"
+          ],
+          "expression": "memcpy(pck_data, ctx->hdr_store+current, bytes_from_store)",
+          "claim": "copies bytes_from_store bytes from the header store at current into the allocated packet data"
+        },
+        {
+          "locations": [
+            "L498"
+          ],
+          "expression": "memcpy(pck_data + bytes_from_store, start, (size_t) size)",
+          "claim": "copies size bytes from start into the allocated packet data after bytes_from_store"
+        },
+        {
+          "locations": [
+            "L501"
+          ],
+          "expression": "memcpy(pck_data, start, (size_t) size)",
+          "claim": "copies size bytes from start into the allocated packet data"
+        },
+        {
+          "locations": [
+            "L506"
+          ],
+          "expression": "pck_data[0]",
+          "claim": "reads the first byte of the allocated packet data"
+        },
+        {
+          "locations": [
+            "L507"
+          ],
+          "expression": "pck_data[1]",
+          "claim": "reads the second byte of the allocated packet data"
+        },
+        {
+          "locations": [
+            "L508"
+          ],
+          "expression": "pck_data[2]",
+          "claim": "reads the third byte of the allocated packet data"
+        },
+        {
+          "locations": [
+            "L530"
+          ],
+          "expression": "memcpy(ctx->hdr_store, start+remain-3, 3)",
+          "claim": "copies the last 3 bytes of start into the header store"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "ctx->hdr_store",
+            "data",
+            "start"
+          ],
+          "claim": "ctx->hdr_store is a heap buffer holding stored header bytes; data/start may be reassigned to point into ctx->hdr_store, making start a pointer into that storage region.",
+          "evidence": "L70: ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);\nL80: start = data = ctx->hdr_store;\nL91: start = data = ctx->hdr_store + ctx->resume_from;"
+        },
+        {
+          "entities": [
+            "ctx->bs",
+            "start",
+            "remain"
+          ],
+          "claim": "ctx->bs is a bitstream reader created over the start/remain region and reassigned to that region on subsequent iterations.",
+          "evidence": "L102: ctx->bs = gf_bs_new(start, remain, GF_BITSTREAM_READ);\nL104: gf_bs_reassign_buffer(ctx->bs, start, remain);\nL283: gf_bs_reassign_buffer(ctx->bs, start + hdr_offset, remain - hdr_offset);\nL286: gf_bs_reassign_buffer(ctx->bs, start, remain);"
+        },
+        {
+          "entities": [
+            "ctx->vparser",
+            "ctx->bs"
+          ],
+          "claim": "ctx->vparser is an MPEG-4 video parser created bound to ctx->bs.",
+          "evidence": "L107: ctx->vparser = gf_m4v_parser_bs_new(ctx->bs, ctx->is_mpg12);"
+        },
+        {
+          "entities": [
+            "ctx->src_pck",
+            "pck"
+          ],
+          "claim": "ctx->src_pck is set to reference pck and its properties are referenced.",
+          "evidence": "L61: if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);\nL62: ctx->src_pck = pck;\nL63: gf_filter_pck_ref_props(&ctx->src_pck);"
+        },
+        {
+          "entities": [
+            "ctx->src_pck"
+          ],
+          "claim": "ctx->src_pck is released and set to NULL on EOS.",
+          "evidence": "L24: if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);\nL25: ctx->src_pck = NULL;"
+        },
+        {
+          "entities": [
+            "ctx->hdr_store",
+            "ctx->hdr_store_size",
+            "ctx->hdr_store_alloc"
+          ],
+          "claim": "ctx->hdr_store is reallocated to ctx->hdr_store_alloc and its size is tracked by ctx->hdr_store_size.",
+          "evidence": "L68: if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size) {\nL69: ctx->hdr_store_alloc = ctx->hdr_store_size + pck_size;\nL70: ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);\nL79: ctx->hdr_store_size += pck_size;"
+        },
+        {
+          "entities": [
+            "ctx->hdr_store",
+            "ctx->hdr_store_size"
+          ],
+          "claim": "ctx->hdr_store_size is reset to 0 once packets are no longer reaggregated.",
+          "evidence": "L404: ctx->hdr_store_size = 0;"
+        },
+        {
+          "entities": [
+            "ctx->hdr_store",
+            "ctx->bytes_in_header"
+          ],
+          "claim": "ctx->bytes_in_header bytes are stored in ctx->hdr_store for later start-code parsing.",
+          "evidence": "L129: memcpy(ctx->hdr_store, start, remain);\nL130: ctx->bytes_in_header = remain;\nL217: memcpy(ctx->hdr_store, start+remain-3, 3);\nL275: memcpy(ctx->hdr_store, start, remain);\nL276: ctx->bytes_in_header = remain;"
+        },
+        {
+          "entities": [
+            "ctx->hdr_store",
+            "ctx->hdr_store_size",
+            "data",
+            "vosh_start"
+          ],
+          "claim": "On incomplete VOS/VOL parsing, data is copied into ctx->hdr_store and ctx->hdr_store_size is updated to retain the partial header.",
+          "evidence": "L301: memmove(ctx->hdr_store, start, remain);\nL302: ctx->hdr_store_size = remain;\nL308: memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );\nL309: ctx->hdr_store_size += pck_size - (u32) vosh_start;\nL345: memmove(ctx->hdr_store, start, remain);\nL346: ctx->hdr_store_size = remain;\nL352: memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );\nL353: ctx->hdr_store_size += pck_size - (u32) vosh_start;"
+        },
+        {
+          "entities": [
+            "ctx->resume_from",
+            "start",
+            "data",
+            "ctx->hdr_store"
+          ],
+          "claim": "ctx->resume_from records the offset into data or ctx->hdr_store from which parsing should resume.",
+          "evidence": "L400: ctx->resume_from = (u32) ((char *)start -  (char *)data);\nL91: start = data = ctx->hdr_store + ctx->resume_from;\nL95: start += ctx->resume_from;"
+        },
+        {
+          "entities": [
+            "ctx->ipid",
+            "pck"
+          ],
+          "claim": "pck is obtained from ctx->ipid and is dropped at function exit.",
+          "evidence": "L18: pck = gf_filter_pid_get_packet(ctx->ipid);\nL538: gf_filter_pid_drop_packet(ctx->ipid);"
+        },
+        {
+          "entities": [
+            "ctx->opid",
+            "dst_pck"
+          ],
+          "claim": "dst_pck is allocated on ctx->opid and dispatched via mpgviddmx_enqueue_or_dispatch.",
+          "evidence": "L145: dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->bytes_in_header, &pck_data);\nL202: dst_pck = gf_filter_pck_new_alloc(ctx->opid, (u32) size, &pck_data);\nL242: dst_pck = gf_filter_pck_new_alloc(ctx->opid, current, &pck_data);\nL486: dst_pck = gf_filter_pck_new_alloc(ctx->opid, (u32) size, &pck_data);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "pck_size",
+            "remain",
+            "start",
+            "data"
+          ],
+          "claim": "remain is initialized to pck_size and start is initialized to data, so remain bounds the bytes available at start.",
+          "evidence": "L31: data = (char *) gf_filter_pck_get_data(pck, &pck_size);\nL34: start = data;\nL35: remain = pck_size;"
+        },
+        {
+          "entities": [
+            "ctx->hdr_store_alloc",
+            "ctx->hdr_store_size",
+            "pck_size"
+          ],
+          "claim": "When aggregating stored header data, hdr_store_alloc is set to hdr_store_size + pck_size and hdr_store is reallocated to that size before copying pck_size bytes at offset hdr_store_size.",
+          "evidence": "L68: if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size) {\nL69: ctx->hdr_store_alloc = ctx->hdr_store_size + pck_size;\nL70: ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);\nL72: memcpy(ctx->hdr_store + ctx->hdr_store_size, data, sizeof(char)*pck_size);"
+        },
+        {
+          "entities": [
+            "ctx->hdr_store_size",
+            "pck_size",
+            "remain",
+            "start",
+            "data"
+          ],
+          "claim": "After aggregation, hdr_store_size is increased by pck_size, and start/data/remain/pck_size are reset to the store base and total stored size.",
+          "evidence": "L79: ctx->hdr_store_size += pck_size;\nL80: start = data = ctx->hdr_store;\nL81: remain = pck_size = ctx->hdr_store_size;"
+        },
+        {
+          "entities": [
+            "ctx->resume_from",
+            "ctx->hdr_store_size",
+            "start",
+            "data",
+            "remain",
+            "pck_size"
+          ],
+          "claim": "When resuming from internally stored data, start/data point at hdr_store + resume_from and remain/pck_size equal hdr_store_size - resume_from.",
+          "evidence": "L90: assert(ctx->resume_from <= ctx->hdr_store_size);\nL91: start = data = ctx->hdr_store + ctx->resume_from;\nL92: remain = pck_size = ctx->hdr_store_size - ctx->resume_from;"
+        },
+        {
+          "entities": [
+            "ctx->resume_from",
+            "start",
+            "remain"
+          ],
+          "claim": "When resuming without stored data, start is advanced by resume_from and remain is reduced by resume_from.",
+          "evidence": "L94: assert(remain >= (s32) ctx->resume_from);\nL95: start += ctx->resume_from;\nL96: remain -= ctx->resume_from;"
+        },
+        {
+          "entities": [
+            "ctx->bs",
+            "start",
+            "remain"
+          ],
+          "claim": "The bitstream is created or reassigned over the buffer start with length remain.",
+          "evidence": "L102: ctx->bs = gf_bs_new(start, remain, GF_BITSTREAM_READ);\nL104: gf_bs_reassign_buffer(ctx->bs, start, remain);"
+        },
+        {
+          "entities": [
+            "remain",
+            "ctx->hdr_store",
+            "start",
+            "ctx->bytes_in_header"
+          ],
+          "claim": "If fewer than 5 bytes remain, remain bytes are copied from start into hdr_store and bytes_in_header is set to remain.",
+          "evidence": "L128: if (remain<5) {\nL129: memcpy(ctx->hdr_store, start, remain);\nL130: ctx->bytes_in_header = remain;"
+        },
+        {
+          "entities": [
+            "ctx->bytes_in_header",
+            "ctx->hdr_store",
+            "start"
+          ],
+          "claim": "When bytes_in_header is nonzero, 8 - bytes_in_header bytes are copied from start to hdr_store + bytes_in_header, filling an 8-byte header buffer.",
+          "evidence": "L139: memcpy(ctx->hdr_store + ctx->bytes_in_header, start, 8 - ctx->bytes_in_header);"
+        },
+        {
+          "entities": [
+            "hdr_offset",
+            "ctx->bytes_in_header",
+            "current"
+          ],
+          "claim": "hdr_offset is computed as 4 - bytes_in_header + current.",
+          "evidence": "L167: hdr_offset = 4 - ctx->bytes_in_header + current;"
+        },
+        {
+          "entities": [
+            "forced_sc_type",
+            "ctx->hdr_store",
+            "current",
+            "start",
+            "hdr_offset"
+          ],
+          "claim": "forced_sc_type is read from hdr_store[current+3] when hdr_offset is zero, otherwise from start[hdr_offset-1].",
+          "evidence": "L171: if (!hdr_offset) {\nL172: forced_sc_type = ctx->hdr_store[current+3];\nL173: } else {\nL174: forced_sc_type = start[hdr_offset-1];"
+        },
+        {
+          "entities": [
+            "size",
+            "remain",
+            "start"
+          ],
+          "claim": "When no start code is found, size is set to remain and the last three bytes are read from start[remain-3], start[remain-2], start[remain-1].",
+          "evidence": "L190: size = remain;\nL191: b3 = start[remain-3];\nL192: b2 = start[remain-2];\nL193: b1 = start[remain-1];"
+        },
+        {
+          "entities": [
+            "size",
+            "ctx->bytes_in_header"
+          ],
+          "claim": "If any of the last three bytes is zero, size is reduced by 3 and bytes_in_header is set to 3.",
+          "evidence": "L197: assert(size >= 3);\nL198: size -= 3;\nL199: ctx->bytes_in_header = 3;"
+        },
+        {
+          "entities": [
+            "start",
+            "remain",
+            "current"
+          ],
+          "claim": "When vosh_start is nonnegative and current is nonzero, start is advanced by current and remain is reduced by current.",
+          "evidence": "L227: assert(remain>=current);\nL228: start += current;\nL229: remain -= current;"
+        },
+        {
+          "entities": [
+            "start",
+            "remain",
+            "current"
+          ],
+          "claim": "When there is no output pid and current is nonzero, start is advanced by current and remain is reduced by current.",
+          "evidence": "L234: assert(remain>=current);\nL235: start += current;\nL236: remain -= current;"
+        },
+        {
+          "entities": [
+            "bytes_from_store",
+            "current"
+          ],
+          "claim": "When bytes_from_store is nonzero, it is asserted to be at least current and then reduced by current.",
+          "evidence": "L254: assert(bytes_from_store>=(u32) current);\nL255: bytes_from_store -= current;"
+        },
+        {
+          "entities": [
+            "start",
+            "remain",
+            "current"
+          ],
+          "claim": "When bytes come only from the packet, current bytes are copied from start, start is advanced by current, and remain is reduced by current.",
+          "evidence": "L262: memcpy(pck_data, start, current);\nL263: assert(remain>=current);\nL264: start += current;\nL265: remain -= current;"
+        },
+        {
+          "entities": [
+            "ctx->bs",
+            "start",
+            "hdr_offset",
+            "remain"
+          ],
+          "claim": "When sc_type_forced, the bitstream is reassigned over start + hdr_offset with length remain - hdr_offset.",
+          "evidence": "L283: gf_bs_reassign_buffer(ctx->bs, start + hdr_offset, remain - hdr_offset);"
+        },
+        {
+          "entities": [
+            "ctx->hdr_store_alloc",
+            "ctx->hdr_store_size",
+            "pck_size",
+            "vosh_start"
+          ],
+          "claim": "In the MPG12 EOS accumulation path, hdr_store_alloc is set to hdr_store_size + pck_size - vosh_start and hdr_store is reallocated to that size.",
+          "evidence": "L304: if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {\nL305: ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - vosh_start);\nL306: ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);"
+        },
+        {
+          "entities": [
+            "ctx->hdr_store_size",
+            "data",
+            "vosh_start",
+            "pck_size"
+          ],
+          "claim": "In the MPG12 EOS accumulation path, pck_size - vosh_start bytes from data + vosh_start are copied to hdr_store + hdr_store_size, and hdr_store_size is increased by pck_size - vosh_start.",
+          "evidence": "L308: memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );\nL309: ctx->hdr_store_size += pck_size - (u32) vosh_start;"
+        },
+        {
+          "entities": [
+            "vosh_start",
+            "start",
+            "data"
+          ],
+          "claim": "vosh_start is set to start - (u8 *)data.",
+          "evidence": "L330: vosh_start = start - (u8 *)data;"
+        },
+        {
+          "entities": [
+            "start",
+            "remain"
+          ],
+          "claim": "For M4V_VOS_START_CODE, start is advanced by 5 and remain is reduced by 5.",
+          "evidence": "L332: assert(remain>=5);\nL333: start += 5;\nL334: remain -= 5;"
+        },
+        {
+          "entities": [
+            "ctx->hdr_store_alloc",
+            "ctx->hdr_store_size",
+            "pck_size",
+            "vosh_start"
+          ],
+          "claim": "In the M4V_VOL EOS accumulation path, hdr_store_alloc is set to hdr_store_size + pck_size - vosh_start and hdr_store is reallocated to that size.",
+          "evidence": "L348: if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {\nL349: ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - (u32) vosh_start);\nL350: ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);"
+        },
+        {
+          "entities": [
+            "ctx->hdr_store_size",
+            "data",
+            "vosh_start",
+            "pck_size"
+          ],
+          "claim": "In the M4V_VOL EOS accumulation path, pck_size - vosh_start bytes from data + vosh_start are copied to hdr_store + hdr_store_size, and hdr_store_size is increased by pck_size - vosh_start.",
+          "evidence": "L352: memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );\nL353: ctx->hdr_store_size += pck_size - (u32) vosh_start;"
+        },
+        {
+          "entities": [
+            "obj_size",
+            "vosh_end",
+            "start",
+            "data",
+            "vosh_start"
+          ],
+          "claim": "obj_size is obtained from gf_m4v_get_object_start; vosh_end is computed as start - (u8 *)data + obj_size - vosh_start.",
+          "evidence": "L360: u32 obj_size = (u32) gf_m4v_get_object_start(ctx->vparser);\nL362: vosh_end = start - (u8 *)data + obj_size;\nL363: vosh_end -= vosh_start;"
+        },
+        {
+          "entities": [
+            "start",
+            "remain",
+            "obj_size"
+          ],
+          "claim": "For M4V_VOL_START_CODE, start is advanced by obj_size and remain is reduced by obj_size.",
+          "evidence": "L366: assert(remain>=(s32) obj_size);\nL367: start += obj_size;\nL368: remain -= obj_size;"
+        },
+        {
+          "entities": [
+            "start",
+            "remain"
+          ],
+          "claim": "When vosh_start is nonnegative in the default case, start is advanced by 4 and remain is reduced by 4.",
+          "evidence": "L380: assert(remain>=4);\nL381: start += 4;\nL382: remain -= 4;"
+        },
+        {
+          "entities": [
+            "start",
+            "remain"
+          ],
+          "claim": "When there is no output pid, start is advanced by 4 and remain is reduced by 4.",
+          "evidence": "L393: assert(remain>=4);\nL394: start += 4;\nL395: remain -= 4;"
+        },
+        {
+          "entities": [
+            "ctx->resume_from",
+            "start",
+            "data"
+          ],
+          "claim": "When not playing, resume_from is set to the byte offset of start relative to data.",
+          "evidence": "L400: ctx->resume_from = (u32) ((char *)start -  (char *)data);"
+        },
+        {
+          "entities": [
+            "size",
+            "bytes_from_store",
+            "hdr_offset"
+          ],
+          "claim": "If bytes_from_store is nonzero, size is increased by bytes_from_store + hdr_offset.",
+          "evidence": "L425: if (bytes_from_store) {\nL426: size += bytes_from_store + hdr_offset;"
+        },
+        {
+          "entities": [
+            "size",
+            "start",
+            "remain"
+          ],
+          "claim": "When parse_frame returns GF_EOS and input_is_au_end is false, the last three bytes are read from start[remain-3], start[remain-2], start[remain-1].",
+          "evidence": "L430: u8 b3 = start[remain-3];\nL431: u8 b2 = start[remain-2];\nL432: u8 b1 = start[remain-1];"
+        },
+        {
+          "entities": [
+            "size",
+            "ctx->bytes_in_header"
+          ],
+          "claim": "If any of the last three bytes is zero, size is reduced by 3 and bytes_in_header is set to 3.",
+          "evidence": "L437: assert(size >= 3);\nL438: size -= 3;\nL439: ctx->bytes_in_header = 3;"
+        },
+        {
+          "entities": [
+            "start",
+            "remain",
+            "size"
+          ],
+          "claim": "For non-coded packed frames, start is advanced by size and remain is reduced by size.",
+          "evidence": "L450: assert(remain>=size);\nL451: start += size;\nL452: remain -= (s32) size;"
+        },
+        {
+          "entities": [
+            "start",
+            "remain",
+            "size"
+          ],
+          "claim": "For non-coded VFR frames, start is advanced by size and remain is reduced by size.",
+          "evidence": "L459: assert(remain>=size);\nL460: start += size;\nL461: remain -= (s32) size;"
+        },
+        {
+          "entities": [
+            "size",
+            "bytes_from_store",
+            "pck_data",
+            "ctx->hdr_store",
+            "current",
+            "start"
+          ],
+          "claim": "When bytes_from_store is nonzero, bytes_from_store bytes are copied from hdr_store+current to pck_data, size is reduced by bytes_from_store, and the remaining size bytes are copied from start to pck_data + bytes_from_store.",
+          "evidence": "L492: memcpy(pck_data, ctx->hdr_store+current, bytes_from_store);\nL493: assert(size >= bytes_from_store);\nL494: size -= bytes_from_store;\nL498: memcpy(pck_data + bytes_from_store, start, (size_t) size);"
+        },
+        {
+          "entities": [
+            "size",
+            "pck_data",
+            "start"
+          ],
+          "claim": "When bytes_from_store is zero, size bytes are copied from start to pck_data.",
+          "evidence": "L501: memcpy(pck_data, start, (size_t) size);"
+        },
+        {
+          "entities": [
+            "start",
+            "remain",
+            "size"
+          ],
+          "claim": "After dispatching a full frame, start is advanced by size and remain is reduced by size.",
+          "evidence": "L534: assert(remain>=size);\nL535: start += size;\nL536: remain -= (s32) size;"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "remain",
+            "start",
+            "ctx->hdr_store",
+            "ctx->bytes_in_header"
+          ],
+          "claim": "If remain < 5, the remaining bytes are copied into ctx->hdr_store, ctx->bytes_in_header is set to remain, and the loop breaks; thus no further parsing occurs with fewer than 5 bytes.",
+          "evidence": "L128: if (remain<5) {\nL129: memcpy(ctx->hdr_store, start, remain);\nL130: ctx->bytes_in_header = remain;\nL131: break;"
+        },
+        {
+          "entities": [
+            "ctx->resume_from",
+            "ctx->hdr_store_size",
+            "remain",
+            "pck_size",
+            "start",
+            "data"
+          ],
+          "claim": "When ctx->resume_from is nonzero, execution continues only if the output pid would not block; if ctx->hdr_store_size is nonzero, start/data are set to ctx->hdr_store + ctx->resume_from and remain/pck_size to ctx->hdr_store_size - ctx->resume_from, with the assertion ctx->resume_from <= ctx->hdr_store_size; otherwise remain >= (s32) ctx->resume_from is asserted before advancing start and reducing remain.",
+          "evidence": "L84: if (ctx->resume_from) {\nL85: if (gf_filter_pid_would_block(ctx->opid))\nL86: return GF_OK;\nL89: if (ctx->hdr_store_size) {\nL90: assert(ctx->resume_from <= ctx->hdr_store_size);\nL91: start = data = ctx->hdr_store + ctx->resume_from;\nL92: remain = pck_size = ctx->hdr_store_size - ctx->resume_from;\nL93: } else {\nL94: assert(remain >= (s32) ctx->resume_from);\nL95: start += ctx->resume_from;\nL96: remain -= ctx->resume_from;"
+        },
+        {
+          "entities": [
+            "ctx->hdr_store_alloc",
+            "ctx->hdr_store_size",
+            "pck_size",
+            "ctx->hdr_store"
+          ],
+          "claim": "When ctx->hdr_store_size is nonzero and not resuming, if ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size then ctx->hdr_store_alloc is set to that sum and ctx->hdr_store is reallocated to that size before appending pck_size bytes.",
+          "evidence": "L67: if (!ctx->resume_from && ctx->hdr_store_size) {\nL68: if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size) {\nL69: ctx->hdr_store_alloc = ctx->hdr_store_size + pck_size;\nL70: ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);"
+        },
+        {
+          "entities": [
+            "byte_offset",
+            "ctx->hdr_store_size"
+          ],
+          "claim": "When aggregating stored header data, if byte_offset is not GF_FILTER_NO_BO and byte_offset >= ctx->hdr_store_size, byte_offset is reduced by ctx->hdr_store_size; otherwise byte_offset becomes GF_FILTER_NO_BO.",
+          "evidence": "L73: if (byte_offset != GF_FILTER_NO_BO) {\nL74: if (byte_offset >= ctx->hdr_store_size)\nL75: byte_offset -= ctx->hdr_store_size;\nL76: else\nL77: byte_offset = GF_FILTER_NO_BO;"
+        },
+        {
+          "entities": [
+            "current",
+            "ctx->bytes_in_header",
+            "ctx->hdr_store"
+          ],
+          "claim": "If ctx->bytes_in_header is nonzero, 8 - ctx->bytes_in_header bytes are copied into ctx->hdr_store and current is set to the result of mpgviddmx_next_start_code(ctx->hdr_store, 8); if current < 0 or current >= (s32) ctx->bytes_in_header, the stored bytes are dispatched and ctx->bytes_in_header is reset to 0.",
+          "evidence": "L137: if (ctx->bytes_in_header) {\nL139: memcpy(ctx->hdr_store + ctx->bytes_in_header, start, 8 - ctx->bytes_in_header);\nL140: current = mpgviddmx_next_start_code(ctx->hdr_store, 8);\nL143: if ((current<0) || (current >= (s32) ctx->bytes_in_header) )  {\nL163: ctx->bytes_in_header = 0;"
+        },
+        {
+          "entities": [
+            "hdr_offset",
+            "bytes_from_store",
+            "ctx->bytes_in_header",
+            "current",
+            "forced_sc_type",
+            "start"
+          ],
+          "claim": "If a valid start code is found in the stored header, hdr_offset is set to 4 - ctx->bytes_in_header + current, bytes_from_store is set to ctx->bytes_in_header, ctx->bytes_in_header is reset to 0, and forced_sc_type is read from ctx->hdr_store[current+3] when hdr_offset is 0, otherwise from start[hdr_offset-1].",
+          "evidence": "L167: hdr_offset = 4 - ctx->bytes_in_header + current;\nL169: bytes_from_store = ctx->bytes_in_header;\nL170: ctx->bytes_in_header = 0;\nL171: if (!hdr_offset) {\nL172: forced_sc_type = ctx->hdr_store[current+3];\nL173: } else {\nL174: forced_sc_type = start[hdr_offset-1];"
+        },
+        {
+          "entities": [
+            "current",
+            "start",
+            "remain"
+          ],
+          "claim": "If current is -1, current is set to mpgviddmx_next_start_code(start, remain); if still negative and no frame has started, the loop breaks; otherwise the remaining bytes are dispatched and the loop breaks.",
+          "evidence": "L180: if (current == -1) {\nL182: current = mpgviddmx_next_start_code(start, remain);\nL184: if (current<0) {\nL186: if (! ctx->frame_started) {\nL188: break;\nL219: break;"
+        },
+        {
+          "entities": [
+            "size",
+            "start",
+            "remain",
+            "ctx->bytes_in_header"
+          ],
+          "claim": "When no start code is found and a frame has started, size is set to remain; if any of the last three bytes is zero, copy_last_bytes is set true, size is reduced by 3, and ctx->bytes_in_header is set to 3.",
+          "evidence": "L190: size = remain;\nL195: if (!b1 || !b2 || !b3) {\nL196: copy_last_bytes = GF_TRUE;\nL197: assert(size >= 3);\nL198: size -= 3;\nL199: ctx->bytes_in_header = 3;"
+        },
+        {
+          "entities": [
+            "vosh_start",
+            "current",
+            "start",
+            "remain"
+          ],
+          "claim": "If vosh_start >= 0 and current is nonzero, remain >= current is asserted, start is advanced by current, remain is reduced by current, and current is set to 0.",
+          "evidence": "L226: if ((vosh_start>=0) && current) {\nL227: assert(remain>=current);\nL228: start += current;\nL229: remain -= current;\nL230: current = 0;"
+        },
+        {
+          "entities": [
+            "ctx->opid",
+            "current",
+            "start",
+            "remain"
+          ],
+          "claim": "If ctx->opid is null and current is nonzero, remain >= current is asserted, start is advanced by current, remain is reduced by current, and current is set to 0.",
+          "evidence": "L233: if (!ctx->opid && current) {\nL234: assert(remain>=current);\nL235: start += current;\nL236: remain -= current;\nL237: current = 0;"
+        },
+        {
+          "entities": [
+            "bytes_from_store",
+            "current",
+            "remain",
+            "start"
+          ],
+          "claim": "When current > 0 and bytes_from_store is nonzero, bytes_from_store >= (u32) current is asserted, bytes_from_store is reduced by current, and current bytes are copied from ctx->hdr_store; otherwise remain >= current is asserted, start is advanced by current, remain is reduced by current, and current is set to 0.",
+          "evidence": "L250: if (bytes_from_store) {\nL254: assert(bytes_from_store>=(u32) current);\nL255: bytes_from_store -= current;\nL256: memcpy(pck_data, ctx->hdr_store, current);\nL257: } else {\nL263: assert(remain>=current);\nL264: start += current;\nL265: remain -= current;\nL266: current = 0;"
+        },
+        {
+          "entities": [
+            "remain",
+            "start",
+            "ctx->hdr_store",
+            "ctx->bytes_in_header"
+          ],
+          "claim": "After dispatching remaining bytes, if remain < 5, the remaining bytes are copied into ctx->hdr_store, ctx->bytes_in_header is set to remain, and the loop breaks.",
+          "evidence": "L274: if (remain<5) {\nL275: memcpy(ctx->hdr_store, start, remain);\nL276: ctx->bytes_in_header = remain;\nL277: break;"
+        },
+        {
+          "entities": [
+            "sc_type_forced",
+            "hdr_offset",
+            "remain",
+            "start",
+            "ctx->bs"
+          ],
+          "claim": "If sc_type_forced is true, the bitstream buffer is reassigned to start + hdr_offset with length remain - hdr_offset and sc_type is set to forced_sc_type; otherwise the buffer is reassigned to start with length remain and sc_type is read after skipping 24 bits.",
+          "evidence": "L282: if (sc_type_forced) {\nL283: gf_bs_reassign_buffer(ctx->bs, start + hdr_offset, remain - hdr_offset);\nL284: sc_type = forced_sc_type;\nL285: } else {\nL286: gf_bs_reassign_buffer(ctx->bs, start, remain);\nL287: gf_bs_read_int(ctx->bs, 24);\nL288: sc_type = gf_bs_read_int(ctx->bs, 8);"
+        },
+        {
+          "entities": [
+            "vosh_start",
+            "start",
+            "remain",
+            "ctx->hdr_store",
+            "ctx->hdr_store_size",
+            "pck_size",
+            "data"
+          ],
+          "claim": "In the M2V_SEQ_START_CODE/M2V_EXT_START_CODE case, if gf_m4v_parse_config returns GF_EOS, vosh_start is set to 0 if negative; if data equals ctx->hdr_store, the remaining bytes are moved to ctx->hdr_store and ctx->hdr_store_size is set to remain; otherwise, if ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start, it is grown and ctx->hdr_store reallocated, then pck_size - vosh_start bytes from data + vosh_start are appended and ctx->hdr_store_size is increased by pck_size - vosh_start; the input packet is dropped and GF_OK is returned.",
+          "evidence": "L298: if (e==GF_EOS) {\nL299: if (vosh_start<0) vosh_start = 0;\nL300: if (data == ctx->hdr_store) {\nL301: memmove(ctx->hdr_store, start, remain);\nL302: ctx->hdr_store_size = remain;\nL303: } else {\nL304: if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {\nL305: ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - vosh_start);\nL306: ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);\nL308: memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );\nL309: ctx->hdr_store_size += pck_size - (u32) vosh_start;\nL311: gf_filter_pid_drop_packet(ctx->ipid);\nL312: return GF_OK;"
+        },
+        {
+          "entities": [
+            "vosh_start",
+            "start",
+            "remain",
+            "ctx->hdr_store",
+            "ctx->hdr_store_size",
+            "pck_size",
+            "data"
+          ],
+          "claim": "In the M4V_VOL_START_CODE case, if gf_m4v_parse_config returns GF_EOS, vosh_start is set to 0 if negative; if data equals ctx->hdr_store, the remaining bytes are moved to ctx->hdr_store and ctx->hdr_store_size is set to remain; otherwise, if ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start, it is grown and ctx->hdr_store reallocated, then pck_size - vosh_start bytes from data + vosh_start are appended and ctx->hdr_store_size is increased by pck_size - vosh_start; the input packet is dropped and GF_OK is returned.",
+          "evidence": "L342: if (e==GF_EOS) {\nL343: if (vosh_start<0) vosh_start = 0;\nL344: if (data == ctx->hdr_store) {\nL345: memmove(ctx->hdr_store, start, remain);\nL346: ctx->hdr_store_size = remain;\nL347: } else {\nL348: if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {\nL349: ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - (u32) vosh_start);\nL350: ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);\nL352: memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );\nL353: ctx->hdr_store_size += pck_size - (u32) vosh_start;\nL355: gf_filter_pid_drop_packet(ctx->ipid);\nL356: return GF_OK;"
+        },
+        {
+          "entities": [
+            "vosh_start",
+            "vosh_end",
+            "obj_size",
+            "start",
+            "remain",
+            "data"
+          ],
+          "claim": "In the M4V_VOL_START_CODE case when parsing succeeds, obj_size is obtained from gf_m4v_get_object_start; vosh_start is set to 0 if negative; vosh_end is computed as start - data + obj_size - vosh_start; remain >= (s32) obj_size is asserted; start is advanced by obj_size and remain reduced by obj_size.",
+          "evidence": "L360: u32 obj_size = (u32) gf_m4v_get_object_start(ctx->vparser);\nL361: if (vosh_start<0) vosh_start = 0;\nL362: vosh_end = start - (u8 *)data + obj_size;\nL363: vosh_end -= vosh_start;\nL366: assert(remain>=(s32) obj_size);\nL367: start += obj_size;\nL368: remain -= obj_size;"
+        },
+        {
+          "entities": [
+            "vosh_start",
+            "start",
+            "remain"
+          ],
+          "claim": "In the M4V_VO_START_CODE/M4V_VISOBJ_START_CODE/default case, if vosh_start >= 0, remain >= 4 is asserted, start is advanced by 4, and remain is reduced by 4.",
+          "evidence": "L378: if (vosh_start>=0) {\nL380: assert(remain>=4);\nL381: start += 4;\nL382: remain -= 4;"
+        },
+        {
+          "entities": [
+            "ctx->opid",
+            "start",
+            "remain"
+          ],
+          "claim": "If ctx->opid is null, remain >= 4 is asserted, start is advanced by 4, remain is reduced by 4, and the loop continues.",
+          "evidence": "L392: if (!ctx->opid) {\nL393: assert(remain>=4);\nL394: start += 4;\nL395: remain -= 4;\nL396: continue;"
+        },
+        {
+          "entities": [
+            "ctx->is_playing",
+            "ctx->resume_from",
+            "start",
+            "data"
+          ],
+          "claim": "If ctx->is_playing is false, ctx->resume_from is set to (u32)((char *)start - (char *)data) and GF_OK is returned.",
+          "evidence": "L399: if (!ctx->is_playing) {\nL400: ctx->resume_from = (u32) ((char *)start -  (char *)data);\nL401: return GF_OK;"
+        },
+        {
+          "entities": [
+            "remain"
+          ],
+          "claim": "If remain < 5 after the seek check, the loop continues without parsing a frame.",
+          "evidence": "L414: if (remain<5)\nL415: continue;"
+        },
+        {
+          "entities": [
+            "bytes_from_store",
+            "hdr_offset",
+            "size"
+          ],
+          "claim": "If bytes_from_store is nonzero, size is increased by bytes_from_store + hdr_offset.",
+          "evidence": "L425: if (bytes_from_store) {\nL426: size += bytes_from_store + hdr_offset;"
+        },
+        {
+          "entities": [
+            "e",
+            "ctx->input_is_au_end",
+            "size",
+            "start",
+            "remain",
+            "ctx->bytes_in_header"
+          ],
+          "claim": "If gf_m4v_parse_frame returns GF_EOS and ctx->input_is_au_end is false, the last three bytes of start are examined; if any is zero, copy_last_bytes is set true, size >= 3 is asserted, size is reduced by 3, and ctx->bytes_in_header is set to 3; full_frame is set false.",
+          "evidence": "L429: if ((e == GF_EOS) && !ctx->input_is_au_end) {\nL435: if (!b1 || !b2 || !b3) {\nL436: copy_last_bytes = GF_TRUE;\nL437: assert(size >= 3);\nL438: size -= 3;\nL439: ctx->bytes_in_header = 3;\nL441: full_frame = GF_FALSE;"
+        },
+        {
+          "entities": [
+            "ctx->forced_packed",
+            "ctx->b_frames",
+            "size",
+            "start",
+            "remain"
+          ],
+          "claim": "If is_coded is false, ctx->forced_packed and ctx->b_frames are both true, ctx->is_packed is set true, remain >= size is asserted, start is advanced by size, remain is reduced by (s32) size, and the loop continues.",
+          "evidence": "L446: if (!is_coded) {\nL448: if (ctx->forced_packed && ctx->b_frames) {\nL449: ctx->is_packed = GF_TRUE;\nL450: assert(remain>=size);\nL451: start += size;\nL452: remain -= (s32) size;\nL453: continue;"
+        },
+        {
+          "entities": [
+            "ctx->vfr",
+            "size",
+            "start",
+            "remain"
+          ],
+          "claim": "If is_coded is false and ctx->vfr is true, ctx->is_vfr is set true, mpgviddmx_update_time is called, remain >= size is asserted, start is advanced by size, remain is reduced by (s32) size, and the loop continues.",
+          "evidence": "L456: if (ctx->vfr) {\nL457: ctx->is_vfr = GF_TRUE;\nL458: mpgviddmx_update_time(ctx);\nL459: assert(remain>=size);\nL460: start += size;\nL461: remain -= (s32) size;\nL462: continue;"
+        },
+        {
+          "entities": [
+            "bytes_from_store",
+            "size",
+            "current",
+            "ctx->hdr_store",
+            "start"
+          ],
+          "claim": "When bytes_from_store is nonzero, bytes_from_store bytes are copied from ctx->hdr_store + current, size >= bytes_from_store is asserted, size is reduced by bytes_from_store, and the remaining size bytes are copied from start; otherwise size bytes are copied from start.",
+          "evidence": "L491: if (bytes_from_store) {\nL492: memcpy(pck_data, ctx->hdr_store+current, bytes_from_store);\nL493: assert(size >= bytes_from_store);\nL494: size -= bytes_from_store;\nL498: memcpy(pck_data + bytes_from_store, start, (size_t) size);\nL499: } else {\nL501: memcpy(pck_data, start, (size_t) size);"
+        },
+        {
+          "entities": [
+            "pck_data"
+          ],
+          "claim": "After copying frame data, pck_data[0] == 0, pck_data[1] == 0, and pck_data[2] == 0x01 are asserted.",
+          "evidence": "L506: assert(pck_data[0] == 0);\nL507: assert(pck_data[1] == 0);\nL508: assert(pck_data[2] == 0x01);"
+        },
+        {
+          "entities": [
+            "full_frame",
+            "copy_last_bytes",
+            "start",
+            "remain",
+            "size"
+          ],
+          "claim": "If full_frame is false, when copy_last_bytes is true the last three bytes of start are copied into ctx->hdr_store, and the loop breaks; otherwise remain >= size is asserted, start is advanced by size, and remain is reduced by (s32) size.",
+          "evidence": "L528: if (!full_frame) {\nL529: if (copy_last_bytes) {\nL530: memcpy(ctx->hdr_store, start+remain-3, 3);\nL532: break;\nL534: assert(remain>=size);\nL535: start += size;\nL536: remain -= (s32) size;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 9694,
+              "output_tokens": 1926,
+              "total_tokens": 11620
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 9694,
+          "output_tokens": 1926,
+          "total_tokens": 11620
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L31",
+                "matched": true,
+                "expression": "gf_filter_pck_get_data(pck, &pck_size)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L70",
+                "matched": true,
+                "expression": "gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L72",
+                "matched": true,
+                "expression": "memcpy(ctx->hdr_store + ctx->hdr_store_size, data, sizeof(char)*pck_size)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L91",
+                "matched": true,
+                "expression": "ctx->hdr_store + ctx->resume_from"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L102",
+                "matched": true,
+                "expression": "gf_bs_new(start, remain, GF_BITSTREAM_READ)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L104",
+                "matched": true,
+                "expression": "gf_bs_reassign_buffer(ctx->bs, start, remain)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L129",
+                "matched": true,
+                "expression": "memcpy(ctx->hdr_store, start, remain)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L139",
+                "matched": true,
+                "expression": "memcpy(ctx->hdr_store + ctx->bytes_in_header, start, 8 - ctx->bytes_in_header)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L140",
+                "matched": true,
+                "expression": "mpgviddmx_next_start_code(ctx->hdr_store, 8)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[9]": {
+            "expression_matches": [
+              {
+                "location": "L151",
+                "matched": true,
+                "expression": "memcpy(pck_data, ctx->hdr_store, ctx->bytes_in_header)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[10]": {
+            "expression_matches": [
+              {
+                "location": "L172",
+                "matched": true,
+                "expression": "ctx->hdr_store[current+3]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[11]": {
+            "expression_matches": [
+              {
+                "location": "L174",
+                "matched": true,
+                "expression": "start[hdr_offset-1]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[12]": {
+            "expression_matches": [
+              {
+                "location": "L182",
+                "matched": true,
+                "expression": "mpgviddmx_next_start_code(start, remain)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[13]": {
+            "expression_matches": [
+              {
+                "location": "L191",
+                "matched": true,
+                "expression": "start[remain-3]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[14]": {
+            "expression_matches": [
+              {
+                "location": "L192",
+                "matched": true,
+                "expression": "start[remain-2]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[15]": {
+            "expression_matches": [
+              {
+                "location": "L193",
+                "matched": true,
+                "expression": "start[remain-1]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[16]": {
+            "expression_matches": [
+              {
+                "location": "L202",
+                "matched": true,
+                "expression": "gf_filter_pck_new_alloc(ctx->opid, (u32) size, &pck_data)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[17]": {
+            "expression_matches": [
+              {
+                "location": "L206",
+                "matched": true,
+                "expression": "memcpy(pck_data, start, (size_t) size)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[18]": {
+            "expression_matches": [
+              {
+                "location": "L217",
+                "matched": true,
+                "expression": "memcpy(ctx->hdr_store, start+remain-3, 3)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[19]": {
+            "expression_matches": [
+              {
+                "location": "L242",
+                "matched": true,
+                "expression": "gf_filter_pck_new_alloc(ctx->opid, current, &pck_data)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[20]": {
+            "expression_matches": [
+              {
+                "location": "L256",
+                "matched": true,
+                "expression": "memcpy(pck_data, ctx->hdr_store, current)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[21]": {
+            "expression_matches": [
+              {
+                "location": "L262",
+                "matched": true,
+                "expression": "memcpy(pck_data, start, current)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[22]": {
+            "expression_matches": [
+              {
+                "location": "L275",
+                "matched": true,
+                "expression": "memcpy(ctx->hdr_store, start, remain)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[23]": {
+            "expression_matches": [
+              {
+                "location": "L283",
+                "matched": true,
+                "expression": "gf_bs_reassign_buffer(ctx->bs, start + hdr_offset, remain - hdr_offset)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[24]": {
+            "expression_matches": [
+              {
+                "location": "L286",
+                "matched": true,
+                "expression": "gf_bs_reassign_buffer(ctx->bs, start, remain)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[25]": {
+            "expression_matches": [
+              {
+                "location": "L287",
+                "matched": true,
+                "expression": "gf_bs_read_int(ctx->bs, 24)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[26]": {
+            "expression_matches": [
+              {
+                "location": "L288",
+                "matched": true,
+                "expression": "gf_bs_read_int(ctx->bs, 8)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[27]": {
+            "expression_matches": [
+              {
+                "location": "L295",
+                "matched": true,
+                "expression": "gf_bs_reassign_buffer(ctx->bs, start, remain)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[28]": {
+            "expression_matches": [
+              {
+                "location": "L301",
+                "matched": true,
+                "expression": "memmove(ctx->hdr_store, start, remain)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[29]": {
+            "expression_matches": [
+              {
+                "location": "L306",
+                "matched": true,
+                "expression": "gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[30]": {
+            "expression_matches": [
+              {
+                "location": "L308",
+                "matched": true,
+                "expression": "memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[31]": {
+            "expression_matches": [
+              {
+                "location": "L329",
+                "matched": true,
+                "expression": "gf_bs_read_u8(ctx->bs)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[32]": {
+            "expression_matches": [
+              {
+                "location": "L337",
+                "matched": true,
+                "expression": "gf_bs_reassign_buffer(ctx->bs, start, remain)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[33]": {
+            "expression_matches": [
+              {
+                "location": "L345",
+                "matched": true,
+                "expression": "memmove(ctx->hdr_store, start, remain)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[34]": {
+            "expression_matches": [
+              {
+                "location": "L350",
+                "matched": true,
+                "expression": "gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[35]": {
+            "expression_matches": [
+              {
+                "location": "L352",
+                "matched": true,
+                "expression": "memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start))"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[36]": {
+            "expression_matches": [
+              {
+                "location": "L430",
+                "matched": true,
+                "expression": "start[remain-3]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[37]": {
+            "expression_matches": [
+              {
+                "location": "L431",
+                "matched": true,
+                "expression": "start[remain-2]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[38]": {
+            "expression_matches": [
+              {
+                "location": "L432",
+                "matched": true,
+                "expression": "start[remain-1]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[39]": {
+            "expression_matches": [
+              {
+                "location": "L486",
+                "matched": true,
+                "expression": "gf_filter_pck_new_alloc(ctx->opid, (u32) size, &pck_data)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[40]": {
+            "expression_matches": [
+              {
+                "location": "L492",
+                "matched": true,
+                "expression": "memcpy(pck_data, ctx->hdr_store+current, bytes_from_store)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[41]": {
+            "expression_matches": [
+              {
+                "location": "L498",
+                "matched": true,
+                "expression": "memcpy(pck_data + bytes_from_store, start, (size_t) size)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[42]": {
+            "expression_matches": [
+              {
+                "location": "L501",
+                "matched": true,
+                "expression": "memcpy(pck_data, start, (size_t) size)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[43]": {
+            "expression_matches": [
+              {
+                "location": "L506",
+                "matched": true,
+                "expression": "pck_data[0]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[44]": {
+            "expression_matches": [
+              {
+                "location": "L507",
+                "matched": true,
+                "expression": "pck_data[1]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[45]": {
+            "expression_matches": [
+              {
+                "location": "L508",
+                "matched": true,
+                "expression": "pck_data[2]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[46]": {
+            "expression_matches": [
+              {
+                "location": "L530",
+                "matched": true,
+                "expression": "memcpy(ctx->hdr_store, start+remain-3, 3)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 8297,
+              "output_tokens": 1576,
+              "total_tokens": 9873
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 8297,
+          "output_tokens": 1576,
+          "total_tokens": 9873
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 70,
+                "fragment": "ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 80,
+                "fragment": "start = data = ctx->hdr_store;",
+                "matched_lines": [
+                  80
+                ]
+              },
+              {
+                "evidence_line": 91,
+                "fragment": "start = data = ctx->hdr_store + ctx->resume_from;",
+                "matched_lines": [
+                  91
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 102,
+                "fragment": "ctx->bs = gf_bs_new(start, remain, GF_BITSTREAM_READ);",
+                "matched_lines": [
+                  102
+                ]
+              },
+              {
+                "evidence_line": 104,
+                "fragment": "gf_bs_reassign_buffer(ctx->bs, start, remain);",
+                "matched_lines": [
+                  104
+                ]
+              },
+              {
+                "evidence_line": 283,
+                "fragment": "gf_bs_reassign_buffer(ctx->bs, start + hdr_offset, remain - hdr_offset);",
+                "matched_lines": [
+                  283
+                ]
+              },
+              {
+                "evidence_line": 286,
+                "fragment": "gf_bs_reassign_buffer(ctx->bs, start, remain);",
+                "matched_lines": [
+                  286
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 107,
+                "fragment": "ctx->vparser = gf_m4v_parser_bs_new(ctx->bs, ctx->is_mpg12);",
+                "matched_lines": [
+                  107
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 61,
+                "fragment": "if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "ctx->src_pck = pck;",
+                "matched_lines": [
+                  62
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "gf_filter_pck_ref_props(&ctx->src_pck);",
+                "matched_lines": [
+                  63
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 24,
+                "fragment": "if (ctx->src_pck) gf_filter_pck_unref(ctx->src_pck);",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "ctx->src_pck = NULL;",
+                "matched_lines": [
+                  25
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 68,
+                "fragment": "if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size) {",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "ctx->hdr_store_alloc = ctx->hdr_store_size + pck_size;",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 79,
+                "fragment": "ctx->hdr_store_size += pck_size;",
+                "matched_lines": [
+                  79
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 404,
+                "fragment": "ctx->hdr_store_size = 0;",
+                "matched_lines": [
+                  404
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 129,
+                "fragment": "memcpy(ctx->hdr_store, start, remain);",
+                "matched_lines": [
+                  129
+                ]
+              },
+              {
+                "evidence_line": 130,
+                "fragment": "ctx->bytes_in_header = remain;",
+                "matched_lines": [
+                  130
+                ]
+              },
+              {
+                "evidence_line": 217,
+                "fragment": "memcpy(ctx->hdr_store, start+remain-3, 3);",
+                "matched_lines": [
+                  217
+                ]
+              },
+              {
+                "evidence_line": 275,
+                "fragment": "memcpy(ctx->hdr_store, start, remain);",
+                "matched_lines": [
+                  275
+                ]
+              },
+              {
+                "evidence_line": 276,
+                "fragment": "ctx->bytes_in_header = remain;",
+                "matched_lines": [
+                  276
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 301,
+                "fragment": "memmove(ctx->hdr_store, start, remain);",
+                "matched_lines": [
+                  301
+                ]
+              },
+              {
+                "evidence_line": 302,
+                "fragment": "ctx->hdr_store_size = remain;",
+                "matched_lines": [
+                  302
+                ]
+              },
+              {
+                "evidence_line": 308,
+                "fragment": "memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );",
+                "matched_lines": [
+                  308
+                ]
+              },
+              {
+                "evidence_line": 309,
+                "fragment": "ctx->hdr_store_size += pck_size - (u32) vosh_start;",
+                "matched_lines": [
+                  309
+                ]
+              },
+              {
+                "evidence_line": 345,
+                "fragment": "memmove(ctx->hdr_store, start, remain);",
+                "matched_lines": [
+                  345
+                ]
+              },
+              {
+                "evidence_line": 346,
+                "fragment": "ctx->hdr_store_size = remain;",
+                "matched_lines": [
+                  346
+                ]
+              },
+              {
+                "evidence_line": 352,
+                "fragment": "memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );",
+                "matched_lines": [
+                  352
+                ]
+              },
+              {
+                "evidence_line": 353,
+                "fragment": "ctx->hdr_store_size += pck_size - (u32) vosh_start;",
+                "matched_lines": [
+                  353
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 400,
+                "fragment": "ctx->resume_from = (u32) ((char *)start -  (char *)data);",
+                "matched_lines": [
+                  400
+                ]
+              },
+              {
+                "evidence_line": 91,
+                "fragment": "start = data = ctx->hdr_store + ctx->resume_from;",
+                "matched_lines": [
+                  91
+                ]
+              },
+              {
+                "evidence_line": 95,
+                "fragment": "start += ctx->resume_from;",
+                "matched_lines": [
+                  95
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "pck = gf_filter_pid_get_packet(ctx->ipid);",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 538,
+                "fragment": "gf_filter_pid_drop_packet(ctx->ipid);",
+                "matched_lines": [
+                  538
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 145,
+                "fragment": "dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->bytes_in_header, &pck_data);",
+                "matched_lines": [
+                  145
+                ]
+              },
+              {
+                "evidence_line": 202,
+                "fragment": "dst_pck = gf_filter_pck_new_alloc(ctx->opid, (u32) size, &pck_data);",
+                "matched_lines": [
+                  202
+                ]
+              },
+              {
+                "evidence_line": 242,
+                "fragment": "dst_pck = gf_filter_pck_new_alloc(ctx->opid, current, &pck_data);",
+                "matched_lines": [
+                  242
+                ]
+              },
+              {
+                "evidence_line": 486,
+                "fragment": "dst_pck = gf_filter_pck_new_alloc(ctx->opid, (u32) size, &pck_data);",
+                "matched_lines": [
+                  486
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 8485,
+              "output_tokens": 3783,
+              "total_tokens": 12268
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 8485,
+          "output_tokens": 3783,
+          "total_tokens": 12268
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 31,
+                "fragment": "data = (char *) gf_filter_pck_get_data(pck, &pck_size);",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "start = data;",
+                "matched_lines": [
+                  34
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "remain = pck_size;",
+                "matched_lines": [
+                  35
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 68,
+                "fragment": "if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size) {",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "ctx->hdr_store_alloc = ctx->hdr_store_size + pck_size;",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 72,
+                "fragment": "memcpy(ctx->hdr_store + ctx->hdr_store_size, data, sizeof(char)*pck_size);",
+                "matched_lines": [
+                  72
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 79,
+                "fragment": "ctx->hdr_store_size += pck_size;",
+                "matched_lines": [
+                  79
+                ]
+              },
+              {
+                "evidence_line": 80,
+                "fragment": "start = data = ctx->hdr_store;",
+                "matched_lines": [
+                  80
+                ]
+              },
+              {
+                "evidence_line": 81,
+                "fragment": "remain = pck_size = ctx->hdr_store_size;",
+                "matched_lines": [
+                  81
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 90,
+                "fragment": "assert(ctx->resume_from <= ctx->hdr_store_size);",
+                "matched_lines": [
+                  90
+                ]
+              },
+              {
+                "evidence_line": 91,
+                "fragment": "start = data = ctx->hdr_store + ctx->resume_from;",
+                "matched_lines": [
+                  91
+                ]
+              },
+              {
+                "evidence_line": 92,
+                "fragment": "remain = pck_size = ctx->hdr_store_size - ctx->resume_from;",
+                "matched_lines": [
+                  92
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 94,
+                "fragment": "assert(remain >= (s32) ctx->resume_from);",
+                "matched_lines": [
+                  94
+                ]
+              },
+              {
+                "evidence_line": 95,
+                "fragment": "start += ctx->resume_from;",
+                "matched_lines": [
+                  95
+                ]
+              },
+              {
+                "evidence_line": 96,
+                "fragment": "remain -= ctx->resume_from;",
+                "matched_lines": [
+                  96
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 102,
+                "fragment": "ctx->bs = gf_bs_new(start, remain, GF_BITSTREAM_READ);",
+                "matched_lines": [
+                  102
+                ]
+              },
+              {
+                "evidence_line": 104,
+                "fragment": "gf_bs_reassign_buffer(ctx->bs, start, remain);",
+                "matched_lines": [
+                  104
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 128,
+                "fragment": "if (remain<5) {",
+                "matched_lines": [
+                  128
+                ]
+              },
+              {
+                "evidence_line": 129,
+                "fragment": "memcpy(ctx->hdr_store, start, remain);",
+                "matched_lines": [
+                  129
+                ]
+              },
+              {
+                "evidence_line": 130,
+                "fragment": "ctx->bytes_in_header = remain;",
+                "matched_lines": [
+                  130
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 139,
+                "fragment": "memcpy(ctx->hdr_store + ctx->bytes_in_header, start, 8 - ctx->bytes_in_header);",
+                "matched_lines": [
+                  139
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 167,
+                "fragment": "hdr_offset = 4 - ctx->bytes_in_header + current;",
+                "matched_lines": [
+                  167
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 171,
+                "fragment": "if (!hdr_offset) {",
+                "matched_lines": [
+                  171
+                ]
+              },
+              {
+                "evidence_line": 172,
+                "fragment": "forced_sc_type = ctx->hdr_store[current+3];",
+                "matched_lines": [
+                  172
+                ]
+              },
+              {
+                "evidence_line": 173,
+                "fragment": "} else {",
+                "matched_lines": [
+                  173
+                ]
+              },
+              {
+                "evidence_line": 174,
+                "fragment": "forced_sc_type = start[hdr_offset-1];",
+                "matched_lines": [
+                  174
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 190,
+                "fragment": "size = remain;",
+                "matched_lines": [
+                  190
+                ]
+              },
+              {
+                "evidence_line": 191,
+                "fragment": "b3 = start[remain-3];",
+                "matched_lines": [
+                  191
+                ]
+              },
+              {
+                "evidence_line": 192,
+                "fragment": "b2 = start[remain-2];",
+                "matched_lines": [
+                  192
+                ]
+              },
+              {
+                "evidence_line": 193,
+                "fragment": "b1 = start[remain-1];",
+                "matched_lines": [
+                  193
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 197,
+                "fragment": "assert(size >= 3);",
+                "matched_lines": [
+                  197
+                ]
+              },
+              {
+                "evidence_line": 198,
+                "fragment": "size -= 3;",
+                "matched_lines": [
+                  198
+                ]
+              },
+              {
+                "evidence_line": 199,
+                "fragment": "ctx->bytes_in_header = 3;",
+                "matched_lines": [
+                  199
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 227,
+                "fragment": "assert(remain>=current);",
+                "matched_lines": [
+                  227
+                ]
+              },
+              {
+                "evidence_line": 228,
+                "fragment": "start += current;",
+                "matched_lines": [
+                  228
+                ]
+              },
+              {
+                "evidence_line": 229,
+                "fragment": "remain -= current;",
+                "matched_lines": [
+                  229
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 234,
+                "fragment": "assert(remain>=current);",
+                "matched_lines": [
+                  234
+                ]
+              },
+              {
+                "evidence_line": 235,
+                "fragment": "start += current;",
+                "matched_lines": [
+                  235
+                ]
+              },
+              {
+                "evidence_line": 236,
+                "fragment": "remain -= current;",
+                "matched_lines": [
+                  236
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 254,
+                "fragment": "assert(bytes_from_store>=(u32) current);",
+                "matched_lines": [
+                  254
+                ]
+              },
+              {
+                "evidence_line": 255,
+                "fragment": "bytes_from_store -= current;",
+                "matched_lines": [
+                  255
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[15]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 262,
+                "fragment": "memcpy(pck_data, start, current);",
+                "matched_lines": [
+                  262
+                ]
+              },
+              {
+                "evidence_line": 263,
+                "fragment": "assert(remain>=current);",
+                "matched_lines": [
+                  263
+                ]
+              },
+              {
+                "evidence_line": 264,
+                "fragment": "start += current;",
+                "matched_lines": [
+                  264
+                ]
+              },
+              {
+                "evidence_line": 265,
+                "fragment": "remain -= current;",
+                "matched_lines": [
+                  265
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[16]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 283,
+                "fragment": "gf_bs_reassign_buffer(ctx->bs, start + hdr_offset, remain - hdr_offset);",
+                "matched_lines": [
+                  283
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[17]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 304,
+                "fragment": "if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {",
+                "matched_lines": [
+                  304
+                ]
+              },
+              {
+                "evidence_line": 305,
+                "fragment": "ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - vosh_start);",
+                "matched_lines": [
+                  305
+                ]
+              },
+              {
+                "evidence_line": 306,
+                "fragment": "ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);",
+                "matched_lines": [
+                  306
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[18]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 308,
+                "fragment": "memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );",
+                "matched_lines": [
+                  308
+                ]
+              },
+              {
+                "evidence_line": 309,
+                "fragment": "ctx->hdr_store_size += pck_size - (u32) vosh_start;",
+                "matched_lines": [
+                  309
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[19]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 330,
+                "fragment": "vosh_start = start - (u8 *)data;",
+                "matched_lines": [
+                  330
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[20]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 332,
+                "fragment": "assert(remain>=5);",
+                "matched_lines": [
+                  332
+                ]
+              },
+              {
+                "evidence_line": 333,
+                "fragment": "start += 5;",
+                "matched_lines": [
+                  333
+                ]
+              },
+              {
+                "evidence_line": 334,
+                "fragment": "remain -= 5;",
+                "matched_lines": [
+                  334
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[21]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 348,
+                "fragment": "if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {",
+                "matched_lines": [
+                  348
+                ]
+              },
+              {
+                "evidence_line": 349,
+                "fragment": "ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - (u32) vosh_start);",
+                "matched_lines": [
+                  349
+                ]
+              },
+              {
+                "evidence_line": 350,
+                "fragment": "ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);",
+                "matched_lines": [
+                  350
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[22]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 352,
+                "fragment": "memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );",
+                "matched_lines": [
+                  352
+                ]
+              },
+              {
+                "evidence_line": 353,
+                "fragment": "ctx->hdr_store_size += pck_size - (u32) vosh_start;",
+                "matched_lines": [
+                  353
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[23]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 360,
+                "fragment": "u32 obj_size = (u32) gf_m4v_get_object_start(ctx->vparser);",
+                "matched_lines": [
+                  360
+                ]
+              },
+              {
+                "evidence_line": 362,
+                "fragment": "vosh_end = start - (u8 *)data + obj_size;",
+                "matched_lines": [
+                  362
+                ]
+              },
+              {
+                "evidence_line": 363,
+                "fragment": "vosh_end -= vosh_start;",
+                "matched_lines": [
+                  363
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[24]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 366,
+                "fragment": "assert(remain>=(s32) obj_size);",
+                "matched_lines": [
+                  366
+                ]
+              },
+              {
+                "evidence_line": 367,
+                "fragment": "start += obj_size;",
+                "matched_lines": [
+                  367
+                ]
+              },
+              {
+                "evidence_line": 368,
+                "fragment": "remain -= obj_size;",
+                "matched_lines": [
+                  368
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[25]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 380,
+                "fragment": "assert(remain>=4);",
+                "matched_lines": [
+                  380
+                ]
+              },
+              {
+                "evidence_line": 381,
+                "fragment": "start += 4;",
+                "matched_lines": [
+                  381
+                ]
+              },
+              {
+                "evidence_line": 382,
+                "fragment": "remain -= 4;",
+                "matched_lines": [
+                  382
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[26]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 393,
+                "fragment": "assert(remain>=4);",
+                "matched_lines": [
+                  393
+                ]
+              },
+              {
+                "evidence_line": 394,
+                "fragment": "start += 4;",
+                "matched_lines": [
+                  394
+                ]
+              },
+              {
+                "evidence_line": 395,
+                "fragment": "remain -= 4;",
+                "matched_lines": [
+                  395
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[27]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 400,
+                "fragment": "ctx->resume_from = (u32) ((char *)start -  (char *)data);",
+                "matched_lines": [
+                  400
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[28]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 425,
+                "fragment": "if (bytes_from_store) {",
+                "matched_lines": [
+                  425
+                ]
+              },
+              {
+                "evidence_line": 426,
+                "fragment": "size += bytes_from_store + hdr_offset;",
+                "matched_lines": [
+                  426
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[29]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 430,
+                "fragment": "u8 b3 = start[remain-3];",
+                "matched_lines": [
+                  430
+                ]
+              },
+              {
+                "evidence_line": 431,
+                "fragment": "u8 b2 = start[remain-2];",
+                "matched_lines": [
+                  431
+                ]
+              },
+              {
+                "evidence_line": 432,
+                "fragment": "u8 b1 = start[remain-1];",
+                "matched_lines": [
+                  432
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[30]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 437,
+                "fragment": "assert(size >= 3);",
+                "matched_lines": [
+                  437
+                ]
+              },
+              {
+                "evidence_line": 438,
+                "fragment": "size -= 3;",
+                "matched_lines": [
+                  438
+                ]
+              },
+              {
+                "evidence_line": 439,
+                "fragment": "ctx->bytes_in_header = 3;",
+                "matched_lines": [
+                  439
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[31]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 450,
+                "fragment": "assert(remain>=size);",
+                "matched_lines": [
+                  450
+                ]
+              },
+              {
+                "evidence_line": 451,
+                "fragment": "start += size;",
+                "matched_lines": [
+                  451
+                ]
+              },
+              {
+                "evidence_line": 452,
+                "fragment": "remain -= (s32) size;",
+                "matched_lines": [
+                  452
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[32]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 459,
+                "fragment": "assert(remain>=size);",
+                "matched_lines": [
+                  459
+                ]
+              },
+              {
+                "evidence_line": 460,
+                "fragment": "start += size;",
+                "matched_lines": [
+                  460
+                ]
+              },
+              {
+                "evidence_line": 461,
+                "fragment": "remain -= (s32) size;",
+                "matched_lines": [
+                  461
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[33]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 492,
+                "fragment": "memcpy(pck_data, ctx->hdr_store+current, bytes_from_store);",
+                "matched_lines": [
+                  492
+                ]
+              },
+              {
+                "evidence_line": 493,
+                "fragment": "assert(size >= bytes_from_store);",
+                "matched_lines": [
+                  493
+                ]
+              },
+              {
+                "evidence_line": 494,
+                "fragment": "size -= bytes_from_store;",
+                "matched_lines": [
+                  494
+                ]
+              },
+              {
+                "evidence_line": 498,
+                "fragment": "memcpy(pck_data + bytes_from_store, start, (size_t) size);",
+                "matched_lines": [
+                  498
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[34]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 501,
+                "fragment": "memcpy(pck_data, start, (size_t) size);",
+                "matched_lines": [
+                  501
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[35]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 534,
+                "fragment": "assert(remain>=size);",
+                "matched_lines": [
+                  534
+                ]
+              },
+              {
+                "evidence_line": 535,
+                "fragment": "start += size;",
+                "matched_lines": [
+                  535
+                ]
+              },
+              {
+                "evidence_line": 536,
+                "fragment": "remain -= (s32) size;",
+                "matched_lines": [
+                  536
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 12,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 13,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 14,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 15,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 16,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 17,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 18,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 19,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 20,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 21,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 22,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 23,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 24,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 25,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 26,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 27,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 28,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 29,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 30,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 31,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 32,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 33,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 34,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 35,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 8165,
+              "output_tokens": 4720,
+              "total_tokens": 12885
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 8165,
+          "output_tokens": 4720,
+          "total_tokens": 12885
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 128,
+                "fragment": "if (remain<5) {",
+                "matched_lines": [
+                  128
+                ]
+              },
+              {
+                "evidence_line": 129,
+                "fragment": "memcpy(ctx->hdr_store, start, remain);",
+                "matched_lines": [
+                  129
+                ]
+              },
+              {
+                "evidence_line": 130,
+                "fragment": "ctx->bytes_in_header = remain;",
+                "matched_lines": [
+                  130
+                ]
+              },
+              {
+                "evidence_line": 131,
+                "fragment": "break;",
+                "matched_lines": [
+                  131
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 84,
+                "fragment": "if (ctx->resume_from) {",
+                "matched_lines": [
+                  84
+                ]
+              },
+              {
+                "evidence_line": 85,
+                "fragment": "if (gf_filter_pid_would_block(ctx->opid))",
+                "matched_lines": [
+                  85
+                ]
+              },
+              {
+                "evidence_line": 86,
+                "fragment": "return GF_OK;",
+                "matched_lines": [
+                  86
+                ]
+              },
+              {
+                "evidence_line": 89,
+                "fragment": "if (ctx->hdr_store_size) {",
+                "matched_lines": [
+                  89
+                ]
+              },
+              {
+                "evidence_line": 90,
+                "fragment": "assert(ctx->resume_from <= ctx->hdr_store_size);",
+                "matched_lines": [
+                  90
+                ]
+              },
+              {
+                "evidence_line": 91,
+                "fragment": "start = data = ctx->hdr_store + ctx->resume_from;",
+                "matched_lines": [
+                  91
+                ]
+              },
+              {
+                "evidence_line": 92,
+                "fragment": "remain = pck_size = ctx->hdr_store_size - ctx->resume_from;",
+                "matched_lines": [
+                  92
+                ]
+              },
+              {
+                "evidence_line": 93,
+                "fragment": "} else {",
+                "matched_lines": [
+                  93
+                ]
+              },
+              {
+                "evidence_line": 94,
+                "fragment": "assert(remain >= (s32) ctx->resume_from);",
+                "matched_lines": [
+                  94
+                ]
+              },
+              {
+                "evidence_line": 95,
+                "fragment": "start += ctx->resume_from;",
+                "matched_lines": [
+                  95
+                ]
+              },
+              {
+                "evidence_line": 96,
+                "fragment": "remain -= ctx->resume_from;",
+                "matched_lines": [
+                  96
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 67,
+                "fragment": "if (!ctx->resume_from && ctx->hdr_store_size) {",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size) {",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "ctx->hdr_store_alloc = ctx->hdr_store_size + pck_size;",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);",
+                "matched_lines": [
+                  70
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 73,
+                "fragment": "if (byte_offset != GF_FILTER_NO_BO) {",
+                "matched_lines": [
+                  73
+                ]
+              },
+              {
+                "evidence_line": 74,
+                "fragment": "if (byte_offset >= ctx->hdr_store_size)",
+                "matched_lines": [
+                  74
+                ]
+              },
+              {
+                "evidence_line": 75,
+                "fragment": "byte_offset -= ctx->hdr_store_size;",
+                "matched_lines": [
+                  75
+                ]
+              },
+              {
+                "evidence_line": 76,
+                "fragment": "else",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 77,
+                "fragment": "byte_offset = GF_FILTER_NO_BO;",
+                "matched_lines": [
+                  77
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 137,
+                "fragment": "if (ctx->bytes_in_header) {",
+                "matched_lines": [
+                  137
+                ]
+              },
+              {
+                "evidence_line": 139,
+                "fragment": "memcpy(ctx->hdr_store + ctx->bytes_in_header, start, 8 - ctx->bytes_in_header);",
+                "matched_lines": [
+                  139
+                ]
+              },
+              {
+                "evidence_line": 140,
+                "fragment": "current = mpgviddmx_next_start_code(ctx->hdr_store, 8);",
+                "matched_lines": [
+                  140
+                ]
+              },
+              {
+                "evidence_line": 143,
+                "fragment": "if ((current<0) || (current >= (s32) ctx->bytes_in_header) )  {",
+                "matched_lines": [
+                  143
+                ]
+              },
+              {
+                "evidence_line": 163,
+                "fragment": "ctx->bytes_in_header = 0;",
+                "matched_lines": [
+                  163
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 167,
+                "fragment": "hdr_offset = 4 - ctx->bytes_in_header + current;",
+                "matched_lines": [
+                  167
+                ]
+              },
+              {
+                "evidence_line": 169,
+                "fragment": "bytes_from_store = ctx->bytes_in_header;",
+                "matched_lines": [
+                  169
+                ]
+              },
+              {
+                "evidence_line": 170,
+                "fragment": "ctx->bytes_in_header = 0;",
+                "matched_lines": [
+                  170
+                ]
+              },
+              {
+                "evidence_line": 171,
+                "fragment": "if (!hdr_offset) {",
+                "matched_lines": [
+                  171
+                ]
+              },
+              {
+                "evidence_line": 172,
+                "fragment": "forced_sc_type = ctx->hdr_store[current+3];",
+                "matched_lines": [
+                  172
+                ]
+              },
+              {
+                "evidence_line": 173,
+                "fragment": "} else {",
+                "matched_lines": [
+                  173
+                ]
+              },
+              {
+                "evidence_line": 174,
+                "fragment": "forced_sc_type = start[hdr_offset-1];",
+                "matched_lines": [
+                  174
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 180,
+                "fragment": "if (current == -1) {",
+                "matched_lines": [
+                  180
+                ]
+              },
+              {
+                "evidence_line": 182,
+                "fragment": "current = mpgviddmx_next_start_code(start, remain);",
+                "matched_lines": [
+                  182
+                ]
+              },
+              {
+                "evidence_line": 184,
+                "fragment": "if (current<0) {",
+                "matched_lines": [
+                  184
+                ]
+              },
+              {
+                "evidence_line": 186,
+                "fragment": "if (! ctx->frame_started) {",
+                "matched_lines": [
+                  186
+                ]
+              },
+              {
+                "evidence_line": 188,
+                "fragment": "break;",
+                "matched_lines": [
+                  188
+                ]
+              },
+              {
+                "evidence_line": 219,
+                "fragment": "break;",
+                "matched_lines": [
+                  219
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 190,
+                "fragment": "size = remain;",
+                "matched_lines": [
+                  190
+                ]
+              },
+              {
+                "evidence_line": 195,
+                "fragment": "if (!b1 || !b2 || !b3) {",
+                "matched_lines": [
+                  195
+                ]
+              },
+              {
+                "evidence_line": 196,
+                "fragment": "copy_last_bytes = GF_TRUE;",
+                "matched_lines": [
+                  196
+                ]
+              },
+              {
+                "evidence_line": 197,
+                "fragment": "assert(size >= 3);",
+                "matched_lines": [
+                  197
+                ]
+              },
+              {
+                "evidence_line": 198,
+                "fragment": "size -= 3;",
+                "matched_lines": [
+                  198
+                ]
+              },
+              {
+                "evidence_line": 199,
+                "fragment": "ctx->bytes_in_header = 3;",
+                "matched_lines": [
+                  199
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 226,
+                "fragment": "if ((vosh_start>=0) && current) {",
+                "matched_lines": [
+                  226
+                ]
+              },
+              {
+                "evidence_line": 227,
+                "fragment": "assert(remain>=current);",
+                "matched_lines": [
+                  227
+                ]
+              },
+              {
+                "evidence_line": 228,
+                "fragment": "start += current;",
+                "matched_lines": [
+                  228
+                ]
+              },
+              {
+                "evidence_line": 229,
+                "fragment": "remain -= current;",
+                "matched_lines": [
+                  229
+                ]
+              },
+              {
+                "evidence_line": 230,
+                "fragment": "current = 0;",
+                "matched_lines": [
+                  230
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 233,
+                "fragment": "if (!ctx->opid && current) {",
+                "matched_lines": [
+                  233
+                ]
+              },
+              {
+                "evidence_line": 234,
+                "fragment": "assert(remain>=current);",
+                "matched_lines": [
+                  234
+                ]
+              },
+              {
+                "evidence_line": 235,
+                "fragment": "start += current;",
+                "matched_lines": [
+                  235
+                ]
+              },
+              {
+                "evidence_line": 236,
+                "fragment": "remain -= current;",
+                "matched_lines": [
+                  236
+                ]
+              },
+              {
+                "evidence_line": 237,
+                "fragment": "current = 0;",
+                "matched_lines": [
+                  237
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 250,
+                "fragment": "if (bytes_from_store) {",
+                "matched_lines": [
+                  250
+                ]
+              },
+              {
+                "evidence_line": 254,
+                "fragment": "assert(bytes_from_store>=(u32) current);",
+                "matched_lines": [
+                  254
+                ]
+              },
+              {
+                "evidence_line": 255,
+                "fragment": "bytes_from_store -= current;",
+                "matched_lines": [
+                  255
+                ]
+              },
+              {
+                "evidence_line": 256,
+                "fragment": "memcpy(pck_data, ctx->hdr_store, current);",
+                "matched_lines": [
+                  256
+                ]
+              },
+              {
+                "evidence_line": 257,
+                "fragment": "} else {",
+                "matched_lines": [
+                  257
+                ]
+              },
+              {
+                "evidence_line": 263,
+                "fragment": "assert(remain>=current);",
+                "matched_lines": [
+                  263
+                ]
+              },
+              {
+                "evidence_line": 264,
+                "fragment": "start += current;",
+                "matched_lines": [
+                  264
+                ]
+              },
+              {
+                "evidence_line": 265,
+                "fragment": "remain -= current;",
+                "matched_lines": [
+                  265
+                ]
+              },
+              {
+                "evidence_line": 266,
+                "fragment": "current = 0;",
+                "matched_lines": [
+                  266
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 274,
+                "fragment": "if (remain<5) {",
+                "matched_lines": [
+                  274
+                ]
+              },
+              {
+                "evidence_line": 275,
+                "fragment": "memcpy(ctx->hdr_store, start, remain);",
+                "matched_lines": [
+                  275
+                ]
+              },
+              {
+                "evidence_line": 276,
+                "fragment": "ctx->bytes_in_header = remain;",
+                "matched_lines": [
+                  276
+                ]
+              },
+              {
+                "evidence_line": 277,
+                "fragment": "break;",
+                "matched_lines": [
+                  277
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 282,
+                "fragment": "if (sc_type_forced) {",
+                "matched_lines": [
+                  282
+                ]
+              },
+              {
+                "evidence_line": 283,
+                "fragment": "gf_bs_reassign_buffer(ctx->bs, start + hdr_offset, remain - hdr_offset);",
+                "matched_lines": [
+                  283
+                ]
+              },
+              {
+                "evidence_line": 284,
+                "fragment": "sc_type = forced_sc_type;",
+                "matched_lines": [
+                  284
+                ]
+              },
+              {
+                "evidence_line": 285,
+                "fragment": "} else {",
+                "matched_lines": [
+                  285
+                ]
+              },
+              {
+                "evidence_line": 286,
+                "fragment": "gf_bs_reassign_buffer(ctx->bs, start, remain);",
+                "matched_lines": [
+                  286
+                ]
+              },
+              {
+                "evidence_line": 287,
+                "fragment": "gf_bs_read_int(ctx->bs, 24);",
+                "matched_lines": [
+                  287
+                ]
+              },
+              {
+                "evidence_line": 288,
+                "fragment": "sc_type = gf_bs_read_int(ctx->bs, 8);",
+                "matched_lines": [
+                  288
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 298,
+                "fragment": "if (e==GF_EOS) {",
+                "matched_lines": [
+                  298
+                ]
+              },
+              {
+                "evidence_line": 299,
+                "fragment": "if (vosh_start<0) vosh_start = 0;",
+                "matched_lines": [
+                  299
+                ]
+              },
+              {
+                "evidence_line": 300,
+                "fragment": "if (data == ctx->hdr_store) {",
+                "matched_lines": [
+                  300
+                ]
+              },
+              {
+                "evidence_line": 301,
+                "fragment": "memmove(ctx->hdr_store, start, remain);",
+                "matched_lines": [
+                  301
+                ]
+              },
+              {
+                "evidence_line": 302,
+                "fragment": "ctx->hdr_store_size = remain;",
+                "matched_lines": [
+                  302
+                ]
+              },
+              {
+                "evidence_line": 303,
+                "fragment": "} else {",
+                "matched_lines": [
+                  303
+                ]
+              },
+              {
+                "evidence_line": 304,
+                "fragment": "if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {",
+                "matched_lines": [
+                  304
+                ]
+              },
+              {
+                "evidence_line": 305,
+                "fragment": "ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - vosh_start);",
+                "matched_lines": [
+                  305
+                ]
+              },
+              {
+                "evidence_line": 306,
+                "fragment": "ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);",
+                "matched_lines": [
+                  306
+                ]
+              },
+              {
+                "evidence_line": 308,
+                "fragment": "memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );",
+                "matched_lines": [
+                  308
+                ]
+              },
+              {
+                "evidence_line": 309,
+                "fragment": "ctx->hdr_store_size += pck_size - (u32) vosh_start;",
+                "matched_lines": [
+                  309
+                ]
+              },
+              {
+                "evidence_line": 311,
+                "fragment": "gf_filter_pid_drop_packet(ctx->ipid);",
+                "matched_lines": [
+                  311
+                ]
+              },
+              {
+                "evidence_line": 312,
+                "fragment": "return GF_OK;",
+                "matched_lines": [
+                  312
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 342,
+                "fragment": "if (e==GF_EOS) {",
+                "matched_lines": [
+                  342
+                ]
+              },
+              {
+                "evidence_line": 343,
+                "fragment": "if (vosh_start<0) vosh_start = 0;",
+                "matched_lines": [
+                  343
+                ]
+              },
+              {
+                "evidence_line": 344,
+                "fragment": "if (data == ctx->hdr_store) {",
+                "matched_lines": [
+                  344
+                ]
+              },
+              {
+                "evidence_line": 345,
+                "fragment": "memmove(ctx->hdr_store, start, remain);",
+                "matched_lines": [
+                  345
+                ]
+              },
+              {
+                "evidence_line": 346,
+                "fragment": "ctx->hdr_store_size = remain;",
+                "matched_lines": [
+                  346
+                ]
+              },
+              {
+                "evidence_line": 347,
+                "fragment": "} else {",
+                "matched_lines": [
+                  347
+                ]
+              },
+              {
+                "evidence_line": 348,
+                "fragment": "if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {",
+                "matched_lines": [
+                  348
+                ]
+              },
+              {
+                "evidence_line": 349,
+                "fragment": "ctx->hdr_store_alloc = (u32) (ctx->hdr_store_size + pck_size - (u32) vosh_start);",
+                "matched_lines": [
+                  349
+                ]
+              },
+              {
+                "evidence_line": 350,
+                "fragment": "ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);",
+                "matched_lines": [
+                  350
+                ]
+              },
+              {
+                "evidence_line": 352,
+                "fragment": "memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, (size_t) (pck_size - vosh_start) );",
+                "matched_lines": [
+                  352
+                ]
+              },
+              {
+                "evidence_line": 353,
+                "fragment": "ctx->hdr_store_size += pck_size - (u32) vosh_start;",
+                "matched_lines": [
+                  353
+                ]
+              },
+              {
+                "evidence_line": 355,
+                "fragment": "gf_filter_pid_drop_packet(ctx->ipid);",
+                "matched_lines": [
+                  355
+                ]
+              },
+              {
+                "evidence_line": 356,
+                "fragment": "return GF_OK;",
+                "matched_lines": [
+                  356
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[15]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 360,
+                "fragment": "u32 obj_size = (u32) gf_m4v_get_object_start(ctx->vparser);",
+                "matched_lines": [
+                  360
+                ]
+              },
+              {
+                "evidence_line": 361,
+                "fragment": "if (vosh_start<0) vosh_start = 0;",
+                "matched_lines": [
+                  361
+                ]
+              },
+              {
+                "evidence_line": 362,
+                "fragment": "vosh_end = start - (u8 *)data + obj_size;",
+                "matched_lines": [
+                  362
+                ]
+              },
+              {
+                "evidence_line": 363,
+                "fragment": "vosh_end -= vosh_start;",
+                "matched_lines": [
+                  363
+                ]
+              },
+              {
+                "evidence_line": 366,
+                "fragment": "assert(remain>=(s32) obj_size);",
+                "matched_lines": [
+                  366
+                ]
+              },
+              {
+                "evidence_line": 367,
+                "fragment": "start += obj_size;",
+                "matched_lines": [
+                  367
+                ]
+              },
+              {
+                "evidence_line": 368,
+                "fragment": "remain -= obj_size;",
+                "matched_lines": [
+                  368
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[16]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 378,
+                "fragment": "if (vosh_start>=0) {",
+                "matched_lines": [
+                  378
+                ]
+              },
+              {
+                "evidence_line": 380,
+                "fragment": "assert(remain>=4);",
+                "matched_lines": [
+                  380
+                ]
+              },
+              {
+                "evidence_line": 381,
+                "fragment": "start += 4;",
+                "matched_lines": [
+                  381
+                ]
+              },
+              {
+                "evidence_line": 382,
+                "fragment": "remain -= 4;",
+                "matched_lines": [
+                  382
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[17]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 392,
+                "fragment": "if (!ctx->opid) {",
+                "matched_lines": [
+                  392
+                ]
+              },
+              {
+                "evidence_line": 393,
+                "fragment": "assert(remain>=4);",
+                "matched_lines": [
+                  393
+                ]
+              },
+              {
+                "evidence_line": 394,
+                "fragment": "start += 4;",
+                "matched_lines": [
+                  394
+                ]
+              },
+              {
+                "evidence_line": 395,
+                "fragment": "remain -= 4;",
+                "matched_lines": [
+                  395
+                ]
+              },
+              {
+                "evidence_line": 396,
+                "fragment": "continue;",
+                "matched_lines": [
+                  396
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[18]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 399,
+                "fragment": "if (!ctx->is_playing) {",
+                "matched_lines": [
+                  399
+                ]
+              },
+              {
+                "evidence_line": 400,
+                "fragment": "ctx->resume_from = (u32) ((char *)start -  (char *)data);",
+                "matched_lines": [
+                  400
+                ]
+              },
+              {
+                "evidence_line": 401,
+                "fragment": "return GF_OK;",
+                "matched_lines": [
+                  401
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[19]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 414,
+                "fragment": "if (remain<5)",
+                "matched_lines": [
+                  414
+                ]
+              },
+              {
+                "evidence_line": 415,
+                "fragment": "continue;",
+                "matched_lines": [
+                  415
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[20]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 425,
+                "fragment": "if (bytes_from_store) {",
+                "matched_lines": [
+                  425
+                ]
+              },
+              {
+                "evidence_line": 426,
+                "fragment": "size += bytes_from_store + hdr_offset;",
+                "matched_lines": [
+                  426
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[21]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 429,
+                "fragment": "if ((e == GF_EOS) && !ctx->input_is_au_end) {",
+                "matched_lines": [
+                  429
+                ]
+              },
+              {
+                "evidence_line": 435,
+                "fragment": "if (!b1 || !b2 || !b3) {",
+                "matched_lines": [
+                  435
+                ]
+              },
+              {
+                "evidence_line": 436,
+                "fragment": "copy_last_bytes = GF_TRUE;",
+                "matched_lines": [
+                  436
+                ]
+              },
+              {
+                "evidence_line": 437,
+                "fragment": "assert(size >= 3);",
+                "matched_lines": [
+                  437
+                ]
+              },
+              {
+                "evidence_line": 438,
+                "fragment": "size -= 3;",
+                "matched_lines": [
+                  438
+                ]
+              },
+              {
+                "evidence_line": 439,
+                "fragment": "ctx->bytes_in_header = 3;",
+                "matched_lines": [
+                  439
+                ]
+              },
+              {
+                "evidence_line": 441,
+                "fragment": "full_frame = GF_FALSE;",
+                "matched_lines": [
+                  441
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[22]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 446,
+                "fragment": "if (!is_coded) {",
+                "matched_lines": [
+                  446
+                ]
+              },
+              {
+                "evidence_line": 448,
+                "fragment": "if (ctx->forced_packed && ctx->b_frames) {",
+                "matched_lines": [
+                  448
+                ]
+              },
+              {
+                "evidence_line": 449,
+                "fragment": "ctx->is_packed = GF_TRUE;",
+                "matched_lines": [
+                  449
+                ]
+              },
+              {
+                "evidence_line": 450,
+                "fragment": "assert(remain>=size);",
+                "matched_lines": [
+                  450
+                ]
+              },
+              {
+                "evidence_line": 451,
+                "fragment": "start += size;",
+                "matched_lines": [
+                  451
+                ]
+              },
+              {
+                "evidence_line": 452,
+                "fragment": "remain -= (s32) size;",
+                "matched_lines": [
+                  452
+                ]
+              },
+              {
+                "evidence_line": 453,
+                "fragment": "continue;",
+                "matched_lines": [
+                  453
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[23]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 456,
+                "fragment": "if (ctx->vfr) {",
+                "matched_lines": [
+                  456
+                ]
+              },
+              {
+                "evidence_line": 457,
+                "fragment": "ctx->is_vfr = GF_TRUE;",
+                "matched_lines": [
+                  457
+                ]
+              },
+              {
+                "evidence_line": 458,
+                "fragment": "mpgviddmx_update_time(ctx);",
+                "matched_lines": [
+                  458
+                ]
+              },
+              {
+                "evidence_line": 459,
+                "fragment": "assert(remain>=size);",
+                "matched_lines": [
+                  459
+                ]
+              },
+              {
+                "evidence_line": 460,
+                "fragment": "start += size;",
+                "matched_lines": [
+                  460
+                ]
+              },
+              {
+                "evidence_line": 461,
+                "fragment": "remain -= (s32) size;",
+                "matched_lines": [
+                  461
+                ]
+              },
+              {
+                "evidence_line": 462,
+                "fragment": "continue;",
+                "matched_lines": [
+                  462
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[24]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 491,
+                "fragment": "if (bytes_from_store) {",
+                "matched_lines": [
+                  491
+                ]
+              },
+              {
+                "evidence_line": 492,
+                "fragment": "memcpy(pck_data, ctx->hdr_store+current, bytes_from_store);",
+                "matched_lines": [
+                  492
+                ]
+              },
+              {
+                "evidence_line": 493,
+                "fragment": "assert(size >= bytes_from_store);",
+                "matched_lines": [
+                  493
+                ]
+              },
+              {
+                "evidence_line": 494,
+                "fragment": "size -= bytes_from_store;",
+                "matched_lines": [
+                  494
+                ]
+              },
+              {
+                "evidence_line": 498,
+                "fragment": "memcpy(pck_data + bytes_from_store, start, (size_t) size);",
+                "matched_lines": [
+                  498
+                ]
+              },
+              {
+                "evidence_line": 499,
+                "fragment": "} else {",
+                "matched_lines": [
+                  499
+                ]
+              },
+              {
+                "evidence_line": 501,
+                "fragment": "memcpy(pck_data, start, (size_t) size);",
+                "matched_lines": [
+                  501
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[25]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 506,
+                "fragment": "assert(pck_data[0] == 0);",
+                "matched_lines": [
+                  506
+                ]
+              },
+              {
+                "evidence_line": 507,
+                "fragment": "assert(pck_data[1] == 0);",
+                "matched_lines": [
+                  507
+                ]
+              },
+              {
+                "evidence_line": 508,
+                "fragment": "assert(pck_data[2] == 0x01);",
+                "matched_lines": [
+                  508
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[26]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 528,
+                "fragment": "if (!full_frame) {",
+                "matched_lines": [
+                  528
+                ]
+              },
+              {
+                "evidence_line": 529,
+                "fragment": "if (copy_last_bytes) {",
+                "matched_lines": [
+                  529
+                ]
+              },
+              {
+                "evidence_line": 530,
+                "fragment": "memcpy(ctx->hdr_store, start+remain-3, 3);",
+                "matched_lines": [
+                  530
+                ]
+              },
+              {
+                "evidence_line": 532,
+                "fragment": "break;",
+                "matched_lines": [
+                  532
+                ]
+              },
+              {
+                "evidence_line": 534,
+                "fragment": "assert(remain>=size);",
+                "matched_lines": [
+                  534
+                ]
+              },
+              {
+                "evidence_line": 535,
+                "fragment": "start += size;",
+                "matched_lines": [
+                  535
+                ]
+              },
+              {
+                "evidence_line": 536,
+                "fragment": "remain -= (s32) size;",
+                "matched_lines": [
+                  536
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 47,
+      "states": 12,
+      "values": 36,
+      "executions": 27
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 34641,
+    "output_tokens": 12005,
+    "total_tokens": 46646
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000037",
+    "split": "test",
+    "source_hash": "f8840107ae4f847782c9b71fc8303a6a876e4fb7fb310fce9131164bcd7a6ee5",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

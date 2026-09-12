@@ -1,0 +1,1010 @@
+{
+  "sample_id": "test_000081",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [],
+      "states": [
+        {
+          "entities": [
+            "seccomp"
+          ],
+          "claim": "seccomp is initialized to a libseccomp filter context via seccomp_init(SCMP_ACT_ALLOW); it is NULL before initialization and is released by the cleanup_seccomp cleanup handler on scope exit.",
+          "evidence": "L10: __attribute__((cleanup (cleanup_seccomp))) scmp_filter_ctx seccomp = NULL;\nL147: seccomp = seccomp_init (SCMP_ACT_ALLOW);"
+        },
+        {
+          "entities": [
+            "seccomp_tmpf"
+          ],
+          "claim": "seccomp_tmpf is a GLnxTmpfile initialized to zero; its fd is opened by glnx_open_anonymous_tmpfile_full and later stolen by glnx_steal_fd, transferring ownership of the fd to the bwrap argument data.",
+          "evidence": "L145: g_auto(GLnxTmpfile) seccomp_tmpf  = { 0, };\nL264: if (!glnx_open_anonymous_tmpfile_full (O_RDWR | O_CLOEXEC, \"/tmp\", &seccomp_tmpf, error))\nL272: flatpak_bwrap_add_args_data_fd (bwrap,\nL273: \"--seccomp\", glnx_steal_fd (&seccomp_tmpf.fd), NULL);"
+        },
+        {
+          "entities": [
+            "bwrap"
+          ],
+          "claim": "bwrap receives ownership of the seccomp filter fd through flatpak_bwrap_add_args_data_fd.",
+          "evidence": "L272: flatpak_bwrap_add_args_data_fd (bwrap,\nL273: \"--seccomp\", glnx_steal_fd (&seccomp_tmpf.fd), NULL);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "syscall_blocklist",
+            "G_N_ELEMENTS"
+          ],
+          "claim": "The loop bound for syscall_blocklist is G_N_ELEMENTS(syscall_blocklist), the number of elements in the array.",
+          "evidence": "L207: for (i = 0; i < G_N_ELEMENTS (syscall_blocklist); i++)"
+        },
+        {
+          "entities": [
+            "syscall_nondevel_blocklist",
+            "G_N_ELEMENTS"
+          ],
+          "claim": "The loop bound for syscall_nondevel_blocklist is G_N_ELEMENTS(syscall_nondevel_blocklist), the number of elements in the array.",
+          "evidence": "L224: for (i = 0; i < G_N_ELEMENTS (syscall_nondevel_blocklist); i++)"
+        },
+        {
+          "entities": [
+            "socket_family_allowlist",
+            "G_N_ELEMENTS"
+          ],
+          "claim": "The loop bound for socket_family_allowlist is G_N_ELEMENTS(socket_family_allowlist), the number of elements in the array.",
+          "evidence": "L245: for (i = 0; i < G_N_ELEMENTS (socket_family_allowlist); i++)"
+        },
+        {
+          "entities": [
+            "last_allowed_family",
+            "disallowed",
+            "family"
+          ],
+          "claim": "last_allowed_family is initialized to -1, and for each allowed family the inner loop iterates disallowed from last_allowed_family + 1 up to but excluding family, then last_allowed_family is set to family.",
+          "evidence": "L244: last_allowed_family = -1;\nL254: for (disallowed = last_allowed_family + 1; disallowed < family; disallowed++)\nL259: last_allowed_family = family;"
+        },
+        {
+          "entities": [
+            "last_allowed_family"
+          ],
+          "claim": "After the allowlist loop, the final blocklist rule uses SCMP_CMP_GE with last_allowed_family + 1 as the lower bound.",
+          "evidence": "L262: seccomp_rule_add_exact (seccomp, SCMP_ACT_ERRNO (EAFNOSUPPORT), SCMP_SYS (socket), 1, SCMP_A0 (SCMP_CMP_GE, last_allowed_family + 1));"
+        },
+        {
+          "entities": [
+            "extra_arches",
+            "i"
+          ],
+          "claim": "extra_arches is iterated with index i starting at 0 while extra_arches[i] != 0, so the loop bound is the first zero sentinel in the array.",
+          "evidence": "L192: for (i = 0; extra_arches[i] != 0; i++)"
+        },
+        {
+          "entities": [
+            "arch_id",
+            "extra_arches"
+          ],
+          "claim": "arch_id is set to 0 initially and extra_arches to NULL; arch_id is assigned a nonzero SCMP_ARCH_* constant only for recognized arch strings, and extra_arches is set only for x86_64 and aarch64.",
+          "evidence": "L153: uint32_t arch_id = 0;\nL154: const uint32_t *extra_arches = NULL;\nL158: arch_id = SCMP_ARCH_X86;\nL162: arch_id = SCMP_ARCH_X86_64;\nL163: extra_arches = seccomp_x86_64_extra_arches;\nL167: arch_id = SCMP_ARCH_ARM;\nL172: arch_id = SCMP_ARCH_AARCH64;\nL173: extra_arches = seccomp_aarch64_extra_arches;"
+        },
+        {
+          "entities": [
+            "syscall_blocklist",
+            "arg"
+          ],
+          "claim": "Each syscall_blocklist entry has an optional arg pointer; when non-NULL, seccomp_rule_add is called with argument count 1 and *arg, otherwise with argument count 0.",
+          "evidence": "L214: if (syscall_blocklist[i].arg)\nL215: r = seccomp_rule_add (seccomp, SCMP_ACT_ERRNO (errnum), scall, 1, *syscall_blocklist[i].arg);\nL217: r = seccomp_rule_add (seccomp, SCMP_ACT_ERRNO (errnum), scall, 0);"
+        },
+        {
+          "entities": [
+            "syscall_nondevel_blocklist",
+            "arg"
+          ],
+          "claim": "Each syscall_nondevel_blocklist entry has an optional arg pointer; when non-NULL, seccomp_rule_add is called with argument count 1 and *arg, otherwise with argument count 0.",
+          "evidence": "L231: if (syscall_nondevel_blocklist[i].arg)\nL232: r = seccomp_rule_add (seccomp, SCMP_ACT_ERRNO (errnum), scall, 1, *syscall_nondevel_blocklist[i].arg);\nL234: r = seccomp_rule_add (seccomp, SCMP_ACT_ERRNO (errnum), scall, 0);"
+        },
+        {
+          "entities": [
+            "ioctl",
+            "TIOCSTI"
+          ],
+          "claim": "The ioctl blocklist entry uses SCMP_A1 with mask 0xFFFFFFFFu and comparison value (int) TIOCSTI, so the second syscall argument is masked to 32 bits and compared against the int conversion of TIOCSTI.",
+          "evidence": "L93: {SCMP_SYS (ioctl), EPERM, &SCMP_A1 (SCMP_CMP_MASKED_EQ, 0xFFFFFFFFu, (int) TIOCSTI)},"
+        },
+        {
+          "entities": [
+            "clone",
+            "CLONE_NEWUSER"
+          ],
+          "claim": "The clone blocklist entry uses SCMP_A1 or SCMP_A0 with SCMP_CMP_MASKED_EQ, mask CLONE_NEWUSER, and value CLONE_NEWUSER, depending on architecture.",
+          "evidence": "L86: {SCMP_SYS (clone), EPERM, &SCMP_A1 (SCMP_CMP_MASKED_EQ, CLONE_NEWUSER, CLONE_NEWUSER)},\nL89: {SCMP_SYS (clone), EPERM, &SCMP_A0 (SCMP_CMP_MASKED_EQ, CLONE_NEWUSER, CLONE_NEWUSER)},"
+        },
+        {
+          "entities": [
+            "personality",
+            "allowed_personality"
+          ],
+          "claim": "The personality blocklist entry uses SCMP_A0 with SCMP_CMP_NE and comparison value allowed_personality, so the first syscall argument is compared for inequality against allowed_personality.",
+          "evidence": "L125: {SCMP_SYS (personality), EPERM, &SCMP_A0 (SCMP_CMP_NE, allowed_personality)},"
+        },
+        {
+          "entities": [
+            "socket_family_allowlist",
+            "flags_mask",
+            "run_flags"
+          ],
+          "claim": "An allowlist entry is skipped when its flags_mask is nonzero and (flags_mask & run_flags) != flags_mask.",
+          "evidence": "L250: if (socket_family_allowlist[i].flags_mask != 0 &&\nL251: (socket_family_allowlist[i].flags_mask & run_flags) != socket_family_allowlist[i].flags_mask)"
+        },
+        {
+          "entities": [
+            "seccomp_tmpf",
+            "seccomp_tmpf.fd"
+          ],
+          "claim": "seccomp_tmpf is initialized to { 0, } and its fd member is passed to seccomp_export_bpf, lseek, and glnx_steal_fd.",
+          "evidence": "L145: g_auto(GLnxTmpfile) seccomp_tmpf  = { 0, };\nL267: if (seccomp_export_bpf (seccomp, seccomp_tmpf.fd) != 0)\nL270: lseek (seccomp_tmpf.fd, 0, SEEK_SET);\nL273: \"--seccomp\", glnx_steal_fd (&seccomp_tmpf.fd), NULL);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "seccomp"
+          ],
+          "claim": "If seccomp_init returns NULL, execution returns immediately with a failure; otherwise seccomp is a valid non-NULL filter context for subsequent seccomp_* calls.",
+          "evidence": "L147: seccomp = seccomp_init (SCMP_ACT_ALLOW);\nL148: if (!seccomp)\nL149: return flatpak_fail_error (error, FLATPAK_ERROR_SETUP_FAILED, _(\"Initialize seccomp failed\"));"
+        },
+        {
+          "entities": [
+            "arch_id",
+            "extra_arches",
+            "multiarch",
+            "i"
+          ],
+          "claim": "When arch is non-NULL and arch_id != 0, seccomp_arch_add is called; if multiarch is true and extra_arches is non-NULL, the loop iterates i from 0 while extra_arches[i] != 0, so each extra_arches[i] is a valid non-zero architecture id.",
+          "evidence": "L151: if (arch != NULL)\nL179: if (arch_id != 0)\nL186: r = seccomp_arch_add (seccomp, arch_id);\nL190: if (multiarch && extra_arches != NULL)\nL192: for (i = 0; extra_arches[i] != 0; i++)\nL194: r = seccomp_arch_add (seccomp, extra_arches[i]);"
+        },
+        {
+          "entities": [
+            "i",
+            "syscall_blocklist"
+          ],
+          "claim": "The first blocklist loop runs with 0 <= i < G_N_ELEMENTS(syscall_blocklist), so syscall_blocklist[i] is in bounds.",
+          "evidence": "L207: for (i = 0; i < G_N_ELEMENTS (syscall_blocklist); i++)\nL209: int scall = syscall_blocklist[i].scall;\nL210: int errnum = syscall_blocklist[i].errnum;"
+        },
+        {
+          "entities": [
+            "errnum"
+          ],
+          "claim": "Inside the first blocklist loop, errnum is constrained to EPERM or ENOSYS by g_return_val_if_fail before seccomp_rule_add is called.",
+          "evidence": "L210: int errnum = syscall_blocklist[i].errnum;\nL212: g_return_val_if_fail (errnum == EPERM || errnum == ENOSYS, FALSE);"
+        },
+        {
+          "entities": [
+            "i",
+            "syscall_nondevel_blocklist",
+            "devel"
+          ],
+          "claim": "The non-devel blocklist loop runs only when devel is false, with 0 <= i < G_N_ELEMENTS(syscall_nondevel_blocklist), so syscall_nondevel_blocklist[i] is in bounds.",
+          "evidence": "L222: if (!devel)\nL224: for (i = 0; i < G_N_ELEMENTS (syscall_nondevel_blocklist); i++)\nL226: int scall = syscall_nondevel_blocklist[i].scall;\nL227: int errnum = syscall_nondevel_blocklist[i].errnum;"
+        },
+        {
+          "entities": [
+            "errnum"
+          ],
+          "claim": "Inside the non-devel blocklist loop, errnum is constrained to EPERM or ENOSYS by g_return_val_if_fail before seccomp_rule_add is called.",
+          "evidence": "L227: int errnum = syscall_nondevel_blocklist[i].errnum;\nL229: g_return_val_if_fail (errnum == EPERM || errnum == ENOSYS, FALSE);"
+        },
+        {
+          "entities": [
+            "i",
+            "socket_family_allowlist",
+            "last_allowed_family",
+            "disallowed",
+            "family"
+          ],
+          "claim": "In the socket-family loop, 0 <= i < G_N_ELEMENTS(socket_family_allowlist); last_allowed_family starts at -1 and is updated to family after each non-skipped entry; the inner loop runs disallowed from last_allowed_family + 1 while disallowed < family, so disallowed is strictly less than family and greater than the previous allowed family.",
+          "evidence": "L244: last_allowed_family = -1;\nL245: for (i = 0; i < G_N_ELEMENTS (socket_family_allowlist); i++)\nL247: int family = socket_family_allowlist[i].family;\nL254: for (disallowed = last_allowed_family + 1; disallowed < family; disallowed++)\nL259: last_allowed_family = family;"
+        },
+        {
+          "entities": [
+            "last_allowed_family"
+          ],
+          "claim": "After the socket-family loop, last_allowed_family is the largest family value among entries that were not skipped, or -1 if all entries were skipped; the final blocklist rule uses last_allowed_family + 1 as the lower bound.",
+          "evidence": "L244: last_allowed_family = -1;\nL259: last_allowed_family = family;\nL262: seccomp_rule_add_exact (seccomp, SCMP_ACT_ERRNO (EAFNOSUPPORT), SCMP_SYS (socket), 1, SCMP_A0 (SCMP_CMP_GE, last_allowed_family + 1));"
+        },
+        {
+          "entities": [
+            "seccomp_tmpf"
+          ],
+          "claim": "If glnx_open_anonymous_tmpfile_full fails, execution returns FALSE; otherwise seccomp_tmpf.fd is a valid file descriptor used for seccomp_export_bpf and lseek.",
+          "evidence": "L264: if (!glnx_open_anonymous_tmpfile_full (O_RDWR | O_CLOEXEC, \"/tmp\", &seccomp_tmpf, error))\nL265: return FALSE;\nL267: if (seccomp_export_bpf (seccomp, seccomp_tmpf.fd) != 0)\nL270: lseek (seccomp_tmpf.fd, 0, SEEK_SET);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 6109,
+              "output_tokens": 114,
+              "total_tokens": 6223
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 6109,
+          "output_tokens": 114,
+          "total_tokens": 6223
+        },
+        "grounding": {},
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 0,
+            "expression": "syscall_blocklist[i].scall / syscall_blocklist[i].arg / socket_family_allowlist[i].family / socket_family_allowlist[i].flags_mask"
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 4712,
+              "output_tokens": 391,
+              "total_tokens": 5103
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 4712,
+          "output_tokens": 391,
+          "total_tokens": 5103
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "__attribute__((cleanup (cleanup_seccomp))) scmp_filter_ctx seccomp = NULL;",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 147,
+                "fragment": "seccomp = seccomp_init (SCMP_ACT_ALLOW);",
+                "matched_lines": [
+                  147
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 145,
+                "fragment": "g_auto(GLnxTmpfile) seccomp_tmpf  = { 0, };",
+                "matched_lines": [
+                  145
+                ]
+              },
+              {
+                "evidence_line": 264,
+                "fragment": "if (!glnx_open_anonymous_tmpfile_full (O_RDWR | O_CLOEXEC, \"/tmp\", &seccomp_tmpf, error))",
+                "matched_lines": [
+                  264
+                ]
+              },
+              {
+                "evidence_line": 272,
+                "fragment": "flatpak_bwrap_add_args_data_fd (bwrap,",
+                "matched_lines": [
+                  272
+                ]
+              },
+              {
+                "evidence_line": 273,
+                "fragment": "\"--seccomp\", glnx_steal_fd (&seccomp_tmpf.fd), NULL);",
+                "matched_lines": [
+                  273
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 272,
+                "fragment": "flatpak_bwrap_add_args_data_fd (bwrap,",
+                "matched_lines": [
+                  272
+                ]
+              },
+              {
+                "evidence_line": 273,
+                "fragment": "\"--seccomp\", glnx_steal_fd (&seccomp_tmpf.fd), NULL);",
+                "matched_lines": [
+                  273
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 4900,
+              "output_tokens": 1772,
+              "total_tokens": 6672
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 4900,
+          "output_tokens": 1772,
+          "total_tokens": 6672
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 207,
+                "fragment": "for (i = 0; i < G_N_ELEMENTS (syscall_blocklist); i++)",
+                "matched_lines": [
+                  207
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 224,
+                "fragment": "for (i = 0; i < G_N_ELEMENTS (syscall_nondevel_blocklist); i++)",
+                "matched_lines": [
+                  224
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 245,
+                "fragment": "for (i = 0; i < G_N_ELEMENTS (socket_family_allowlist); i++)",
+                "matched_lines": [
+                  245
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 244,
+                "fragment": "last_allowed_family = -1;",
+                "matched_lines": [
+                  244
+                ]
+              },
+              {
+                "evidence_line": 254,
+                "fragment": "for (disallowed = last_allowed_family + 1; disallowed < family; disallowed++)",
+                "matched_lines": [
+                  254
+                ]
+              },
+              {
+                "evidence_line": 259,
+                "fragment": "last_allowed_family = family;",
+                "matched_lines": [
+                  259
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 262,
+                "fragment": "seccomp_rule_add_exact (seccomp, SCMP_ACT_ERRNO (EAFNOSUPPORT), SCMP_SYS (socket), 1, SCMP_A0 (SCMP_CMP_GE, last_allowed_family + 1));",
+                "matched_lines": [
+                  262
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 192,
+                "fragment": "for (i = 0; extra_arches[i] != 0; i++)",
+                "matched_lines": [
+                  192
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 153,
+                "fragment": "uint32_t arch_id = 0;",
+                "matched_lines": [
+                  153
+                ]
+              },
+              {
+                "evidence_line": 154,
+                "fragment": "const uint32_t *extra_arches = NULL;",
+                "matched_lines": [
+                  154
+                ]
+              },
+              {
+                "evidence_line": 158,
+                "fragment": "arch_id = SCMP_ARCH_X86;",
+                "matched_lines": [
+                  158
+                ]
+              },
+              {
+                "evidence_line": 162,
+                "fragment": "arch_id = SCMP_ARCH_X86_64;",
+                "matched_lines": [
+                  162
+                ]
+              },
+              {
+                "evidence_line": 163,
+                "fragment": "extra_arches = seccomp_x86_64_extra_arches;",
+                "matched_lines": [
+                  163
+                ]
+              },
+              {
+                "evidence_line": 167,
+                "fragment": "arch_id = SCMP_ARCH_ARM;",
+                "matched_lines": [
+                  167
+                ]
+              },
+              {
+                "evidence_line": 172,
+                "fragment": "arch_id = SCMP_ARCH_AARCH64;",
+                "matched_lines": [
+                  172
+                ]
+              },
+              {
+                "evidence_line": 173,
+                "fragment": "extra_arches = seccomp_aarch64_extra_arches;",
+                "matched_lines": [
+                  173
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 214,
+                "fragment": "if (syscall_blocklist[i].arg)",
+                "matched_lines": [
+                  214
+                ]
+              },
+              {
+                "evidence_line": 215,
+                "fragment": "r = seccomp_rule_add (seccomp, SCMP_ACT_ERRNO (errnum), scall, 1, *syscall_blocklist[i].arg);",
+                "matched_lines": [
+                  215
+                ]
+              },
+              {
+                "evidence_line": 217,
+                "fragment": "r = seccomp_rule_add (seccomp, SCMP_ACT_ERRNO (errnum), scall, 0);",
+                "matched_lines": [
+                  217
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 231,
+                "fragment": "if (syscall_nondevel_blocklist[i].arg)",
+                "matched_lines": [
+                  231
+                ]
+              },
+              {
+                "evidence_line": 232,
+                "fragment": "r = seccomp_rule_add (seccomp, SCMP_ACT_ERRNO (errnum), scall, 1, *syscall_nondevel_blocklist[i].arg);",
+                "matched_lines": [
+                  232
+                ]
+              },
+              {
+                "evidence_line": 234,
+                "fragment": "r = seccomp_rule_add (seccomp, SCMP_ACT_ERRNO (errnum), scall, 0);",
+                "matched_lines": [
+                  234
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 93,
+                "fragment": "{SCMP_SYS (ioctl), EPERM, &SCMP_A1 (SCMP_CMP_MASKED_EQ, 0xFFFFFFFFu, (int) TIOCSTI)},",
+                "matched_lines": [
+                  93
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 86,
+                "fragment": "{SCMP_SYS (clone), EPERM, &SCMP_A1 (SCMP_CMP_MASKED_EQ, CLONE_NEWUSER, CLONE_NEWUSER)},",
+                "matched_lines": [
+                  86
+                ]
+              },
+              {
+                "evidence_line": 89,
+                "fragment": "{SCMP_SYS (clone), EPERM, &SCMP_A0 (SCMP_CMP_MASKED_EQ, CLONE_NEWUSER, CLONE_NEWUSER)},",
+                "matched_lines": [
+                  89
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 125,
+                "fragment": "{SCMP_SYS (personality), EPERM, &SCMP_A0 (SCMP_CMP_NE, allowed_personality)},",
+                "matched_lines": [
+                  125
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 250,
+                "fragment": "if (socket_family_allowlist[i].flags_mask != 0 &&",
+                "matched_lines": [
+                  250
+                ]
+              },
+              {
+                "evidence_line": 251,
+                "fragment": "(socket_family_allowlist[i].flags_mask & run_flags) != socket_family_allowlist[i].flags_mask)",
+                "matched_lines": [
+                  251
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 145,
+                "fragment": "g_auto(GLnxTmpfile) seccomp_tmpf  = { 0, };",
+                "matched_lines": [
+                  145
+                ]
+              },
+              {
+                "evidence_line": 267,
+                "fragment": "if (seccomp_export_bpf (seccomp, seccomp_tmpf.fd) != 0)",
+                "matched_lines": [
+                  267
+                ]
+              },
+              {
+                "evidence_line": 270,
+                "fragment": "lseek (seccomp_tmpf.fd, 0, SEEK_SET);",
+                "matched_lines": [
+                  270
+                ]
+              },
+              {
+                "evidence_line": 273,
+                "fragment": "\"--seccomp\", glnx_steal_fd (&seccomp_tmpf.fd), NULL);",
+                "matched_lines": [
+                  273
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 4580,
+              "output_tokens": 1289,
+              "total_tokens": 5869
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 4580,
+          "output_tokens": 1289,
+          "total_tokens": 5869
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 147,
+                "fragment": "seccomp = seccomp_init (SCMP_ACT_ALLOW);",
+                "matched_lines": [
+                  147
+                ]
+              },
+              {
+                "evidence_line": 148,
+                "fragment": "if (!seccomp)",
+                "matched_lines": [
+                  148
+                ]
+              },
+              {
+                "evidence_line": 149,
+                "fragment": "return flatpak_fail_error (error, FLATPAK_ERROR_SETUP_FAILED, _(\"Initialize seccomp failed\"));",
+                "matched_lines": [
+                  149
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 151,
+                "fragment": "if (arch != NULL)",
+                "matched_lines": [
+                  151
+                ]
+              },
+              {
+                "evidence_line": 179,
+                "fragment": "if (arch_id != 0)",
+                "matched_lines": [
+                  179
+                ]
+              },
+              {
+                "evidence_line": 186,
+                "fragment": "r = seccomp_arch_add (seccomp, arch_id);",
+                "matched_lines": [
+                  186
+                ]
+              },
+              {
+                "evidence_line": 190,
+                "fragment": "if (multiarch && extra_arches != NULL)",
+                "matched_lines": [
+                  190
+                ]
+              },
+              {
+                "evidence_line": 192,
+                "fragment": "for (i = 0; extra_arches[i] != 0; i++)",
+                "matched_lines": [
+                  192
+                ]
+              },
+              {
+                "evidence_line": 194,
+                "fragment": "r = seccomp_arch_add (seccomp, extra_arches[i]);",
+                "matched_lines": [
+                  194
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 207,
+                "fragment": "for (i = 0; i < G_N_ELEMENTS (syscall_blocklist); i++)",
+                "matched_lines": [
+                  207
+                ]
+              },
+              {
+                "evidence_line": 209,
+                "fragment": "int scall = syscall_blocklist[i].scall;",
+                "matched_lines": [
+                  209
+                ]
+              },
+              {
+                "evidence_line": 210,
+                "fragment": "int errnum = syscall_blocklist[i].errnum;",
+                "matched_lines": [
+                  210
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 210,
+                "fragment": "int errnum = syscall_blocklist[i].errnum;",
+                "matched_lines": [
+                  210
+                ]
+              },
+              {
+                "evidence_line": 212,
+                "fragment": "g_return_val_if_fail (errnum == EPERM || errnum == ENOSYS, FALSE);",
+                "matched_lines": [
+                  212
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 222,
+                "fragment": "if (!devel)",
+                "matched_lines": [
+                  222
+                ]
+              },
+              {
+                "evidence_line": 224,
+                "fragment": "for (i = 0; i < G_N_ELEMENTS (syscall_nondevel_blocklist); i++)",
+                "matched_lines": [
+                  224
+                ]
+              },
+              {
+                "evidence_line": 226,
+                "fragment": "int scall = syscall_nondevel_blocklist[i].scall;",
+                "matched_lines": [
+                  226
+                ]
+              },
+              {
+                "evidence_line": 227,
+                "fragment": "int errnum = syscall_nondevel_blocklist[i].errnum;",
+                "matched_lines": [
+                  227
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 227,
+                "fragment": "int errnum = syscall_nondevel_blocklist[i].errnum;",
+                "matched_lines": [
+                  227
+                ]
+              },
+              {
+                "evidence_line": 229,
+                "fragment": "g_return_val_if_fail (errnum == EPERM || errnum == ENOSYS, FALSE);",
+                "matched_lines": [
+                  229
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 244,
+                "fragment": "last_allowed_family = -1;",
+                "matched_lines": [
+                  244
+                ]
+              },
+              {
+                "evidence_line": 245,
+                "fragment": "for (i = 0; i < G_N_ELEMENTS (socket_family_allowlist); i++)",
+                "matched_lines": [
+                  245
+                ]
+              },
+              {
+                "evidence_line": 247,
+                "fragment": "int family = socket_family_allowlist[i].family;",
+                "matched_lines": [
+                  247
+                ]
+              },
+              {
+                "evidence_line": 254,
+                "fragment": "for (disallowed = last_allowed_family + 1; disallowed < family; disallowed++)",
+                "matched_lines": [
+                  254
+                ]
+              },
+              {
+                "evidence_line": 259,
+                "fragment": "last_allowed_family = family;",
+                "matched_lines": [
+                  259
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 244,
+                "fragment": "last_allowed_family = -1;",
+                "matched_lines": [
+                  244
+                ]
+              },
+              {
+                "evidence_line": 259,
+                "fragment": "last_allowed_family = family;",
+                "matched_lines": [
+                  259
+                ]
+              },
+              {
+                "evidence_line": 262,
+                "fragment": "seccomp_rule_add_exact (seccomp, SCMP_ACT_ERRNO (EAFNOSUPPORT), SCMP_SYS (socket), 1, SCMP_A0 (SCMP_CMP_GE, last_allowed_family + 1));",
+                "matched_lines": [
+                  262
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 264,
+                "fragment": "if (!glnx_open_anonymous_tmpfile_full (O_RDWR | O_CLOEXEC, \"/tmp\", &seccomp_tmpf, error))",
+                "matched_lines": [
+                  264
+                ]
+              },
+              {
+                "evidence_line": 265,
+                "fragment": "return FALSE;",
+                "matched_lines": [
+                  265
+                ]
+              },
+              {
+                "evidence_line": 267,
+                "fragment": "if (seccomp_export_bpf (seccomp, seccomp_tmpf.fd) != 0)",
+                "matched_lines": [
+                  267
+                ]
+              },
+              {
+                "evidence_line": 270,
+                "fragment": "lseek (seccomp_tmpf.fd, 0, SEEK_SET);",
+                "matched_lines": [
+                  270
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 0,
+      "states": 3,
+      "values": 14,
+      "executions": 9
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 20301,
+    "output_tokens": 3566,
+    "total_tokens": 23867
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000081",
+    "split": "test",
+    "source_hash": "e48a4f7c6208fbaa7588e2652d0a27ec273fb73b98df887508b3255f8eaa28fd",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

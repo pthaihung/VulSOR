@@ -7,21 +7,11 @@
     "rules": [
       {
         "locations": [
-          "L27"
-        ],
-        "expression": "GetAuthenticPixels(image,0,row,image->columns,1,exception)",
-        "requirements": [
-          "the requested row must be within the image's valid row extent",
-          "the requested column extent must be within the image's valid column extent"
-        ]
-      },
-      {
-        "locations": [
           "L35"
         ],
         "expression": "*p++",
         "requirements": [
-          "p must designate a readable byte within the pixel data buffer"
+          "p must designate a readable byte at the time of dereference"
         ]
       },
       {
@@ -30,7 +20,7 @@
         ],
         "expression": "PushShortPixel(MSBEndian,p,&nibble)",
         "requirements": [
-          "p must designate a readable range of at least two bytes within the pixel data buffer"
+          "p must designate a readable range of at least the size of an unsigned short"
         ]
       },
       {
@@ -39,19 +29,28 @@
         ],
         "expression": "PushFloatPixel(MSBEndian,p,&nibble)",
         "requirements": [
-          "p must designate a readable range of at least sizeof(MagickFloatType) bytes within the pixel data buffer"
+          "p must designate a readable range of at least the size of a MagickFloatType"
         ]
       },
       {
         "locations": [
-          "L52",
-          "L66"
+          "L52"
         ],
         "expression": "SetPSDPixel(image,channels,type,packet_size,pixel,q,indexes,x)",
         "requirements": [
-          "q must designate a writable pixel within the authentic pixel region obtained for the current row",
-          "indexes must designate a writable index entry corresponding to the pixel at q",
-          "x must be within the valid column extent of the authentic pixel region"
+          "q must designate a writable pixel region for the current column position",
+          "indexes must designate a writable index queue region for the current column position"
+        ]
+      },
+      {
+        "locations": [
+          "L66",
+          "L67"
+        ],
+        "expression": "SetPSDPixel(image,channels,type,packet_size,(((unsigned char) pixel) & (0x01 << (7-bit))) != 0 ? 0 : QuantumRange,q++,indexes,x++)",
+        "requirements": [
+          "q must designate a writable pixel region for the current column position",
+          "indexes must designate a writable index queue region for the current column position"
         ]
       }
     ]
@@ -64,29 +63,29 @@
         "retry_mode": "initial",
         "errors": [],
         "token_usage": {
-          "input_tokens": 3274,
-          "output_tokens": 323,
-          "total_tokens": 3597
+          "input_tokens": 3215,
+          "output_tokens": 286,
+          "total_tokens": 3501
         },
         "max_tokens": 8192,
         "serialization_prefix_recovered": false
       }
     ],
     "token_usage": {
-      "input_tokens": 3274,
-      "output_tokens": 323,
-      "total_tokens": 3597
+      "input_tokens": 3215,
+      "output_tokens": 286,
+      "total_tokens": 3501
     },
     "safety_relevance_filter": {
-      "input_operation_groups": 7,
+      "input_operation_groups": 5,
       "kept_obligations": 5,
-      "filtered_non_safety_candidates": 2
+      "filtered_non_safety_candidates": 0
     }
   },
   "token_usage": {
-    "input_tokens": 3274,
-    "output_tokens": 323,
-    "total_tokens": 3597
+    "input_tokens": 3215,
+    "output_tokens": 286,
+    "total_tokens": 3501
   },
   "artifact_metadata": {
     "schema_version": "semantic-claims-v4.13",
@@ -96,7 +95,7 @@
     "split": "test",
     "source_hash": "c7c48d86e08a855278a2076d5545bbe4e47d9aed33bd92d9d14132d7f46b1dbd",
     "upstream_hashes": {
-      "semantic_model": "f7f63cc556497504da3ebf52d44929303129d1198e4a24311b740c10f99d6062"
+      "semantic_model": "db2b43f6868c46fefa99735b5322ceb8dfe2c99363e1ede3aad95bf2999aa741"
     },
     "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
   }

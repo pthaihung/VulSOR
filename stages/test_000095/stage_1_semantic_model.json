@@ -1,0 +1,787 @@
+{
+  "sample_id": "test_000095",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [],
+      "states": [
+        {
+          "entities": [
+            "ref"
+          ],
+          "claim": "ref is initialized to NULL and later assigned by flatpak_bundle_load; ownership is transferred to *out_ref via g_steal_pointer when out_ref is non-NULL.",
+          "evidence": "L11: g_autoptr(FlatpakDecomposed) ref = NULL;\nL27: metadata = flatpak_bundle_load (file, &to_checksum,\nL28: &ref,\nL85: if (out_ref)\nL86: *out_ref = g_steal_pointer (&ref);"
+        },
+        {
+          "entities": [
+            "metadata"
+          ],
+          "claim": "metadata is initialized to NULL and assigned the result of flatpak_bundle_load; it is an autoptr-owned GVariant.",
+          "evidence": "L14: g_autoptr(GVariant) metadata = NULL;\nL27: metadata = flatpak_bundle_load (file, &to_checksum,"
+        },
+        {
+          "entities": [
+            "deploy_data"
+          ],
+          "claim": "deploy_data is initialized to NULL and assigned the result of flatpak_dir_get_deploy_data; it is an autoptr-owned GBytes.",
+          "evidence": "L13: g_autoptr(GBytes) deploy_data = NULL;\nL46: deploy_data = flatpak_dir_get_deploy_data (self, ref, FLATPAK_DEPLOY_VERSION_ANY, cancellable, NULL);"
+        },
+        {
+          "entities": [
+            "included_gpg_data"
+          ],
+          "claim": "included_gpg_data is initialized to NULL and receives an output GBytes from flatpak_bundle_load; it is autoptr-owned.",
+          "evidence": "L18: g_autoptr(GBytes) included_gpg_data = NULL;\nL31: &included_gpg_data,"
+        },
+        {
+          "entities": [
+            "gpg_data",
+            "extra_gpg_data",
+            "included_gpg_data"
+          ],
+          "claim": "gpg_data is initialized to NULL and then set to either extra_gpg_data or included_gpg_data, establishing which GBytes resource is used for GPG data.",
+          "evidence": "L19: GBytes *gpg_data = NULL;\nL44: gpg_data = extra_gpg_data ? extra_gpg_data : included_gpg_data;"
+        },
+        {
+          "entities": [
+            "origin"
+          ],
+          "claim": "origin is initialized to NULL and receives an allocated string from flatpak_bundle_load; it is autofree-owned.",
+          "evidence": "L15: g_autofree char *origin = NULL;\nL29: &origin,"
+        },
+        {
+          "entities": [
+            "fp_metadata"
+          ],
+          "claim": "fp_metadata is initialized to NULL and receives an allocated string from flatpak_bundle_load; it is autofree-owned and later transferred to *out_metadata via g_steal_pointer.",
+          "evidence": "L16: g_autofree char *fp_metadata = NULL;\nL30: NULL, &fp_metadata, NULL,\nL91: if (out_metadata)\nL92: *out_metadata = g_steal_pointer (&fp_metadata);"
+        },
+        {
+          "entities": [
+            "basename"
+          ],
+          "claim": "basename is initialized to NULL and assigned an allocated basename string from g_file_get_basename; it is autofree-owned.",
+          "evidence": "L17: g_autofree char *basename = NULL;\nL67: basename = g_file_get_basename (file);"
+        },
+        {
+          "entities": [
+            "to_checksum"
+          ],
+          "claim": "to_checksum is initialized to NULL and receives an allocated string from flatpak_bundle_load; it is autofree-owned and later transferred to *out_checksum via g_steal_pointer.",
+          "evidence": "L20: g_autofree char *to_checksum = NULL;\nL27: metadata = flatpak_bundle_load (file, &to_checksum,\nL88: if (out_checksum)\nL89: *out_checksum = g_steal_pointer (&to_checksum);"
+        },
+        {
+          "entities": [
+            "remote"
+          ],
+          "claim": "remote is initialized to NULL; it is assigned either a duplicated origin string or the result of flatpak_dir_create_origin_remote, and is autofree-owned until returned via g_steal_pointer.",
+          "evidence": "L21: g_autofree char *remote = NULL;\nL49: remote = g_strdup (flatpak_deploy_data_get_origin (deploy_data));\nL68: remote = flatpak_dir_create_origin_remote (self,\nL95: return g_steal_pointer (&remote);"
+        },
+        {
+          "entities": [
+            "collection_id"
+          ],
+          "claim": "collection_id is initialized to NULL and receives an allocated string from flatpak_bundle_load; it is autofree-owned.",
+          "evidence": "L22: g_autofree char *collection_id = NULL;\nL32: &collection_id,"
+        },
+        {
+          "entities": [
+            "created_remote"
+          ],
+          "claim": "created_remote is initialized to FALSE and may be set by flatpak_dir_create_origin_remote; its value is copied to *out_created_remote when out_created_remote is non-NULL.",
+          "evidence": "L12: gboolean created_remote = FALSE;\nL75: &created_remote,\nL82: if (out_created_remote)\nL83: *out_created_remote = created_remote;"
+        }
+      ],
+      "values": [],
+      "executions": [
+        {
+          "entities": [
+            "metadata",
+            "ref",
+            "to_checksum",
+            "origin",
+            "fp_metadata",
+            "included_gpg_data",
+            "collection_id"
+          ],
+          "claim": "Continuing past line 34 implies flatpak_bundle_load succeeded and populated its out-parameters (metadata non-NULL).",
+          "evidence": "L27: metadata = flatpak_bundle_load (file, &to_checksum,\nL34: if (metadata == NULL)\nL35: return NULL;"
+        },
+        {
+          "entities": [
+            "out_metadata",
+            "fp_metadata"
+          ],
+          "claim": "Continuing past line 42 implies that if out_metadata is requested, fp_metadata is non-NULL.",
+          "evidence": "L38: if (out_metadata && fp_metadata == NULL)\nL40: flatpak_fail_error (error, FLATPAK_ERROR_INVALID_DATA, \"No metadata in bundler header\");\nL41: return NULL;"
+        },
+        {
+          "entities": [
+            "gpg_data",
+            "extra_gpg_data",
+            "included_gpg_data"
+          ],
+          "claim": "After line 44, gpg_data equals extra_gpg_data when provided, otherwise included_gpg_data.",
+          "evidence": "L44: gpg_data = extra_gpg_data ? extra_gpg_data : included_gpg_data;"
+        },
+        {
+          "entities": [
+            "deploy_data",
+            "remote"
+          ],
+          "claim": "If deploy_data is non-NULL, remote is set to the deploy data origin; otherwise remote is set by flatpak_dir_create_origin_remote and must be non-NULL to continue.",
+          "evidence": "L46: deploy_data = flatpak_dir_get_deploy_data (self, ref, FLATPAK_DEPLOY_VERSION_ANY, cancellable, NULL);\nL47: if (deploy_data != NULL)\nL49: remote = g_strdup (flatpak_deploy_data_get_origin (deploy_data));\nL68: remote = flatpak_dir_create_origin_remote (self,\nL78: if (remote == NULL)\nL79: return NULL;"
+        },
+        {
+          "entities": [
+            "remote",
+            "gpg_data"
+          ],
+          "claim": "In the deploy_data non-NULL branch, if gpg_data is non-NULL, flatpak_dir_modify_remote must succeed for execution to continue.",
+          "evidence": "L52: if (gpg_data != NULL)\nL58: if (!flatpak_dir_modify_remote (self, remote, new_config,\nL59: gpg_data, cancellable, error))\nL60: return NULL;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3070,
+              "output_tokens": 5,
+              "total_tokens": 3075
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3070,
+          "output_tokens": 5,
+          "total_tokens": 3075
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1673,
+              "output_tokens": 1188,
+              "total_tokens": 2861
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1673,
+          "output_tokens": 1188,
+          "total_tokens": 2861
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "g_autoptr(FlatpakDecomposed) ref = NULL;",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "metadata = flatpak_bundle_load (file, &to_checksum,",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "&ref,",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 85,
+                "fragment": "if (out_ref)",
+                "matched_lines": [
+                  85
+                ]
+              },
+              {
+                "evidence_line": 86,
+                "fragment": "*out_ref = g_steal_pointer (&ref);",
+                "matched_lines": [
+                  86
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "g_autoptr(GVariant) metadata = NULL;",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "metadata = flatpak_bundle_load (file, &to_checksum,",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "g_autoptr(GBytes) deploy_data = NULL;",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "deploy_data = flatpak_dir_get_deploy_data (self, ref, FLATPAK_DEPLOY_VERSION_ANY, cancellable, NULL);",
+                "matched_lines": [
+                  46
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "g_autoptr(GBytes) included_gpg_data = NULL;",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "&included_gpg_data,",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 19,
+                "fragment": "GBytes *gpg_data = NULL;",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "gpg_data = extra_gpg_data ? extra_gpg_data : included_gpg_data;",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "g_autofree char *origin = NULL;",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "&origin,",
+                "matched_lines": [
+                  29
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "g_autofree char *fp_metadata = NULL;",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "NULL, &fp_metadata, NULL,",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 91,
+                "fragment": "if (out_metadata)",
+                "matched_lines": [
+                  91
+                ]
+              },
+              {
+                "evidence_line": 92,
+                "fragment": "*out_metadata = g_steal_pointer (&fp_metadata);",
+                "matched_lines": [
+                  92
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "g_autofree char *basename = NULL;",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "basename = g_file_get_basename (file);",
+                "matched_lines": [
+                  67
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "g_autofree char *to_checksum = NULL;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "metadata = flatpak_bundle_load (file, &to_checksum,",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 88,
+                "fragment": "if (out_checksum)",
+                "matched_lines": [
+                  88
+                ]
+              },
+              {
+                "evidence_line": 89,
+                "fragment": "*out_checksum = g_steal_pointer (&to_checksum);",
+                "matched_lines": [
+                  89
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 21,
+                "fragment": "g_autofree char *remote = NULL;",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "remote = g_strdup (flatpak_deploy_data_get_origin (deploy_data));",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "remote = flatpak_dir_create_origin_remote (self,",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 95,
+                "fragment": "return g_steal_pointer (&remote);",
+                "matched_lines": [
+                  95
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 22,
+                "fragment": "g_autofree char *collection_id = NULL;",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "&collection_id,",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "gboolean created_remote = FALSE;",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 75,
+                "fragment": "&created_remote,",
+                "matched_lines": [
+                  75
+                ]
+              },
+              {
+                "evidence_line": 82,
+                "fragment": "if (out_created_remote)",
+                "matched_lines": [
+                  82
+                ]
+              },
+              {
+                "evidence_line": 83,
+                "fragment": "*out_created_remote = created_remote;",
+                "matched_lines": [
+                  83
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1861,
+              "output_tokens": 12,
+              "total_tokens": 1873
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1861,
+          "output_tokens": 12,
+          "total_tokens": 1873
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1541,
+              "output_tokens": 567,
+              "total_tokens": 2108
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1541,
+          "output_tokens": 567,
+          "total_tokens": 2108
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 27,
+                "fragment": "metadata = flatpak_bundle_load (file, &to_checksum,",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "if (metadata == NULL)",
+                "matched_lines": [
+                  34
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "return NULL;",
+                "matched_lines": [
+                  35
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 38,
+                "fragment": "if (out_metadata && fp_metadata == NULL)",
+                "matched_lines": [
+                  38
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "flatpak_fail_error (error, FLATPAK_ERROR_INVALID_DATA, \"No metadata in bundler header\");",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "return NULL;",
+                "matched_lines": [
+                  41
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "gpg_data = extra_gpg_data ? extra_gpg_data : included_gpg_data;",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 46,
+                "fragment": "deploy_data = flatpak_dir_get_deploy_data (self, ref, FLATPAK_DEPLOY_VERSION_ANY, cancellable, NULL);",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "if (deploy_data != NULL)",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "remote = g_strdup (flatpak_deploy_data_get_origin (deploy_data));",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "remote = flatpak_dir_create_origin_remote (self,",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 78,
+                "fragment": "if (remote == NULL)",
+                "matched_lines": [
+                  78
+                ]
+              },
+              {
+                "evidence_line": 79,
+                "fragment": "return NULL;",
+                "matched_lines": [
+                  79
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 52,
+                "fragment": "if (gpg_data != NULL)",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "if (!flatpak_dir_modify_remote (self, remote, new_config,",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "gpg_data, cancellable, error))",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "return NULL;",
+                "matched_lines": [
+                  60
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 0,
+      "states": 12,
+      "values": 0,
+      "executions": 5
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 8145,
+    "output_tokens": 1772,
+    "total_tokens": 9917
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000095",
+    "split": "test",
+    "source_hash": "31021c10e5ad95e0b0080e73b5cbca6cb82dc89df8c9a517c5e785a6fe01c194",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

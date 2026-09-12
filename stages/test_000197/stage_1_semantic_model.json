@@ -1,0 +1,707 @@
+{
+  "sample_id": "test_000197",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [],
+      "states": [
+        {
+          "entities": [
+            "ptr",
+            "s"
+          ],
+          "claim": "ptr is a GF_AdobeFragRandomAccessBox pointer aliasing the GF_Box object s.",
+          "evidence": "L4: GF_AdobeFragRandomAccessBox *ptr = (GF_AdobeFragRandomAccessBox *)s;"
+        },
+        {
+          "entities": [
+            "ae",
+            "ptr->local_access_entries"
+          ],
+          "claim": "Each GF_AfraEntry allocated by gf_malloc is inserted into ptr->local_access_entries at index i.",
+          "evidence": "L18: GF_AfraEntry *ae = gf_malloc(sizeof(GF_AfraEntry));\nL20: gf_list_insert(ptr->local_access_entries, ae, i);"
+        },
+        {
+          "entities": [
+            "ae",
+            "ptr->global_access_entries"
+          ],
+          "claim": "Each GF_GlobalAfraEntry allocated by gf_malloc is inserted into ptr->global_access_entries at index i.",
+          "evidence": "L37: GF_GlobalAfraEntry *ae = gf_malloc(sizeof(GF_GlobalAfraEntry));\nL39: gf_list_insert(ptr->global_access_entries, ae, i);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "ptr->size",
+            "ptr->entry_count",
+            "ptr->long_offsets"
+          ],
+          "claim": "The entry_count bound check compares ptr->size divided by 16 (when long_offsets is nonzero) or 12 (when long_offsets is zero) against ptr->entry_count; entry_count is accepted only if this quotient is >= entry_count.",
+          "evidence": "L14: if (ptr->size / ( (ptr->long_offsets ? 16 : 12) ) < ptr->entry_count)"
+        },
+        {
+          "entities": [
+            "ptr->size",
+            "ptr->entry_count",
+            "ptr->long_offsets"
+          ],
+          "claim": "Each local entry consumes 8 bytes for time plus 8 bytes if long_offsets is nonzero or 4 bytes otherwise, so the per-entry size is 16 or 12 bytes matching the divisor used in the entry_count bound check.",
+          "evidence": "L22: ISOM_DECREASE_SIZE(ptr, 8)\nL23: ae->time = gf_bs_read_u64(bs);\nL24: if (ptr->long_offsets) {\nL25: ISOM_DECREASE_SIZE(ptr, 8)\nL26: ae->offset = gf_bs_read_u64(bs);\nL27: } else {\nL28: ISOM_DECREASE_SIZE(ptr, 4)\nL29: ae->offset = gf_bs_read_u32(bs);"
+        },
+        {
+          "entities": [
+            "ptr->size",
+            "ptr->global_entry_count",
+            "ptr->long_ids",
+            "ptr->long_offsets"
+          ],
+          "claim": "Each global entry consumes 8 bytes for time, plus 8 bytes if long_ids is nonzero or 4 bytes otherwise for segment/fragment, plus 16 bytes if long_offsets is nonzero or 8 bytes otherwise for afra_offset/offset_from_afra.",
+          "evidence": "L41: ISOM_DECREASE_SIZE(ptr, 8)\nL42: ae->time = gf_bs_read_u64(bs);\nL43: if (ptr->long_ids) {\nL44: ISOM_DECREASE_SIZE(ptr, 8)\nL45: ae->segment = gf_bs_read_u32(bs);\nL46: ae->fragment = gf_bs_read_u32(bs);\nL47: } else {\nL48: ISOM_DECREASE_SIZE(ptr, 4)\nL49: ae->segment = gf_bs_read_u16(bs);\nL50: ae->fragment = gf_bs_read_u16(bs);\nL51: }\nL52: if (ptr->long_offsets) {\nL53: ISOM_DECREASE_SIZE(ptr, 16)\nL54: ae->afra_offset = gf_bs_read_u64(bs);\nL55: ae->offset_from_afra = gf_bs_read_u64(bs);\nL56: } else {\nL57: ISOM_DECREASE_SIZE(ptr, 8)\nL58: ae->afra_offset = gf_bs_read_u32(bs);\nL59: ae->offset_from_afra = gf_bs_read_u32(bs);"
+        },
+        {
+          "entities": [
+            "ptr->size"
+          ],
+          "claim": "The initial header read consumes 9 bytes from ptr->size before entry_count is read.",
+          "evidence": "L6: ISOM_DECREASE_SIZE(ptr, 9)"
+        },
+        {
+          "entities": [
+            "ptr->size",
+            "ptr->global_entry_count"
+          ],
+          "claim": "When global_entries is set, reading global_entry_count consumes 4 bytes from ptr->size before the global entry loop.",
+          "evidence": "L33: if (ptr->global_entries) {\nL34: ISOM_DECREASE_SIZE(ptr, 4)\nL35: ptr->global_entry_count = gf_bs_read_u32(bs);"
+        },
+        {
+          "entities": [
+            "i",
+            "ptr->entry_count"
+          ],
+          "claim": "The local entry loop index i ranges from 0 to ptr->entry_count - 1.",
+          "evidence": "L17: for (i=0; i<ptr->entry_count; i++) {"
+        },
+        {
+          "entities": [
+            "i",
+            "ptr->global_entry_count"
+          ],
+          "claim": "The global entry loop index i ranges from 0 to ptr->global_entry_count - 1.",
+          "evidence": "L36: for (i=0; i<ptr->global_entry_count; i++) {"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "ptr->entry_count",
+            "ptr->size",
+            "ptr->long_offsets"
+          ],
+          "claim": "continuing past the entry_count check implies ptr->size / (ptr->long_offsets ? 16 : 12) >= ptr->entry_count",
+          "evidence": "L13: ptr->entry_count = gf_bs_read_u32(bs);\nL14: if (ptr->size / ( (ptr->long_offsets ? 16 : 12) ) < ptr->entry_count)\nL15: return GF_ISOM_INVALID_FILE;"
+        },
+        {
+          "entities": [
+            "i",
+            "ptr->entry_count"
+          ],
+          "claim": "inside the local access entry loop, 0 <= i < ptr->entry_count",
+          "evidence": "L17: for (i=0; i<ptr->entry_count; i++) {"
+        },
+        {
+          "entities": [
+            "i",
+            "ptr->global_entry_count"
+          ],
+          "claim": "inside the global access entry loop, 0 <= i < ptr->global_entry_count",
+          "evidence": "L36: for (i=0; i<ptr->global_entry_count; i++) {"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2947,
+              "output_tokens": 110,
+              "total_tokens": 3057
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2947,
+          "output_tokens": 110,
+          "total_tokens": 3057
+        },
+        "grounding": {},
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 0,
+            "expression": "gf_malloc(sizeof(GF_AfraEntry)) / gf_malloc(sizeof(GF_GlobalAfraEntry))"
+          },
+          {
+            "action": "drop_ungrounded_item",
+            "index": 1,
+            "expression": "gf_list_insert(ptr->local_access_entries, ae, i) / gf_list_insert(ptr->global_access_entries, ae, i)"
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1550,
+              "output_tokens": 256,
+              "total_tokens": 1806
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1550,
+          "output_tokens": 256,
+          "total_tokens": 1806
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "GF_AdobeFragRandomAccessBox *ptr = (GF_AdobeFragRandomAccessBox *)s;",
+                "matched_lines": [
+                  4
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "GF_AfraEntry *ae = gf_malloc(sizeof(GF_AfraEntry));",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "gf_list_insert(ptr->local_access_entries, ae, i);",
+                "matched_lines": [
+                  20
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 37,
+                "fragment": "GF_GlobalAfraEntry *ae = gf_malloc(sizeof(GF_GlobalAfraEntry));",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "gf_list_insert(ptr->global_access_entries, ae, i);",
+                "matched_lines": [
+                  39
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1738,
+              "output_tokens": 1114,
+              "total_tokens": 2852
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1738,
+          "output_tokens": 1114,
+          "total_tokens": 2852
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "if (ptr->size / ( (ptr->long_offsets ? 16 : 12) ) < ptr->entry_count)",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 22,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, 8)",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "ae->time = gf_bs_read_u64(bs);",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "if (ptr->long_offsets) {",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, 8)",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "ae->offset = gf_bs_read_u64(bs);",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "} else {",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, 4)",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "ae->offset = gf_bs_read_u32(bs);",
+                "matched_lines": [
+                  29
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 41,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, 8)",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 42,
+                "fragment": "ae->time = gf_bs_read_u64(bs);",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "if (ptr->long_ids) {",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, 8)",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "ae->segment = gf_bs_read_u32(bs);",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "ae->fragment = gf_bs_read_u32(bs);",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "} else {",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, 4)",
+                "matched_lines": [
+                  48
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "ae->segment = gf_bs_read_u16(bs);",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "ae->fragment = gf_bs_read_u16(bs);",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "}",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "if (ptr->long_offsets) {",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, 16)",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "ae->afra_offset = gf_bs_read_u64(bs);",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "ae->offset_from_afra = gf_bs_read_u64(bs);",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "} else {",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, 8)",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "ae->afra_offset = gf_bs_read_u32(bs);",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "ae->offset_from_afra = gf_bs_read_u32(bs);",
+                "matched_lines": [
+                  59
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, 9)",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 33,
+                "fragment": "if (ptr->global_entries) {",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "ISOM_DECREASE_SIZE(ptr, 4)",
+                "matched_lines": [
+                  34
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "ptr->global_entry_count = gf_bs_read_u32(bs);",
+                "matched_lines": [
+                  35
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "for (i=0; i<ptr->entry_count; i++) {",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 36,
+                "fragment": "for (i=0; i<ptr->global_entry_count; i++) {",
+                "matched_lines": [
+                  36
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1418,
+              "output_tokens": 250,
+              "total_tokens": 1668
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1418,
+          "output_tokens": 250,
+          "total_tokens": 1668
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "ptr->entry_count = gf_bs_read_u32(bs);",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "if (ptr->size / ( (ptr->long_offsets ? 16 : 12) ) < ptr->entry_count)",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "return GF_ISOM_INVALID_FILE;",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "for (i=0; i<ptr->entry_count; i++) {",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 36,
+                "fragment": "for (i=0; i<ptr->global_entry_count; i++) {",
+                "matched_lines": [
+                  36
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 0,
+      "states": 3,
+      "values": 7,
+      "executions": 3
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 7653,
+    "output_tokens": 1730,
+    "total_tokens": 9383
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000197",
+    "split": "test",
+    "source_hash": "fce249cf76674b71e364a4e32c994092462cd0f1c01c6312951e1f938fe8b021",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

@@ -1,0 +1,798 @@
+{
+  "sample_id": "test_000125",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L14"
+          ],
+          "expression": "tensor_handle->Tensor(&tensor)",
+          "claim": "call to TensorHandle::Tensor with an out-parameter pointer to a Tensor pointer"
+        },
+        {
+          "locations": [
+            "L15"
+          ],
+          "expression": "tensor->NumElements()",
+          "claim": "dereference of tensor pointer to call NumElements"
+        },
+        {
+          "locations": [
+            "L18"
+          ],
+          "expression": "tensor->flat<ResourceHandle>()(0)",
+          "claim": "indexed access into the flat ResourceHandle tensor at index 0"
+        },
+        {
+          "locations": [
+            "L23"
+          ],
+          "expression": "ctx.FindDeviceFromName(device_name.c_str(), &input_device)",
+          "claim": "call to EagerContext::FindDeviceFromName with a C-string and out-parameter pointer"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "tensor_handle"
+          ],
+          "claim": "tensor_handle is a TensorHandle pointer parameter; its Type() is checked against TensorHandle::LOCAL and its dtype against DT_RESOURCE.",
+          "evidence": "L2: TensorHandle* tensor_handle, Device** result) {\nL5: if (tensor_handle->Type() != TensorHandle::LOCAL) {\nL9: } else if (tensor_handle->dtype == DT_RESOURCE) {"
+        },
+        {
+          "entities": [
+            "cpu_device"
+          ],
+          "claim": "cpu_device is initialized from ctx.HostCPU() and is used as a fallback device pointer.",
+          "evidence": "L3: Device* cpu_device = ctx.HostCPU();"
+        },
+        {
+          "entities": [
+            "tensor_handle",
+            "device"
+          ],
+          "claim": "In the non-LOCAL branch, device is initialized from tensor_handle->device() and may be nullptr.",
+          "evidence": "L6: Device* device = tensor_handle->device();"
+        },
+        {
+          "entities": [
+            "result",
+            "device",
+            "cpu_device"
+          ],
+          "claim": "In the non-LOCAL branch, *result is set to device if non-null, otherwise to cpu_device.",
+          "evidence": "L8: *result = (device == nullptr ? cpu_device : device);"
+        },
+        {
+          "entities": [
+            "tensor_handle",
+            "tensor"
+          ],
+          "claim": "In the DT_RESOURCE branch, tensor is obtained via tensor_handle->Tensor(&tensor) and is used to read a ResourceHandle.",
+          "evidence": "L12: const Tensor* tensor;\nL14: TF_RETURN_IF_ERROR(tensor_handle->Tensor(&tensor));\nL18: const ResourceHandle& handle = tensor->flat<ResourceHandle>()(0);"
+        },
+        {
+          "entities": [
+            "handle",
+            "device_name"
+          ],
+          "claim": "handle is a ResourceHandle reference into tensor storage; device_name is assigned from handle.device().",
+          "evidence": "L18: const ResourceHandle& handle = tensor->flat<ResourceHandle>()(0);\nL19: device_name = handle.device();"
+        },
+        {
+          "entities": [
+            "input_device",
+            "device_name",
+            "result"
+          ],
+          "claim": "input_device is resolved from device_name via ctx.FindDeviceFromName and then assigned to *result.",
+          "evidence": "L21: Device* input_device;\nL22: TF_RETURN_IF_ERROR(\nL23: ctx.FindDeviceFromName(device_name.c_str(), &input_device));\nL24: *result = input_device;"
+        },
+        {
+          "entities": [
+            "tensor_handle",
+            "device"
+          ],
+          "claim": "In the final else branch, device is initialized from tensor_handle->device() and may be nullptr.",
+          "evidence": "L26: Device* device = tensor_handle->device();"
+        },
+        {
+          "entities": [
+            "result",
+            "cpu_device"
+          ],
+          "claim": "When use_host_memory is true, *result is set to cpu_device.",
+          "evidence": "L32: if (use_host_memory) {\nL33: *result = cpu_device;"
+        },
+        {
+          "entities": [
+            "device",
+            "op"
+          ],
+          "claim": "In the non-host-memory path, if the op is not a function and device is non-null and not cpu_device, device is reassigned from op.Device().",
+          "evidence": "L38: if (!op.is_function() && device != nullptr && device != cpu_device) {\nL39: device = absl::get<Device*>(op.Device());"
+        },
+        {
+          "entities": [
+            "result",
+            "device",
+            "cpu_device"
+          ],
+          "claim": "In the non-host-memory path, *result is set to device if non-null, otherwise to cpu_device.",
+          "evidence": "L41: *result = (device == nullptr ? cpu_device : device);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "tensor->NumElements()"
+          ],
+          "claim": "The resource tensor's element count is checked to be nonzero before indexing element 0 via flat<ResourceHandle>()(0).",
+          "evidence": "L15: if (tensor->NumElements() == 0) {\nL18: const ResourceHandle& handle = tensor->flat<ResourceHandle>()(0);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "tensor_handle",
+            "tensor",
+            "device_name",
+            "input_device",
+            "*result"
+          ],
+          "claim": "If tensor_handle->Type() != TensorHandle::LOCAL, then *result is set to tensor_handle->device() if non-null, otherwise cpu_device; device_name is set to the selected device's name.",
+          "evidence": "L5: if (tensor_handle->Type() != TensorHandle::LOCAL) {\nL6: Device* device = tensor_handle->device();\nL7: device_name = device != nullptr ? device->name() : cpu_device->name();\nL8: *result = (device == nullptr ? cpu_device : device);"
+        },
+        {
+          "entities": [
+            "tensor_handle",
+            "tensor",
+            "device_name",
+            "input_device",
+            "*result"
+          ],
+          "claim": "If tensor_handle->Type() == TensorHandle::LOCAL and tensor_handle->dtype == DT_RESOURCE, then tensor_handle->Tensor(&tensor) must succeed, tensor->NumElements() must be nonzero, device_name is set from the first ResourceHandle's device, ctx.FindDeviceFromName(device_name.c_str(), &input_device) must succeed, and *result is set to input_device.",
+          "evidence": "L9: } else if (tensor_handle->dtype == DT_RESOURCE) {\nL14: TF_RETURN_IF_ERROR(tensor_handle->Tensor(&tensor));\nL15: if (tensor->NumElements() == 0) {\nL16: return errors::InvalidArgument(\"Empty resource handle\");\nL18: const ResourceHandle& handle = tensor->flat<ResourceHandle>()(0);\nL19: device_name = handle.device();\nL22: TF_RETURN_IF_ERROR(\nL23: ctx.FindDeviceFromName(device_name.c_str(), &input_device));\nL24: *result = input_device;"
+        },
+        {
+          "entities": [
+            "tensor_handle",
+            "device",
+            "*result"
+          ],
+          "claim": "If tensor_handle->Type() == TensorHandle::LOCAL and tensor_handle->dtype != DT_RESOURCE, then use_host_memory is computed from tensor_handle->dtype (with TPU-specific handling if device is non-null and device->device_type() == \"TPU\"); if use_host_memory is true, *result is set to cpu_device.",
+          "evidence": "L25: } else {\nL26: Device* device = tensor_handle->device();\nL27: const bool is_tpu = device != nullptr && device->device_type() == \"TPU\";\nL29: const bool use_host_memory =\nL30: is_tpu ? MTypeFromDTypeIntsOnDevice(tensor_handle->dtype)\nL31: : MTypeFromDType(tensor_handle->dtype);\nL32: if (use_host_memory) {\nL33: *result = cpu_device;"
+        },
+        {
+          "entities": [
+            "op",
+            "device",
+            "cpu_device",
+            "*result"
+          ],
+          "claim": "If tensor_handle->Type() == TensorHandle::LOCAL, tensor_handle->dtype != DT_RESOURCE, and use_host_memory is false, then if !op.is_function() and device != nullptr and device != cpu_device, device is replaced by absl::get<Device*>(op.Device()); *result is set to device if non-null, otherwise cpu_device.",
+          "evidence": "L34: } else {\nL38: if (!op.is_function() && device != nullptr && device != cpu_device) {\nL39: device = absl::get<Device*>(op.Device());\nL40: }\nL41: *result = (device == nullptr ? cpu_device : device);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2595,
+              "output_tokens": 161,
+              "total_tokens": 2756
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2595,
+          "output_tokens": 161,
+          "total_tokens": 2756
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L14",
+                "matched": true,
+                "expression": "tensor_handle->Tensor(&tensor)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L15",
+                "matched": true,
+                "expression": "tensor->NumElements()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L18",
+                "matched": true,
+                "expression": "tensor->flat<ResourceHandle>()(0)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L23",
+                "matched": true,
+                "expression": "ctx.FindDeviceFromName(device_name.c_str(), &input_device)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1198,
+              "output_tokens": 831,
+              "total_tokens": 2029
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1198,
+          "output_tokens": 831,
+          "total_tokens": 2029
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "TensorHandle* tensor_handle, Device** result) {",
+                "matched_lines": [
+                  2
+                ]
+              },
+              {
+                "evidence_line": 5,
+                "fragment": "if (tensor_handle->Type() != TensorHandle::LOCAL) {",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "} else if (tensor_handle->dtype == DT_RESOURCE) {",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "Device* cpu_device = ctx.HostCPU();",
+                "matched_lines": [
+                  3
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "Device* device = tensor_handle->device();",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "*result = (device == nullptr ? cpu_device : device);",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "const Tensor* tensor;",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "TF_RETURN_IF_ERROR(tensor_handle->Tensor(&tensor));",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "const ResourceHandle& handle = tensor->flat<ResourceHandle>()(0);",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "const ResourceHandle& handle = tensor->flat<ResourceHandle>()(0);",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "device_name = handle.device();",
+                "matched_lines": [
+                  19
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 21,
+                "fragment": "Device* input_device;",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "TF_RETURN_IF_ERROR(",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "ctx.FindDeviceFromName(device_name.c_str(), &input_device));",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "*result = input_device;",
+                "matched_lines": [
+                  24
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 26,
+                "fragment": "Device* device = tensor_handle->device();",
+                "matched_lines": [
+                  26
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 32,
+                "fragment": "if (use_host_memory) {",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "*result = cpu_device;",
+                "matched_lines": [
+                  33
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 38,
+                "fragment": "if (!op.is_function() && device != nullptr && device != cpu_device) {",
+                "matched_lines": [
+                  38
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "device = absl::get<Device*>(op.Device());",
+                "matched_lines": [
+                  39
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 41,
+                "fragment": "*result = (device == nullptr ? cpu_device : device);",
+                "matched_lines": [
+                  41
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1386,
+              "output_tokens": 96,
+              "total_tokens": 1482
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1386,
+          "output_tokens": 96,
+          "total_tokens": 1482
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "if (tensor->NumElements() == 0) {",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "const ResourceHandle& handle = tensor->flat<ResourceHandle>()(0);",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1066,
+              "output_tokens": 839,
+              "total_tokens": 1905
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1066,
+          "output_tokens": 839,
+          "total_tokens": 1905
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "if (tensor_handle->Type() != TensorHandle::LOCAL) {",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "Device* device = tensor_handle->device();",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 7,
+                "fragment": "device_name = device != nullptr ? device->name() : cpu_device->name();",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": "*result = (device == nullptr ? cpu_device : device);",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "} else if (tensor_handle->dtype == DT_RESOURCE) {",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "TF_RETURN_IF_ERROR(tensor_handle->Tensor(&tensor));",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "if (tensor->NumElements() == 0) {",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "return errors::InvalidArgument(\"Empty resource handle\");",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "const ResourceHandle& handle = tensor->flat<ResourceHandle>()(0);",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "device_name = handle.device();",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "TF_RETURN_IF_ERROR(",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "ctx.FindDeviceFromName(device_name.c_str(), &input_device));",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "*result = input_device;",
+                "matched_lines": [
+                  24
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 25,
+                "fragment": "} else {",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "Device* device = tensor_handle->device();",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "const bool is_tpu = device != nullptr && device->device_type() == \"TPU\";",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "const bool use_host_memory =",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "is_tpu ? MTypeFromDTypeIntsOnDevice(tensor_handle->dtype)",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": ": MTypeFromDType(tensor_handle->dtype);",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "if (use_host_memory) {",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "*result = cpu_device;",
+                "matched_lines": [
+                  33
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 34,
+                "fragment": "} else {",
+                "matched_lines": [
+                  34
+                ]
+              },
+              {
+                "evidence_line": 38,
+                "fragment": "if (!op.is_function() && device != nullptr && device != cpu_device) {",
+                "matched_lines": [
+                  38
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "device = absl::get<Device*>(op.Device());",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "}",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "*result = (device == nullptr ? cpu_device : device);",
+                "matched_lines": [
+                  41
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 4,
+      "states": 11,
+      "values": 1,
+      "executions": 4
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 6245,
+    "output_tokens": 1927,
+    "total_tokens": 8172
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000125",
+    "split": "test",
+    "source_hash": "3485b2a58adbef4f0023610dbeb4174c6d1626aa7ce3f87ce1d9d625acacb81b",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

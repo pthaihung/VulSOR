@@ -1,0 +1,1080 @@
+{
+  "sample_id": "test_000032",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L18",
+            "L19",
+            "L20",
+            "L21"
+          ],
+          "expression": "vld1q_f32(bias_data + i)",
+          "claim": "loads four floats from bias_data at offset i"
+        },
+        {
+          "locations": [
+            "L22",
+            "L23",
+            "L24",
+            "L25"
+          ],
+          "expression": "vld1q_f32(array_ptr + i)",
+          "claim": "loads four floats from array_ptr at offset i"
+        },
+        {
+          "locations": [
+            "L44"
+          ],
+          "expression": "vld1q_f32(bias_data + i)",
+          "claim": "loads four floats from bias_data at offset i"
+        },
+        {
+          "locations": [
+            "L45"
+          ],
+          "expression": "vld1q_f32(array_ptr + i)",
+          "claim": "loads four floats from array_ptr at offset i"
+        },
+        {
+          "locations": [
+            "L49"
+          ],
+          "expression": "vst1q_f32(array_ptr + i, x)",
+          "claim": "stores four floats to array_ptr at offset i"
+        },
+        {
+          "locations": [
+            "L52"
+          ],
+          "expression": "array_ptr[i]",
+          "claim": "reads a float from array_ptr at index i"
+        },
+        {
+          "locations": [
+            "L52"
+          ],
+          "expression": "bias_data[i]",
+          "claim": "reads a float from bias_data at index i"
+        },
+        {
+          "locations": [
+            "L52"
+          ],
+          "expression": "array_ptr[i] = ...",
+          "claim": "writes a float to array_ptr at index i"
+        },
+        {
+          "locations": [
+            "L60"
+          ],
+          "expression": "array_data[array_offset + i]",
+          "claim": "reads a float from array_data at index array_offset + i"
+        },
+        {
+          "locations": [
+            "L61"
+          ],
+          "expression": "bias_data[i]",
+          "claim": "reads a float from bias_data at index i"
+        },
+        {
+          "locations": [
+            "L60"
+          ],
+          "expression": "array_data[array_offset + i] = ...",
+          "claim": "writes a float to array_data at index array_offset + i"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "array_data",
+            "array_ptr"
+          ],
+          "claim": "array_ptr is initialized to point to the same array storage as array_data.",
+          "evidence": "L11: float* array_ptr = array_data;"
+        },
+        {
+          "entities": [
+            "array_ptr",
+            "array_end_ptr"
+          ],
+          "claim": "array_end_ptr is initialized as a pointer into the same array storage as array_ptr, at offset array_size.",
+          "evidence": "L12: float* array_end_ptr = array_ptr + array_size;"
+        },
+        {
+          "entities": [
+            "array_ptr",
+            "array_end_ptr"
+          ],
+          "claim": "array_ptr is advanced through the array storage until it equals array_end_ptr.",
+          "evidence": "L15: for (; array_ptr != array_end_ptr; array_ptr += bias_size) {"
+        },
+        {
+          "entities": [
+            "bias_data"
+          ],
+          "claim": "bias_data is used as a pointer to readable float storage accessed at offsets i, i+4, i+8, and i+12.",
+          "evidence": "L18: auto b0 = vld1q_f32(bias_data + i);\nL19: auto b1 = vld1q_f32(bias_data + i + 4);\nL20: auto b2 = vld1q_f32(bias_data + i + 8);\nL21: auto b3 = vld1q_f32(bias_data + i + 12);"
+        },
+        {
+          "entities": [
+            "array_ptr"
+          ],
+          "claim": "array_ptr is used as a pointer to readable and writable float storage accessed at offsets i, i+4, i+8, and i+12.",
+          "evidence": "L22: auto a0 = vld1q_f32(array_ptr + i);\nL23: auto a1 = vld1q_f32(array_ptr + i + 4);\nL24: auto a2 = vld1q_f32(array_ptr + i + 8);\nL25: auto a3 = vld1q_f32(array_ptr + i + 12);\nL38: vst1q_f32(array_ptr + i, x0);\nL39: vst1q_f32(array_ptr + i + 4, x1);\nL40: vst1q_f32(array_ptr + i + 8, x2);\nL41: vst1q_f32(array_ptr + i + 12, x3);"
+        },
+        {
+          "entities": [
+            "bias_data"
+          ],
+          "claim": "bias_data is used as a pointer to readable float storage accessed at offset i.",
+          "evidence": "L44: auto b = vld1q_f32(bias_data + i);"
+        },
+        {
+          "entities": [
+            "array_ptr"
+          ],
+          "claim": "array_ptr is used as a pointer to readable and writable float storage accessed at offset i.",
+          "evidence": "L45: auto a = vld1q_f32(array_ptr + i);\nL49: vst1q_f32(array_ptr + i, x);"
+        },
+        {
+          "entities": [
+            "array_ptr",
+            "bias_data"
+          ],
+          "claim": "array_ptr and bias_data are used as pointers to readable and writable float storage accessed at index i.",
+          "evidence": "L52: array_ptr[i] = ActivationFunctionWithMinMax(array_ptr[i] + bias_data[i],"
+        },
+        {
+          "entities": [
+            "array_data",
+            "bias_data"
+          ],
+          "claim": "array_data and bias_data are used as pointers to readable and writable float storage accessed at index array_offset + i and i.",
+          "evidence": "L60: array_data[array_offset + i] = ActivationFunctionWithMinMax(\nL61: array_data[array_offset + i] + bias_data[i], clamp_min, clamp_max);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "array_size",
+            "bias_size"
+          ],
+          "claim": "array_size is an exact multiple of bias_size (array_size % bias_size == 0), so the outer loop advances by bias_size and terminates exactly at array_end_ptr.",
+          "evidence": "L9: TFLITE_DCHECK_EQ((array_size % bias_size), 0);\nL12: float* array_end_ptr = array_ptr + array_size;\nL15: for (; array_ptr != array_end_ptr; array_ptr += bias_size) {"
+        },
+        {
+          "entities": [
+            "array_ptr",
+            "array_data",
+            "array_size"
+          ],
+          "claim": "array_ptr starts at array_data and array_end_ptr is array_data + array_size, so the NEON outer loop covers exactly array_size floats.",
+          "evidence": "L11: float* array_ptr = array_data;\nL12: float* array_end_ptr = array_ptr + array_size;"
+        },
+        {
+          "entities": [
+            "i",
+            "bias_size"
+          ],
+          "claim": "The 16-wide NEON loop runs while i <= bias_size - 16, so each iteration accesses bias_data and array_ptr at offsets i, i+4, i+8, i+12, all within bias_size floats.",
+          "evidence": "L17: for (; i <= bias_size - 16; i += 16) {\nL18: auto b0 = vld1q_f32(bias_data + i);\nL21: auto b3 = vld1q_f32(bias_data + i + 12);\nL22: auto a0 = vld1q_f32(array_ptr + i);\nL25: auto a3 = vld1q_f32(array_ptr + i + 12);"
+        },
+        {
+          "entities": [
+            "i",
+            "bias_size"
+          ],
+          "claim": "The 4-wide NEON loop runs while i <= bias_size - 4, so each iteration accesses bias_data and array_ptr at offsets i and i+4, within bias_size floats.",
+          "evidence": "L43: for (; i <= bias_size - 4; i += 4) {\nL44: auto b = vld1q_f32(bias_data + i);\nL45: auto a = vld1q_f32(array_ptr + i);"
+        },
+        {
+          "entities": [
+            "i",
+            "bias_size"
+          ],
+          "claim": "The scalar tail loop runs while i < bias_size, so array_ptr[i] and bias_data[i] are accessed only for i in [0, bias_size).",
+          "evidence": "L51: for (; i < bias_size; i++) {\nL52: array_ptr[i] = ActivationFunctionWithMinMax(array_ptr[i] + bias_data[i],"
+        },
+        {
+          "entities": [
+            "array_offset",
+            "array_size",
+            "bias_size",
+            "i"
+          ],
+          "claim": "In the non-NEON path, array_offset ranges over multiples of bias_size below array_size and i ranges over [0, bias_size), so array_data[array_offset + i] stays within array_size elements.",
+          "evidence": "L57: for (int array_offset = 0; array_offset < array_size;\nL58: array_offset += bias_size) {\nL59: for (int i = 0; i < bias_size; i++) {\nL60: array_data[array_offset + i] = ActivationFunctionWithMinMax("
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "array_size",
+            "bias_size"
+          ],
+          "claim": "TFLITE_DCHECK_EQ requires array_size % bias_size == 0 (in debug builds); in release builds this is not enforced, so the loop bounds below rely on the caller ensuring divisibility.",
+          "evidence": "L9: TFLITE_DCHECK_EQ((array_size % bias_size), 0);"
+        },
+        {
+          "entities": [
+            "array_ptr",
+            "array_end_ptr",
+            "bias_size"
+          ],
+          "claim": "The outer NEON loop advances array_ptr by bias_size each iteration and continues while array_ptr != array_end_ptr; since array_size is a multiple of bias_size, array_ptr reaches array_end_ptr exactly, and each iteration processes exactly bias_size elements starting at array_ptr.",
+          "evidence": "L11: float* array_ptr = array_data;\nL12: float* array_end_ptr = array_ptr + array_size;\nL15: for (; array_ptr != array_end_ptr; array_ptr += bias_size) {"
+        },
+        {
+          "entities": [
+            "i",
+            "bias_size"
+          ],
+          "claim": "The 16-wide NEON loop body executes only while i <= bias_size - 16, so within it i + 15 <= bias_size - 1, bounding all bias_data and array_ptr accesses at offsets i..i+15 to be within bias_size elements.",
+          "evidence": "L17: for (; i <= bias_size - 16; i += 16) {"
+        },
+        {
+          "entities": [
+            "i",
+            "bias_size"
+          ],
+          "claim": "After the 16-wide loop, the 4-wide NEON loop executes only while i <= bias_size - 4, so within it i + 3 <= bias_size - 1, bounding bias_data and array_ptr accesses at offsets i..i+3 to be within bias_size elements.",
+          "evidence": "L43: for (; i <= bias_size - 4; i += 4) {"
+        },
+        {
+          "entities": [
+            "i",
+            "bias_size"
+          ],
+          "claim": "The scalar tail loop executes only while i < bias_size, so array_ptr[i] and bias_data[i] accesses are within bias_size elements.",
+          "evidence": "L51: for (; i < bias_size; i++) {"
+        },
+        {
+          "entities": [
+            "array_offset",
+            "array_size",
+            "bias_size",
+            "i"
+          ],
+          "claim": "In the non-NEON path, the outer loop runs while array_offset < array_size and the inner loop runs while i < bias_size, so array_data[array_offset + i] and bias_data[i] are accessed with i in [0, bias_size) and array_offset in [0, array_size) stepping by bias_size.",
+          "evidence": "L57: for (int array_offset = 0; array_offset < array_size;\nL58: array_offset += bias_size) {\nL59: for (int i = 0; i < bias_size; i++) {"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3086,
+              "output_tokens": 431,
+              "total_tokens": 3517
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3086,
+          "output_tokens": 431,
+          "total_tokens": 3517
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L18",
+                "matched": true,
+                "expression": "vld1q_f32(bias_data + i)"
+              },
+              {
+                "location": "L19",
+                "matched": true,
+                "expression": "vld1q_f32(bias_data + i)"
+              },
+              {
+                "location": "L20",
+                "matched": true,
+                "expression": "vld1q_f32(bias_data + i)"
+              },
+              {
+                "location": "L21",
+                "matched": true,
+                "expression": "vld1q_f32(bias_data + i)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L22",
+                "matched": true,
+                "expression": "vld1q_f32(array_ptr + i)"
+              },
+              {
+                "location": "L23",
+                "matched": true,
+                "expression": "vld1q_f32(array_ptr + i)"
+              },
+              {
+                "location": "L24",
+                "matched": true,
+                "expression": "vld1q_f32(array_ptr + i)"
+              },
+              {
+                "location": "L25",
+                "matched": true,
+                "expression": "vld1q_f32(array_ptr + i)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L44",
+                "matched": true,
+                "expression": "vld1q_f32(bias_data + i)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L45",
+                "matched": true,
+                "expression": "vld1q_f32(array_ptr + i)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L49",
+                "matched": true,
+                "expression": "vst1q_f32(array_ptr + i, x)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L52",
+                "matched": true,
+                "expression": "array_ptr[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L52",
+                "matched": true,
+                "expression": "bias_data[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L52",
+                "matched": true,
+                "expression": "array_ptr[i] = ..."
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L60",
+                "matched": true,
+                "expression": "array_data[array_offset + i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[9]": {
+            "expression_matches": [
+              {
+                "location": "L61",
+                "matched": true,
+                "expression": "bias_data[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[10]": {
+            "expression_matches": [
+              {
+                "location": "L60",
+                "matched": true,
+                "expression": "array_data[array_offset + i] = ..."
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 2,
+            "expression": "vst1q_f32(array_ptr + i, x0)"
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1689,
+              "output_tokens": 792,
+              "total_tokens": 2481
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1689,
+          "output_tokens": 792,
+          "total_tokens": 2481
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "float* array_ptr = array_data;",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "float* array_end_ptr = array_ptr + array_size;",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "for (; array_ptr != array_end_ptr; array_ptr += bias_size) {",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "auto b0 = vld1q_f32(bias_data + i);",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "auto b1 = vld1q_f32(bias_data + i + 4);",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "auto b2 = vld1q_f32(bias_data + i + 8);",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "auto b3 = vld1q_f32(bias_data + i + 12);",
+                "matched_lines": [
+                  21
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 22,
+                "fragment": "auto a0 = vld1q_f32(array_ptr + i);",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "auto a1 = vld1q_f32(array_ptr + i + 4);",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "auto a2 = vld1q_f32(array_ptr + i + 8);",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "auto a3 = vld1q_f32(array_ptr + i + 12);",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 38,
+                "fragment": "vst1q_f32(array_ptr + i, x0);",
+                "matched_lines": [
+                  38
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "vst1q_f32(array_ptr + i + 4, x1);",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "vst1q_f32(array_ptr + i + 8, x2);",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "vst1q_f32(array_ptr + i + 12, x3);",
+                "matched_lines": [
+                  41
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "auto b = vld1q_f32(bias_data + i);",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 45,
+                "fragment": "auto a = vld1q_f32(array_ptr + i);",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "vst1q_f32(array_ptr + i, x);",
+                "matched_lines": [
+                  49
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 52,
+                "fragment": "array_ptr[i] = ActivationFunctionWithMinMax(array_ptr[i] + bias_data[i],",
+                "matched_lines": [
+                  52
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 60,
+                "fragment": "array_data[array_offset + i] = ActivationFunctionWithMinMax(",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "array_data[array_offset + i] + bias_data[i], clamp_min, clamp_max);",
+                "matched_lines": [
+                  61
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1877,
+              "output_tokens": 728,
+              "total_tokens": 2605
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1877,
+          "output_tokens": 728,
+          "total_tokens": 2605
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "TFLITE_DCHECK_EQ((array_size % bias_size), 0);",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "float* array_end_ptr = array_ptr + array_size;",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "for (; array_ptr != array_end_ptr; array_ptr += bias_size) {",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "float* array_ptr = array_data;",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "float* array_end_ptr = array_ptr + array_size;",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "for (; i <= bias_size - 16; i += 16) {",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "auto b0 = vld1q_f32(bias_data + i);",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "auto b3 = vld1q_f32(bias_data + i + 12);",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "auto a0 = vld1q_f32(array_ptr + i);",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "auto a3 = vld1q_f32(array_ptr + i + 12);",
+                "matched_lines": [
+                  25
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "for (; i <= bias_size - 4; i += 4) {",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "auto b = vld1q_f32(bias_data + i);",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "auto a = vld1q_f32(array_ptr + i);",
+                "matched_lines": [
+                  45
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 51,
+                "fragment": "for (; i < bias_size; i++) {",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "array_ptr[i] = ActivationFunctionWithMinMax(array_ptr[i] + bias_data[i],",
+                "matched_lines": [
+                  52
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "for (int array_offset = 0; array_offset < array_size;",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "array_offset += bias_size) {",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "for (int i = 0; i < bias_size; i++) {",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "array_data[array_offset + i] = ActivationFunctionWithMinMax(",
+                "matched_lines": [
+                  60
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1557,
+              "output_tokens": 603,
+              "total_tokens": 2160
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1557,
+          "output_tokens": 603,
+          "total_tokens": 2160
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "TFLITE_DCHECK_EQ((array_size % bias_size), 0);",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "float* array_ptr = array_data;",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "float* array_end_ptr = array_ptr + array_size;",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "for (; array_ptr != array_end_ptr; array_ptr += bias_size) {",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "for (; i <= bias_size - 16; i += 16) {",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "for (; i <= bias_size - 4; i += 4) {",
+                "matched_lines": [
+                  43
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 51,
+                "fragment": "for (; i < bias_size; i++) {",
+                "matched_lines": [
+                  51
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "for (int array_offset = 0; array_offset < array_size;",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "array_offset += bias_size) {",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "for (int i = 0; i < bias_size; i++) {",
+                "matched_lines": [
+                  59
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 11,
+      "states": 9,
+      "values": 6,
+      "executions": 6
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 8209,
+    "output_tokens": 2554,
+    "total_tokens": 10763
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000032",
+    "split": "test",
+    "source_hash": "b9a8dfbf4a4b694c349d9675cd7b767baa78bfed21b4a4b52c5c4f74e3b478a1",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

@@ -1,0 +1,364 @@
+{
+  "sample_id": "test_000115",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L9"
+          ],
+          "expression": "ptr->entries[i].name",
+          "claim": "reads the name field of the i-th entry in the entries array"
+        },
+        {
+          "locations": [
+            "L11"
+          ],
+          "expression": "gf_free(ptr->entries)",
+          "claim": "frees the entries array"
+        },
+        {
+          "locations": [
+            "L13"
+          ],
+          "expression": "gf_free(ptr)",
+          "claim": "frees the box object"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "ptr",
+            "ptr->entries"
+          ],
+          "claim": "ptr->entries is a dynamically allocated array of entry objects; each entry's name member may point to separately allocated storage that is released before the array itself is released.",
+          "evidence": "L7: if (ptr->entries) {\nL9: if (ptr->entries[i].name) gf_free(ptr->entries[i].name);\nL11: gf_free(ptr->entries);"
+        },
+        {
+          "entities": [
+            "ptr"
+          ],
+          "claim": "ptr is released by gf_free at the end of the function.",
+          "evidence": "L13: gf_free(ptr);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "i",
+            "ptr->nb_entries"
+          ],
+          "claim": "Loop bound: i ranges from 0 to ptr->nb_entries-1, so ptr->entries is indexed only within [0, nb_entries).",
+          "evidence": "L8: for (i=0; i<ptr->nb_entries; i++) {"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "ptr"
+          ],
+          "claim": "continuing past the null check implies ptr is non-null",
+          "evidence": "L6: if (ptr == NULL) return;"
+        },
+        {
+          "entities": [
+            "i",
+            "ptr->nb_entries"
+          ],
+          "claim": "inside the loop body, i is in [0, ptr->nb_entries)",
+          "evidence": "L8: for (i=0; i<ptr->nb_entries; i++) {"
+        },
+        {
+          "entities": [
+            "ptr->entries[i].name"
+          ],
+          "claim": "gf_free is called on ptr->entries[i].name only when it is non-null",
+          "evidence": "L9: if (ptr->entries[i].name) gf_free(ptr->entries[i].name);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2113,
+              "output_tokens": 93,
+              "total_tokens": 2206
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2113,
+          "output_tokens": 93,
+          "total_tokens": 2206
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L9",
+                "matched": true,
+                "expression": "ptr->entries[i].name"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L11",
+                "matched": true,
+                "expression": "gf_free(ptr->entries)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L13",
+                "matched": true,
+                "expression": "gf_free(ptr)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 716,
+              "output_tokens": 145,
+              "total_tokens": 861
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 716,
+          "output_tokens": 145,
+          "total_tokens": 861
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "if (ptr->entries) {",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "if (ptr->entries[i].name) gf_free(ptr->entries[i].name);",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "gf_free(ptr->entries);",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "gf_free(ptr);",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 904,
+              "output_tokens": 85,
+              "total_tokens": 989
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 904,
+          "output_tokens": 85,
+          "total_tokens": 989
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "for (i=0; i<ptr->nb_entries; i++) {",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 584,
+              "output_tokens": 182,
+              "total_tokens": 766
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 584,
+          "output_tokens": 182,
+          "total_tokens": 766
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "if (ptr == NULL) return;",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "for (i=0; i<ptr->nb_entries; i++) {",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "if (ptr->entries[i].name) gf_free(ptr->entries[i].name);",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 3,
+      "states": 2,
+      "values": 1,
+      "executions": 3
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4317,
+    "output_tokens": 505,
+    "total_tokens": 4822
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000115",
+    "split": "test",
+    "source_hash": "7ccf82dfaa06d5827ae7b6b1d6eba4e287a9a6bc0ff66d5e52cb9d1ea383f3f7",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

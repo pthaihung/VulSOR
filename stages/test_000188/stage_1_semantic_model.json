@@ -1,0 +1,414 @@
+{
+  "sample_id": "test_000188",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L15"
+          ],
+          "expression": "handle->scalar<ResourceHandle>()() = resource_handle",
+          "claim": "write a ResourceHandle value through the scalar accessor of the output tensor"
+        },
+        {
+          "locations": [
+            "L18"
+          ],
+          "expression": "handle->flat<tstring>().setConstant(tk.GetHandle(name()))",
+          "claim": "write a tstring constant through the flat accessor of the output tensor"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "val",
+            "ctx"
+          ],
+          "claim": "val refers to the tensor object supplied as input 0 of ctx.",
+          "evidence": "L2: const Tensor& val = ctx->input(0);"
+        },
+        {
+          "entities": [
+            "tk",
+            "val",
+            "id",
+            "requested_device()"
+          ],
+          "claim": "tk is a TensorStore::TensorAndKey constructed from val, id, and requested_device().",
+          "evidence": "L4: TensorStore::TensorAndKey tk{val, id, requested_device()};"
+        },
+        {
+          "entities": [
+            "ctx",
+            "tk",
+            "name()"
+          ],
+          "claim": "tk is added to ctx's tensor store under name().",
+          "evidence": "L5: OP_REQUIRES_OK(ctx, ctx->tensor_store()->AddTensor(name(), tk));"
+        },
+        {
+          "entities": [
+            "handle",
+            "ctx"
+          ],
+          "claim": "handle is allocated as output 0 of ctx with scalar shape.",
+          "evidence": "L7: Tensor* handle = nullptr;\nL8: OP_REQUIRES_OK(ctx, ctx->allocate_output(0, TensorShape({}), &handle));"
+        },
+        {
+          "entities": [
+            "resource_handle",
+            "ctx",
+            "tk",
+            "name()"
+          ],
+          "claim": "resource_handle is a ResourceHandle for a Tensor resource created from ctx and tk's handle for name().",
+          "evidence": "L10: ResourceHandle resource_handle = MakeResourceHandle<Tensor>(\nL11: ctx, SessionState::kTensorHandleResourceTypeName,\nL12: tk.GetHandle(name()));"
+        },
+        {
+          "entities": [
+            "resource_handle"
+          ],
+          "claim": "resource_handle's maybe type name is set to SessionState::kTensorHandleResourceTypeName.",
+          "evidence": "L13: resource_handle.set_maybe_type_name(\nL14: SessionState::kTensorHandleResourceTypeName);"
+        },
+        {
+          "entities": [
+            "handle",
+            "resource_handle"
+          ],
+          "claim": "handle's scalar ResourceHandle storage is assigned resource_handle.",
+          "evidence": "L15: handle->scalar<ResourceHandle>()() = resource_handle;"
+        },
+        {
+          "entities": [
+            "handle",
+            "tk",
+            "name()"
+          ],
+          "claim": "handle's flat tstring storage is set to tk's handle for name().",
+          "evidence": "L18: handle->flat<tstring>().setConstant(tk.GetHandle(name()));"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "TensorShape({})",
+            "handle"
+          ],
+          "claim": "The output tensor allocated for handle has an empty shape (zero dimensions), so handle->scalar<ResourceHandle>() accesses a single scalar element.",
+          "evidence": "L8: OP_REQUIRES_OK(ctx, ctx->allocate_output(0, TensorShape({}), &handle));"
+        },
+        {
+          "entities": [
+            "handle",
+            "tstring"
+          ],
+          "claim": "In the non-resource branch, handle->flat<tstring>().setConstant(...) writes one tstring element into the output tensor.",
+          "evidence": "L18: handle->flat<tstring>().setConstant(tk.GetHandle(name()));"
+        }
+      ],
+      "executions": []
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2243,
+              "output_tokens": 88,
+              "total_tokens": 2331
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2243,
+          "output_tokens": 88,
+          "total_tokens": 2331
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L15",
+                "matched": true,
+                "expression": "handle->scalar<ResourceHandle>()() = resource_handle"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L18",
+                "matched": true,
+                "expression": "handle->flat<tstring>().setConstant(tk.GetHandle(name()))"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 846,
+              "output_tokens": 478,
+              "total_tokens": 1324
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 846,
+          "output_tokens": 478,
+          "total_tokens": 1324
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "const Tensor& val = ctx->input(0);",
+                "matched_lines": [
+                  2
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "TensorStore::TensorAndKey tk{val, id, requested_device()};",
+                "matched_lines": [
+                  4
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->tensor_store()->AddTensor(name(), tk));",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "Tensor* handle = nullptr;",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->allocate_output(0, TensorShape({}), &handle));",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "ResourceHandle resource_handle = MakeResourceHandle<Tensor>(",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "ctx, SessionState::kTensorHandleResourceTypeName,",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "tk.GetHandle(name()));",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "resource_handle.set_maybe_type_name(",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "SessionState::kTensorHandleResourceTypeName);",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 15,
+                "fragment": "handle->scalar<ResourceHandle>()() = resource_handle;",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "handle->flat<tstring>().setConstant(tk.GetHandle(name()));",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1034,
+              "output_tokens": 143,
+              "total_tokens": 1177
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1034,
+          "output_tokens": 143,
+          "total_tokens": 1177
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->allocate_output(0, TensorShape({}), &handle));",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "handle->flat<tstring>().setConstant(tk.GetHandle(name()));",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 714,
+              "output_tokens": 13,
+              "total_tokens": 727
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 714,
+          "output_tokens": 13,
+          "total_tokens": 727
+        },
+        "grounding": {},
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 2,
+      "states": 8,
+      "values": 2,
+      "executions": 0
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4837,
+    "output_tokens": 722,
+    "total_tokens": 5559
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000188",
+    "split": "test",
+    "source_hash": "459578072f6b0f2e0ed7826e9d2c16f17738098d4dc93f5b4e97ca6ed29d85bf",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

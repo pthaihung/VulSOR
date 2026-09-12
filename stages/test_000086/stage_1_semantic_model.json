@@ -1,0 +1,979 @@
+{
+  "sample_id": "test_000086",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L42",
+            "L44"
+          ],
+          "expression": "concat_dim_t->flat<int32>()(0) / concat_dim_t->flat<int64_t>()(0)",
+          "claim": "indexed access into the flat tensor data at offset 0"
+        },
+        {
+          "locations": [
+            "L56",
+            "L69"
+          ],
+          "expression": "c->Dim(input, concat_dim)",
+          "claim": "dimension lookup at index concat_dim on a shape handle"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "concat_dim_t"
+          ],
+          "claim": "concat_dim_t is a Tensor pointer obtained from c->input_tensor(dim_index); it may be NULL, and when non-NULL its flat data is accessed as int32 or int64 depending on dtype.",
+          "evidence": "L5: const Tensor* concat_dim_t = c->input_tensor(dim_index);\nL6: if (concat_dim_t == nullptr) {\nL41: if (concat_dim_t->dtype() == DT_INT32) {\nL42: concat_dim = static_cast<int64_t>(concat_dim_t->flat<int32>()(0));\nL44: concat_dim = concat_dim_t->flat<int64_t>()(0);"
+        },
+        {
+          "entities": [
+            "input"
+          ],
+          "claim": "input is a ShapeHandle initialized from c->input(end_value_index - 1), then reassigned from c->input(i) inside the loop; each assignment establishes a distinct input shape object.",
+          "evidence": "L53: ShapeHandle input = c->input(end_value_index - 1);\nL66: input = c->input(i);"
+        },
+        {
+          "entities": [
+            "output_before",
+            "output_after",
+            "output_middle"
+          ],
+          "claim": "output_before, output_after, and output_middle are ShapeHandle/DimensionHandle objects initialized from the last input's subshape/dim and then updated by Merge/Add operations across the loop.",
+          "evidence": "L50: ShapeHandle output_before;\nL51: ShapeHandle output_after;\nL55: TF_RETURN_IF_ERROR(c->Subshape(input, 0, concat_dim, &output_before));\nL56: DimensionHandle output_middle = c->Dim(input, concat_dim);\nL58: output_after = c->Scalar();  // no dimensions.\nL60: TF_RETURN_IF_ERROR(c->Subshape(input, concat_dim + 1, &output_after));\nL76: TF_RETURN_IF_ERROR(c->Merge(before, output_before, &output_before));\nL77: TF_RETURN_IF_ERROR(c->Add(output_middle, middle, &output_middle));\nL78: TF_RETURN_IF_ERROR(c->Merge(after, output_after, &output_after));"
+        },
+        {
+          "entities": [
+            "s"
+          ],
+          "claim": "s is a ShapeHandle produced by concatenating output_before with a vector of output_middle, then concatenating the result with output_after; it is set as output 0.",
+          "evidence": "L81: ShapeHandle s;\nL82: TF_RETURN_IF_ERROR(\nL83: c->Concatenate(output_before, c->Vector(output_middle), &s));\nL84: TF_RETURN_IF_ERROR(c->Concatenate(s, output_after, &s));\nL85: c->set_output(0, s);"
+        },
+        {
+          "entities": [
+            "unused"
+          ],
+          "claim": "unused is a ShapeHandle used as an output parameter for rank checks; its value is not otherwise consumed.",
+          "evidence": "L3: ShapeHandle unused;\nL4: TF_RETURN_IF_ERROR(c->WithRank(c->input(dim_index), 0, &unused));\nL27: TF_RETURN_IF_ERROR(c->WithRank(c->input(i), rank, &unused));"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "concat_dim",
+            "min_rank"
+          ],
+          "claim": "min_rank is computed from concat_dim: if concat_dim < 0 then min_rank = -concat_dim, else min_rank = concat_dim + 1.",
+          "evidence": "L48: const int min_rank = concat_dim < 0 ? -concat_dim : concat_dim + 1;"
+        },
+        {
+          "entities": [
+            "concat_dim",
+            "concat_dim_t"
+          ],
+          "claim": "concat_dim is read from concat_dim_t element 0, converted from int32 to int64 when dtype is DT_INT32, otherwise read directly as int64.",
+          "evidence": "L41: if (concat_dim_t->dtype() == DT_INT32) {\nL42: concat_dim = static_cast<int64_t>(concat_dim_t->flat<int32>()(0));\nL44: concat_dim = concat_dim_t->flat<int64_t>()(0);"
+        },
+        {
+          "entities": [
+            "rank",
+            "dims"
+          ],
+          "claim": "dims is reserved for rank elements and then filled with rank unknown dimensions.",
+          "evidence": "L32: dims.reserve(rank);\nL33: for (int i = 0; i < rank; ++i) dims.push_back(c->UnknownDim());"
+        },
+        {
+          "entities": [
+            "output_middle",
+            "middle"
+          ],
+          "claim": "output_middle is accumulated by adding each input's middle dimension via c->Add.",
+          "evidence": "L77: TF_RETURN_IF_ERROR(c->Add(output_middle, middle, &output_middle));"
+        },
+        {
+          "entities": [
+            "output_before",
+            "concat_dim"
+          ],
+          "claim": "output_before is the subshape of the last input from dimension 0 up to concat_dim.",
+          "evidence": "L55: TF_RETURN_IF_ERROR(c->Subshape(input, 0, concat_dim, &output_before));"
+        },
+        {
+          "entities": [
+            "output_after",
+            "concat_dim"
+          ],
+          "claim": "output_after is the subshape of the last input starting at concat_dim + 1, or a scalar when concat_dim == -1.",
+          "evidence": "L57: if (concat_dim == -1) {\nL58: output_after = c->Scalar();  // no dimensions.\nL60: TF_RETURN_IF_ERROR(c->Subshape(input, concat_dim + 1, &output_after));"
+        },
+        {
+          "entities": [
+            "output_middle",
+            "concat_dim"
+          ],
+          "claim": "output_middle is initialized to the dimension of the last input at index concat_dim.",
+          "evidence": "L56: DimensionHandle output_middle = c->Dim(input, concat_dim);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "concat_dim_t"
+          ],
+          "claim": "If concat_dim_t is null, execution enters the unknown-shape path; otherwise concat_dim_t is non-null and its flat element 0 is read.",
+          "evidence": "L5: const Tensor* concat_dim_t = c->input_tensor(dim_index);\nL6: if (concat_dim_t == nullptr) {"
+        },
+        {
+          "entities": [
+            "rank",
+            "i"
+          ],
+          "claim": "In the null concat_dim_t path, rank is initialized to kUnknownRank and the loop over i from start_value_index to end_value_index-1 stops once rank becomes known; after the loop, rank is either kUnknownRank or a known rank.",
+          "evidence": "L11: int32_t rank = InferenceContext::kUnknownRank;\nL12: for (int i = start_value_index; i < end_value_index; ++i) {\nL13: if (rank == InferenceContext::kUnknownRank) rank = c->Rank(c->input(i));\nL14: if (rank != InferenceContext::kUnknownRank) {\nL15: break;"
+        },
+        {
+          "entities": [
+            "rank"
+          ],
+          "claim": "If rank remains kUnknownRank, execution returns after setting an unknown output shape; if rank is 0, execution returns an InvalidArgument error; otherwise rank is positive and all inputs are checked to have that rank.",
+          "evidence": "L18: if (rank == InferenceContext::kUnknownRank) {\nL19: c->set_output(0, c->UnknownShape());\nL20: return Status::OK();\nL21: } else if (rank == 0) {\nL22: return errors::InvalidArgument(\nL23: \"Can't concatenate scalars (use tf.stack instead)\");\nL24: } else {\nL25: for (int i = start_value_index; i < end_value_index; ++i) {\nL27: TF_RETURN_IF_ERROR(c->WithRank(c->input(i), rank, &unused));"
+        },
+        {
+          "entities": [
+            "concat_dim"
+          ],
+          "claim": "When concat_dim_t is non-null, concat_dim is read from element 0 as int32 or int64 depending on dtype.",
+          "evidence": "L41: if (concat_dim_t->dtype() == DT_INT32) {\nL42: concat_dim = static_cast<int64_t>(concat_dim_t->flat<int32>()(0));\nL43: } else {\nL44: concat_dim = concat_dim_t->flat<int64_t>()(0);"
+        },
+        {
+          "entities": [
+            "min_rank",
+            "concat_dim"
+          ],
+          "claim": "min_rank is -concat_dim if concat_dim is negative, otherwise concat_dim + 1.",
+          "evidence": "L48: const int min_rank = concat_dim < 0 ? -concat_dim : concat_dim + 1;"
+        },
+        {
+          "entities": [
+            "input",
+            "min_rank"
+          ],
+          "claim": "The last input at end_value_index-1 must have rank at least min_rank before Subshape and Dim are called on it.",
+          "evidence": "L53: ShapeHandle input = c->input(end_value_index - 1);\nL54: TF_RETURN_IF_ERROR(c->WithRankAtLeast(input, min_rank, &input));"
+        },
+        {
+          "entities": [
+            "concat_dim",
+            "output_after"
+          ],
+          "claim": "If concat_dim is -1, output_after is set to a scalar; otherwise Subshape(input, concat_dim + 1, &output_after) is called.",
+          "evidence": "L57: if (concat_dim == -1) {\nL58: output_after = c->Scalar();  // no dimensions.\nL59: } else {\nL60: TF_RETURN_IF_ERROR(c->Subshape(input, concat_dim + 1, &output_after));"
+        },
+        {
+          "entities": [
+            "i",
+            "input",
+            "min_rank"
+          ],
+          "claim": "In the loop from end_value_index-2 down to start_value_index, each input must have rank at least min_rank before Subshape and Dim are called on it.",
+          "evidence": "L63: for (int i = end_value_index - 2; i >= start_value_index; --i) {\nL66: input = c->input(i);\nL67: TF_RETURN_IF_ERROR(c->WithRankAtLeast(input, min_rank, &input));"
+        },
+        {
+          "entities": [
+            "concat_dim",
+            "after"
+          ],
+          "claim": "In the loop, if concat_dim is -1, after is set to a scalar; otherwise Subshape(input, concat_dim + 1, &after) is called.",
+          "evidence": "L70: if (concat_dim == -1) {\nL71: after = c->Scalar();\nL72: } else {\nL73: TF_RETURN_IF_ERROR(c->Subshape(input, concat_dim + 1, &after));"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3201,
+              "output_tokens": 97,
+              "total_tokens": 3298
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3201,
+          "output_tokens": 97,
+          "total_tokens": 3298
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L42",
+                "matched": true,
+                "expression": "concat_dim_t->flat<int32>()(0) / concat_dim_t->flat<int64_t>()(0)"
+              },
+              {
+                "location": "L44",
+                "matched": true,
+                "expression": "concat_dim_t->flat<int32>()(0) / concat_dim_t->flat<int64_t>()(0)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L56",
+                "matched": true,
+                "expression": "c->Dim(input, concat_dim)"
+              },
+              {
+                "location": "L69",
+                "matched": true,
+                "expression": "c->Dim(input, concat_dim)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1804,
+              "output_tokens": 753,
+              "total_tokens": 2557
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1804,
+          "output_tokens": 753,
+          "total_tokens": 2557
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "const Tensor* concat_dim_t = c->input_tensor(dim_index);",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "if (concat_dim_t == nullptr) {",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "if (concat_dim_t->dtype() == DT_INT32) {",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 42,
+                "fragment": "concat_dim = static_cast<int64_t>(concat_dim_t->flat<int32>()(0));",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "concat_dim = concat_dim_t->flat<int64_t>()(0);",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 53,
+                "fragment": "ShapeHandle input = c->input(end_value_index - 1);",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 66,
+                "fragment": "input = c->input(i);",
+                "matched_lines": [
+                  66
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "ShapeHandle output_before;",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "ShapeHandle output_after;",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "TF_RETURN_IF_ERROR(c->Subshape(input, 0, concat_dim, &output_before));",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "DimensionHandle output_middle = c->Dim(input, concat_dim);",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "output_after = c->Scalar();  // no dimensions.",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "TF_RETURN_IF_ERROR(c->Subshape(input, concat_dim + 1, &output_after));",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 76,
+                "fragment": "TF_RETURN_IF_ERROR(c->Merge(before, output_before, &output_before));",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 77,
+                "fragment": "TF_RETURN_IF_ERROR(c->Add(output_middle, middle, &output_middle));",
+                "matched_lines": [
+                  77
+                ]
+              },
+              {
+                "evidence_line": 78,
+                "fragment": "TF_RETURN_IF_ERROR(c->Merge(after, output_after, &output_after));",
+                "matched_lines": [
+                  78
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 81,
+                "fragment": "ShapeHandle s;",
+                "matched_lines": [
+                  81
+                ]
+              },
+              {
+                "evidence_line": 82,
+                "fragment": "TF_RETURN_IF_ERROR(",
+                "matched_lines": [
+                  82
+                ]
+              },
+              {
+                "evidence_line": 83,
+                "fragment": "c->Concatenate(output_before, c->Vector(output_middle), &s));",
+                "matched_lines": [
+                  83
+                ]
+              },
+              {
+                "evidence_line": 84,
+                "fragment": "TF_RETURN_IF_ERROR(c->Concatenate(s, output_after, &s));",
+                "matched_lines": [
+                  84
+                ]
+              },
+              {
+                "evidence_line": 85,
+                "fragment": "c->set_output(0, s);",
+                "matched_lines": [
+                  85
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "ShapeHandle unused;",
+                "matched_lines": [
+                  3
+                ]
+              },
+              {
+                "evidence_line": 4,
+                "fragment": "TF_RETURN_IF_ERROR(c->WithRank(c->input(dim_index), 0, &unused));",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "TF_RETURN_IF_ERROR(c->WithRank(c->input(i), rank, &unused));",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1992,
+              "output_tokens": 599,
+              "total_tokens": 2591
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1992,
+          "output_tokens": 599,
+          "total_tokens": 2591
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 48,
+                "fragment": "const int min_rank = concat_dim < 0 ? -concat_dim : concat_dim + 1;",
+                "matched_lines": [
+                  48
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 41,
+                "fragment": "if (concat_dim_t->dtype() == DT_INT32) {",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 42,
+                "fragment": "concat_dim = static_cast<int64_t>(concat_dim_t->flat<int32>()(0));",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "concat_dim = concat_dim_t->flat<int64_t>()(0);",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 32,
+                "fragment": "dims.reserve(rank);",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "for (int i = 0; i < rank; ++i) dims.push_back(c->UnknownDim());",
+                "matched_lines": [
+                  33
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 77,
+                "fragment": "TF_RETURN_IF_ERROR(c->Add(output_middle, middle, &output_middle));",
+                "matched_lines": [
+                  77
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 55,
+                "fragment": "TF_RETURN_IF_ERROR(c->Subshape(input, 0, concat_dim, &output_before));",
+                "matched_lines": [
+                  55
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "if (concat_dim == -1) {",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "output_after = c->Scalar();  // no dimensions.",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "TF_RETURN_IF_ERROR(c->Subshape(input, concat_dim + 1, &output_after));",
+                "matched_lines": [
+                  60
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 56,
+                "fragment": "DimensionHandle output_middle = c->Dim(input, concat_dim);",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1672,
+              "output_tokens": 1060,
+              "total_tokens": 2732
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1672,
+          "output_tokens": 1060,
+          "total_tokens": 2732
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "const Tensor* concat_dim_t = c->input_tensor(dim_index);",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "if (concat_dim_t == nullptr) {",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "int32_t rank = InferenceContext::kUnknownRank;",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "for (int i = start_value_index; i < end_value_index; ++i) {",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "if (rank == InferenceContext::kUnknownRank) rank = c->Rank(c->input(i));",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "if (rank != InferenceContext::kUnknownRank) {",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "break;",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "if (rank == InferenceContext::kUnknownRank) {",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "c->set_output(0, c->UnknownShape());",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "return Status::OK();",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "} else if (rank == 0) {",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "return errors::InvalidArgument(",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "\"Can't concatenate scalars (use tf.stack instead)\");",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "} else {",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "for (int i = start_value_index; i < end_value_index; ++i) {",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "TF_RETURN_IF_ERROR(c->WithRank(c->input(i), rank, &unused));",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 41,
+                "fragment": "if (concat_dim_t->dtype() == DT_INT32) {",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 42,
+                "fragment": "concat_dim = static_cast<int64_t>(concat_dim_t->flat<int32>()(0));",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "} else {",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "concat_dim = concat_dim_t->flat<int64_t>()(0);",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 48,
+                "fragment": "const int min_rank = concat_dim < 0 ? -concat_dim : concat_dim + 1;",
+                "matched_lines": [
+                  48
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 53,
+                "fragment": "ShapeHandle input = c->input(end_value_index - 1);",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "TF_RETURN_IF_ERROR(c->WithRankAtLeast(input, min_rank, &input));",
+                "matched_lines": [
+                  54
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "if (concat_dim == -1) {",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "output_after = c->Scalar();  // no dimensions.",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "} else {",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "TF_RETURN_IF_ERROR(c->Subshape(input, concat_dim + 1, &output_after));",
+                "matched_lines": [
+                  60
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 63,
+                "fragment": "for (int i = end_value_index - 2; i >= start_value_index; --i) {",
+                "matched_lines": [
+                  63
+                ]
+              },
+              {
+                "evidence_line": 66,
+                "fragment": "input = c->input(i);",
+                "matched_lines": [
+                  66
+                ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "TF_RETURN_IF_ERROR(c->WithRankAtLeast(input, min_rank, &input));",
+                "matched_lines": [
+                  67
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 70,
+                "fragment": "if (concat_dim == -1) {",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 71,
+                "fragment": "after = c->Scalar();",
+                "matched_lines": [
+                  71
+                ]
+              },
+              {
+                "evidence_line": 72,
+                "fragment": "} else {",
+                "matched_lines": [
+                  72
+                ]
+              },
+              {
+                "evidence_line": 73,
+                "fragment": "TF_RETURN_IF_ERROR(c->Subshape(input, concat_dim + 1, &after));",
+                "matched_lines": [
+                  73
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 2,
+      "states": 5,
+      "values": 7,
+      "executions": 9
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 8669,
+    "output_tokens": 2509,
+    "total_tokens": 11178
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000086",
+    "split": "test",
+    "source_hash": "78b4721d820f7b75df00f393238940e397aa11a4405d2c45f910ba2dd9016736",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

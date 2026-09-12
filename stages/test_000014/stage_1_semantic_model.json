@@ -10,329 +10,518 @@
             "L13"
           ],
           "expression": "strftime(expires, 128, \"%a, %d %b %Y %T %Z\", &ts)",
-          "claim": "write formatted time string into fixed-size buffer expires with size limit 128"
+          "claim": "writes formatted time string into the expires buffer with a bounded size argument"
         },
         {
           "locations": [
             "L15"
           ],
           "expression": "json_string_length(json_object_get(j_param, \"username\"))",
-          "claim": "read string length of JSON value obtained from object"
+          "claim": "reads the length of a JSON string value obtained from the request body object"
         },
         {
           "locations": [
             "L16"
           ],
           "expression": "o_strcmp(json_string_value(json_object_get(j_param, \"scheme_type\")), \"password\")",
-          "claim": "compare string value obtained from JSON object"
+          "claim": "compares the string value of the scheme_type JSON member against a literal"
         },
         {
           "locations": [
             "L17"
           ],
           "expression": "json_string_length(json_object_get(j_param, \"password\"))",
-          "claim": "read string length of JSON value obtained from object"
+          "claim": "reads the length of a JSON string value obtained from the request body object"
         },
         {
           "locations": [
             "L18"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"username\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "auth_check_user_credentials(config, json_string_value(json_object_get(j_param, \"username\")), json_string_value(json_object_get(j_param, \"password\")))",
+          "claim": "calls the credential-checking helper with username and password string values extracted from the request body"
         },
         {
           "locations": [
-            "L18"
+            "L19"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"password\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "check_result_value(j_result, G_OK)",
+          "claim": "inspects the result object returned by the credential-checking helper"
+        },
+        {
+          "locations": [
+            "L20"
+          ],
+          "expression": "get_session_id(config, request)",
+          "claim": "retrieves the session identifier for the request"
+        },
+        {
+          "locations": [
+            "L21"
+          ],
+          "expression": "generate_session_id()",
+          "claim": "generates a new session identifier"
         },
         {
           "locations": [
             "L23"
           ],
-          "expression": "u_map_get_case(request->map_header, \"user-agent\")",
-          "claim": "look up case-insensitive map entry by key"
+          "expression": "user_session_update(config, session_uid, u_map_get_case(request->map_header, \"user-agent\"), issued_for, json_string_value(json_object_get(j_param, \"username\")), NULL, 1)",
+          "claim": "updates the user session using the session identifier and request-derived values"
         },
         {
           "locations": [
             "L27"
           ],
           "expression": "ulfius_add_cookie_to_response(response, config->session_key, session_uid, expires, 0, config->cookie_domain, \"/\", config->cookie_secure, 0)",
-          "claim": "add cookie to response using session identifier and expiration buffer"
+          "claim": "adds a session cookie to the response using the session identifier and expiration buffer"
         },
         {
           "locations": [
-            "L28"
+            "L30"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"username\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "o_free(session_uid)",
+          "claim": "frees the session identifier string"
+        },
+        {
+          "locations": [
+            "L31"
+          ],
+          "expression": "glewlwyd_metrics_increment_counter_va(config, GLWD_METRICS_AUTH_USER_VALID, 1, NULL)",
+          "claim": "increments a metrics counter for valid user authentication"
+        },
+        {
+          "locations": [
+            "L32"
+          ],
+          "expression": "glewlwyd_metrics_increment_counter_va(config, GLWD_METRICS_AUTH_USER_VALID_SCHEME, 1, \"scheme_type\", \"password\", NULL)",
+          "claim": "increments a metrics counter for valid user authentication by scheme"
+        },
+        {
+          "locations": [
+            "L34"
+          ],
+          "expression": "check_result_value(j_result, G_ERROR_UNAUTHORIZED)",
+          "claim": "inspects the result object for an unauthorized error"
         },
         {
           "locations": [
             "L35"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"username\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "y_log_message(Y_LOG_LEVEL_WARNING, \"Security - Authorization invalid for username %s at IP Address %s\", json_string_value(json_object_get(j_param, \"username\")), ip_source)",
+          "claim": "logs a warning message with the username string and source IP address"
         },
         {
           "locations": [
             "L37"
           ],
-          "expression": "u_map_get_case(request->map_header, \"user-agent\")",
-          "claim": "look up case-insensitive map entry by key"
+          "expression": "get_session_id(config, request)",
+          "claim": "retrieves the session identifier for the request"
         },
         {
           "locations": [
             "L37"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"username\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "user_session_update(config, session_uid, u_map_get_case(request->map_header, \"user-agent\"), issued_for, json_string_value(json_object_get(j_param, \"username\")), NULL, 1)",
+          "claim": "updates the user session using the session identifier and request-derived values"
+        },
+        {
+          "locations": [
+            "L40"
+          ],
+          "expression": "o_free(session_uid)",
+          "claim": "frees the session identifier string"
+        },
+        {
+          "locations": [
+            "L42"
+          ],
+          "expression": "glewlwyd_metrics_increment_counter_va(config, GLWD_METRICS_AUTH_USER_INVALID, 1, NULL)",
+          "claim": "increments a metrics counter for invalid user authentication"
+        },
+        {
+          "locations": [
+            "L43"
+          ],
+          "expression": "glewlwyd_metrics_increment_counter_va(config, GLWD_METRICS_AUTH_USER_INVALID_SCHEME, 1, \"scheme_type\", \"password\", NULL)",
+          "claim": "increments a metrics counter for invalid user authentication by scheme"
+        },
+        {
+          "locations": [
+            "L45"
+          ],
+          "expression": "json_decref(j_result)",
+          "claim": "decrements the reference count of the result JSON object"
         },
         {
           "locations": [
             "L46"
           ],
           "expression": "json_is_string(json_object_get(j_param, \"password\"))",
-          "claim": "check JSON value type"
+          "claim": "checks whether the password JSON member is a string"
+        },
+        {
+          "locations": [
+            "L47"
+          ],
+          "expression": "ulfius_set_string_body_response(response, 400, \"password must be a string\")",
+          "claim": "sets a string body response with a 400 status code"
+        },
+        {
+          "locations": [
+            "L49"
+          ],
+          "expression": "get_session_id(config, request)",
+          "claim": "retrieves the session identifier for the request"
+        },
+        {
+          "locations": [
+            "L50"
+          ],
+          "expression": "get_users_for_session(config, session_uid)",
+          "claim": "retrieves users associated with the session identifier"
+        },
+        {
+          "locations": [
+            "L51"
+          ],
+          "expression": "check_result_value(j_result, G_OK)",
+          "claim": "inspects the result object returned by the session-user lookup"
         },
         {
           "locations": [
             "L53"
           ],
-          "expression": "u_map_get(request->map_cookie, config->session_key)",
-          "claim": "look up map entry by key"
-        },
-        {
-          "locations": [
-            "L53"
-          ],
-          "expression": "u_map_get_case(request->map_header, \"user-agent\")",
-          "claim": "look up case-insensitive map entry by key"
-        },
-        {
-          "locations": [
-            "L53"
-          ],
-          "expression": "json_string_value(json_object_get(j_param, \"username\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "user_session_update(config, u_map_get(request->map_cookie, config->session_key), u_map_get_case(request->map_header, \"user-agent\"), issued_for, json_string_value(json_object_get(j_param, \"username\")), NULL, 0)",
+          "claim": "updates the user session using cookie and request-derived values"
         },
         {
           "locations": [
             "L57"
           ],
           "expression": "ulfius_add_cookie_to_response(response, config->session_key, session_uid, expires, 0, config->cookie_domain, \"/\", config->cookie_secure, 0)",
-          "claim": "add cookie to response using session identifier and expiration buffer"
+          "claim": "adds a session cookie to the response using the session identifier and expiration buffer"
+        },
+        {
+          "locations": [
+            "L59"
+          ],
+          "expression": "check_result_value(j_result, G_ERROR_NOT_FOUND)",
+          "claim": "inspects the result object for a not-found error"
+        },
+        {
+          "locations": [
+            "L65"
+          ],
+          "expression": "o_free(session_uid)",
+          "claim": "frees the session identifier string"
+        },
+        {
+          "locations": [
+            "L66"
+          ],
+          "expression": "json_decref(j_result)",
+          "claim": "decrements the reference count of the result JSON object"
         },
         {
           "locations": [
             "L69"
           ],
           "expression": "json_string_length(json_object_get(j_param, \"scheme_type\"))",
-          "claim": "read string length of JSON value obtained from object"
+          "claim": "reads the length of a JSON string value obtained from the request body object"
         },
         {
           "locations": [
             "L69"
           ],
           "expression": "json_string_length(json_object_get(j_param, \"scheme_name\"))",
-          "claim": "read string length of JSON value obtained from object"
+          "claim": "reads the length of a JSON string value obtained from the request body object"
         },
         {
           "locations": [
             "L69"
           ],
           "expression": "json_is_object(json_object_get(j_param, \"value\"))",
-          "claim": "check JSON value type"
+          "claim": "checks whether the value JSON member is an object"
         },
         {
           "locations": [
             "L70"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"scheme_type\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "auth_check_user_scheme(config, json_string_value(json_object_get(j_param, \"scheme_type\")), json_string_value(json_object_get(j_param, \"scheme_name\")), json_string_value(json_object_get(j_param, \"username\")), json_object_get(j_param, \"value\"), request)",
+          "claim": "calls the scheme-based authentication helper with request body values"
         },
         {
           "locations": [
-            "L70"
+            "L71"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"scheme_name\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "check_result_value(j_result, G_ERROR_PARAM)",
+          "claim": "inspects the result object for a parameter error"
         },
         {
           "locations": [
-            "L70"
+            "L72"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"username\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "ulfius_set_string_body_response(response, 400, \"bad scheme response\")",
+          "claim": "sets a string body response with a 400 status code"
+        },
+        {
+          "locations": [
+            "L73"
+          ],
+          "expression": "check_result_value(j_result, G_ERROR_UNAUTHORIZED)",
+          "claim": "inspects the result object for an unauthorized error"
         },
         {
           "locations": [
             "L74"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"username\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "y_log_message(Y_LOG_LEVEL_WARNING, \"Security - Authorization invalid for username %s at IP Address %s\", json_string_value(json_object_get(j_param, \"username\")), ip_source)",
+          "claim": "logs a warning message with the username string and source IP address"
+        },
+        {
+          "locations": [
+            "L76"
+          ],
+          "expression": "glewlwyd_metrics_increment_counter_va(config, GLWD_METRICS_AUTH_USER_INVALID, 1, NULL)",
+          "claim": "increments a metrics counter for invalid user authentication"
         },
         {
           "locations": [
             "L77"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"scheme_type\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "glewlwyd_metrics_increment_counter_va(config, GLWD_METRICS_AUTH_USER_INVALID_SCHEME, 1, \"scheme_type\", json_string_value(json_object_get(j_param, \"scheme_type\")), \"scheme_name\", json_string_value(json_object_get(j_param, \"scheme_name\")), NULL)",
+          "claim": "increments a metrics counter for invalid user authentication by scheme"
         },
         {
           "locations": [
-            "L77"
+            "L78"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"scheme_name\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "check_result_value(j_result, G_ERROR_NOT_FOUND)",
+          "claim": "inspects the result object for a not-found error"
+        },
+        {
+          "locations": [
+            "L80"
+          ],
+          "expression": "check_result_value(j_result, G_OK)",
+          "claim": "inspects the result object for success"
+        },
+        {
+          "locations": [
+            "L81"
+          ],
+          "expression": "get_session_id(config, request)",
+          "claim": "retrieves the session identifier for the request"
+        },
+        {
+          "locations": [
+            "L82"
+          ],
+          "expression": "generate_session_id()",
+          "claim": "generates a new session identifier"
         },
         {
           "locations": [
             "L84"
           ],
-          "expression": "u_map_get_case(request->map_header, \"user-agent\")",
-          "claim": "look up case-insensitive map entry by key"
-        },
-        {
-          "locations": [
-            "L84"
-          ],
-          "expression": "json_string_value(json_object_get(j_param, \"username\"))",
-          "claim": "extract string value from JSON object"
-        },
-        {
-          "locations": [
-            "L84"
-          ],
-          "expression": "json_string_value(json_object_get(j_param, \"scheme_name\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "user_session_update(config, session_uid, u_map_get_case(request->map_header, \"user-agent\"), issued_for, json_string_value(json_object_get(j_param, \"username\")), json_string_value(json_object_get(j_param, \"scheme_name\")), 1)",
+          "claim": "updates the user session using the session identifier and request-derived values"
         },
         {
           "locations": [
             "L88"
           ],
           "expression": "ulfius_add_cookie_to_response(response, config->session_key, session_uid, expires, 0, config->cookie_domain, \"/\", config->cookie_secure, 0)",
-          "claim": "add cookie to response using session identifier and expiration buffer"
+          "claim": "adds a session cookie to the response using the session identifier and expiration buffer"
         },
         {
           "locations": [
             "L89"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"username\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "y_log_message(Y_LOG_LEVEL_INFO, \"Event - User '%s' authenticated with scheme '%s/%s'\", json_string_value(json_object_get(j_param, \"username\")), json_string_value(json_object_get(j_param, \"scheme_type\")), json_string_value(json_object_get(j_param, \"scheme_name\")))",
+          "claim": "logs an informational message with username and scheme strings"
         },
         {
           "locations": [
-            "L89"
+            "L91"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"scheme_type\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "o_free(session_uid)",
+          "claim": "frees the session identifier string"
         },
         {
           "locations": [
-            "L89"
+            "L92"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"scheme_name\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "glewlwyd_metrics_increment_counter_va(config, GLWD_METRICS_AUTH_USER_VALID, 1, NULL)",
+          "claim": "increments a metrics counter for valid user authentication"
         },
         {
           "locations": [
             "L93"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"scheme_type\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "glewlwyd_metrics_increment_counter_va(config, GLWD_METRICS_AUTH_USER_VALID_SCHEME, 1, \"scheme_type\", json_string_value(json_object_get(j_param, \"scheme_type\")), \"scheme_name\", json_string_value(json_object_get(j_param, \"scheme_name\")), NULL)",
+          "claim": "increments a metrics counter for valid user authentication by scheme"
         },
         {
           "locations": [
-            "L93"
+            "L98"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"scheme_name\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "json_decref(j_result)",
+          "claim": "decrements the reference count of the result JSON object"
+        },
+        {
+          "locations": [
+            "L100"
+          ],
+          "expression": "ulfius_set_string_body_response(response, 400, \"scheme_type, scheme_name and value are mandatory\")",
+          "claim": "sets a string body response with a 400 status code"
         },
         {
           "locations": [
             "L104"
           ],
           "expression": "json_string_length(json_object_get(j_param, \"scheme_type\"))",
-          "claim": "read string length of JSON value obtained from object"
+          "claim": "reads the length of a JSON string value obtained from the request body object"
         },
         {
           "locations": [
             "L104"
           ],
           "expression": "json_string_length(json_object_get(j_param, \"scheme_name\"))",
-          "claim": "read string length of JSON value obtained from object"
+          "claim": "reads the length of a JSON string value obtained from the request body object"
         },
         {
           "locations": [
             "L104"
           ],
           "expression": "json_is_object(json_object_get(j_param, \"value\"))",
-          "claim": "check JSON value type"
+          "claim": "checks whether the value JSON member is an object"
         },
         {
           "locations": [
             "L105"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"scheme_type\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "auth_check_identify_scheme(config, json_string_value(json_object_get(j_param, \"scheme_type\")), json_string_value(json_object_get(j_param, \"scheme_name\")), json_object_get(j_param, \"value\"), request)",
+          "claim": "calls the identify-scheme authentication helper with request body values"
         },
         {
           "locations": [
-            "L105"
+            "L106"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"scheme_name\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "check_result_value(j_result, G_ERROR_PARAM)",
+          "claim": "inspects the result object for a parameter error"
+        },
+        {
+          "locations": [
+            "L107"
+          ],
+          "expression": "ulfius_set_string_body_response(response, 400, \"bad scheme response\")",
+          "claim": "sets a string body response with a 400 status code"
+        },
+        {
+          "locations": [
+            "L108"
+          ],
+          "expression": "check_result_value(j_result, G_ERROR_UNAUTHORIZED)",
+          "claim": "inspects the result object for an unauthorized error"
+        },
+        {
+          "locations": [
+            "L109"
+          ],
+          "expression": "y_log_message(Y_LOG_LEVEL_WARNING, \"Security - Authorization invalid for username <UNKNOWN> at IP Address %s\", ip_source)",
+          "claim": "logs a warning message with the source IP address"
+        },
+        {
+          "locations": [
+            "L111"
+          ],
+          "expression": "check_result_value(j_result, G_ERROR_NOT_FOUND)",
+          "claim": "inspects the result object for a not-found error"
+        },
+        {
+          "locations": [
+            "L113"
+          ],
+          "expression": "check_result_value(j_result, G_OK)",
+          "claim": "inspects the result object for success"
+        },
+        {
+          "locations": [
+            "L114"
+          ],
+          "expression": "get_session_id(config, request)",
+          "claim": "retrieves the session identifier for the request"
+        },
+        {
+          "locations": [
+            "L115"
+          ],
+          "expression": "generate_session_id()",
+          "claim": "generates a new session identifier"
         },
         {
           "locations": [
             "L117"
           ],
-          "expression": "u_map_get_case(request->map_header, \"user-agent\")",
-          "claim": "look up case-insensitive map entry by key"
-        },
-        {
-          "locations": [
-            "L117"
-          ],
-          "expression": "json_string_value(json_object_get(j_result, \"username\"))",
-          "claim": "extract string value from JSON object"
-        },
-        {
-          "locations": [
-            "L117"
-          ],
-          "expression": "json_string_value(json_object_get(j_param, \"scheme_name\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "user_session_update(config, session_uid, u_map_get_case(request->map_header, \"user-agent\"), issued_for, json_string_value(json_object_get(j_result, \"username\")), json_string_value(json_object_get(j_param, \"scheme_name\")), 1)",
+          "claim": "updates the user session using the session identifier and result-derived values"
         },
         {
           "locations": [
             "L121"
           ],
           "expression": "ulfius_add_cookie_to_response(response, config->session_key, session_uid, expires, 0, config->cookie_domain, \"/\", config->cookie_secure, 0)",
-          "claim": "add cookie to response using session identifier and expiration buffer"
+          "claim": "adds a session cookie to the response using the session identifier and expiration buffer"
         },
         {
           "locations": [
             "L122"
           ],
-          "expression": "json_string_value(json_object_get(j_result, \"username\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "y_log_message(Y_LOG_LEVEL_INFO, \"Event - User '%s' authenticated with scheme '%s/%s'\", json_string_value(json_object_get(j_result, \"username\")), json_string_value(json_object_get(j_param, \"scheme_type\")), json_string_value(json_object_get(j_param, \"scheme_name\")))",
+          "claim": "logs an informational message with username and scheme strings"
         },
         {
           "locations": [
-            "L122"
+            "L124"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"scheme_type\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "o_free(session_uid)",
+          "claim": "frees the session identifier string"
         },
         {
           "locations": [
-            "L122"
+            "L129"
           ],
-          "expression": "json_string_value(json_object_get(j_param, \"scheme_name\"))",
-          "claim": "extract string value from JSON object"
+          "expression": "json_decref(j_result)",
+          "claim": "decrements the reference count of the result JSON object"
+        },
+        {
+          "locations": [
+            "L131"
+          ],
+          "expression": "ulfius_set_string_body_response(response, 400, \"username is mandatory\")",
+          "claim": "sets a string body response with a 400 status code"
+        },
+        {
+          "locations": [
+            "L135"
+          ],
+          "expression": "ulfius_set_string_body_response(response, 400, \"Input parameters must be in JSON format\")",
+          "claim": "sets a string body response with a 400 status code"
+        },
+        {
+          "locations": [
+            "L137"
+          ],
+          "expression": "json_decref(j_param)",
+          "claim": "decrements the reference count of the request body JSON object"
+        },
+        {
+          "locations": [
+            "L138"
+          ],
+          "expression": "o_free(issued_for)",
+          "claim": "frees the client hostname string"
         }
       ],
       "states": [
@@ -340,14 +529,14 @@
           "entities": [
             "j_param"
           ],
-          "claim": "j_param is a JSON object reference returned by ulfius_get_json_body_request; it is released with json_decref at function end.",
+          "claim": "j_param is a JSON object reference returned by ulfius_get_json_body_request; it may be NULL and is released with json_decref at function end.",
           "evidence": "L3: json_t * j_param = ulfius_get_json_body_request(request, NULL), * j_result = NULL;\nL137: json_decref(j_param);"
         },
         {
           "entities": [
             "j_result"
           ],
-          "claim": "j_result is a JSON reference initialized to NULL and later assigned by auth_check_user_credentials, get_users_for_session, auth_check_user_scheme, or auth_check_identify_scheme; each assigned result is released with json_decref on the corresponding path.",
+          "claim": "j_result is a JSON reference initialized to NULL and reassigned by auth_check_user_credentials, get_users_for_session, auth_check_user_scheme, or auth_check_identify_scheme; each non-NULL result is released with json_decref.",
           "evidence": "L3: json_t * j_param = ulfius_get_json_body_request(request, NULL), * j_result = NULL;\nL18: j_result = auth_check_user_credentials(config, json_string_value(json_object_get(j_param, \"username\")), json_string_value(json_object_get(j_param, \"password\")));\nL45: json_decref(j_result);\nL50: j_result = get_users_for_session(config, session_uid);\nL66: json_decref(j_result);\nL70: j_result = auth_check_user_scheme(config, json_string_value(json_object_get(j_param, \"scheme_type\")), json_string_value(json_object_get(j_param, \"scheme_name\")), json_string_value(json_object_get(j_param, \"username\")), json_object_get(j_param, \"value\"), request);\nL98: json_decref(j_result);\nL105: j_result = auth_check_identify_scheme(config, json_string_value(json_object_get(j_param, \"scheme_type\")), json_string_value(json_object_get(j_param, \"scheme_name\")), json_object_get(j_param, \"value\"), request);\nL129: json_decref(j_result);"
         },
         {
@@ -368,15 +557,22 @@
           "entities": [
             "config"
           ],
-          "claim": "config is the user_data pointer cast to struct config_elements and is used as the configuration object throughout.",
+          "claim": "config is the user_data pointer cast to struct config_elements * and is used as the configuration object throughout.",
           "evidence": "L2: struct config_elements * config = (struct config_elements *)user_data;"
         },
         {
           "entities": [
-            "response"
+            "ip_source"
           ],
-          "claim": "response is the callback response object whose status and body are set on various paths.",
-          "evidence": "L25: response->status = 500;\nL41: response->status = 401;\nL47: ulfius_set_string_body_response(response, 400, \"password must be a string\");\nL55: response->status = 500;\nL60: response->status = 401;\nL63: response->status = 500;\nL72: ulfius_set_string_body_response(response, 400, \"bad scheme response\");\nL75: response->status = 401;\nL79: response->status = 404;\nL86: response->status = 500;\nL96: response->status = 500;\nL100: ulfius_set_string_body_response(response, 400, \"scheme_type, scheme_name and value are mandatory\");\nL107: ulfius_set_string_body_response(response, 400, \"bad scheme response\");\nL110: response->status = 401;\nL112: response->status = 404;\nL119: response->status = 500;\nL127: response->status = 500;\nL131: ulfius_set_string_body_response(response, 400, \"username is mandatory\");\nL135: ulfius_set_string_body_response(response, 400, \"Input parameters must be in JSON format\");"
+          "claim": "ip_source is a string returned by get_ip_source and is used for logging.",
+          "evidence": "L4: const char * ip_source = get_ip_source(request);"
+        },
+        {
+          "entities": [
+            "expires"
+          ],
+          "claim": "expires is a 129-byte stack buffer filled by strftime with at most 128 characters.",
+          "evidence": "L6: char * session_uid, expires[129];\nL13: strftime(expires, 128, \"%a, %d %b %Y %T %Z\", &ts);"
         }
       ],
       "values": [
@@ -385,7 +581,7 @@
             "expires",
             "strftime"
           ],
-          "claim": "expires is a char array of 129 bytes; strftime is called with max size 128, so the buffer is not overrun and the result is NUL-terminated within bounds.",
+          "claim": "expires is a char array of 129 bytes; strftime is called with max size 128, leaving room for the terminating NUL.",
           "evidence": "L6: char * session_uid, expires[129];\nL13: strftime(expires, 128, \"%a, %d %b %Y %T %Z\", &ts);"
         },
         {
@@ -393,7 +589,7 @@
             "now",
             "GLEWLWYD_DEFAULT_SESSION_EXPIRATION_COOKIE"
           ],
-          "claim": "now is a time_t set to current time then incremented by GLEWLWYD_DEFAULT_SESSION_EXPIRATION_COOKIE; the resulting value is used as the expiration time passed to gmtime_r.",
+          "claim": "now is a time_t set to current time then incremented by GLEWLWYD_DEFAULT_SESSION_EXPIRATION_COOKIE before being converted to struct tm.",
           "evidence": "L10: time(&now);\nL11: now += GLEWLWYD_DEFAULT_SESSION_EXPIRATION_COOKIE;\nL12: gmtime_r(&now, &ts);"
         }
       ],
@@ -465,7 +661,7 @@
           "entities": [
             "j_param"
           ],
-          "claim": "Entering the scheme-auth branch at line 70 implies scheme_type and scheme_name are non-empty strings and value is a JSON object.",
+          "claim": "Entering the scheme-auth branch at line 70 implies scheme_type and scheme_name are non-empty JSON strings and value is a JSON object.",
           "evidence": "L69: if (json_string_length(json_object_get(j_param, \"scheme_type\")) && json_string_length(json_object_get(j_param, \"scheme_name\")) && json_is_object(json_object_get(j_param, \"value\"))) {"
         },
         {
@@ -479,7 +675,7 @@
           "entities": [
             "j_param"
           ],
-          "claim": "Entering the identify-scheme branch at line 105 implies username is empty/absent, scheme_type and scheme_name are non-empty strings, and value is a JSON object.",
+          "claim": "Entering the identify-scheme branch at line 104 implies username is empty/absent, scheme_type and scheme_name are non-empty JSON strings, and value is a JSON object.",
           "evidence": "L103: } else {\nL104: if (json_string_length(json_object_get(j_param, \"scheme_type\")) && json_string_length(json_object_get(j_param, \"scheme_name\")) && json_is_object(json_object_get(j_param, \"value\"))) {"
         },
         {
@@ -501,8 +697,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 4992,
-              "output_tokens": 1812,
-              "total_tokens": 6804
+              "output_tokens": 3566,
+              "total_tokens": 8558
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -510,8 +706,8 @@
         ],
         "token_usage": {
           "input_tokens": 4992,
-          "output_tokens": 1812,
-          "total_tokens": 6804
+          "output_tokens": 3566,
+          "total_tokens": 8558
         },
         "grounding": {
           "operation_agent.operations[0]": {
@@ -559,7 +755,7 @@
               {
                 "location": "L18",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"username\"))"
+                "expression": "auth_check_user_credentials(config, json_string_value(json_object_get(j_param, \"username\")), json_string_value(json_object_get(j_param, \"password\")))"
               }
             ],
             "status": "pass"
@@ -567,9 +763,9 @@
           "operation_agent.operations[5]": {
             "expression_matches": [
               {
-                "location": "L18",
+                "location": "L19",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"password\"))"
+                "expression": "check_result_value(j_result, G_OK)"
               }
             ],
             "status": "pass"
@@ -577,14 +773,34 @@
           "operation_agent.operations[6]": {
             "expression_matches": [
               {
-                "location": "L23",
+                "location": "L20",
                 "matched": true,
-                "expression": "u_map_get_case(request->map_header, \"user-agent\")"
+                "expression": "get_session_id(config, request)"
               }
             ],
             "status": "pass"
           },
           "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L21",
+                "matched": true,
+                "expression": "generate_session_id()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L23",
+                "matched": true,
+                "expression": "user_session_update(config, session_uid, u_map_get_case(request->map_header, \"user-agent\"), issued_for, json_string_value(json_object_get(j_param, \"username\")), NULL, 1)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[9]": {
             "expression_matches": [
               {
                 "location": "L27",
@@ -594,32 +810,12 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[8]": {
-            "expression_matches": [
-              {
-                "location": "L28",
-                "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"username\"))"
-              }
-            ],
-            "status": "pass"
-          },
-          "operation_agent.operations[9]": {
-            "expression_matches": [
-              {
-                "location": "L35",
-                "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"username\"))"
-              }
-            ],
-            "status": "pass"
-          },
           "operation_agent.operations[10]": {
             "expression_matches": [
               {
-                "location": "L37",
+                "location": "L30",
                 "matched": true,
-                "expression": "u_map_get_case(request->map_header, \"user-agent\")"
+                "expression": "o_free(session_uid)"
               }
             ],
             "status": "pass"
@@ -627,14 +823,104 @@
           "operation_agent.operations[11]": {
             "expression_matches": [
               {
-                "location": "L37",
+                "location": "L31",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"username\"))"
+                "expression": "glewlwyd_metrics_increment_counter_va(config, GLWD_METRICS_AUTH_USER_VALID, 1, NULL)"
               }
             ],
             "status": "pass"
           },
           "operation_agent.operations[12]": {
+            "expression_matches": [
+              {
+                "location": "L32",
+                "matched": true,
+                "expression": "glewlwyd_metrics_increment_counter_va(config, GLWD_METRICS_AUTH_USER_VALID_SCHEME, 1, \"scheme_type\", \"password\", NULL)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[13]": {
+            "expression_matches": [
+              {
+                "location": "L34",
+                "matched": true,
+                "expression": "check_result_value(j_result, G_ERROR_UNAUTHORIZED)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[14]": {
+            "expression_matches": [
+              {
+                "location": "L35",
+                "matched": true,
+                "expression": "y_log_message(Y_LOG_LEVEL_WARNING, \"Security - Authorization invalid for username %s at IP Address %s\", json_string_value(json_object_get(j_param, \"username\")), ip_source)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[15]": {
+            "expression_matches": [
+              {
+                "location": "L37",
+                "matched": true,
+                "expression": "get_session_id(config, request)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[16]": {
+            "expression_matches": [
+              {
+                "location": "L37",
+                "matched": true,
+                "expression": "user_session_update(config, session_uid, u_map_get_case(request->map_header, \"user-agent\"), issued_for, json_string_value(json_object_get(j_param, \"username\")), NULL, 1)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[17]": {
+            "expression_matches": [
+              {
+                "location": "L40",
+                "matched": true,
+                "expression": "o_free(session_uid)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[18]": {
+            "expression_matches": [
+              {
+                "location": "L42",
+                "matched": true,
+                "expression": "glewlwyd_metrics_increment_counter_va(config, GLWD_METRICS_AUTH_USER_INVALID, 1, NULL)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[19]": {
+            "expression_matches": [
+              {
+                "location": "L43",
+                "matched": true,
+                "expression": "glewlwyd_metrics_increment_counter_va(config, GLWD_METRICS_AUTH_USER_INVALID_SCHEME, 1, \"scheme_type\", \"password\", NULL)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[20]": {
+            "expression_matches": [
+              {
+                "location": "L45",
+                "matched": true,
+                "expression": "json_decref(j_result)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[21]": {
             "expression_matches": [
               {
                 "location": "L46",
@@ -644,37 +930,57 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[13]": {
+          "operation_agent.operations[22]": {
             "expression_matches": [
               {
-                "location": "L53",
+                "location": "L47",
                 "matched": true,
-                "expression": "u_map_get(request->map_cookie, config->session_key)"
+                "expression": "ulfius_set_string_body_response(response, 400, \"password must be a string\")"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[14]": {
+          "operation_agent.operations[23]": {
             "expression_matches": [
               {
-                "location": "L53",
+                "location": "L49",
                 "matched": true,
-                "expression": "u_map_get_case(request->map_header, \"user-agent\")"
+                "expression": "get_session_id(config, request)"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[15]": {
+          "operation_agent.operations[24]": {
             "expression_matches": [
               {
-                "location": "L53",
+                "location": "L50",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"username\"))"
+                "expression": "get_users_for_session(config, session_uid)"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[16]": {
+          "operation_agent.operations[25]": {
+            "expression_matches": [
+              {
+                "location": "L51",
+                "matched": true,
+                "expression": "check_result_value(j_result, G_OK)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[26]": {
+            "expression_matches": [
+              {
+                "location": "L53",
+                "matched": true,
+                "expression": "user_session_update(config, u_map_get(request->map_cookie, config->session_key), u_map_get_case(request->map_header, \"user-agent\"), issued_for, json_string_value(json_object_get(j_param, \"username\")), NULL, 0)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[27]": {
             "expression_matches": [
               {
                 "location": "L57",
@@ -684,7 +990,37 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[17]": {
+          "operation_agent.operations[28]": {
+            "expression_matches": [
+              {
+                "location": "L59",
+                "matched": true,
+                "expression": "check_result_value(j_result, G_ERROR_NOT_FOUND)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[29]": {
+            "expression_matches": [
+              {
+                "location": "L65",
+                "matched": true,
+                "expression": "o_free(session_uid)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[30]": {
+            "expression_matches": [
+              {
+                "location": "L66",
+                "matched": true,
+                "expression": "json_decref(j_result)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[31]": {
             "expression_matches": [
               {
                 "location": "L69",
@@ -694,7 +1030,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[18]": {
+          "operation_agent.operations[32]": {
             "expression_matches": [
               {
                 "location": "L69",
@@ -704,7 +1040,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[19]": {
+          "operation_agent.operations[33]": {
             "expression_matches": [
               {
                 "location": "L69",
@@ -714,97 +1050,127 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[20]": {
+          "operation_agent.operations[34]": {
             "expression_matches": [
               {
                 "location": "L70",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"scheme_type\"))"
+                "expression": "auth_check_user_scheme(config, json_string_value(json_object_get(j_param, \"scheme_type\")), json_string_value(json_object_get(j_param, \"scheme_name\")), json_string_value(json_object_get(j_param, \"username\")), json_object_get(j_param, \"value\"), request)"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[21]": {
+          "operation_agent.operations[35]": {
             "expression_matches": [
               {
-                "location": "L70",
+                "location": "L71",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"scheme_name\"))"
+                "expression": "check_result_value(j_result, G_ERROR_PARAM)"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[22]": {
+          "operation_agent.operations[36]": {
             "expression_matches": [
               {
-                "location": "L70",
+                "location": "L72",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"username\"))"
+                "expression": "ulfius_set_string_body_response(response, 400, \"bad scheme response\")"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[23]": {
+          "operation_agent.operations[37]": {
+            "expression_matches": [
+              {
+                "location": "L73",
+                "matched": true,
+                "expression": "check_result_value(j_result, G_ERROR_UNAUTHORIZED)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[38]": {
             "expression_matches": [
               {
                 "location": "L74",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"username\"))"
+                "expression": "y_log_message(Y_LOG_LEVEL_WARNING, \"Security - Authorization invalid for username %s at IP Address %s\", json_string_value(json_object_get(j_param, \"username\")), ip_source)"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[24]": {
+          "operation_agent.operations[39]": {
+            "expression_matches": [
+              {
+                "location": "L76",
+                "matched": true,
+                "expression": "glewlwyd_metrics_increment_counter_va(config, GLWD_METRICS_AUTH_USER_INVALID, 1, NULL)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[40]": {
             "expression_matches": [
               {
                 "location": "L77",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"scheme_type\"))"
+                "expression": "glewlwyd_metrics_increment_counter_va(config, GLWD_METRICS_AUTH_USER_INVALID_SCHEME, 1, \"scheme_type\", json_string_value(json_object_get(j_param, \"scheme_type\")), \"scheme_name\", json_string_value(json_object_get(j_param, \"scheme_name\")), NULL)"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[25]": {
+          "operation_agent.operations[41]": {
             "expression_matches": [
               {
-                "location": "L77",
+                "location": "L78",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"scheme_name\"))"
+                "expression": "check_result_value(j_result, G_ERROR_NOT_FOUND)"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[26]": {
+          "operation_agent.operations[42]": {
+            "expression_matches": [
+              {
+                "location": "L80",
+                "matched": true,
+                "expression": "check_result_value(j_result, G_OK)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[43]": {
+            "expression_matches": [
+              {
+                "location": "L81",
+                "matched": true,
+                "expression": "get_session_id(config, request)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[44]": {
+            "expression_matches": [
+              {
+                "location": "L82",
+                "matched": true,
+                "expression": "generate_session_id()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[45]": {
             "expression_matches": [
               {
                 "location": "L84",
                 "matched": true,
-                "expression": "u_map_get_case(request->map_header, \"user-agent\")"
+                "expression": "user_session_update(config, session_uid, u_map_get_case(request->map_header, \"user-agent\"), issued_for, json_string_value(json_object_get(j_param, \"username\")), json_string_value(json_object_get(j_param, \"scheme_name\")), 1)"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[27]": {
-            "expression_matches": [
-              {
-                "location": "L84",
-                "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"username\"))"
-              }
-            ],
-            "status": "pass"
-          },
-          "operation_agent.operations[28]": {
-            "expression_matches": [
-              {
-                "location": "L84",
-                "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"scheme_name\"))"
-              }
-            ],
-            "status": "pass"
-          },
-          "operation_agent.operations[29]": {
+          "operation_agent.operations[46]": {
             "expression_matches": [
               {
                 "location": "L88",
@@ -814,57 +1180,67 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[30]": {
+          "operation_agent.operations[47]": {
             "expression_matches": [
               {
                 "location": "L89",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"username\"))"
+                "expression": "y_log_message(Y_LOG_LEVEL_INFO, \"Event - User '%s' authenticated with scheme '%s/%s'\", json_string_value(json_object_get(j_param, \"username\")), json_string_value(json_object_get(j_param, \"scheme_type\")), json_string_value(json_object_get(j_param, \"scheme_name\")))"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[31]": {
+          "operation_agent.operations[48]": {
             "expression_matches": [
               {
-                "location": "L89",
+                "location": "L91",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"scheme_type\"))"
+                "expression": "o_free(session_uid)"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[32]": {
+          "operation_agent.operations[49]": {
             "expression_matches": [
               {
-                "location": "L89",
+                "location": "L92",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"scheme_name\"))"
+                "expression": "glewlwyd_metrics_increment_counter_va(config, GLWD_METRICS_AUTH_USER_VALID, 1, NULL)"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[33]": {
+          "operation_agent.operations[50]": {
             "expression_matches": [
               {
                 "location": "L93",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"scheme_type\"))"
+                "expression": "glewlwyd_metrics_increment_counter_va(config, GLWD_METRICS_AUTH_USER_VALID_SCHEME, 1, \"scheme_type\", json_string_value(json_object_get(j_param, \"scheme_type\")), \"scheme_name\", json_string_value(json_object_get(j_param, \"scheme_name\")), NULL)"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[34]": {
+          "operation_agent.operations[51]": {
             "expression_matches": [
               {
-                "location": "L93",
+                "location": "L98",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"scheme_name\"))"
+                "expression": "json_decref(j_result)"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[35]": {
+          "operation_agent.operations[52]": {
+            "expression_matches": [
+              {
+                "location": "L100",
+                "matched": true,
+                "expression": "ulfius_set_string_body_response(response, 400, \"scheme_type, scheme_name and value are mandatory\")"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[53]": {
             "expression_matches": [
               {
                 "location": "L104",
@@ -874,7 +1250,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[36]": {
+          "operation_agent.operations[54]": {
             "expression_matches": [
               {
                 "location": "L104",
@@ -884,7 +1260,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[37]": {
+          "operation_agent.operations[55]": {
             "expression_matches": [
               {
                 "location": "L104",
@@ -894,57 +1270,107 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[38]": {
+          "operation_agent.operations[56]": {
             "expression_matches": [
               {
                 "location": "L105",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"scheme_type\"))"
+                "expression": "auth_check_identify_scheme(config, json_string_value(json_object_get(j_param, \"scheme_type\")), json_string_value(json_object_get(j_param, \"scheme_name\")), json_object_get(j_param, \"value\"), request)"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[39]": {
+          "operation_agent.operations[57]": {
             "expression_matches": [
               {
-                "location": "L105",
+                "location": "L106",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"scheme_name\"))"
+                "expression": "check_result_value(j_result, G_ERROR_PARAM)"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[40]": {
+          "operation_agent.operations[58]": {
+            "expression_matches": [
+              {
+                "location": "L107",
+                "matched": true,
+                "expression": "ulfius_set_string_body_response(response, 400, \"bad scheme response\")"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[59]": {
+            "expression_matches": [
+              {
+                "location": "L108",
+                "matched": true,
+                "expression": "check_result_value(j_result, G_ERROR_UNAUTHORIZED)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[60]": {
+            "expression_matches": [
+              {
+                "location": "L109",
+                "matched": true,
+                "expression": "y_log_message(Y_LOG_LEVEL_WARNING, \"Security - Authorization invalid for username <UNKNOWN> at IP Address %s\", ip_source)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[61]": {
+            "expression_matches": [
+              {
+                "location": "L111",
+                "matched": true,
+                "expression": "check_result_value(j_result, G_ERROR_NOT_FOUND)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[62]": {
+            "expression_matches": [
+              {
+                "location": "L113",
+                "matched": true,
+                "expression": "check_result_value(j_result, G_OK)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[63]": {
+            "expression_matches": [
+              {
+                "location": "L114",
+                "matched": true,
+                "expression": "get_session_id(config, request)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[64]": {
+            "expression_matches": [
+              {
+                "location": "L115",
+                "matched": true,
+                "expression": "generate_session_id()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[65]": {
             "expression_matches": [
               {
                 "location": "L117",
                 "matched": true,
-                "expression": "u_map_get_case(request->map_header, \"user-agent\")"
+                "expression": "user_session_update(config, session_uid, u_map_get_case(request->map_header, \"user-agent\"), issued_for, json_string_value(json_object_get(j_result, \"username\")), json_string_value(json_object_get(j_param, \"scheme_name\")), 1)"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[41]": {
-            "expression_matches": [
-              {
-                "location": "L117",
-                "matched": true,
-                "expression": "json_string_value(json_object_get(j_result, \"username\"))"
-              }
-            ],
-            "status": "pass"
-          },
-          "operation_agent.operations[42]": {
-            "expression_matches": [
-              {
-                "location": "L117",
-                "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"scheme_name\"))"
-              }
-            ],
-            "status": "pass"
-          },
-          "operation_agent.operations[43]": {
+          "operation_agent.operations[66]": {
             "expression_matches": [
               {
                 "location": "L121",
@@ -954,32 +1380,72 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[44]": {
+          "operation_agent.operations[67]": {
             "expression_matches": [
               {
                 "location": "L122",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_result, \"username\"))"
+                "expression": "y_log_message(Y_LOG_LEVEL_INFO, \"Event - User '%s' authenticated with scheme '%s/%s'\", json_string_value(json_object_get(j_result, \"username\")), json_string_value(json_object_get(j_param, \"scheme_type\")), json_string_value(json_object_get(j_param, \"scheme_name\")))"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[45]": {
+          "operation_agent.operations[68]": {
             "expression_matches": [
               {
-                "location": "L122",
+                "location": "L124",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"scheme_type\"))"
+                "expression": "o_free(session_uid)"
               }
             ],
             "status": "pass"
           },
-          "operation_agent.operations[46]": {
+          "operation_agent.operations[69]": {
             "expression_matches": [
               {
-                "location": "L122",
+                "location": "L129",
                 "matched": true,
-                "expression": "json_string_value(json_object_get(j_param, \"scheme_name\"))"
+                "expression": "json_decref(j_result)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[70]": {
+            "expression_matches": [
+              {
+                "location": "L131",
+                "matched": true,
+                "expression": "ulfius_set_string_body_response(response, 400, \"username is mandatory\")"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[71]": {
+            "expression_matches": [
+              {
+                "location": "L135",
+                "matched": true,
+                "expression": "ulfius_set_string_body_response(response, 400, \"Input parameters must be in JSON format\")"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[72]": {
+            "expression_matches": [
+              {
+                "location": "L137",
+                "matched": true,
+                "expression": "json_decref(j_param)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[73]": {
+            "expression_matches": [
+              {
+                "location": "L138",
+                "matched": true,
+                "expression": "o_free(issued_for)"
               }
             ],
             "status": "pass"
@@ -996,8 +1462,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 3595,
-              "output_tokens": 1201,
-              "total_tokens": 4796
+              "output_tokens": 979,
+              "total_tokens": 4574
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -1005,8 +1471,8 @@
         ],
         "token_usage": {
           "input_tokens": 3595,
-          "output_tokens": 1201,
-          "total_tokens": 4796
+          "output_tokens": 979,
+          "total_tokens": 4574
         },
         "grounding": {
           "state_agent.states[0]": {
@@ -1226,174 +1692,36 @@
           "state_agent.states[5]": {
             "evidence_matches": [
               {
-                "evidence_line": 25,
-                "fragment": "response->status = 500;",
+                "evidence_line": 4,
+                "fragment": "const char * ip_source = get_ip_source(request);",
                 "matched_lines": [
-                  25
+                  4
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "char * session_uid, expires[129];",
+                "matched_lines": [
+                  6
                 ]
               },
               {
-                "evidence_line": 41,
-                "fragment": "response->status = 401;",
+                "evidence_line": 13,
+                "fragment": "strftime(expires, 128, \"%a, %d %b %Y %T %Z\", &ts);",
                 "matched_lines": [
-                  41
-                ]
-              },
-              {
-                "evidence_line": 47,
-                "fragment": "ulfius_set_string_body_response(response, 400, \"password must be a string\");",
-                "matched_lines": [
-                  47
-                ]
-              },
-              {
-                "evidence_line": 55,
-                "fragment": "response->status = 500;",
-                "matched_lines": [
-                  55
-                ]
-              },
-              {
-                "evidence_line": 60,
-                "fragment": "response->status = 401;",
-                "matched_lines": [
-                  60
-                ]
-              },
-              {
-                "evidence_line": 63,
-                "fragment": "response->status = 500;",
-                "matched_lines": [
-                  63
-                ]
-              },
-              {
-                "evidence_line": 72,
-                "fragment": "ulfius_set_string_body_response(response, 400, \"bad scheme response\");",
-                "matched_lines": [
-                  72
-                ]
-              },
-              {
-                "evidence_line": 75,
-                "fragment": "response->status = 401;",
-                "matched_lines": [
-                  75
-                ]
-              },
-              {
-                "evidence_line": 79,
-                "fragment": "response->status = 404;",
-                "matched_lines": [
-                  79
-                ]
-              },
-              {
-                "evidence_line": 86,
-                "fragment": "response->status = 500;",
-                "matched_lines": [
-                  86
-                ]
-              },
-              {
-                "evidence_line": 96,
-                "fragment": "response->status = 500;",
-                "matched_lines": [
-                  96
-                ]
-              },
-              {
-                "evidence_line": 100,
-                "fragment": "ulfius_set_string_body_response(response, 400, \"scheme_type, scheme_name and value are mandatory\");",
-                "matched_lines": [
-                  100
-                ]
-              },
-              {
-                "evidence_line": 107,
-                "fragment": "ulfius_set_string_body_response(response, 400, \"bad scheme response\");",
-                "matched_lines": [
-                  107
-                ]
-              },
-              {
-                "evidence_line": 110,
-                "fragment": "response->status = 401;",
-                "matched_lines": [
-                  110
-                ]
-              },
-              {
-                "evidence_line": 112,
-                "fragment": "response->status = 404;",
-                "matched_lines": [
-                  112
-                ]
-              },
-              {
-                "evidence_line": 119,
-                "fragment": "response->status = 500;",
-                "matched_lines": [
-                  119
-                ]
-              },
-              {
-                "evidence_line": 127,
-                "fragment": "response->status = 500;",
-                "matched_lines": [
-                  127
-                ]
-              },
-              {
-                "evidence_line": 131,
-                "fragment": "ulfius_set_string_body_response(response, 400, \"username is mandatory\");",
-                "matched_lines": [
-                  131
-                ]
-              },
-              {
-                "evidence_line": 135,
-                "fragment": "ulfius_set_string_body_response(response, 400, \"Input parameters must be in JSON format\");",
-                "matched_lines": [
-                  135
+                  13
                 ]
               }
             ],
             "status": "pass"
           }
         },
-        "item_recovery": [
-          {
-            "action": "repair_evidence",
-            "index": 0,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 1,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 2,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 3,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 4,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 5,
-            "collection": "states"
-          }
-        ]
+        "item_recovery": []
       },
       "value_agent": {
         "status": "passed",
@@ -1404,8 +1732,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 3783,
-              "output_tokens": 246,
-              "total_tokens": 4029
+              "output_tokens": 227,
+              "total_tokens": 4010
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -1413,8 +1741,8 @@
         ],
         "token_usage": {
           "input_tokens": 3783,
-          "output_tokens": 246,
-          "total_tokens": 4029
+          "output_tokens": 227,
+          "total_tokens": 4010
         },
         "grounding": {
           "value_agent.values[0]": {
@@ -1485,8 +1813,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 3463,
-              "output_tokens": 918,
-              "total_tokens": 4381
+              "output_tokens": 920,
+              "total_tokens": 4383
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -1494,8 +1822,8 @@
         ],
         "token_usage": {
           "input_tokens": 3463,
-          "output_tokens": 918,
-          "total_tokens": 4381
+          "output_tokens": 920,
+          "total_tokens": 4383
         },
         "grounding": {
           "execution_agent.executions[0]": {
@@ -1699,8 +2027,8 @@
     "agent_count": 4,
     "mode": "independent_global_views",
     "counts": {
-      "operations": 47,
-      "states": 6,
+      "operations": 74,
+      "states": 7,
       "values": 2,
       "executions": 13
     },
@@ -1711,8 +2039,8 @@
   },
   "token_usage": {
     "input_tokens": 15833,
-    "output_tokens": 4177,
-    "total_tokens": 20010
+    "output_tokens": 5692,
+    "total_tokens": 21525
   },
   "artifact_metadata": {
     "schema_version": "semantic-claims-v4.13",

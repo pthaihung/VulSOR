@@ -1,0 +1,1436 @@
+{
+  "sample_id": "test_000156",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L23",
+            "L27"
+          ],
+          "expression": "hypothesis_shape->vec<int64_t>().data()",
+          "claim": "read the int64 element buffer of the shape tensor"
+        },
+        {
+          "locations": [
+            "L51",
+            "L52"
+          ],
+          "expression": "hypothesis_st_shape.dim_size(d)",
+          "claim": "read a dimension size from the hypothesis shape"
+        },
+        {
+          "locations": [
+            "L51",
+            "L52"
+          ],
+          "expression": "truth_st_shape.dim_size(d)",
+          "claim": "read a dimension size from the truth shape"
+        },
+        {
+          "locations": [
+            "L62"
+          ],
+          "expression": "output->flat<float>()",
+          "claim": "obtain a flat float view over the allocated output tensor"
+        },
+        {
+          "locations": [
+            "L63"
+          ],
+          "expression": "output_t.setZero()",
+          "claim": "write zero to every element of the output buffer"
+        },
+        {
+          "locations": [
+            "L66",
+            "L68"
+          ],
+          "expression": "output_strides[output_shape.dims() - 1] = 1",
+          "claim": "write the last output stride entry"
+        },
+        {
+          "locations": [
+            "L68"
+          ],
+          "expression": "output_strides[d] = output_strides[d + 1] * output_shape.dim_size(d + 1)",
+          "claim": "write an output stride entry computed from the next stride and dimension size"
+        },
+        {
+          "locations": [
+            "L82"
+          ],
+          "expression": "*hypothesis_iter",
+          "claim": "dereference the hypothesis group iterator"
+        },
+        {
+          "locations": [
+            "L97",
+            "L99",
+            "L112",
+            "L113",
+            "L114",
+            "L126",
+            "L142",
+            "L143",
+            "L144",
+            "L160"
+          ],
+          "expression": "output_t(loc)",
+          "claim": "index and access the output buffer at the computed location"
+        },
+        {
+          "locations": [
+            "L149"
+          ],
+          "expression": "*truth_iter",
+          "claim": "dereference the truth group iterator in the trailing loop"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "hypothesis_indices",
+            "hypothesis_values",
+            "hypothesis_shape",
+            "truth_indices",
+            "truth_values",
+            "truth_shape"
+          ],
+          "claim": "These Tensor pointers are initialized from ctx inputs and refer to valid input tensors after the OP_REQUIRES_OK calls.",
+          "evidence": "L8: OP_REQUIRES_OK(ctx, ctx->input(\"hypothesis_indices\", &hypothesis_indices));\nL9: OP_REQUIRES_OK(ctx, ctx->input(\"hypothesis_values\", &hypothesis_values));\nL10: OP_REQUIRES_OK(ctx, ctx->input(\"hypothesis_shape\", &hypothesis_shape));\nL11: OP_REQUIRES_OK(ctx, ctx->input(\"truth_indices\", &truth_indices));\nL12: OP_REQUIRES_OK(ctx, ctx->input(\"truth_values\", &truth_values));\nL13: OP_REQUIRES_OK(ctx, ctx->input(\"truth_shape\", &truth_shape));"
+        },
+        {
+          "entities": [
+            "hypothesis_st_shape"
+          ],
+          "claim": "hypothesis_st_shape is initialized from hypothesis_shape data by TensorShapeUtils::MakeShape.",
+          "evidence": "L20: TensorShape hypothesis_st_shape;\nL21: OP_REQUIRES_OK(ctx,\nL22: TensorShapeUtils::MakeShape(\nL23: hypothesis_shape->vec<int64_t>().data(),\nL24: hypothesis_shape->NumElements(), &hypothesis_st_shape));"
+        },
+        {
+          "entities": [
+            "truth_st_shape"
+          ],
+          "claim": "truth_st_shape is initialized from truth_shape data by TensorShapeUtils::MakeShape.",
+          "evidence": "L25: TensorShape truth_st_shape;\nL26: OP_REQUIRES_OK(ctx, TensorShapeUtils::MakeShape(\nL27: truth_shape->vec<int64_t>().data(),\nL28: truth_shape->NumElements(), &truth_st_shape));"
+        },
+        {
+          "entities": [
+            "hypothesis"
+          ],
+          "claim": "hypothesis is initialized as a sparse::SparseTensor created from hypothesis_indices, hypothesis_values, hypothesis_st_shape, and sorted_order.",
+          "evidence": "L34: sparse::SparseTensor hypothesis;\nL35: OP_REQUIRES_OK(ctx, sparse::SparseTensor::Create(\nL36: *hypothesis_indices, *hypothesis_values,\nL37: hypothesis_st_shape, sorted_order, &hypothesis));"
+        },
+        {
+          "entities": [
+            "truth"
+          ],
+          "claim": "truth is initialized as a sparse::SparseTensor created from truth_indices, truth_values, truth_st_shape, and sorted_order.",
+          "evidence": "L39: sparse::SparseTensor truth;\nL40: OP_REQUIRES_OK(ctx, sparse::SparseTensor::Create(\nL41: *truth_indices, *truth_values, truth_st_shape,\nL42: sorted_order, &truth));"
+        },
+        {
+          "entities": [
+            "output"
+          ],
+          "claim": "output is initialized to nullptr and then allocated as an output tensor with output_shape by ctx->allocate_output.",
+          "evidence": "L60: Tensor* output = nullptr;\nL61: OP_REQUIRES_OK(ctx, ctx->allocate_output(\"output\", output_shape, &output));"
+        },
+        {
+          "entities": [
+            "output_t"
+          ],
+          "claim": "output_t is a flat<float> view over the allocated output tensor storage and is zero-initialized.",
+          "evidence": "L62: auto output_t = output->flat<float>();\nL63: output_t.setZero();"
+        },
+        {
+          "entities": [
+            "hypothesis_grouper"
+          ],
+          "claim": "hypothesis_grouper is a grouping view over the hypothesis sparse tensor using group_dims.",
+          "evidence": "L71: auto hypothesis_grouper = hypothesis.group(group_dims);"
+        },
+        {
+          "entities": [
+            "truth_grouper"
+          ],
+          "claim": "truth_grouper is a grouping view over the truth sparse tensor using group_dims.",
+          "evidence": "L72: auto truth_grouper = truth.group(group_dims);"
+        },
+        {
+          "entities": [
+            "hypothesis_iter"
+          ],
+          "claim": "hypothesis_iter is an iterator initialized to the beginning of hypothesis_grouper.",
+          "evidence": "L74: auto hypothesis_iter = hypothesis_grouper.begin();"
+        },
+        {
+          "entities": [
+            "truth_iter"
+          ],
+          "claim": "truth_iter is an iterator initialized to the beginning of truth_grouper.",
+          "evidence": "L75: auto truth_iter = truth_grouper.begin();"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "output_shape",
+            "output_elements"
+          ],
+          "claim": "output_elements is the total number of elements in output_shape, and output_t is a flat<float> view of the output tensor allocated with output_shape, so output_t has output_elements elements.",
+          "evidence": "L54: const auto output_elements = output_shape.num_elements();\nL61: OP_REQUIRES_OK(ctx, ctx->allocate_output(\"output\", output_shape, &output));\nL62: auto output_t = output->flat<float>();"
+        },
+        {
+          "entities": [
+            "output_strides",
+            "output_shape"
+          ],
+          "claim": "output_strides is a row-major stride vector for output_shape: output_strides[dims-1] = 1 and output_strides[d] = output_strides[d+1] * output_shape.dim_size(d+1).",
+          "evidence": "L65: std::vector<int64_t> output_strides(output_shape.dims());\nL66: output_strides[output_shape.dims() - 1] = 1;\nL67: for (int d = output_shape.dims() - 2; d >= 0; --d) {\nL68: output_strides[d] = output_strides[d + 1] * output_shape.dim_size(d + 1);"
+        },
+        {
+          "entities": [
+            "loc",
+            "g_truth",
+            "output_strides"
+          ],
+          "claim": "loc is computed as the inner product of g_truth with output_strides, i.e. the row-major linear offset of the group coordinates in output_shape.",
+          "evidence": "L89: auto loc = std::inner_product(g_truth.begin(), g_truth.end(),\nL90: output_strides.begin(), int64_t{0});"
+        },
+        {
+          "entities": [
+            "loc",
+            "g_hypothesis",
+            "output_strides"
+          ],
+          "claim": "loc is computed as the inner product of g_hypothesis with output_strides, i.e. the row-major linear offset of the group coordinates in output_shape.",
+          "evidence": "L104: auto loc = std::inner_product(g_hypothesis.begin(), g_hypothesis.end(),\nL105: output_strides.begin(), int64_t{0});"
+        },
+        {
+          "entities": [
+            "loc",
+            "output_elements",
+            "output_t"
+          ],
+          "claim": "Before each write output_t(loc), the code checks loc < output_elements, so the write index is within the output_t flat buffer.",
+          "evidence": "L91: OP_REQUIRES(\nL92: ctx, loc < output_elements,\nL97: output_t(loc) =\nL106: OP_REQUIRES(\nL107: ctx, loc < output_elements,\nL112: output_t(loc) = hypothesis_seq.size();\nL120: OP_REQUIRES(\nL121: ctx, loc < output_elements,\nL126: output_t(loc) = (normalize_) ? 1.0 : truth_seq.size();\nL136: OP_REQUIRES(\nL137: ctx, loc < output_elements,\nL142: output_t(loc) = hypothesis_seq.size();\nL154: OP_REQUIRES(\nL155: ctx, loc < output_elements,\nL160: output_t(loc) = (normalize_) ? 1.0 : truth_seq.size();"
+        },
+        {
+          "entities": [
+            "group_dims",
+            "truth_st_shape"
+          ],
+          "claim": "group_dims has truth_st_shape.dims() - 1 elements, initialized to 0,1,...,dims-2.",
+          "evidence": "L46: std::vector<int64_t> group_dims(truth_st_shape.dims() - 1);\nL47: std::iota(group_dims.begin(), group_dims.end(), 0);"
+        },
+        {
+          "entities": [
+            "output_shape",
+            "hypothesis_st_shape",
+            "truth_st_shape",
+            "group_dims"
+          ],
+          "claim": "output_shape has one dimension per group_dims entry, each set to max(hypothesis_st_shape.dim_size(d), truth_st_shape.dim_size(d)).",
+          "evidence": "L50: for (int d = 0; d < static_cast<int>(group_dims.size()); ++d) {\nL51: output_shape.AddDim(std::max(hypothesis_st_shape.dim_size(d),\nL52: truth_st_shape.dim_size(d)));"
+        },
+        {
+          "entities": [
+            "hypothesis_st_shape",
+            "hypothesis_shape"
+          ],
+          "claim": "hypothesis_st_shape is constructed from hypothesis_shape->vec<int64_t>().data() with hypothesis_shape->NumElements() dimensions.",
+          "evidence": "L22: TensorShapeUtils::MakeShape(\nL23: hypothesis_shape->vec<int64_t>().data(),\nL24: hypothesis_shape->NumElements(), &hypothesis_st_shape));"
+        },
+        {
+          "entities": [
+            "truth_st_shape",
+            "truth_shape"
+          ],
+          "claim": "truth_st_shape is constructed from truth_shape->vec<int64_t>().data() with truth_shape->NumElements() dimensions.",
+          "evidence": "L26: OP_REQUIRES_OK(ctx, TensorShapeUtils::MakeShape(\nL27: truth_shape->vec<int64_t>().data(),\nL28: truth_shape->NumElements(), &truth_st_shape));"
+        },
+        {
+          "entities": [
+            "sorted_order",
+            "truth_st_shape"
+          ],
+          "claim": "sorted_order has truth_st_shape.dims() elements, initialized to 0,1,...,dims-1.",
+          "evidence": "L31: std::vector<int64_t> sorted_order(truth_st_shape.dims());\nL32: std::iota(sorted_order.begin(), sorted_order.end(), 0);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "output_elements",
+            "loc",
+            "output_t"
+          ],
+          "claim": "continuing past each OP_REQUIRES check implies loc < output_elements, so the subsequent output_t(loc) write is in bounds",
+          "evidence": "L91: OP_REQUIRES(\nL92: ctx, loc < output_elements,\nL97: output_t(loc) =\nL106: OP_REQUIRES(\nL107: ctx, loc < output_elements,\nL112: output_t(loc) = hypothesis_seq.size();\nL120: OP_REQUIRES(\nL121: ctx, loc < output_elements,\nL126: output_t(loc) = (normalize_) ? 1.0 : truth_seq.size();\nL136: OP_REQUIRES(\nL137: ctx, loc < output_elements,\nL142: output_t(loc) = hypothesis_seq.size();\nL154: OP_REQUIRES(\nL155: ctx, loc < output_elements,\nL160: output_t(loc) = (normalize_) ? 1.0 : truth_seq.size();"
+        },
+        {
+          "entities": [
+            "output_elements",
+            "output_shape"
+          ],
+          "claim": "continuing past the output_elements check implies output_elements > 0",
+          "evidence": "L54: const auto output_elements = output_shape.num_elements();\nL55: OP_REQUIRES(\nL56: ctx, output_elements > 0,"
+        },
+        {
+          "entities": [
+            "group_dims",
+            "truth_st_shape"
+          ],
+          "claim": "group_dims has size truth_st_shape.dims() - 1, so the loop over group_dims indexes hypothesis_st_shape and truth_st_shape only for d < dims()-1",
+          "evidence": "L46: std::vector<int64_t> group_dims(truth_st_shape.dims() - 1);\nL50: for (int d = 0; d < static_cast<int>(group_dims.size()); ++d) {\nL51: output_shape.AddDim(std::max(hypothesis_st_shape.dim_size(d),\nL52: truth_st_shape.dim_size(d)));"
+        },
+        {
+          "entities": [
+            "output_strides",
+            "output_shape"
+          ],
+          "claim": "output_strides is sized to output_shape.dims() and initialized from the last dim downward, so output_strides[d] is valid for 0 <= d < output_shape.dims()",
+          "evidence": "L65: std::vector<int64_t> output_strides(output_shape.dims());\nL66: output_strides[output_shape.dims() - 1] = 1;\nL67: for (int d = output_shape.dims() - 2; d >= 0; --d) {\nL68: output_strides[d] = output_strides[d + 1] * output_shape.dim_size(d + 1);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 4239,
+              "output_tokens": 427,
+              "total_tokens": 4666
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 4239,
+          "output_tokens": 427,
+          "total_tokens": 4666
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L23",
+                "matched": true,
+                "expression": "hypothesis_shape->vec<int64_t>().data()"
+              },
+              {
+                "location": "L27",
+                "matched": true,
+                "expression": "hypothesis_shape->vec<int64_t>().data()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L51",
+                "matched": true,
+                "expression": "hypothesis_st_shape.dim_size(d)"
+              },
+              {
+                "location": "L52",
+                "matched": true,
+                "expression": "hypothesis_st_shape.dim_size(d)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L51",
+                "matched": true,
+                "expression": "truth_st_shape.dim_size(d)"
+              },
+              {
+                "location": "L52",
+                "matched": true,
+                "expression": "truth_st_shape.dim_size(d)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L62",
+                "matched": true,
+                "expression": "output->flat<float>()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L63",
+                "matched": true,
+                "expression": "output_t.setZero()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L66",
+                "matched": true,
+                "expression": "output_strides[output_shape.dims() - 1] = 1"
+              },
+              {
+                "location": "L68",
+                "matched": true,
+                "expression": "output_strides[output_shape.dims() - 1] = 1"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L68",
+                "matched": true,
+                "expression": "output_strides[d] = output_strides[d + 1] * output_shape.dim_size(d + 1)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L82",
+                "matched": true,
+                "expression": "*hypothesis_iter"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L97",
+                "matched": true,
+                "expression": "output_t(loc)"
+              },
+              {
+                "location": "L99",
+                "matched": true,
+                "expression": "output_t(loc)"
+              },
+              {
+                "location": "L112",
+                "matched": true,
+                "expression": "output_t(loc)"
+              },
+              {
+                "location": "L113",
+                "matched": true,
+                "expression": "output_t(loc)"
+              },
+              {
+                "location": "L114",
+                "matched": true,
+                "expression": "output_t(loc)"
+              },
+              {
+                "location": "L126",
+                "matched": true,
+                "expression": "output_t(loc)"
+              },
+              {
+                "location": "L142",
+                "matched": true,
+                "expression": "output_t(loc)"
+              },
+              {
+                "location": "L143",
+                "matched": true,
+                "expression": "output_t(loc)"
+              },
+              {
+                "location": "L144",
+                "matched": true,
+                "expression": "output_t(loc)"
+              },
+              {
+                "location": "L160",
+                "matched": true,
+                "expression": "output_t(loc)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[9]": {
+            "expression_matches": [
+              {
+                "location": "L149",
+                "matched": true,
+                "expression": "*truth_iter"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 7,
+            "expression": "*truth_iter"
+          },
+          {
+            "action": "drop_ungrounded_item",
+            "index": 10,
+            "expression": "*hypothesis_iter"
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2842,
+              "output_tokens": 926,
+              "total_tokens": 3768
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2842,
+          "output_tokens": 926,
+          "total_tokens": 3768
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"hypothesis_indices\", &hypothesis_indices));",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"hypothesis_values\", &hypothesis_values));",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"hypothesis_shape\", &hypothesis_shape));",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"truth_indices\", &truth_indices));",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"truth_values\", &truth_values));",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"truth_shape\", &truth_shape));",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "TensorShape hypothesis_st_shape;",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "OP_REQUIRES_OK(ctx,",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "TensorShapeUtils::MakeShape(",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "hypothesis_shape->vec<int64_t>().data(),",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "hypothesis_shape->NumElements(), &hypothesis_st_shape));",
+                "matched_lines": [
+                  24
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 25,
+                "fragment": "TensorShape truth_st_shape;",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "OP_REQUIRES_OK(ctx, TensorShapeUtils::MakeShape(",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "truth_shape->vec<int64_t>().data(),",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "truth_shape->NumElements(), &truth_st_shape));",
+                "matched_lines": [
+                  28
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 34,
+                "fragment": "sparse::SparseTensor hypothesis;",
+                "matched_lines": [
+                  34
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "OP_REQUIRES_OK(ctx, sparse::SparseTensor::Create(",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "*hypothesis_indices, *hypothesis_values,",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "hypothesis_st_shape, sorted_order, &hypothesis));",
+                "matched_lines": [
+                  37
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 39,
+                "fragment": "sparse::SparseTensor truth;",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "OP_REQUIRES_OK(ctx, sparse::SparseTensor::Create(",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "*truth_indices, *truth_values, truth_st_shape,",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 42,
+                "fragment": "sorted_order, &truth));",
+                "matched_lines": [
+                  42
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 60,
+                "fragment": "Tensor* output = nullptr;",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->allocate_output(\"output\", output_shape, &output));",
+                "matched_lines": [
+                  61
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 62,
+                "fragment": "auto output_t = output->flat<float>();",
+                "matched_lines": [
+                  62
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "output_t.setZero();",
+                "matched_lines": [
+                  63
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 71,
+                "fragment": "auto hypothesis_grouper = hypothesis.group(group_dims);",
+                "matched_lines": [
+                  71
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 72,
+                "fragment": "auto truth_grouper = truth.group(group_dims);",
+                "matched_lines": [
+                  72
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 74,
+                "fragment": "auto hypothesis_iter = hypothesis_grouper.begin();",
+                "matched_lines": [
+                  74
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 75,
+                "fragment": "auto truth_iter = truth_grouper.begin();",
+                "matched_lines": [
+                  75
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3030,
+              "output_tokens": 1246,
+              "total_tokens": 4276
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3030,
+          "output_tokens": 1246,
+          "total_tokens": 4276
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 54,
+                "fragment": "const auto output_elements = output_shape.num_elements();",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->allocate_output(\"output\", output_shape, &output));",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "auto output_t = output->flat<float>();",
+                "matched_lines": [
+                  62
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 65,
+                "fragment": "std::vector<int64_t> output_strides(output_shape.dims());",
+                "matched_lines": [
+                  65
+                ]
+              },
+              {
+                "evidence_line": 66,
+                "fragment": "output_strides[output_shape.dims() - 1] = 1;",
+                "matched_lines": [
+                  66
+                ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "for (int d = output_shape.dims() - 2; d >= 0; --d) {",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "output_strides[d] = output_strides[d + 1] * output_shape.dim_size(d + 1);",
+                "matched_lines": [
+                  68
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 89,
+                "fragment": "auto loc = std::inner_product(g_truth.begin(), g_truth.end(),",
+                "matched_lines": [
+                  89
+                ]
+              },
+              {
+                "evidence_line": 90,
+                "fragment": "output_strides.begin(), int64_t{0});",
+                "matched_lines": [
+                  90
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 104,
+                "fragment": "auto loc = std::inner_product(g_hypothesis.begin(), g_hypothesis.end(),",
+                "matched_lines": [
+                  104
+                ]
+              },
+              {
+                "evidence_line": 105,
+                "fragment": "output_strides.begin(), int64_t{0});",
+                "matched_lines": [
+                  105
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 91,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  91
+                ]
+              },
+              {
+                "evidence_line": 92,
+                "fragment": "ctx, loc < output_elements,",
+                "matched_lines": [
+                  92
+                ]
+              },
+              {
+                "evidence_line": 97,
+                "fragment": "output_t(loc) =",
+                "matched_lines": [
+                  97
+                ]
+              },
+              {
+                "evidence_line": 106,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  106
+                ]
+              },
+              {
+                "evidence_line": 107,
+                "fragment": "ctx, loc < output_elements,",
+                "matched_lines": [
+                  107
+                ]
+              },
+              {
+                "evidence_line": 112,
+                "fragment": "output_t(loc) = hypothesis_seq.size();",
+                "matched_lines": [
+                  112
+                ]
+              },
+              {
+                "evidence_line": 120,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  120
+                ]
+              },
+              {
+                "evidence_line": 121,
+                "fragment": "ctx, loc < output_elements,",
+                "matched_lines": [
+                  121
+                ]
+              },
+              {
+                "evidence_line": 126,
+                "fragment": "output_t(loc) = (normalize_) ? 1.0 : truth_seq.size();",
+                "matched_lines": [
+                  126
+                ]
+              },
+              {
+                "evidence_line": 136,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  136
+                ]
+              },
+              {
+                "evidence_line": 137,
+                "fragment": "ctx, loc < output_elements,",
+                "matched_lines": [
+                  137
+                ]
+              },
+              {
+                "evidence_line": 142,
+                "fragment": "output_t(loc) = hypothesis_seq.size();",
+                "matched_lines": [
+                  142
+                ]
+              },
+              {
+                "evidence_line": 154,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  154
+                ]
+              },
+              {
+                "evidence_line": 155,
+                "fragment": "ctx, loc < output_elements,",
+                "matched_lines": [
+                  155
+                ]
+              },
+              {
+                "evidence_line": 160,
+                "fragment": "output_t(loc) = (normalize_) ? 1.0 : truth_seq.size();",
+                "matched_lines": [
+                  160
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 46,
+                "fragment": "std::vector<int64_t> group_dims(truth_st_shape.dims() - 1);",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "std::iota(group_dims.begin(), group_dims.end(), 0);",
+                "matched_lines": [
+                  47
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "for (int d = 0; d < static_cast<int>(group_dims.size()); ++d) {",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "output_shape.AddDim(std::max(hypothesis_st_shape.dim_size(d),",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "truth_st_shape.dim_size(d)));",
+                "matched_lines": [
+                  52
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 22,
+                "fragment": "TensorShapeUtils::MakeShape(",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "hypothesis_shape->vec<int64_t>().data(),",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "hypothesis_shape->NumElements(), &hypothesis_st_shape));",
+                "matched_lines": [
+                  24
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 26,
+                "fragment": "OP_REQUIRES_OK(ctx, TensorShapeUtils::MakeShape(",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "truth_shape->vec<int64_t>().data(),",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "truth_shape->NumElements(), &truth_st_shape));",
+                "matched_lines": [
+                  28
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 31,
+                "fragment": "std::vector<int64_t> sorted_order(truth_st_shape.dims());",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "std::iota(sorted_order.begin(), sorted_order.end(), 0);",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2710,
+              "output_tokens": 619,
+              "total_tokens": 3329
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2710,
+          "output_tokens": 619,
+          "total_tokens": 3329
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 91,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  91
+                ]
+              },
+              {
+                "evidence_line": 92,
+                "fragment": "ctx, loc < output_elements,",
+                "matched_lines": [
+                  92
+                ]
+              },
+              {
+                "evidence_line": 97,
+                "fragment": "output_t(loc) =",
+                "matched_lines": [
+                  97
+                ]
+              },
+              {
+                "evidence_line": 106,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  106
+                ]
+              },
+              {
+                "evidence_line": 107,
+                "fragment": "ctx, loc < output_elements,",
+                "matched_lines": [
+                  107
+                ]
+              },
+              {
+                "evidence_line": 112,
+                "fragment": "output_t(loc) = hypothesis_seq.size();",
+                "matched_lines": [
+                  112
+                ]
+              },
+              {
+                "evidence_line": 120,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  120
+                ]
+              },
+              {
+                "evidence_line": 121,
+                "fragment": "ctx, loc < output_elements,",
+                "matched_lines": [
+                  121
+                ]
+              },
+              {
+                "evidence_line": 126,
+                "fragment": "output_t(loc) = (normalize_) ? 1.0 : truth_seq.size();",
+                "matched_lines": [
+                  126
+                ]
+              },
+              {
+                "evidence_line": 136,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  136
+                ]
+              },
+              {
+                "evidence_line": 137,
+                "fragment": "ctx, loc < output_elements,",
+                "matched_lines": [
+                  137
+                ]
+              },
+              {
+                "evidence_line": 142,
+                "fragment": "output_t(loc) = hypothesis_seq.size();",
+                "matched_lines": [
+                  142
+                ]
+              },
+              {
+                "evidence_line": 154,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  154
+                ]
+              },
+              {
+                "evidence_line": 155,
+                "fragment": "ctx, loc < output_elements,",
+                "matched_lines": [
+                  155
+                ]
+              },
+              {
+                "evidence_line": 160,
+                "fragment": "output_t(loc) = (normalize_) ? 1.0 : truth_seq.size();",
+                "matched_lines": [
+                  160
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 54,
+                "fragment": "const auto output_elements = output_shape.num_elements();",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "ctx, output_elements > 0,",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 46,
+                "fragment": "std::vector<int64_t> group_dims(truth_st_shape.dims() - 1);",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "for (int d = 0; d < static_cast<int>(group_dims.size()); ++d) {",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "output_shape.AddDim(std::max(hypothesis_st_shape.dim_size(d),",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "truth_st_shape.dim_size(d)));",
+                "matched_lines": [
+                  52
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 65,
+                "fragment": "std::vector<int64_t> output_strides(output_shape.dims());",
+                "matched_lines": [
+                  65
+                ]
+              },
+              {
+                "evidence_line": 66,
+                "fragment": "output_strides[output_shape.dims() - 1] = 1;",
+                "matched_lines": [
+                  66
+                ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "for (int d = output_shape.dims() - 2; d >= 0; --d) {",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "output_strides[d] = output_strides[d + 1] * output_shape.dim_size(d + 1);",
+                "matched_lines": [
+                  68
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 10,
+      "states": 11,
+      "values": 10,
+      "executions": 4
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 12821,
+    "output_tokens": 3218,
+    "total_tokens": 16039
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000156",
+    "split": "test",
+    "source_hash": "5f0658efd80e91c2106834912c296cc4f12d7877e34219920ed347d245a6069b",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

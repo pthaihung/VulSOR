@@ -1,0 +1,896 @@
+{
+  "sample_id": "test_000078",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L10"
+          ],
+          "expression": "topic.substr(start, stop - start)",
+          "claim": "substr consumes start and length derived from stop, requiring start to be a valid position and the length not to exceed the remaining view size"
+        },
+        {
+          "locations": [
+            "L18"
+          ],
+          "expression": "segment[0]",
+          "claim": "indexed access to the first character of segment, requiring segment to be non-empty"
+        },
+        {
+          "locations": [
+            "L25"
+          ],
+          "expression": "iterator->terminatingWildcardChild->messages[messageId]",
+          "claim": "indexed write into the messages container of the terminating wildcard child, requiring messageId to be within bounds"
+        },
+        {
+          "locations": [
+            "L29"
+          ],
+          "expression": "triggeredTopics[numTriggeredTopics++]",
+          "claim": "indexed write into triggeredTopics using numTriggeredTopics as index, requiring the index to be within the array bounds"
+        },
+        {
+          "locations": [
+            "L36"
+          ],
+          "expression": "publish(iterator->wildcardChild, stop + 1, stop, topic, message)",
+          "claim": "recursive call that consumes the wildcard child pointer and start/stop values, requiring the child pointer to be valid and the range arguments to be consistent"
+        },
+        {
+          "locations": [
+            "L39"
+          ],
+          "expression": "iterator->children.find(segment)",
+          "claim": "map lookup consuming the segment key, requiring the map to be in a valid state for lookup"
+        },
+        {
+          "locations": [
+            "L45"
+          ],
+          "expression": "it->second",
+          "claim": "dereference of the map iterator to obtain the child pointer, requiring the iterator to be valid and not equal to end()"
+        },
+        {
+          "locations": [
+            "L49"
+          ],
+          "expression": "iterator->messages[messageId]",
+          "claim": "indexed write into the messages container of the matched topic, requiring messageId to be within bounds"
+        },
+        {
+          "locations": [
+            "L53"
+          ],
+          "expression": "triggeredTopics[numTriggeredTopics++]",
+          "claim": "indexed write into triggeredTopics using numTriggeredTopics as index, requiring the index to be within the array bounds"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "iterator"
+          ],
+          "claim": "iterator points to a Topic object reached by traversing the topic tree; it is reassigned to the child Topic found for the current segment.",
+          "evidence": "L39: std::map<std::string_view, Topic *>::iterator it = iterator->children.find(segment);\nL45: iterator = it->second;"
+        },
+        {
+          "entities": [
+            "iterator->terminatingWildcardChild"
+          ],
+          "claim": "iterator->terminatingWildcardChild points to a Topic object whose messages map is updated and which may be added to triggeredTopics and marked triggered.",
+          "evidence": "L24: if (iterator->terminatingWildcardChild) {\nL25: iterator->terminatingWildcardChild->messages[messageId] = message;\nL28: if (!iterator->terminatingWildcardChild->triggered) {\nL29: triggeredTopics[numTriggeredTopics++] = iterator->terminatingWildcardChild;\nL30: iterator->terminatingWildcardChild->triggered = true;"
+        },
+        {
+          "entities": [
+            "iterator->wildcardChild"
+          ],
+          "claim": "iterator->wildcardChild points to a Topic object passed as the first argument to a recursive publish call.",
+          "evidence": "L35: if (iterator->wildcardChild) {\nL36: publish(iterator->wildcardChild, stop + 1, stop, topic, message);"
+        },
+        {
+          "entities": [
+            "iterator"
+          ],
+          "claim": "iterator points to a Topic object whose messages map is updated and which may be added to triggeredTopics and marked triggered after the loop completes.",
+          "evidence": "L49: iterator->messages[messageId] = message;\nL52: if (!iterator->triggered) {\nL53: triggeredTopics[numTriggeredTopics++] = iterator;\nL54: iterator->triggered = true;"
+        },
+        {
+          "entities": [
+            "triggeredTopics"
+          ],
+          "claim": "triggeredTopics stores pointers to Topic objects that have been triggered.",
+          "evidence": "L29: triggeredTopics[numTriggeredTopics++] = iterator->terminatingWildcardChild;\nL53: triggeredTopics[numTriggeredTopics++] = iterator;"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "start",
+            "stop",
+            "topic.find",
+            "topic.substr"
+          ],
+          "claim": "For each loop iteration, stop is the index of '/' at or after start (or std::string::npos), and segment is topic.substr(start, stop - start); when stop != npos, the next start is stop + 1.",
+          "evidence": "L8: for (; stop != std::string::npos; start = stop + 1) {\nL9: stop = topic.find('/', start);\nL10: std::string_view segment = topic.substr(start, stop - start);"
+        },
+        {
+          "entities": [
+            "segment.length()",
+            "segment[0]"
+          ],
+          "claim": "segment.length() is checked against 1 before accessing segment[0], so segment[0] is only evaluated when the segment has exactly one character.",
+          "evidence": "L17: if (segment.length() == 1) {\nL18: if (segment[0] == '+' || segment[0] == '#') {"
+        },
+        {
+          "entities": [
+            "numTriggeredTopics",
+            "triggeredTopics"
+          ],
+          "claim": "triggeredTopics is indexed by numTriggeredTopics and numTriggeredTopics is incremented after each store; the code only drains when numTriggeredTopics == 64 before these stores.",
+          "evidence": "L3: if (numTriggeredTopics == 64) {\nL29: triggeredTopics[numTriggeredTopics++] = iterator->terminatingWildcardChild;\nL53: triggeredTopics[numTriggeredTopics++] = iterator;"
+        },
+        {
+          "entities": [
+            "stop",
+            "publish",
+            "iterator->wildcardChild"
+          ],
+          "claim": "The recursive publish call passes stop + 1 as the new start and stop as the new stop.",
+          "evidence": "L36: publish(iterator->wildcardChild, stop + 1, stop, topic, message);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "numTriggeredTopics"
+          ],
+          "claim": "drain() is called only when numTriggeredTopics == 64 before any triggered topic is appended",
+          "evidence": "L3: if (numTriggeredTopics == 64) {\nL4: drain();"
+        },
+        {
+          "entities": [
+            "stop",
+            "start",
+            "topic"
+          ],
+          "claim": "loop continues while stop != std::string::npos; each iteration sets stop = topic.find('/', start) and next start = stop + 1",
+          "evidence": "L8: for (; stop != std::string::npos; start = stop + 1) {\nL9: stop = topic.find('/', start);"
+        },
+        {
+          "entities": [
+            "segment",
+            "start",
+            "stop",
+            "topic"
+          ],
+          "claim": "segment is topic.substr(start, stop - start), so segment.length() == stop - start when stop != npos",
+          "evidence": "L10: std::string_view segment = topic.substr(start, stop - start);"
+        },
+        {
+          "entities": [
+            "segment"
+          ],
+          "claim": "if segment.length() == 1 and segment[0] is '+' or '#', execution returns immediately",
+          "evidence": "L17: if (segment.length() == 1) {\nL18: if (segment[0] == '+' || segment[0] == '#') {\nL19: return;"
+        },
+        {
+          "entities": [
+            "iterator",
+            "messageId",
+            "message"
+          ],
+          "claim": "if iterator->terminatingWildcardChild is non-null, its messages[messageId] is assigned message",
+          "evidence": "L24: if (iterator->terminatingWildcardChild) {\nL25: iterator->terminatingWildcardChild->messages[messageId] = message;"
+        },
+        {
+          "entities": [
+            "numTriggeredTopics",
+            "triggeredTopics",
+            "iterator"
+          ],
+          "claim": "when terminatingWildcardChild is non-null and not triggered, triggeredTopics[numTriggeredTopics++] is assigned that child and its triggered flag is set true",
+          "evidence": "L28: if (!iterator->terminatingWildcardChild->triggered) {\nL29: triggeredTopics[numTriggeredTopics++] = iterator->terminatingWildcardChild;\nL30: iterator->terminatingWildcardChild->triggered = true;"
+        },
+        {
+          "entities": [
+            "iterator",
+            "stop",
+            "topic",
+            "message"
+          ],
+          "claim": "if iterator->wildcardChild is non-null, publish recurses with start = stop + 1 and stop = stop",
+          "evidence": "L35: if (iterator->wildcardChild) {\nL36: publish(iterator->wildcardChild, stop + 1, stop, topic, message);"
+        },
+        {
+          "entities": [
+            "iterator",
+            "segment"
+          ],
+          "claim": "if iterator->children.find(segment) == iterator->children.end(), execution returns immediately",
+          "evidence": "L39: std::map<std::string_view, Topic *>::iterator it = iterator->children.find(segment);\nL40: if (it == iterator->children.end()) {\nL42: return;"
+        },
+        {
+          "entities": [
+            "iterator",
+            "it"
+          ],
+          "claim": "after a successful child lookup, iterator is updated to it->second",
+          "evidence": "L45: iterator = it->second;"
+        },
+        {
+          "entities": [
+            "iterator",
+            "messageId",
+            "message"
+          ],
+          "claim": "after the loop terminates normally, iterator->messages[messageId] is assigned message",
+          "evidence": "L49: iterator->messages[messageId] = message;"
+        },
+        {
+          "entities": [
+            "numTriggeredTopics",
+            "triggeredTopics",
+            "iterator"
+          ],
+          "claim": "after the loop terminates normally, if iterator is not triggered, triggeredTopics[numTriggeredTopics++] is assigned iterator and iterator->triggered is set true",
+          "evidence": "L52: if (!iterator->triggered) {\nL53: triggeredTopics[numTriggeredTopics++] = iterator;\nL54: iterator->triggered = true;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2629,
+              "output_tokens": 416,
+              "total_tokens": 3045
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2629,
+          "output_tokens": 416,
+          "total_tokens": 3045
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L10",
+                "matched": true,
+                "expression": "topic.substr(start, stop - start)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L18",
+                "matched": true,
+                "expression": "segment[0]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L25",
+                "matched": true,
+                "expression": "iterator->terminatingWildcardChild->messages[messageId]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L29",
+                "matched": true,
+                "expression": "triggeredTopics[numTriggeredTopics++]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L36",
+                "matched": true,
+                "expression": "publish(iterator->wildcardChild, stop + 1, stop, topic, message)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L39",
+                "matched": true,
+                "expression": "iterator->children.find(segment)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L45",
+                "matched": true,
+                "expression": "it->second"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L49",
+                "matched": true,
+                "expression": "iterator->messages[messageId]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L53",
+                "matched": true,
+                "expression": "triggeredTopics[numTriggeredTopics++]"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1232,
+              "output_tokens": 451,
+              "total_tokens": 1683
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1232,
+          "output_tokens": 451,
+          "total_tokens": 1683
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 39,
+                "fragment": "std::map<std::string_view, Topic *>::iterator it = iterator->children.find(segment);",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "iterator = it->second;",
+                "matched_lines": [
+                  45
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 24,
+                "fragment": "if (iterator->terminatingWildcardChild) {",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "iterator->terminatingWildcardChild->messages[messageId] = message;",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "if (!iterator->terminatingWildcardChild->triggered) {",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "triggeredTopics[numTriggeredTopics++] = iterator->terminatingWildcardChild;",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "iterator->terminatingWildcardChild->triggered = true;",
+                "matched_lines": [
+                  30
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 35,
+                "fragment": "if (iterator->wildcardChild) {",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "publish(iterator->wildcardChild, stop + 1, stop, topic, message);",
+                "matched_lines": [
+                  36
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 49,
+                "fragment": "iterator->messages[messageId] = message;",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "if (!iterator->triggered) {",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "triggeredTopics[numTriggeredTopics++] = iterator;",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "iterator->triggered = true;",
+                "matched_lines": [
+                  54
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "triggeredTopics[numTriggeredTopics++] = iterator->terminatingWildcardChild;",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "triggeredTopics[numTriggeredTopics++] = iterator;",
+                "matched_lines": [
+                  53
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1420,
+              "output_tokens": 391,
+              "total_tokens": 1811
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1420,
+          "output_tokens": 391,
+          "total_tokens": 1811
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "for (; stop != std::string::npos; start = stop + 1) {",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "stop = topic.find('/', start);",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "std::string_view segment = topic.substr(start, stop - start);",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "if (segment.length() == 1) {",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "if (segment[0] == '+' || segment[0] == '#') {",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "if (numTriggeredTopics == 64) {",
+                "matched_lines": [
+                  3
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "triggeredTopics[numTriggeredTopics++] = iterator->terminatingWildcardChild;",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "triggeredTopics[numTriggeredTopics++] = iterator;",
+                "matched_lines": [
+                  53
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 36,
+                "fragment": "publish(iterator->wildcardChild, stop + 1, stop, topic, message);",
+                "matched_lines": [
+                  36
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1100,
+              "output_tokens": 842,
+              "total_tokens": 1942
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1100,
+          "output_tokens": 842,
+          "total_tokens": 1942
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "if (numTriggeredTopics == 64) {",
+                "matched_lines": [
+                  3
+                ]
+              },
+              {
+                "evidence_line": 4,
+                "fragment": "drain();",
+                "matched_lines": [
+                  4
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "for (; stop != std::string::npos; start = stop + 1) {",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "stop = topic.find('/', start);",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "std::string_view segment = topic.substr(start, stop - start);",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "if (segment.length() == 1) {",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "if (segment[0] == '+' || segment[0] == '#') {",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "return;",
+                "matched_lines": [
+                  19
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 24,
+                "fragment": "if (iterator->terminatingWildcardChild) {",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "iterator->terminatingWildcardChild->messages[messageId] = message;",
+                "matched_lines": [
+                  25
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 28,
+                "fragment": "if (!iterator->terminatingWildcardChild->triggered) {",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "triggeredTopics[numTriggeredTopics++] = iterator->terminatingWildcardChild;",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "iterator->terminatingWildcardChild->triggered = true;",
+                "matched_lines": [
+                  30
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 35,
+                "fragment": "if (iterator->wildcardChild) {",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "publish(iterator->wildcardChild, stop + 1, stop, topic, message);",
+                "matched_lines": [
+                  36
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 39,
+                "fragment": "std::map<std::string_view, Topic *>::iterator it = iterator->children.find(segment);",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "if (it == iterator->children.end()) {",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 42,
+                "fragment": "return;",
+                "matched_lines": [
+                  42
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 45,
+                "fragment": "iterator = it->second;",
+                "matched_lines": [
+                  45
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 49,
+                "fragment": "iterator->messages[messageId] = message;",
+                "matched_lines": [
+                  49
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 52,
+                "fragment": "if (!iterator->triggered) {",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "triggeredTopics[numTriggeredTopics++] = iterator;",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "iterator->triggered = true;",
+                "matched_lines": [
+                  54
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 9,
+      "states": 5,
+      "values": 4,
+      "executions": 11
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 6381,
+    "output_tokens": 2100,
+    "total_tokens": 8481
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000078",
+    "split": "test",
+    "source_hash": "845cd31a09175c07d50c2550076abd86c2e81889e538f7bc0e647a9add066cfc",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

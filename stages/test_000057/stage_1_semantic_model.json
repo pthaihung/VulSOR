@@ -1,0 +1,2080 @@
+{
+  "sample_id": "test_000057",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L23"
+          ],
+          "expression": "(pj_int32_t*)rb_hdr < (pj_int32_t*)pkt + pkt_len",
+          "claim": "pointer comparison used as loop bound over the packet buffer"
+        },
+        {
+          "locations": [
+            "L25"
+          ],
+          "expression": "rb_hdr->length",
+          "claim": "read of the report block header length field through rb_hdr"
+        },
+        {
+          "locations": [
+            "L29"
+          ],
+          "expression": "rb_hdr->bt",
+          "claim": "read of the report block header block type field through rb_hdr"
+        },
+        {
+          "locations": [
+            "L31",
+            "L38",
+            "L45",
+            "L52"
+          ],
+          "expression": "(char*)rb_hdr + sizeof(*rb_...) <= (char*)pkt + size",
+          "claim": "bounds check comparing the end of a report block against the packet buffer end"
+        },
+        {
+          "locations": [
+            "L34",
+            "L41",
+            "L48",
+            "L55"
+          ],
+          "expression": "(pjmedia_rtcp_xr_rb_*)rb_hdr",
+          "claim": "typed pointer assignment to a report block within the packet buffer"
+        },
+        {
+          "locations": [
+            "L62"
+          ],
+          "expression": "(pj_int32_t*)rb_hdr + rb_len + 1",
+          "claim": "advance of rb_hdr by the report block length within the packet buffer"
+        },
+        {
+          "locations": [
+            "L69",
+            "L70"
+          ],
+          "expression": "rb_rr_time->ntp_sec, rb_rr_time->ntp_frac",
+          "claim": "reads of NTP timestamp fields through rb_rr_time"
+        },
+        {
+          "locations": [
+            "L89",
+            "L92"
+          ],
+          "expression": "rb_dlrr->item.lrr, rb_dlrr->item.dlrr",
+          "claim": "reads of DLRR item fields through rb_dlrr"
+        },
+        {
+          "locations": [
+            "L155"
+          ],
+          "expression": "rb_stats->header.specific",
+          "claim": "read of the statistics block header specific field through rb_stats"
+        },
+        {
+          "locations": [
+            "L160",
+            "L161"
+          ],
+          "expression": "rb_stats->begin_seq, rb_stats->end_seq",
+          "claim": "reads of sequence number fields through rb_stats"
+        },
+        {
+          "locations": [
+            "L171",
+            "L175",
+            "L179",
+            "L180",
+            "L181",
+            "L183",
+            "L187",
+            "L188",
+            "L189",
+            "L191"
+          ],
+          "expression": "rb_stats->lost, rb_stats->dup, rb_stats->jitter_min, rb_stats->jitter_max, rb_stats->jitter_mean, rb_stats->jitter_dev, rb_stats->toh_min, rb_stats->toh_max, rb_stats->toh_mean, rb_stats->toh_dev",
+          "claim": "reads of statistics report fields through rb_stats"
+        },
+        {
+          "locations": [
+            "L199",
+            "L200",
+            "L201",
+            "L202",
+            "L203",
+            "L204",
+            "L205",
+            "L206",
+            "L207",
+            "L208",
+            "L210",
+            "L211",
+            "L212",
+            "L213",
+            "L214",
+            "L215",
+            "L216",
+            "L217",
+            "L218",
+            "L219",
+            "L220",
+            "L221",
+            "L222",
+            "L223",
+            "L224",
+            "L225",
+            "L226",
+            "L227"
+          ],
+          "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max",
+          "claim": "reads of VoIP metrics report fields through rb_voip_mtc"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "rtcp_xr",
+            "pkt"
+          ],
+          "claim": "rtcp_xr is a typed pointer to the same storage region as the byte-addressed pkt parameter.",
+          "evidence": "L5: const pjmedia_rtcp_xr_pkt\t      *rtcp_xr = (pjmedia_rtcp_xr_pkt*) pkt;"
+        },
+        {
+          "entities": [
+            "rb_hdr",
+            "rtcp_xr"
+          ],
+          "claim": "rb_hdr initially points to the buf subobject of the rtcp_xr packet object.",
+          "evidence": "L10: const pjmedia_rtcp_xr_rb_header   *rb_hdr = (pjmedia_rtcp_xr_rb_header*)\nL11: rtcp_xr->buf;"
+        },
+        {
+          "entities": [
+            "rb_hdr"
+          ],
+          "claim": "rb_hdr is advanced through the packet storage by report-block lengths during parsing.",
+          "evidence": "L62: rb_hdr = (pjmedia_rtcp_xr_rb_header*)\nL63: ((pj_int32_t*)rb_hdr + rb_len + 1);"
+        },
+        {
+          "entities": [
+            "rb_rr_time",
+            "rb_hdr"
+          ],
+          "claim": "rb_rr_time is set to point at the current rb_hdr storage region when the RR_TIME block fits within the packet bounds.",
+          "evidence": "L31: if ((char*)rb_hdr + sizeof(*rb_rr_time) <=\nL32: (char*)pkt + size)\nL34: rb_rr_time = (pjmedia_rtcp_xr_rb_rr_time*)rb_hdr;"
+        },
+        {
+          "entities": [
+            "rb_dlrr",
+            "rb_hdr"
+          ],
+          "claim": "rb_dlrr is set to point at the current rb_hdr storage region when the DLRR block fits within the packet bounds.",
+          "evidence": "L38: if ((char*)rb_hdr + sizeof(*rb_dlrr) <=\nL39: (char*)pkt + size)\nL41: rb_dlrr = (pjmedia_rtcp_xr_rb_dlrr*)rb_hdr;"
+        },
+        {
+          "entities": [
+            "rb_stats",
+            "rb_hdr"
+          ],
+          "claim": "rb_stats is set to point at the current rb_hdr storage region when the STATS block fits within the packet bounds.",
+          "evidence": "L45: if ((char*)rb_hdr + sizeof(*rb_stats) <=\nL46: (char*)pkt + size)\nL48: rb_stats = (pjmedia_rtcp_xr_rb_stats*)rb_hdr;"
+        },
+        {
+          "entities": [
+            "rb_voip_mtc",
+            "rb_hdr"
+          ],
+          "claim": "rb_voip_mtc is set to point at the current rb_hdr storage region when the VOIP_METRICS block fits within the packet bounds.",
+          "evidence": "L52: if ((char*)rb_hdr + sizeof(*rb_voip_mtc) <=\nL53: (char*)pkt + size)\nL55: rb_voip_mtc = (pjmedia_rtcp_xr_rb_voip_mtc*)rb_hdr;"
+        },
+        {
+          "entities": [
+            "rb_rr_time",
+            "rb_dlrr",
+            "rb_stats",
+            "rb_voip_mtc"
+          ],
+          "claim": "rb_rr_time, rb_dlrr, rb_stats, and rb_voip_mtc are initialized to NULL before parsing.",
+          "evidence": "L6: const pjmedia_rtcp_xr_rb_rr_time  *rb_rr_time = NULL;\nL7: const pjmedia_rtcp_xr_rb_dlrr     *rb_dlrr = NULL;\nL8: const pjmedia_rtcp_xr_rb_stats    *rb_stats = NULL;\nL9: const pjmedia_rtcp_xr_rb_voip_mtc *rb_voip_mtc = NULL;"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "pkt_len",
+            "size"
+          ],
+          "claim": "pkt_len is the 16-bit network-order RTCP length field converted to host order; the packet is accepted only if (pkt_len + 1) <= size/4, so pkt_len+1 32-bit words fit within size bytes.",
+          "evidence": "L17: pkt_len = pj_ntohs((pj_uint16_t)rtcp_xr->common.length);\nL19: if ((pkt_len + 1) > (size / 4))"
+        },
+        {
+          "entities": [
+            "rb_hdr",
+            "pkt",
+            "pkt_len"
+          ],
+          "claim": "rb_hdr starts at rtcp_xr->buf and the parse loop continues while (pj_int32_t*)rb_hdr < (pj_int32_t*)pkt + pkt_len, bounding rb_hdr to pkt_len 32-bit words from pkt.",
+          "evidence": "L10: const pjmedia_rtcp_xr_rb_header   *rb_hdr = (pjmedia_rtcp_xr_rb_header*)\nL11: rtcp_xr->buf;\nL23: while ((pj_int32_t*)rb_hdr < (pj_int32_t*)pkt + pkt_len)"
+        },
+        {
+          "entities": [
+            "rb_len",
+            "rb_hdr"
+          ],
+          "claim": "rb_len is the 16-bit network-order length field of the current report block header converted to host order.",
+          "evidence": "L25: rb_len = pj_ntohs((pj_uint16_t)rb_hdr->length);"
+        },
+        {
+          "entities": [
+            "rb_hdr",
+            "rb_len"
+          ],
+          "claim": "rb_hdr is advanced by (rb_len + 1) 32-bit words from its current position, i.e. the block length plus the header word.",
+          "evidence": "L62: rb_hdr = (pjmedia_rtcp_xr_rb_header*)\nL63: ((pj_int32_t*)rb_hdr + rb_len + 1);"
+        },
+        {
+          "entities": [
+            "rb_rr_time",
+            "rb_hdr",
+            "pkt",
+            "size"
+          ],
+          "claim": "rb_rr_time is set to rb_hdr only when rb_hdr + sizeof(*rb_rr_time) <= pkt + size, so the RR_TIME block is fully within the size-byte packet.",
+          "evidence": "L31: if ((char*)rb_hdr + sizeof(*rb_rr_time) <=\nL32: (char*)pkt + size)\nL34: rb_rr_time = (pjmedia_rtcp_xr_rb_rr_time*)rb_hdr;"
+        },
+        {
+          "entities": [
+            "rb_dlrr",
+            "rb_hdr",
+            "pkt",
+            "size"
+          ],
+          "claim": "rb_dlrr is set to rb_hdr only when rb_hdr + sizeof(*rb_dlrr) <= pkt + size, so the DLRR block is fully within the size-byte packet.",
+          "evidence": "L38: if ((char*)rb_hdr + sizeof(*rb_dlrr) <=\nL39: (char*)pkt + size)\nL41: rb_dlrr = (pjmedia_rtcp_xr_rb_dlrr*)rb_hdr;"
+        },
+        {
+          "entities": [
+            "rb_stats",
+            "rb_hdr",
+            "pkt",
+            "size"
+          ],
+          "claim": "rb_stats is set to rb_hdr only when rb_hdr + sizeof(*rb_stats) <= pkt + size, so the STATS block is fully within the size-byte packet.",
+          "evidence": "L45: if ((char*)rb_hdr + sizeof(*rb_stats) <=\nL46: (char*)pkt + size)\nL48: rb_stats = (pjmedia_rtcp_xr_rb_stats*)rb_hdr;"
+        },
+        {
+          "entities": [
+            "rb_voip_mtc",
+            "rb_hdr",
+            "pkt",
+            "size"
+          ],
+          "claim": "rb_voip_mtc is set to rb_hdr only when rb_hdr + sizeof(*rb_voip_mtc) <= pkt + size, so the VOIP_METRICS block is fully within the size-byte packet.",
+          "evidence": "L52: if ((char*)rb_hdr + sizeof(*rb_voip_mtc) <=\nL53: (char*)pkt + size)\nL55: rb_voip_mtc = (pjmedia_rtcp_xr_rb_voip_mtc*)rb_hdr;"
+        },
+        {
+          "entities": [
+            "eedelay",
+            "now",
+            "lrr",
+            "dlrr"
+          ],
+          "claim": "eedelay is computed as now - lrr - dlrr in 64-bit arithmetic, where now, lrr, and dlrr are 32-bit values in 1/65536-second units.",
+          "evidence": "L96: now = ((ntp.hi & 0xFFFF) << 16) + (ntp.lo >> 16);\nL99: eedelay = now - lrr - dlrr;"
+        },
+        {
+          "entities": [
+            "eedelay"
+          ],
+          "claim": "eedelay is converted to microseconds: if eedelay < 4294, eedelay = (eedelay * 1000000) >> 16; otherwise eedelay = ((eedelay * 1000) >> 16) * 1000.",
+          "evidence": "L105: if (eedelay < 4294) {\nL106: eedelay = (eedelay * 1000000) >> 16;\nL107: } else {\nL108: eedelay = (eedelay * 1000) >> 16;\nL109: eedelay *= 1000;"
+        },
+        {
+          "entities": [
+            "rtt",
+            "eedelay"
+          ],
+          "claim": "rtt is the low 32 bits of eedelay, and is only used when eedelay <= 30,000,000 microseconds.",
+          "evidence": "L121: unsigned rtt = (pj_uint32_t)eedelay;\nL126: if (eedelay <= 30 * 1000 * 1000UL) {"
+        },
+        {
+          "entities": [
+            "rtt",
+            "sess->stat.rtt.mean",
+            "sess->stat.rtt.n"
+          ],
+          "claim": "If rtt exceeds 3 times sess->stat.rtt.mean and sess->stat.rtt.n != 0, rtt is clamped to (unsigned)sess->stat.rtt.mean*3.",
+          "evidence": "L131: if (rtt>((unsigned)sess->stat.rtt.mean*3) && sess->stat.rtt.n!=0)\nL134: rtt = (unsigned)sess->stat.rtt.mean*3;"
+        },
+        {
+          "entities": [
+            "sess->rx_lrr",
+            "rb_rr_time->ntp_sec",
+            "rb_rr_time->ntp_frac"
+          ],
+          "claim": "sess->rx_lrr is formed from the low 16 bits of ntp_sec shifted left 16, ORed with the high 16 bits of ntp_frac.",
+          "evidence": "L69: sess->rx_lrr = ((pj_ntohl(rb_rr_time->ntp_sec) & 0x0000FFFF) << 16) |\nL70: ((pj_ntohl(rb_rr_time->ntp_frac) >> 16) & 0xFFFF);"
+        },
+        {
+          "entities": [
+            "sess->stat.tx.voip_mtc.signal_lvl",
+            "rb_voip_mtc->signal_lvl"
+          ],
+          "claim": "signal_lvl is sign-extended from an 8-bit two's-complement value: if rb_voip_mtc->signal_lvl > 127, subtract 256, then cast to pj_int8_t.",
+          "evidence": "L210: sess->stat.tx.voip_mtc.signal_lvl = (pj_int8_t)\nL211: ((rb_voip_mtc->signal_lvl > 127)?\nL212: ((int)rb_voip_mtc->signal_lvl - 256) :\nL213: rb_voip_mtc->signal_lvl);"
+        },
+        {
+          "entities": [
+            "sess->stat.tx.voip_mtc.noise_lvl",
+            "rb_voip_mtc->noise_lvl"
+          ],
+          "claim": "noise_lvl is sign-extended from an 8-bit two's-complement value: if rb_voip_mtc->noise_lvl > 127, subtract 256, then cast to pj_int8_t.",
+          "evidence": "L214: sess->stat.tx.voip_mtc.noise_lvl  = (pj_int8_t)\nL215: ((rb_voip_mtc->noise_lvl > 127)?\nL216: ((int)rb_voip_mtc->noise_lvl - 256) :\nL217: rb_voip_mtc->noise_lvl);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "rtcp_xr->common.pt",
+            "pkt",
+            "size"
+          ],
+          "claim": "continuing past the packet-type check implies rtcp_xr->common.pt == RTCP_XR",
+          "evidence": "L14: if (rtcp_xr->common.pt != RTCP_XR)\nL15: return;"
+        },
+        {
+          "entities": [
+            "pkt_len",
+            "size"
+          ],
+          "claim": "continuing past the length check implies pkt_len + 1 <= size / 4",
+          "evidence": "L17: pkt_len = pj_ntohs((pj_uint16_t)rtcp_xr->common.length);\nL19: if ((pkt_len + 1) > (size / 4))\nL20: return;"
+        },
+        {
+          "entities": [
+            "rb_hdr",
+            "pkt",
+            "pkt_len"
+          ],
+          "claim": "each loop iteration executes only while (pj_int32_t*)rb_hdr < (pj_int32_t*)pkt + pkt_len",
+          "evidence": "L23: while ((pj_int32_t*)rb_hdr < (pj_int32_t*)pkt + pkt_len)"
+        },
+        {
+          "entities": [
+            "rb_rr_time",
+            "rb_hdr",
+            "pkt",
+            "size"
+          ],
+          "claim": "rb_rr_time is assigned only when (char*)rb_hdr + sizeof(*rb_rr_time) <= (char*)pkt + size",
+          "evidence": "L31: if ((char*)rb_hdr + sizeof(*rb_rr_time) <=\nL32: (char*)pkt + size)\nL34: rb_rr_time = (pjmedia_rtcp_xr_rb_rr_time*)rb_hdr;"
+        },
+        {
+          "entities": [
+            "rb_dlrr",
+            "rb_hdr",
+            "pkt",
+            "size"
+          ],
+          "claim": "rb_dlrr is assigned only when (char*)rb_hdr + sizeof(*rb_dlrr) <= (char*)pkt + size",
+          "evidence": "L38: if ((char*)rb_hdr + sizeof(*rb_dlrr) <=\nL39: (char*)pkt + size)\nL41: rb_dlrr = (pjmedia_rtcp_xr_rb_dlrr*)rb_hdr;"
+        },
+        {
+          "entities": [
+            "rb_stats",
+            "rb_hdr",
+            "pkt",
+            "size"
+          ],
+          "claim": "rb_stats is assigned only when (char*)rb_hdr + sizeof(*rb_stats) <= (char*)pkt + size",
+          "evidence": "L45: if ((char*)rb_hdr + sizeof(*rb_stats) <=\nL46: (char*)pkt + size)\nL48: rb_stats = (pjmedia_rtcp_xr_rb_stats*)rb_hdr;"
+        },
+        {
+          "entities": [
+            "rb_voip_mtc",
+            "rb_hdr",
+            "pkt",
+            "size"
+          ],
+          "claim": "rb_voip_mtc is assigned only when (char*)rb_hdr + sizeof(*rb_voip_mtc) <= (char*)pkt + size",
+          "evidence": "L52: if ((char*)rb_hdr + sizeof(*rb_voip_mtc) <=\nL53: (char*)pkt + size)\nL55: rb_voip_mtc = (pjmedia_rtcp_xr_rb_voip_mtc*)rb_hdr;"
+        },
+        {
+          "entities": [
+            "rb_rr_time"
+          ],
+          "claim": "the RR Time block is processed only if rb_rr_time is non-NULL",
+          "evidence": "L67: if (rb_rr_time) {"
+        },
+        {
+          "entities": [
+            "rb_dlrr"
+          ],
+          "claim": "the DLRR block is processed only if rb_dlrr is non-NULL",
+          "evidence": "L81: if (rb_dlrr) {"
+        },
+        {
+          "entities": [
+            "eedelay"
+          ],
+          "claim": "eedelay is scaled by 1000000>>16 when eedelay < 4294, otherwise by 1000>>16 then multiplied by 1000",
+          "evidence": "L105: if (eedelay < 4294) {\nL106: eedelay = (eedelay * 1000000) >> 16;\nL107: } else {\nL108: eedelay = (eedelay * 1000) >> 16;\nL109: eedelay *= 1000;"
+        },
+        {
+          "entities": [
+            "now",
+            "dlrr",
+            "lrr"
+          ],
+          "claim": "the RTT update path is taken only when now-dlrr >= lrr",
+          "evidence": "L120: if (now-dlrr >= lrr) {"
+        },
+        {
+          "entities": [
+            "eedelay",
+            "rtt"
+          ],
+          "claim": "pj_math_stat_update is called only when eedelay <= 30 * 1000 * 1000UL",
+          "evidence": "L126: if (eedelay <= 30 * 1000 * 1000UL) {\nL141: pj_math_stat_update(&sess->stat.rtt, rtt);"
+        },
+        {
+          "entities": [
+            "rtt",
+            "sess->stat.rtt.mean",
+            "sess->stat.rtt.n"
+          ],
+          "claim": "rtt is clamped to three times the mean only when rtt > (unsigned)sess->stat.rtt.mean*3 and sess->stat.rtt.n != 0",
+          "evidence": "L131: if (rtt>((unsigned)sess->stat.rtt.mean*3) && sess->stat.rtt.n!=0)\nL134: rtt = (unsigned)sess->stat.rtt.mean*3;"
+        },
+        {
+          "entities": [
+            "rb_stats"
+          ],
+          "claim": "the Statistics Summary block is processed only if rb_stats is non-NULL",
+          "evidence": "L154: if (rb_stats) {"
+        },
+        {
+          "entities": [
+            "sess->stat.tx.stat_sum.lost",
+            "rb_stats"
+          ],
+          "claim": "rb_stats->lost is read only when sess->stat.tx.stat_sum.l is set",
+          "evidence": "L170: if (sess->stat.tx.stat_sum.l) {\nL171: sess->stat.tx.stat_sum.lost = pj_ntohl(rb_stats->lost);"
+        },
+        {
+          "entities": [
+            "sess->stat.tx.stat_sum.dup",
+            "rb_stats"
+          ],
+          "claim": "rb_stats->dup is read only when sess->stat.tx.stat_sum.d is set",
+          "evidence": "L174: if (sess->stat.tx.stat_sum.d) {\nL175: sess->stat.tx.stat_sum.dup = pj_ntohl(rb_stats->dup);"
+        },
+        {
+          "entities": [
+            "sess->stat.tx.stat_sum.jitter",
+            "rb_stats"
+          ],
+          "claim": "jitter fields are read only when sess->stat.tx.stat_sum.j is set",
+          "evidence": "L178: if (sess->stat.tx.stat_sum.j) {\nL179: sess->stat.tx.stat_sum.jitter.min = pj_ntohl(rb_stats->jitter_min);"
+        },
+        {
+          "entities": [
+            "sess->stat.tx.stat_sum.toh",
+            "rb_stats"
+          ],
+          "claim": "toh fields are read only when sess->stat.tx.stat_sum.t is set",
+          "evidence": "L186: if (sess->stat.tx.stat_sum.t) {\nL187: sess->stat.tx.stat_sum.toh.min = rb_stats->toh_min;"
+        },
+        {
+          "entities": [
+            "rb_voip_mtc"
+          ],
+          "claim": "the VoIP Metrics block is processed only if rb_voip_mtc is non-NULL",
+          "evidence": "L198: if (rb_voip_mtc) {"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 5812,
+              "output_tokens": 867,
+              "total_tokens": 6679
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 5812,
+          "output_tokens": 867,
+          "total_tokens": 6679
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L23",
+                "matched": true,
+                "expression": "(pj_int32_t*)rb_hdr < (pj_int32_t*)pkt + pkt_len"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L25",
+                "matched": true,
+                "expression": "rb_hdr->length"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L29",
+                "matched": true,
+                "expression": "rb_hdr->bt"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L31",
+                "matched": true,
+                "expression": "(char*)rb_hdr + sizeof(*rb_...) <= (char*)pkt + size"
+              },
+              {
+                "location": "L38",
+                "matched": true,
+                "expression": "(char*)rb_hdr + sizeof(*rb_...) <= (char*)pkt + size"
+              },
+              {
+                "location": "L45",
+                "matched": true,
+                "expression": "(char*)rb_hdr + sizeof(*rb_...) <= (char*)pkt + size"
+              },
+              {
+                "location": "L52",
+                "matched": true,
+                "expression": "(char*)rb_hdr + sizeof(*rb_...) <= (char*)pkt + size"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L34",
+                "matched": true,
+                "expression": "(pjmedia_rtcp_xr_rb_*)rb_hdr"
+              },
+              {
+                "location": "L41",
+                "matched": true,
+                "expression": "(pjmedia_rtcp_xr_rb_*)rb_hdr"
+              },
+              {
+                "location": "L48",
+                "matched": true,
+                "expression": "(pjmedia_rtcp_xr_rb_*)rb_hdr"
+              },
+              {
+                "location": "L55",
+                "matched": true,
+                "expression": "(pjmedia_rtcp_xr_rb_*)rb_hdr"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L62",
+                "matched": true,
+                "expression": "(pj_int32_t*)rb_hdr + rb_len + 1"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L69",
+                "matched": true,
+                "expression": "rb_rr_time->ntp_sec, rb_rr_time->ntp_frac"
+              },
+              {
+                "location": "L70",
+                "matched": true,
+                "expression": "rb_rr_time->ntp_sec, rb_rr_time->ntp_frac"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L89",
+                "matched": true,
+                "expression": "rb_dlrr->item.lrr, rb_dlrr->item.dlrr"
+              },
+              {
+                "location": "L92",
+                "matched": true,
+                "expression": "rb_dlrr->item.lrr, rb_dlrr->item.dlrr"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L155",
+                "matched": true,
+                "expression": "rb_stats->header.specific"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[9]": {
+            "expression_matches": [
+              {
+                "location": "L160",
+                "matched": true,
+                "expression": "rb_stats->begin_seq, rb_stats->end_seq"
+              },
+              {
+                "location": "L161",
+                "matched": true,
+                "expression": "rb_stats->begin_seq, rb_stats->end_seq"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[10]": {
+            "expression_matches": [
+              {
+                "location": "L171",
+                "matched": true,
+                "expression": "rb_stats->lost, rb_stats->dup, rb_stats->jitter_min, rb_stats->jitter_max, rb_stats->jitter_mean, rb_stats->jitter_dev, rb_stats->toh_min, rb_stats->toh_max, rb_stats->toh_mean, rb_stats->toh_dev"
+              },
+              {
+                "location": "L175",
+                "matched": true,
+                "expression": "rb_stats->lost, rb_stats->dup, rb_stats->jitter_min, rb_stats->jitter_max, rb_stats->jitter_mean, rb_stats->jitter_dev, rb_stats->toh_min, rb_stats->toh_max, rb_stats->toh_mean, rb_stats->toh_dev"
+              },
+              {
+                "location": "L179",
+                "matched": true,
+                "expression": "rb_stats->lost, rb_stats->dup, rb_stats->jitter_min, rb_stats->jitter_max, rb_stats->jitter_mean, rb_stats->jitter_dev, rb_stats->toh_min, rb_stats->toh_max, rb_stats->toh_mean, rb_stats->toh_dev"
+              },
+              {
+                "location": "L180",
+                "matched": true,
+                "expression": "rb_stats->lost, rb_stats->dup, rb_stats->jitter_min, rb_stats->jitter_max, rb_stats->jitter_mean, rb_stats->jitter_dev, rb_stats->toh_min, rb_stats->toh_max, rb_stats->toh_mean, rb_stats->toh_dev"
+              },
+              {
+                "location": "L181",
+                "matched": true,
+                "expression": "rb_stats->lost, rb_stats->dup, rb_stats->jitter_min, rb_stats->jitter_max, rb_stats->jitter_mean, rb_stats->jitter_dev, rb_stats->toh_min, rb_stats->toh_max, rb_stats->toh_mean, rb_stats->toh_dev"
+              },
+              {
+                "location": "L183",
+                "matched": true,
+                "expression": "rb_stats->lost, rb_stats->dup, rb_stats->jitter_min, rb_stats->jitter_max, rb_stats->jitter_mean, rb_stats->jitter_dev, rb_stats->toh_min, rb_stats->toh_max, rb_stats->toh_mean, rb_stats->toh_dev"
+              },
+              {
+                "location": "L187",
+                "matched": true,
+                "expression": "rb_stats->lost, rb_stats->dup, rb_stats->jitter_min, rb_stats->jitter_max, rb_stats->jitter_mean, rb_stats->jitter_dev, rb_stats->toh_min, rb_stats->toh_max, rb_stats->toh_mean, rb_stats->toh_dev"
+              },
+              {
+                "location": "L188",
+                "matched": true,
+                "expression": "rb_stats->lost, rb_stats->dup, rb_stats->jitter_min, rb_stats->jitter_max, rb_stats->jitter_mean, rb_stats->jitter_dev, rb_stats->toh_min, rb_stats->toh_max, rb_stats->toh_mean, rb_stats->toh_dev"
+              },
+              {
+                "location": "L189",
+                "matched": true,
+                "expression": "rb_stats->lost, rb_stats->dup, rb_stats->jitter_min, rb_stats->jitter_max, rb_stats->jitter_mean, rb_stats->jitter_dev, rb_stats->toh_min, rb_stats->toh_max, rb_stats->toh_mean, rb_stats->toh_dev"
+              },
+              {
+                "location": "L191",
+                "matched": true,
+                "expression": "rb_stats->lost, rb_stats->dup, rb_stats->jitter_min, rb_stats->jitter_max, rb_stats->jitter_mean, rb_stats->jitter_dev, rb_stats->toh_min, rb_stats->toh_max, rb_stats->toh_mean, rb_stats->toh_dev"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[11]": {
+            "expression_matches": [
+              {
+                "location": "L199",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L200",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L201",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L202",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L203",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L204",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L205",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L206",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L207",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L208",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L210",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L211",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L212",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L213",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L214",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L215",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L216",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L217",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L218",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L219",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L220",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L221",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L222",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L223",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L224",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L225",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L226",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              },
+              {
+                "location": "L227",
+                "matched": true,
+                "expression": "rb_voip_mtc->loss_rate, rb_voip_mtc->discard_rate, rb_voip_mtc->burst_den, rb_voip_mtc->gap_den, rb_voip_mtc->burst_dur, rb_voip_mtc->gap_dur, rb_voip_mtc->rnd_trip_delay, rb_voip_mtc->end_sys_delay, rb_voip_mtc->signal_lvl, rb_voip_mtc->noise_lvl, rb_voip_mtc->rerl, rb_voip_mtc->gmin, rb_voip_mtc->r_factor, rb_voip_mtc->ext_r_factor, rb_voip_mtc->mos_lq, rb_voip_mtc->mos_cq, rb_voip_mtc->rx_config, rb_voip_mtc->jb_nom, rb_voip_mtc->jb_max, rb_voip_mtc->jb_abs_max"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [
+              "Invalid control character at: line 1 column 210 (char 209)"
+            ],
+            "token_usage": {
+              "input_tokens": 4415,
+              "output_tokens": 872,
+              "total_tokens": 5287
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          },
+          {
+            "attempt": 2,
+            "retry_mode": "semantic_regeneration",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 5526,
+              "output_tokens": 891,
+              "total_tokens": 6417
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 9941,
+          "output_tokens": 1763,
+          "total_tokens": 11704
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "const pjmedia_rtcp_xr_pkt\t      *rtcp_xr = (pjmedia_rtcp_xr_pkt*) pkt;",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "const pjmedia_rtcp_xr_rb_header   *rb_hdr = (pjmedia_rtcp_xr_rb_header*)",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "rtcp_xr->buf;",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 62,
+                "fragment": "rb_hdr = (pjmedia_rtcp_xr_rb_header*)",
+                "matched_lines": [
+                  62
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "((pj_int32_t*)rb_hdr + rb_len + 1);",
+                "matched_lines": [
+                  63
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 31,
+                "fragment": "if ((char*)rb_hdr + sizeof(*rb_rr_time) <=",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "(char*)pkt + size)",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "rb_rr_time = (pjmedia_rtcp_xr_rb_rr_time*)rb_hdr;",
+                "matched_lines": [
+                  34
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 38,
+                "fragment": "if ((char*)rb_hdr + sizeof(*rb_dlrr) <=",
+                "matched_lines": [
+                  38
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "(char*)pkt + size)",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "rb_dlrr = (pjmedia_rtcp_xr_rb_dlrr*)rb_hdr;",
+                "matched_lines": [
+                  41
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 45,
+                "fragment": "if ((char*)rb_hdr + sizeof(*rb_stats) <=",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "(char*)pkt + size)",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "rb_stats = (pjmedia_rtcp_xr_rb_stats*)rb_hdr;",
+                "matched_lines": [
+                  48
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 52,
+                "fragment": "if ((char*)rb_hdr + sizeof(*rb_voip_mtc) <=",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "(char*)pkt + size)",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "rb_voip_mtc = (pjmedia_rtcp_xr_rb_voip_mtc*)rb_hdr;",
+                "matched_lines": [
+                  55
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "const pjmedia_rtcp_xr_rb_rr_time  *rb_rr_time = NULL;",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 7,
+                "fragment": "const pjmedia_rtcp_xr_rb_dlrr     *rb_dlrr = NULL;",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": "const pjmedia_rtcp_xr_rb_stats    *rb_stats = NULL;",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "const pjmedia_rtcp_xr_rb_voip_mtc *rb_voip_mtc = NULL;",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 4603,
+              "output_tokens": 1952,
+              "total_tokens": 6555
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 4603,
+          "output_tokens": 1952,
+          "total_tokens": 6555
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "pkt_len = pj_ntohs((pj_uint16_t)rtcp_xr->common.length);",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "if ((pkt_len + 1) > (size / 4))",
+                "matched_lines": [
+                  19
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "const pjmedia_rtcp_xr_rb_header   *rb_hdr = (pjmedia_rtcp_xr_rb_header*)",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "rtcp_xr->buf;",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "while ((pj_int32_t*)rb_hdr < (pj_int32_t*)pkt + pkt_len)",
+                "matched_lines": [
+                  23
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 25,
+                "fragment": "rb_len = pj_ntohs((pj_uint16_t)rb_hdr->length);",
+                "matched_lines": [
+                  25
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 62,
+                "fragment": "rb_hdr = (pjmedia_rtcp_xr_rb_header*)",
+                "matched_lines": [
+                  62
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "((pj_int32_t*)rb_hdr + rb_len + 1);",
+                "matched_lines": [
+                  63
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 31,
+                "fragment": "if ((char*)rb_hdr + sizeof(*rb_rr_time) <=",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "(char*)pkt + size)",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "rb_rr_time = (pjmedia_rtcp_xr_rb_rr_time*)rb_hdr;",
+                "matched_lines": [
+                  34
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 38,
+                "fragment": "if ((char*)rb_hdr + sizeof(*rb_dlrr) <=",
+                "matched_lines": [
+                  38
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "(char*)pkt + size)",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "rb_dlrr = (pjmedia_rtcp_xr_rb_dlrr*)rb_hdr;",
+                "matched_lines": [
+                  41
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 45,
+                "fragment": "if ((char*)rb_hdr + sizeof(*rb_stats) <=",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "(char*)pkt + size)",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "rb_stats = (pjmedia_rtcp_xr_rb_stats*)rb_hdr;",
+                "matched_lines": [
+                  48
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 52,
+                "fragment": "if ((char*)rb_hdr + sizeof(*rb_voip_mtc) <=",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "(char*)pkt + size)",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "rb_voip_mtc = (pjmedia_rtcp_xr_rb_voip_mtc*)rb_hdr;",
+                "matched_lines": [
+                  55
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 96,
+                "fragment": "now = ((ntp.hi & 0xFFFF) << 16) + (ntp.lo >> 16);",
+                "matched_lines": [
+                  96
+                ]
+              },
+              {
+                "evidence_line": 99,
+                "fragment": "eedelay = now - lrr - dlrr;",
+                "matched_lines": [
+                  99
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 105,
+                "fragment": "if (eedelay < 4294) {",
+                "matched_lines": [
+                  105
+                ]
+              },
+              {
+                "evidence_line": 106,
+                "fragment": "eedelay = (eedelay * 1000000) >> 16;",
+                "matched_lines": [
+                  106
+                ]
+              },
+              {
+                "evidence_line": 107,
+                "fragment": "} else {",
+                "matched_lines": [
+                  107
+                ]
+              },
+              {
+                "evidence_line": 108,
+                "fragment": "eedelay = (eedelay * 1000) >> 16;",
+                "matched_lines": [
+                  108
+                ]
+              },
+              {
+                "evidence_line": 109,
+                "fragment": "eedelay *= 1000;",
+                "matched_lines": [
+                  109
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 121,
+                "fragment": "unsigned rtt = (pj_uint32_t)eedelay;",
+                "matched_lines": [
+                  121
+                ]
+              },
+              {
+                "evidence_line": 126,
+                "fragment": "if (eedelay <= 30 * 1000 * 1000UL) {",
+                "matched_lines": [
+                  126
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 131,
+                "fragment": "if (rtt>((unsigned)sess->stat.rtt.mean*3) && sess->stat.rtt.n!=0)",
+                "matched_lines": [
+                  131
+                ]
+              },
+              {
+                "evidence_line": 134,
+                "fragment": "rtt = (unsigned)sess->stat.rtt.mean*3;",
+                "matched_lines": [
+                  134
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 69,
+                "fragment": "sess->rx_lrr = ((pj_ntohl(rb_rr_time->ntp_sec) & 0x0000FFFF) << 16) |",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "((pj_ntohl(rb_rr_time->ntp_frac) >> 16) & 0xFFFF);",
+                "matched_lines": [
+                  70
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 210,
+                "fragment": "sess->stat.tx.voip_mtc.signal_lvl = (pj_int8_t)",
+                "matched_lines": [
+                  210
+                ]
+              },
+              {
+                "evidence_line": 211,
+                "fragment": "((rb_voip_mtc->signal_lvl > 127)?",
+                "matched_lines": [
+                  211
+                ]
+              },
+              {
+                "evidence_line": 212,
+                "fragment": "((int)rb_voip_mtc->signal_lvl - 256) :",
+                "matched_lines": [
+                  212
+                ]
+              },
+              {
+                "evidence_line": 213,
+                "fragment": "rb_voip_mtc->signal_lvl);",
+                "matched_lines": [
+                  213
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 214,
+                "fragment": "sess->stat.tx.voip_mtc.noise_lvl  = (pj_int8_t)",
+                "matched_lines": [
+                  214
+                ]
+              },
+              {
+                "evidence_line": 215,
+                "fragment": "((rb_voip_mtc->noise_lvl > 127)?",
+                "matched_lines": [
+                  215
+                ]
+              },
+              {
+                "evidence_line": 216,
+                "fragment": "((int)rb_voip_mtc->noise_lvl - 256) :",
+                "matched_lines": [
+                  216
+                ]
+              },
+              {
+                "evidence_line": 217,
+                "fragment": "rb_voip_mtc->noise_lvl);",
+                "matched_lines": [
+                  217
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 12,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 13,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 14,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 4283,
+              "output_tokens": 1654,
+              "total_tokens": 5937
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 4283,
+          "output_tokens": 1654,
+          "total_tokens": 5937
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "if (rtcp_xr->common.pt != RTCP_XR)",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "return;",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "pkt_len = pj_ntohs((pj_uint16_t)rtcp_xr->common.length);",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "if ((pkt_len + 1) > (size / 4))",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "return;",
+                "matched_lines": [
+                  20
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "while ((pj_int32_t*)rb_hdr < (pj_int32_t*)pkt + pkt_len)",
+                "matched_lines": [
+                  23
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 31,
+                "fragment": "if ((char*)rb_hdr + sizeof(*rb_rr_time) <=",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "(char*)pkt + size)",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "rb_rr_time = (pjmedia_rtcp_xr_rb_rr_time*)rb_hdr;",
+                "matched_lines": [
+                  34
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 38,
+                "fragment": "if ((char*)rb_hdr + sizeof(*rb_dlrr) <=",
+                "matched_lines": [
+                  38
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "(char*)pkt + size)",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "rb_dlrr = (pjmedia_rtcp_xr_rb_dlrr*)rb_hdr;",
+                "matched_lines": [
+                  41
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 45,
+                "fragment": "if ((char*)rb_hdr + sizeof(*rb_stats) <=",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "(char*)pkt + size)",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "rb_stats = (pjmedia_rtcp_xr_rb_stats*)rb_hdr;",
+                "matched_lines": [
+                  48
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 52,
+                "fragment": "if ((char*)rb_hdr + sizeof(*rb_voip_mtc) <=",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "(char*)pkt + size)",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "rb_voip_mtc = (pjmedia_rtcp_xr_rb_voip_mtc*)rb_hdr;",
+                "matched_lines": [
+                  55
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 67,
+                "fragment": "if (rb_rr_time) {",
+                "matched_lines": [
+                  67
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 81,
+                "fragment": "if (rb_dlrr) {",
+                "matched_lines": [
+                  81
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 105,
+                "fragment": "if (eedelay < 4294) {",
+                "matched_lines": [
+                  105
+                ]
+              },
+              {
+                "evidence_line": 106,
+                "fragment": "eedelay = (eedelay * 1000000) >> 16;",
+                "matched_lines": [
+                  106
+                ]
+              },
+              {
+                "evidence_line": 107,
+                "fragment": "} else {",
+                "matched_lines": [
+                  107
+                ]
+              },
+              {
+                "evidence_line": 108,
+                "fragment": "eedelay = (eedelay * 1000) >> 16;",
+                "matched_lines": [
+                  108
+                ]
+              },
+              {
+                "evidence_line": 109,
+                "fragment": "eedelay *= 1000;",
+                "matched_lines": [
+                  109
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 120,
+                "fragment": "if (now-dlrr >= lrr) {",
+                "matched_lines": [
+                  120
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 126,
+                "fragment": "if (eedelay <= 30 * 1000 * 1000UL) {",
+                "matched_lines": [
+                  126
+                ]
+              },
+              {
+                "evidence_line": 141,
+                "fragment": "pj_math_stat_update(&sess->stat.rtt, rtt);",
+                "matched_lines": [
+                  141
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 131,
+                "fragment": "if (rtt>((unsigned)sess->stat.rtt.mean*3) && sess->stat.rtt.n!=0)",
+                "matched_lines": [
+                  131
+                ]
+              },
+              {
+                "evidence_line": 134,
+                "fragment": "rtt = (unsigned)sess->stat.rtt.mean*3;",
+                "matched_lines": [
+                  134
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 154,
+                "fragment": "if (rb_stats) {",
+                "matched_lines": [
+                  154
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 170,
+                "fragment": "if (sess->stat.tx.stat_sum.l) {",
+                "matched_lines": [
+                  170
+                ]
+              },
+              {
+                "evidence_line": 171,
+                "fragment": "sess->stat.tx.stat_sum.lost = pj_ntohl(rb_stats->lost);",
+                "matched_lines": [
+                  171
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[15]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 174,
+                "fragment": "if (sess->stat.tx.stat_sum.d) {",
+                "matched_lines": [
+                  174
+                ]
+              },
+              {
+                "evidence_line": 175,
+                "fragment": "sess->stat.tx.stat_sum.dup = pj_ntohl(rb_stats->dup);",
+                "matched_lines": [
+                  175
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[16]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 178,
+                "fragment": "if (sess->stat.tx.stat_sum.j) {",
+                "matched_lines": [
+                  178
+                ]
+              },
+              {
+                "evidence_line": 179,
+                "fragment": "sess->stat.tx.stat_sum.jitter.min = pj_ntohl(rb_stats->jitter_min);",
+                "matched_lines": [
+                  179
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[17]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 186,
+                "fragment": "if (sess->stat.tx.stat_sum.t) {",
+                "matched_lines": [
+                  186
+                ]
+              },
+              {
+                "evidence_line": 187,
+                "fragment": "sess->stat.tx.stat_sum.toh.min = rb_stats->toh_min;",
+                "matched_lines": [
+                  187
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[18]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 198,
+                "fragment": "if (rb_voip_mtc) {",
+                "matched_lines": [
+                  198
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 12,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 14,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 15,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 16,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 17,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 12,
+      "states": 8,
+      "values": 15,
+      "executions": 19
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 24639,
+    "output_tokens": 6236,
+    "total_tokens": 30875
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000057",
+    "split": "test",
+    "source_hash": "f8807bfd5b2bf83681af117308a534e37a0eb079c2d94fe3cb59d599befac6ea",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

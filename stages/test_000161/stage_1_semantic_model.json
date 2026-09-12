@@ -1,0 +1,600 @@
+{
+  "sample_id": "test_000161",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L19"
+          ],
+          "expression": "lsqpack_enc_init(&qeh->qeh_encoder, (void *) qeh->qeh_conn, max_table_size, dyn_table_size, max_risked_streams, enc_opts, qeh->qeh_tsu_buf, &qeh->qeh_tsu_sz)",
+          "claim": "initializes the QPACK encoder using the provided buffer and size pointer"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "qeh"
+          ],
+          "claim": "qeh is initialized (QEH_INITIALIZED flag set) before settings are applied.",
+          "evidence": "L6: assert(qeh->qeh_flags & QEH_INITIALIZED);"
+        },
+        {
+          "entities": [
+            "qeh"
+          ],
+          "claim": "qeh has not yet had settings applied (QEH_HAVE_SETTINGS flag clear) at entry; if already set, function returns without modifying state.",
+          "evidence": "L8: if (qeh->qeh_flags & QEH_HAVE_SETTINGS)\nL10: LSQ_WARN(\"settings already set\");\nL11: return -1;"
+        },
+        {
+          "entities": [
+            "qeh",
+            "qeh->qeh_tsu_buf"
+          ],
+          "claim": "qeh->qeh_tsu_sz is set to the size of the qeh->qeh_tsu_buf storage region before encoder initialization.",
+          "evidence": "L16: qeh->qeh_tsu_sz = sizeof(qeh->qeh_tsu_buf);"
+        },
+        {
+          "entities": [
+            "qeh",
+            "qeh->qeh_encoder"
+          ],
+          "claim": "qeh->qeh_encoder is initialized by lsqpack_enc_init using qeh->qeh_conn, qeh->qeh_tsu_buf, and &qeh->qeh_tsu_sz; on failure the function returns without setting QEH_HAVE_SETTINGS.",
+          "evidence": "L19: if (0 != lsqpack_enc_init(&qeh->qeh_encoder, (void *) qeh->qeh_conn,\nL20: max_table_size, dyn_table_size, max_risked_streams, enc_opts,\nL21: qeh->qeh_tsu_buf, &qeh->qeh_tsu_sz))\nL23: LSQ_INFO(\"could not initialize QPACK encoder\");\nL24: return -1;"
+        },
+        {
+          "entities": [
+            "qeh"
+          ],
+          "claim": "qeh->qeh_flags has QEH_HAVE_SETTINGS set after successful encoder initialization.",
+          "evidence": "L27: qeh->qeh_flags |= QEH_HAVE_SETTINGS;"
+        },
+        {
+          "entities": [
+            "qeh",
+            "qeh->qeh_encoder"
+          ],
+          "claim": "qeh->qeh_max_prefix_size is set from the initialized qeh->qeh_encoder.",
+          "evidence": "L28: qeh->qeh_max_prefix_size =\nL29: lsqpack_enc_header_block_prefix_size(&qeh->qeh_encoder);"
+        },
+        {
+          "entities": [
+            "qeh",
+            "qeh->qeh_enc_sm_out"
+          ],
+          "claim": "If qeh->qeh_enc_sm_out is non-NULL, qeh_begin_out(qeh) is invoked.",
+          "evidence": "L32: if (qeh->qeh_enc_sm_out)\nL33: qeh_begin_out(qeh);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "qeh->qeh_tsu_sz",
+            "qeh->qeh_tsu_buf"
+          ],
+          "claim": "qeh->qeh_tsu_sz is initialized to sizeof(qeh->qeh_tsu_buf), the byte capacity of the qeh_tsu_buf buffer, before being passed by address to lsqpack_enc_init.",
+          "evidence": "L16: qeh->qeh_tsu_sz = sizeof(qeh->qeh_tsu_buf);\nL19: if (0 != lsqpack_enc_init(&qeh->qeh_encoder, (void *) qeh->qeh_conn,\nL21: qeh->qeh_tsu_buf, &qeh->qeh_tsu_sz))"
+        },
+        {
+          "entities": [
+            "dyn_table_size",
+            "QENC_MIN_DYN_TABLE_SIZE"
+          ],
+          "claim": "If QENC_MIN_DYN_TABLE_SIZE > dyn_table_size, dyn_table_size is set to 0 before being passed to lsqpack_enc_init.",
+          "evidence": "L17: if (QENC_MIN_DYN_TABLE_SIZE > dyn_table_size)\nL18: dyn_table_size = 0;\nL20: max_table_size, dyn_table_size, max_risked_streams, enc_opts,"
+        },
+        {
+          "entities": [
+            "qeh->qeh_max_prefix_size",
+            "lsqpack_enc_header_block_prefix_size"
+          ],
+          "claim": "qeh->qeh_max_prefix_size is assigned the value returned by lsqpack_enc_header_block_prefix_size(&qeh->qeh_encoder).",
+          "evidence": "L28: qeh->qeh_max_prefix_size =\nL29: lsqpack_enc_header_block_prefix_size(&qeh->qeh_encoder);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "qeh->qeh_flags",
+            "QEH_HAVE_SETTINGS"
+          ],
+          "claim": "continuing past the settings guard implies QEH_HAVE_SETTINGS is not set in qeh->qeh_flags",
+          "evidence": "L8: if (qeh->qeh_flags & QEH_HAVE_SETTINGS)\nL11: return -1;"
+        },
+        {
+          "entities": [
+            "dyn_table_size",
+            "QENC_MIN_DYN_TABLE_SIZE"
+          ],
+          "claim": "after the dynamic table size adjustment, dyn_table_size is either 0 or at least QENC_MIN_DYN_TABLE_SIZE",
+          "evidence": "L17: if (QENC_MIN_DYN_TABLE_SIZE > dyn_table_size)\nL18: dyn_table_size = 0;"
+        },
+        {
+          "entities": [
+            "qeh->qeh_tsu_sz",
+            "qeh->qeh_tsu_buf"
+          ],
+          "claim": "qeh->qeh_tsu_sz is set to the size of qeh->qeh_tsu_buf before encoder initialization",
+          "evidence": "L16: qeh->qeh_tsu_sz = sizeof(qeh->qeh_tsu_buf);"
+        },
+        {
+          "entities": [
+            "qeh->qeh_flags",
+            "QEH_HAVE_SETTINGS"
+          ],
+          "claim": "successful return implies QEH_HAVE_SETTINGS is set in qeh->qeh_flags",
+          "evidence": "L27: qeh->qeh_flags |= QEH_HAVE_SETTINGS;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2503,
+              "output_tokens": 101,
+              "total_tokens": 2604
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2503,
+          "output_tokens": 101,
+          "total_tokens": 2604
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L19",
+                "matched": true,
+                "expression": "lsqpack_enc_init(&qeh->qeh_encoder, (void *) qeh->qeh_conn, max_table_size, dyn_table_size, max_risked_streams, enc_opts, qeh->qeh_tsu_buf, &qeh->qeh_tsu_sz)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1106,
+              "output_tokens": 656,
+              "total_tokens": 1762
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1106,
+          "output_tokens": 656,
+          "total_tokens": 1762
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "assert(qeh->qeh_flags & QEH_INITIALIZED);",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (qeh->qeh_flags & QEH_HAVE_SETTINGS)",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "LSQ_WARN(\"settings already set\");",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "return -1;",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "qeh->qeh_tsu_sz = sizeof(qeh->qeh_tsu_buf);",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 19,
+                "fragment": "if (0 != lsqpack_enc_init(&qeh->qeh_encoder, (void *) qeh->qeh_conn,",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "max_table_size, dyn_table_size, max_risked_streams, enc_opts,",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "qeh->qeh_tsu_buf, &qeh->qeh_tsu_sz))",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 23,
+                "fragment": "LSQ_INFO(\"could not initialize QPACK encoder\");",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "return -1;",
+                "matched_lines": [
+                  24
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 27,
+                "fragment": "qeh->qeh_flags |= QEH_HAVE_SETTINGS;",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 28,
+                "fragment": "qeh->qeh_max_prefix_size =",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "lsqpack_enc_header_block_prefix_size(&qeh->qeh_encoder);",
+                "matched_lines": [
+                  29
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 32,
+                "fragment": "if (qeh->qeh_enc_sm_out)",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "qeh_begin_out(qeh);",
+                "matched_lines": [
+                  33
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1294,
+              "output_tokens": 394,
+              "total_tokens": 1688
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1294,
+          "output_tokens": 394,
+          "total_tokens": 1688
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "qeh->qeh_tsu_sz = sizeof(qeh->qeh_tsu_buf);",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "if (0 != lsqpack_enc_init(&qeh->qeh_encoder, (void *) qeh->qeh_conn,",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "qeh->qeh_tsu_buf, &qeh->qeh_tsu_sz))",
+                "matched_lines": [
+                  21
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "if (QENC_MIN_DYN_TABLE_SIZE > dyn_table_size)",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "dyn_table_size = 0;",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "max_table_size, dyn_table_size, max_risked_streams, enc_opts,",
+                "matched_lines": [
+                  20
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 28,
+                "fragment": "qeh->qeh_max_prefix_size =",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "lsqpack_enc_header_block_prefix_size(&qeh->qeh_encoder);",
+                "matched_lines": [
+                  29
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 974,
+              "output_tokens": 329,
+              "total_tokens": 1303
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 974,
+          "output_tokens": 329,
+          "total_tokens": 1303
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (qeh->qeh_flags & QEH_HAVE_SETTINGS)",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "return -1;",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "if (QENC_MIN_DYN_TABLE_SIZE > dyn_table_size)",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "dyn_table_size = 0;",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "qeh->qeh_tsu_sz = sizeof(qeh->qeh_tsu_buf);",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 27,
+                "fragment": "qeh->qeh_flags |= QEH_HAVE_SETTINGS;",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 1,
+      "states": 7,
+      "values": 3,
+      "executions": 4
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 5877,
+    "output_tokens": 1480,
+    "total_tokens": 7357
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000161",
+    "split": "test",
+    "source_hash": "21e4179f58a8c6b62cc2b00e123364e2e632ffd77909c5eb90716f28c72830c8",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

@@ -1,0 +1,1031 @@
+{
+  "sample_id": "test_000053",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L9",
+            "L11"
+          ],
+          "expression": "SSL_CTX_new(...)",
+          "claim": "allocate a new SSL_CTX object"
+        },
+        {
+          "locations": [
+            "L24",
+            "L38",
+            "L49",
+            "L60",
+            "L69",
+            "L78",
+            "L113"
+          ],
+          "expression": "SSL_CTX_free(ctx)",
+          "claim": "free an allocated SSL_CTX object"
+        },
+        {
+          "locations": [
+            "L32"
+          ],
+          "expression": "SSL_CTX_load_verify_locations(ctx, NULL, certificate_path.c_str())",
+          "claim": "load certificate verification locations into an SSL_CTX"
+        },
+        {
+          "locations": [
+            "L42"
+          ],
+          "expression": "SSL_CTX_set_default_verify_paths(ctx)",
+          "claim": "load default certificate verification paths into an SSL_CTX"
+        },
+        {
+          "locations": [
+            "L56"
+          ],
+          "expression": "X509_VERIFY_PARAM_new()",
+          "claim": "allocate a new X509_VERIFY_PARAM object"
+        },
+        {
+          "locations": [
+            "L66"
+          ],
+          "expression": "X509_VERIFY_PARAM_set_flags(x509_param, X509_V_FLAG_TRUSTED_FIRST)",
+          "claim": "set verification flags on an X509_VERIFY_PARAM object"
+        },
+        {
+          "locations": [
+            "L68",
+            "L77",
+            "L83"
+          ],
+          "expression": "X509_VERIFY_PARAM_free(x509_param)",
+          "claim": "free an allocated X509_VERIFY_PARAM object"
+        },
+        {
+          "locations": [
+            "L75"
+          ],
+          "expression": "SSL_CTX_set1_param(ctx, x509_param)",
+          "claim": "apply verification parameters to an SSL_CTX"
+        },
+        {
+          "locations": [
+            "L87"
+          ],
+          "expression": "SSL_new(ctx)",
+          "claim": "allocate a new SSL object from an SSL_CTX"
+        },
+        {
+          "locations": [
+            "L88"
+          ],
+          "expression": "SSL_set_options(ssl, SSL_OP_ALL)",
+          "claim": "set options on an SSL object"
+        },
+        {
+          "locations": [
+            "L89"
+          ],
+          "expression": "SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY)",
+          "claim": "set mode on an SSL object"
+        },
+        {
+          "locations": [
+            "L90"
+          ],
+          "expression": "SSL_set_connect_state(ssl)",
+          "claim": "set an SSL object to client connect state"
+        },
+        {
+          "locations": [
+            "L93"
+          ],
+          "expression": "SSL_set_fd(ssl, this->getFD())",
+          "claim": "associate a file descriptor with an SSL object"
+        },
+        {
+          "locations": [
+            "L94"
+          ],
+          "expression": "SSL_set_tlsext_host_name(ssl, hostname.c_str())",
+          "claim": "set the TLS SNI hostname on an SSL object"
+        },
+        {
+          "locations": [
+            "L97"
+          ],
+          "expression": "X509_VERIFY_PARAM_set1_host(SSL_get0_param(ssl), hostname.c_str(), 0)",
+          "claim": "set the expected hostname on the SSL object's verification parameters"
+        },
+        {
+          "locations": [
+            "L104"
+          ],
+          "expression": "SSL_connect(ssl)",
+          "claim": "perform the TLS handshake on an SSL object"
+        },
+        {
+          "locations": [
+            "L111"
+          ],
+          "expression": "SSL_free(ssl)",
+          "claim": "free an allocated SSL object"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "ctx"
+          ],
+          "claim": "ctx is assigned a newly created SSL_CTX object; on failure paths ctx is freed and set to NULL.",
+          "evidence": "L9: ctx = SSL_CTX_new(SSLv23_client_method());\nL11: ctx = SSL_CTX_new(TLS_client_method());\nL24: SSL_CTX_free(ctx);\nL25: ctx = NULL;\nL38: SSL_CTX_free(ctx);\nL39: ctx = NULL;\nL49: SSL_CTX_free(ctx);\nL50: ctx = NULL;\nL60: SSL_CTX_free(ctx);\nL61: ctx = NULL;\nL69: SSL_CTX_free(ctx);\nL70: ctx = NULL;\nL78: SSL_CTX_free(ctx);\nL79: ctx = NULL;\nL113: SSL_CTX_free(ctx);\nL114: ctx = NULL;"
+        },
+        {
+          "entities": [
+            "ssl"
+          ],
+          "claim": "ssl is assigned a newly created SSL object from ctx; on SSL_connect failure it is freed and set to NULL.",
+          "evidence": "L87: ssl = SSL_new(ctx);\nL111: SSL_free(ssl);\nL112: ssl = NULL;"
+        },
+        {
+          "entities": [
+            "isssl"
+          ],
+          "claim": "isssl is set to true after successful SSL setup.",
+          "evidence": "L119: isssl = true;"
+        },
+        {
+          "entities": [
+            "issslserver"
+          ],
+          "claim": "issslserver is set to false after successful SSL setup.",
+          "evidence": "L120: issslserver = false;"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "certificate_path.length()"
+          ],
+          "claim": "certificate_path.length() is used as a boolean condition; nonzero selects the explicit certificate path branch, zero selects the default verify paths branch.",
+          "evidence": "L31: if (certificate_path.length()) {\nL42: } else if (!SSL_CTX_set_default_verify_paths(ctx)) //use default if no certPpath given"
+        },
+        {
+          "entities": [
+            "SSL_CTX_set_timeout",
+            "130l"
+          ],
+          "claim": "SSL_CTX_set_timeout is called with a long timeout value of 130l and its return value is compared against 1.",
+          "evidence": "L23: if (SSL_CTX_set_timeout(ctx, 130l) < 1) {"
+        },
+        {
+          "entities": [
+            "X509_VERIFY_PARAM_set1_host",
+            "hostname.c_str()",
+            "0"
+          ],
+          "claim": "X509_VERIFY_PARAM_set1_host is called with hostname.c_str() and a hostname length argument of 0.",
+          "evidence": "L97: X509_VERIFY_PARAM_set1_host(SSL_get0_param(ssl),hostname.c_str(),0);"
+        },
+        {
+          "entities": [
+            "SSL_connect",
+            "rc"
+          ],
+          "claim": "SSL_connect return value is stored in int rc and compared with 0.",
+          "evidence": "L104: int rc = SSL_connect(ssl);\nL105: if (rc < 0) {"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "ctx"
+          ],
+          "claim": "continuing past this check implies ctx is non-NULL",
+          "evidence": "L14: if (ctx == NULL) {\nL19: return -1;"
+        },
+        {
+          "entities": [
+            "ctx"
+          ],
+          "claim": "continuing past this check implies SSL_CTX_set_timeout succeeded (returned >= 1) and ctx remains non-NULL",
+          "evidence": "L23: if (SSL_CTX_set_timeout(ctx, 130l) < 1) {\nL24: SSL_CTX_free(ctx);\nL25: ctx = NULL;\nL26: return -1;"
+        },
+        {
+          "entities": [
+            "x509_param"
+          ],
+          "claim": "continuing past this check implies x509_param is non-NULL",
+          "evidence": "L56: X509_VERIFY_PARAM *x509_param = X509_VERIFY_PARAM_new();\nL57: if (!x509_param) {\nL62: return -2;"
+        },
+        {
+          "entities": [
+            "x509_param"
+          ],
+          "claim": "continuing past this check implies X509_VERIFY_PARAM_set_flags succeeded and x509_param remains non-NULL",
+          "evidence": "L66: if (!X509_VERIFY_PARAM_set_flags(x509_param, X509_V_FLAG_TRUSTED_FIRST)) {\nL68: X509_VERIFY_PARAM_free(x509_param);\nL71: return -2;"
+        },
+        {
+          "entities": [
+            "ctx",
+            "x509_param"
+          ],
+          "claim": "continuing past this check implies SSL_CTX_set1_param succeeded and ctx remains non-NULL",
+          "evidence": "L75: if (!SSL_CTX_set1_param(ctx, x509_param)) {\nL77: X509_VERIFY_PARAM_free(x509_param);\nL78: SSL_CTX_free(ctx);\nL79: ctx = NULL;\nL80: return -2;"
+        },
+        {
+          "entities": [
+            "ssl"
+          ],
+          "claim": "continuing past SSL_connect implies rc >= 0 and ssl remains non-NULL",
+          "evidence": "L104: int rc = SSL_connect(ssl);\nL105: if (rc < 0) {\nL111: SSL_free(ssl);\nL112: ssl = NULL;\nL115: return -3;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3473,
+              "output_tokens": 635,
+              "total_tokens": 4108
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3473,
+          "output_tokens": 635,
+          "total_tokens": 4108
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L9",
+                "matched": true,
+                "expression": "SSL_CTX_new(...)"
+              },
+              {
+                "location": "L11",
+                "matched": true,
+                "expression": "SSL_CTX_new(...)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L24",
+                "matched": true,
+                "expression": "SSL_CTX_free(ctx)"
+              },
+              {
+                "location": "L38",
+                "matched": true,
+                "expression": "SSL_CTX_free(ctx)"
+              },
+              {
+                "location": "L49",
+                "matched": true,
+                "expression": "SSL_CTX_free(ctx)"
+              },
+              {
+                "location": "L60",
+                "matched": true,
+                "expression": "SSL_CTX_free(ctx)"
+              },
+              {
+                "location": "L69",
+                "matched": true,
+                "expression": "SSL_CTX_free(ctx)"
+              },
+              {
+                "location": "L78",
+                "matched": true,
+                "expression": "SSL_CTX_free(ctx)"
+              },
+              {
+                "location": "L113",
+                "matched": true,
+                "expression": "SSL_CTX_free(ctx)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L32",
+                "matched": true,
+                "expression": "SSL_CTX_load_verify_locations(ctx, NULL, certificate_path.c_str())"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L42",
+                "matched": true,
+                "expression": "SSL_CTX_set_default_verify_paths(ctx)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L56",
+                "matched": true,
+                "expression": "X509_VERIFY_PARAM_new()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L66",
+                "matched": true,
+                "expression": "X509_VERIFY_PARAM_set_flags(x509_param, X509_V_FLAG_TRUSTED_FIRST)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L68",
+                "matched": true,
+                "expression": "X509_VERIFY_PARAM_free(x509_param)"
+              },
+              {
+                "location": "L77",
+                "matched": true,
+                "expression": "X509_VERIFY_PARAM_free(x509_param)"
+              },
+              {
+                "location": "L83",
+                "matched": true,
+                "expression": "X509_VERIFY_PARAM_free(x509_param)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L75",
+                "matched": true,
+                "expression": "SSL_CTX_set1_param(ctx, x509_param)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L87",
+                "matched": true,
+                "expression": "SSL_new(ctx)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[9]": {
+            "expression_matches": [
+              {
+                "location": "L88",
+                "matched": true,
+                "expression": "SSL_set_options(ssl, SSL_OP_ALL)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[10]": {
+            "expression_matches": [
+              {
+                "location": "L89",
+                "matched": true,
+                "expression": "SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[11]": {
+            "expression_matches": [
+              {
+                "location": "L90",
+                "matched": true,
+                "expression": "SSL_set_connect_state(ssl)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[12]": {
+            "expression_matches": [
+              {
+                "location": "L93",
+                "matched": true,
+                "expression": "SSL_set_fd(ssl, this->getFD())"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[13]": {
+            "expression_matches": [
+              {
+                "location": "L94",
+                "matched": true,
+                "expression": "SSL_set_tlsext_host_name(ssl, hostname.c_str())"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[14]": {
+            "expression_matches": [
+              {
+                "location": "L97",
+                "matched": true,
+                "expression": "X509_VERIFY_PARAM_set1_host(SSL_get0_param(ssl), hostname.c_str(), 0)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[15]": {
+            "expression_matches": [
+              {
+                "location": "L104",
+                "matched": true,
+                "expression": "SSL_connect(ssl)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[16]": {
+            "expression_matches": [
+              {
+                "location": "L111",
+                "matched": true,
+                "expression": "SSL_free(ssl)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2076,
+              "output_tokens": 467,
+              "total_tokens": 2543
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2076,
+          "output_tokens": 467,
+          "total_tokens": 2543
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "ctx = SSL_CTX_new(SSLv23_client_method());",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "ctx = SSL_CTX_new(TLS_client_method());",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "SSL_CTX_free(ctx);",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "ctx = NULL;",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 38,
+                "fragment": "SSL_CTX_free(ctx);",
+                "matched_lines": [
+                  38
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "ctx = NULL;",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "SSL_CTX_free(ctx);",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "ctx = NULL;",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "SSL_CTX_free(ctx);",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "ctx = NULL;",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "SSL_CTX_free(ctx);",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "ctx = NULL;",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 78,
+                "fragment": "SSL_CTX_free(ctx);",
+                "matched_lines": [
+                  78
+                ]
+              },
+              {
+                "evidence_line": 79,
+                "fragment": "ctx = NULL;",
+                "matched_lines": [
+                  79
+                ]
+              },
+              {
+                "evidence_line": 113,
+                "fragment": "SSL_CTX_free(ctx);",
+                "matched_lines": [
+                  113
+                ]
+              },
+              {
+                "evidence_line": 114,
+                "fragment": "ctx = NULL;",
+                "matched_lines": [
+                  114
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 87,
+                "fragment": "ssl = SSL_new(ctx);",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 111,
+                "fragment": "SSL_free(ssl);",
+                "matched_lines": [
+                  111
+                ]
+              },
+              {
+                "evidence_line": 112,
+                "fragment": "ssl = NULL;",
+                "matched_lines": [
+                  112
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 119,
+                "fragment": "isssl = true;",
+                "matched_lines": [
+                  119
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 120,
+                "fragment": "issslserver = false;",
+                "matched_lines": [
+                  120
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 1,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2264,
+              "output_tokens": 318,
+              "total_tokens": 2582
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2264,
+          "output_tokens": 318,
+          "total_tokens": 2582
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 31,
+                "fragment": "if (certificate_path.length()) {",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 42,
+                "fragment": "} else if (!SSL_CTX_set_default_verify_paths(ctx)) //use default if no certPpath given",
+                "matched_lines": [
+                  42
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "if (SSL_CTX_set_timeout(ctx, 130l) < 1) {",
+                "matched_lines": [
+                  23
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 97,
+                "fragment": "X509_VERIFY_PARAM_set1_host(SSL_get0_param(ssl),hostname.c_str(),0);",
+                "matched_lines": [
+                  97
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 104,
+                "fragment": "int rc = SSL_connect(ssl);",
+                "matched_lines": [
+                  104
+                ]
+              },
+              {
+                "evidence_line": 105,
+                "fragment": "if (rc < 0) {",
+                "matched_lines": [
+                  105
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1944,
+              "output_tokens": 661,
+              "total_tokens": 2605
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1944,
+          "output_tokens": 661,
+          "total_tokens": 2605
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "if (ctx == NULL) {",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "return -1;",
+                "matched_lines": [
+                  19
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "if (SSL_CTX_set_timeout(ctx, 130l) < 1) {",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 24,
+                "fragment": "SSL_CTX_free(ctx);",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 25,
+                "fragment": "ctx = NULL;",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "return -1;",
+                "matched_lines": [
+                  26
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 56,
+                "fragment": "X509_VERIFY_PARAM *x509_param = X509_VERIFY_PARAM_new();",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "if (!x509_param) {",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "return -2;",
+                "matched_lines": [
+                  62
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 66,
+                "fragment": "if (!X509_VERIFY_PARAM_set_flags(x509_param, X509_V_FLAG_TRUSTED_FIRST)) {",
+                "matched_lines": [
+                  66
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "X509_VERIFY_PARAM_free(x509_param);",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 71,
+                "fragment": "return -2;",
+                "matched_lines": [
+                  71
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 75,
+                "fragment": "if (!SSL_CTX_set1_param(ctx, x509_param)) {",
+                "matched_lines": [
+                  75
+                ]
+              },
+              {
+                "evidence_line": 77,
+                "fragment": "X509_VERIFY_PARAM_free(x509_param);",
+                "matched_lines": [
+                  77
+                ]
+              },
+              {
+                "evidence_line": 78,
+                "fragment": "SSL_CTX_free(ctx);",
+                "matched_lines": [
+                  78
+                ]
+              },
+              {
+                "evidence_line": 79,
+                "fragment": "ctx = NULL;",
+                "matched_lines": [
+                  79
+                ]
+              },
+              {
+                "evidence_line": 80,
+                "fragment": "return -2;",
+                "matched_lines": [
+                  80
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 104,
+                "fragment": "int rc = SSL_connect(ssl);",
+                "matched_lines": [
+                  104
+                ]
+              },
+              {
+                "evidence_line": 105,
+                "fragment": "if (rc < 0) {",
+                "matched_lines": [
+                  105
+                ]
+              },
+              {
+                "evidence_line": 111,
+                "fragment": "SSL_free(ssl);",
+                "matched_lines": [
+                  111
+                ]
+              },
+              {
+                "evidence_line": 112,
+                "fragment": "ssl = NULL;",
+                "matched_lines": [
+                  112
+                ]
+              },
+              {
+                "evidence_line": 115,
+                "fragment": "return -3;",
+                "matched_lines": [
+                  115
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 2,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 17,
+      "states": 4,
+      "values": 4,
+      "executions": 6
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 9757,
+    "output_tokens": 2081,
+    "total_tokens": 11838
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000053",
+    "split": "test",
+    "source_hash": "08ded826ce60b214f74d75d9e2befc5a200ff2cecf30a1e96144ea8209891161",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

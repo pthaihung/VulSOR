@@ -1,0 +1,265 @@
+{
+  "sample_id": "test_000173",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [],
+      "states": [
+        {
+          "entities": [
+            "c"
+          ],
+          "claim": "c is reassigned to the origin class via MRB_CLASS_ORIGIN before its method table is accessed.",
+          "evidence": "L5: MRB_CLASS_ORIGIN(c);"
+        },
+        {
+          "entities": [
+            "h",
+            "c"
+          ],
+          "claim": "h is initialized to the method table pointer c->mt.",
+          "evidence": "L6: h = c->mt;"
+        },
+        {
+          "entities": [
+            "h"
+          ],
+          "claim": "h may be NULL; the method-table deletion path is taken only when h is non-NULL.",
+          "evidence": "L8: if (h && mt_del(mrb, h, mid)) {"
+        }
+      ],
+      "values": [],
+      "executions": [
+        {
+          "entities": [
+            "h",
+            "c->mt"
+          ],
+          "claim": "continuing past line 8 implies h is non-null and mt_del returned nonzero",
+          "evidence": "L8: if (h && mt_del(mrb, h, mid)) {"
+        },
+        {
+          "entities": [
+            "c"
+          ],
+          "claim": "reaching line 12 implies either c->mt was null or mt_del failed",
+          "evidence": "L8: if (h && mt_del(mrb, h, mid)) {\nL12: mrb_name_error(mrb, mid, \"method '%n' not defined in %C\", mid, c);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2109,
+              "output_tokens": 5,
+              "total_tokens": 2114
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2109,
+          "output_tokens": 5,
+          "total_tokens": 2114
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 712,
+              "output_tokens": 143,
+              "total_tokens": 855
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 712,
+          "output_tokens": 143,
+          "total_tokens": 855
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "MRB_CLASS_ORIGIN(c);",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "h = c->mt;",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (h && mt_del(mrb, h, mid)) {",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 900,
+              "output_tokens": 11,
+              "total_tokens": 911
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 900,
+          "output_tokens": 11,
+          "total_tokens": 911
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 580,
+              "output_tokens": 134,
+              "total_tokens": 714
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 580,
+          "output_tokens": 134,
+          "total_tokens": 714
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (h && mt_del(mrb, h, mid)) {",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (h && mt_del(mrb, h, mid)) {",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "mrb_name_error(mrb, mid, \"method '%n' not defined in %C\", mid, c);",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 0,
+      "states": 3,
+      "values": 0,
+      "executions": 2
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4301,
+    "output_tokens": 293,
+    "total_tokens": 4594
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000173",
+    "split": "test",
+    "source_hash": "f592adc307914f5cac0a2d06221fc72019863118ca6888f250e1776cbbaaee37",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

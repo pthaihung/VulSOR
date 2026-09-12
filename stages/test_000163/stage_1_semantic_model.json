@@ -1,0 +1,444 @@
+{
+  "sample_id": "test_000163",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L7"
+          ],
+          "expression": "xmalloc(len)",
+          "claim": "allocate len bytes of memory"
+        },
+        {
+          "locations": [
+            "L13"
+          ],
+          "expression": "crypto_memneq(md, tmp, len)",
+          "claim": "compare len bytes from md and tmp"
+        },
+        {
+          "locations": [
+            "L18"
+          ],
+          "expression": "free(tmp)",
+          "claim": "free the allocated memory"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "tmp"
+          ],
+          "claim": "tmp points to a newly allocated storage region of len bytes.",
+          "evidence": "L7: tmp = xmalloc(len);"
+        },
+        {
+          "entities": [
+            "tmp"
+          ],
+          "claim": "tmp is released; the allocated storage region is no longer live.",
+          "evidence": "L18: free(tmp);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "len",
+            "digest_length(d)",
+            "xmalloc(len)",
+            "crypto_memneq(md, tmp, len)"
+          ],
+          "claim": "len is the digest length returned by digest_length(d) and is used as the allocation size for xmalloc(len) and as the byte count for crypto_memneq(md, tmp, len).",
+          "evidence": "L4: int len = digest_length(d);\nL7: tmp = xmalloc(len);\nL13: if (crypto_memneq(md, tmp, len))"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "tmp",
+            "len"
+          ],
+          "claim": "tmp is allocated with len bytes before any use of tmp",
+          "evidence": "L7: tmp = xmalloc(len);"
+        },
+        {
+          "entities": [
+            "ret",
+            "tmp"
+          ],
+          "claim": "if digest_final returns nonzero, execution skips the comparison and proceeds to free(tmp)",
+          "evidence": "L9: ret = digest_final(d, tmp);\nL10: if (ret)\nL11: goto end;"
+        },
+        {
+          "entities": [
+            "md",
+            "tmp",
+            "len"
+          ],
+          "claim": "crypto_memneq is called with md, tmp, and len only when digest_final returned zero",
+          "evidence": "L13: if (crypto_memneq(md, tmp, len))"
+        },
+        {
+          "entities": [
+            "ret"
+          ],
+          "claim": "ret is -EINVAL if crypto_memneq returns nonzero, otherwise 0",
+          "evidence": "L14: ret = -EINVAL;\nL15: else\nL16: ret = 0;"
+        },
+        {
+          "entities": [
+            "tmp"
+          ],
+          "claim": "tmp is freed exactly once on all paths after allocation",
+          "evidence": "L18: free(tmp);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2129,
+              "output_tokens": 82,
+              "total_tokens": 2211
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2129,
+          "output_tokens": 82,
+          "total_tokens": 2211
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L7",
+                "matched": true,
+                "expression": "xmalloc(len)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L13",
+                "matched": true,
+                "expression": "crypto_memneq(md, tmp, len)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L18",
+                "matched": true,
+                "expression": "free(tmp)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 732,
+              "output_tokens": 88,
+              "total_tokens": 820
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 732,
+          "output_tokens": 88,
+          "total_tokens": 820
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "tmp = xmalloc(len);",
+                "matched_lines": [
+                  7
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "free(tmp);",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 920,
+              "output_tokens": 132,
+              "total_tokens": 1052
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 920,
+          "output_tokens": 132,
+          "total_tokens": 1052
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "int len = digest_length(d);",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 7,
+                "fragment": "tmp = xmalloc(len);",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "if (crypto_memneq(md, tmp, len))",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 600,
+              "output_tokens": 287,
+              "total_tokens": 887
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 600,
+          "output_tokens": 287,
+          "total_tokens": 887
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "tmp = xmalloc(len);",
+                "matched_lines": [
+                  7
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "ret = digest_final(d, tmp);",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "if (ret)",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "goto end;",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "if (crypto_memneq(md, tmp, len))",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "ret = -EINVAL;",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "else",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "ret = 0;",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "free(tmp);",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 3,
+      "states": 2,
+      "values": 1,
+      "executions": 5
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4381,
+    "output_tokens": 589,
+    "total_tokens": 4970
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000163",
+    "split": "test",
+    "source_hash": "6cd751dfa69f68b99d2fb291784d16ad299a48a134bc794cbd32597c9c5bad94",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

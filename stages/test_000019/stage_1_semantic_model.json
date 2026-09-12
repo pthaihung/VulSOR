@@ -10,7 +10,7 @@
             "L33"
           ],
           "expression": "d_inode(parent)",
-          "claim": "dereference of a dentry pointer to obtain its associated inode"
+          "claim": "dereference of a dentry pointer to obtain its inode"
         },
         {
           "locations": [
@@ -21,24 +21,38 @@
         },
         {
           "locations": [
+            "L44"
+          ],
+          "expression": "filemap_write_and_wait(inode->i_mapping)",
+          "claim": "writeback and wait on the inode mapping"
+        },
+        {
+          "locations": [
             "L47"
           ],
           "expression": "NFS_PROTO(dir)->open_context(dir, ctx, openflags, &attr, NULL)",
-          "claim": "invocation of the NFS protocol open_context operation with a context and attribute pointer"
+          "claim": "invocation of the NFS open_context operation with the directory, context, flags, and attribute arguments"
         },
         {
           "locations": [
             "L61"
           ],
           "expression": "d_inode(dentry)",
-          "claim": "dereference of a dentry pointer to obtain its associated inode"
+          "claim": "dereference of a dentry pointer to obtain its inode"
         },
         {
           "locations": [
             "L69"
           ],
           "expression": "put_nfs_open_context(ctx)",
-          "claim": "release of an NFS open context resource"
+          "claim": "release of the NFS open context resource"
+        },
+        {
+          "locations": [
+            "L71"
+          ],
+          "expression": "dput(parent)",
+          "claim": "release of the parent dentry reference"
         }
       ],
       "states": [
@@ -47,52 +61,50 @@
             "parent",
             "dentry"
           ],
-          "claim": "parent is a dentry reference obtained from dentry via dget_parent, holding a reference to the parent dentry.",
-          "evidence": "L32: parent = dget_parent(dentry);"
+          "claim": "parent is initialized to NULL, then set to the parent dentry of dentry via dget_parent, acquiring a reference to that dentry.",
+          "evidence": "L5: struct dentry *parent = NULL;\nL32: parent = dget_parent(dentry);"
         },
         {
           "entities": [
             "dir",
             "parent"
           ],
-          "claim": "dir is the inode associated with the parent dentry.",
+          "claim": "dir is set to the inode of parent.",
           "evidence": "L33: dir = d_inode(parent);"
         },
         {
           "entities": [
             "ctx"
           ],
-          "claim": "ctx is an NFS open context allocated by alloc_nfs_open_context and is either a valid pointer or an error pointer.",
+          "claim": "ctx is allocated by alloc_nfs_open_context and is an error pointer if IS_ERR(ctx) is true.",
           "evidence": "L35: ctx = alloc_nfs_open_context(file_dentry(filp), filp->f_mode, filp);\nL36: err = PTR_ERR(ctx);\nL37: if (IS_ERR(ctx))"
         },
         {
           "entities": [
-            "inode",
-            "dir",
-            "ctx"
+            "inode"
           ],
-          "claim": "inode is reassigned to the result of the protocol open_context operation on dir using ctx.",
-          "evidence": "L47: inode = NFS_PROTO(dir)->open_context(dir, ctx, openflags, &attr, NULL);"
+          "claim": "inode is reassigned to the result of NFS_PROTO(dir)->open_context, which may be an error pointer.",
+          "evidence": "L47: inode = NFS_PROTO(dir)->open_context(dir, ctx, openflags, &attr, NULL);\nL48: if (IS_ERR(inode)) {"
         },
         {
           "entities": [
             "ctx"
           ],
-          "claim": "ctx is released by put_nfs_open_context on the out_put_ctx path.",
+          "claim": "ctx is released by put_nfs_open_context at out_put_ctx.",
           "evidence": "L69: put_nfs_open_context(ctx);"
         },
         {
           "entities": [
             "parent"
           ],
-          "claim": "parent dentry reference is released by dput on the out path.",
+          "claim": "parent is released by dput at out.",
           "evidence": "L71: dput(parent);"
         },
         {
           "entities": [
             "dentry"
           ],
-          "claim": "dentry is dropped by d_drop on the out_drop path.",
+          "claim": "dentry is dropped by d_drop at out_drop.",
           "evidence": "L75: d_drop(dentry);"
         }
       ],
@@ -105,18 +117,8 @@
             "O_EXCL",
             "O_TRUNC"
           ],
-          "claim": "openflags is initialized from filp->f_flags, then if (openflags & O_ACCMODE)==3 it is decremented by 1, and then O_CREAT|O_EXCL bits are cleared; O_TRUNC is tested after these modifications.",
-          "evidence": "L7: unsigned openflags = filp->f_flags;\nL26: if ((openflags & O_ACCMODE) == 3)\nL27: openflags--;\nL30: openflags &= ~(O_CREAT|O_EXCL);\nL41: if (openflags & O_TRUNC) {"
-        },
-        {
-          "entities": [
-            "attr.ia_size",
-            "attr.ia_valid",
-            "ATTR_OPEN",
-            "ATTR_SIZE"
-          ],
-          "claim": "attr.ia_valid is set to ATTR_OPEN, and when openflags has O_TRUNC, ATTR_SIZE is added and attr.ia_size is set to 0.",
-          "evidence": "L40: attr.ia_valid = ATTR_OPEN;\nL42: attr.ia_valid |= ATTR_SIZE;\nL43: attr.ia_size = 0;"
+          "claim": "openflags is initialized from filp->f_flags, then if (openflags & O_ACCMODE)==3 it is decremented by 1, and O_CREAT|O_EXCL bits are cleared; O_TRUNC bit is tested to set ATTR_SIZE and attr.ia_size=0.",
+          "evidence": "L7: unsigned openflags = filp->f_flags;\nL26: if ((openflags & O_ACCMODE) == 3)\nL27: openflags--;\nL30: openflags &= ~(O_CREAT|O_EXCL);\nL41: if (openflags & O_TRUNC) {\nL42: attr.ia_valid |= ATTR_SIZE;\nL43: attr.ia_size = 0;"
         }
       ],
       "executions": [
@@ -124,37 +126,30 @@
           "entities": [
             "openflags"
           ],
-          "claim": "After nfs_check_flags succeeds, openflags is the original filp->f_flags with O_ACCMODE==3 decremented and O_CREAT/O_EXCL cleared; it is then passed to open_context.",
-          "evidence": "L22: err = nfs_check_flags(openflags);\nL23: if (err)\nL24: return err;\nL26: if ((openflags & O_ACCMODE) == 3)\nL27: openflags--;\nL30: openflags &= ~(O_CREAT|O_EXCL);\nL47: inode = NFS_PROTO(dir)->open_context(dir, ctx, openflags, &attr, NULL);"
+          "claim": "After nfs_check_flags succeeds, openflags is the original filp->f_flags with O_ACCMODE != 3 and O_CREAT/O_EXCL cleared.",
+          "evidence": "L7: unsigned openflags = filp->f_flags;\nL22: err = nfs_check_flags(openflags);\nL23: if (err)\nL24: return err;\nL26: if ((openflags & O_ACCMODE) == 3)\nL27: openflags--;\nL30: openflags &= ~(O_CREAT|O_EXCL);"
         },
         {
           "entities": [
             "ctx"
           ],
-          "claim": "Continuing past alloc_nfs_open_context implies ctx is not an error pointer; on the out_put_ctx path ctx is valid and is put.",
-          "evidence": "L35: ctx = alloc_nfs_open_context(file_dentry(filp), filp->f_mode, filp);\nL36: err = PTR_ERR(ctx);\nL37: if (IS_ERR(ctx))\nL38: goto out;\nL68: out_put_ctx:\nL69: put_nfs_open_context(ctx);"
+          "claim": "Continuing past the IS_ERR(ctx) check implies ctx is a valid non-error pointer.",
+          "evidence": "L35: ctx = alloc_nfs_open_context(file_dentry(filp), filp->f_mode, filp);\nL36: err = PTR_ERR(ctx);\nL37: if (IS_ERR(ctx))\nL38: goto out;"
+        },
+        {
+          "entities": [
+            "inode"
+          ],
+          "claim": "Continuing past the IS_ERR(inode) check implies inode is a valid non-error pointer returned by open_context.",
+          "evidence": "L47: inode = NFS_PROTO(dir)->open_context(dir, ctx, openflags, &attr, NULL);\nL48: if (IS_ERR(inode)) {\nL49: err = PTR_ERR(inode);"
         },
         {
           "entities": [
             "inode",
             "dentry"
           ],
-          "claim": "Continuing past the IS_ERR(inode) check implies inode is a valid pointer; reaching nfs_file_set_open_context additionally implies inode == d_inode(dentry).",
-          "evidence": "L47: inode = NFS_PROTO(dir)->open_context(dir, ctx, openflags, &attr, NULL);\nL48: if (IS_ERR(inode)) {\nL61: if (inode != d_inode(dentry))\nL62: goto out_drop;\nL64: nfs_file_set_open_context(filp, ctx);"
-        },
-        {
-          "entities": [
-            "err"
-          ],
-          "claim": "On the out_drop path err is set to -EOPENSTALE before going to out_put_ctx; on the normal path err is set to 0 before out_put_ctx.",
-          "evidence": "L66: err = 0;\nL74: out_drop:\nL75: d_drop(dentry);\nL76: err = -EOPENSTALE;\nL77: goto out_put_ctx;"
-        },
-        {
-          "entities": [
-            "parent"
-          ],
-          "claim": "After dget_parent succeeds, parent is non-NULL and is dput on the out path.",
-          "evidence": "L32: parent = dget_parent(dentry);\nL33: dir = d_inode(parent);\nL70: out:\nL71: dput(parent);"
+          "claim": "Continuing past the inode != d_inode(dentry) check implies inode equals d_inode(dentry).",
+          "evidence": "L61: if (inode != d_inode(dentry))\nL62: goto out_drop;"
         }
       ]
     },
@@ -168,8 +163,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 2814,
-              "output_tokens": 195,
-              "total_tokens": 3009
+              "output_tokens": 258,
+              "total_tokens": 3072
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -177,8 +172,8 @@
         ],
         "token_usage": {
           "input_tokens": 2814,
-          "output_tokens": 195,
-          "total_tokens": 3009
+          "output_tokens": 258,
+          "total_tokens": 3072
         },
         "grounding": {
           "operation_agent.operations[0]": {
@@ -204,6 +199,16 @@
           "operation_agent.operations[2]": {
             "expression_matches": [
               {
+                "location": "L44",
+                "matched": true,
+                "expression": "filemap_write_and_wait(inode->i_mapping)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
                 "location": "L47",
                 "matched": true,
                 "expression": "NFS_PROTO(dir)->open_context(dir, ctx, openflags, &attr, NULL)"
@@ -211,7 +216,7 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[3]": {
+          "operation_agent.operations[4]": {
             "expression_matches": [
               {
                 "location": "L61",
@@ -221,12 +226,22 @@
             ],
             "status": "pass"
           },
-          "operation_agent.operations[4]": {
+          "operation_agent.operations[5]": {
             "expression_matches": [
               {
                 "location": "L69",
                 "matched": true,
                 "expression": "put_nfs_open_context(ctx)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L71",
+                "matched": true,
+                "expression": "dput(parent)"
               }
             ],
             "status": "pass"
@@ -243,8 +258,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 1417,
-              "output_tokens": 363,
-              "total_tokens": 1780
+              "output_tokens": 401,
+              "total_tokens": 1818
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -252,12 +267,19 @@
         ],
         "token_usage": {
           "input_tokens": 1417,
-          "output_tokens": 363,
-          "total_tokens": 1780
+          "output_tokens": 401,
+          "total_tokens": 1818
         },
         "grounding": {
           "state_agent.states[0]": {
             "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "struct dentry *parent = NULL;",
+                "matched_lines": [
+                  5
+                ]
+              },
               {
                 "evidence_line": 32,
                 "fragment": "parent = dget_parent(dentry);",
@@ -314,6 +336,13 @@
                 "matched_lines": [
                   47
                 ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "if (IS_ERR(inode)) {",
+                "matched_lines": [
+                  48
+                ]
               }
             ],
             "status": "pass"
@@ -355,7 +384,43 @@
             "status": "pass"
           }
         },
-        "item_recovery": []
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          }
+        ]
       },
       "value_agent": {
         "status": "passed",
@@ -366,8 +431,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 1605,
-              "output_tokens": 293,
-              "total_tokens": 1898
+              "output_tokens": 219,
+              "total_tokens": 1824
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -375,8 +440,8 @@
         ],
         "token_usage": {
           "input_tokens": 1605,
-          "output_tokens": 293,
-          "total_tokens": 1898
+          "output_tokens": 219,
+          "total_tokens": 1824
         },
         "grounding": {
           "value_agent.values[0]": {
@@ -415,18 +480,6 @@
                 "matched_lines": [
                   41
                 ]
-              }
-            ],
-            "status": "pass"
-          },
-          "value_agent.values[1]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 40,
-                "fragment": "attr.ia_valid = ATTR_OPEN;",
-                "matched_lines": [
-                  40
-                ]
               },
               {
                 "evidence_line": 42,
@@ -451,11 +504,6 @@
             "action": "repair_evidence",
             "index": 0,
             "collection": "values"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 1,
-            "collection": "values"
           }
         ]
       },
@@ -468,8 +516,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 1285,
-              "output_tokens": 651,
-              "total_tokens": 1936
+              "output_tokens": 458,
+              "total_tokens": 1743
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -477,12 +525,19 @@
         ],
         "token_usage": {
           "input_tokens": 1285,
-          "output_tokens": 651,
-          "total_tokens": 1936
+          "output_tokens": 458,
+          "total_tokens": 1743
         },
         "grounding": {
           "execution_agent.executions[0]": {
             "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "unsigned openflags = filp->f_flags;",
+                "matched_lines": [
+                  7
+                ]
+              },
               {
                 "evidence_line": 22,
                 "fragment": "err = nfs_check_flags(openflags);",
@@ -524,13 +579,6 @@
                 "matched_lines": [
                   30
                 ]
-              },
-              {
-                "evidence_line": 47,
-                "fragment": "inode = NFS_PROTO(dir)->open_context(dir, ctx, openflags, &attr, NULL);",
-                "matched_lines": [
-                  47
-                ]
               }
             ],
             "status": "pass"
@@ -564,20 +612,6 @@
                 "matched_lines": [
                   38
                 ]
-              },
-              {
-                "evidence_line": 68,
-                "fragment": "out_put_ctx:",
-                "matched_lines": [
-                  68
-                ]
-              },
-              {
-                "evidence_line": 69,
-                "fragment": "put_nfs_open_context(ctx);",
-                "matched_lines": [
-                  69
-                ]
               }
             ],
             "status": "pass"
@@ -599,6 +633,18 @@
                 ]
               },
               {
+                "evidence_line": 49,
+                "fragment": "err = PTR_ERR(inode);",
+                "matched_lines": [
+                  49
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
                 "evidence_line": 61,
                 "fragment": "if (inode != d_inode(dentry))",
                 "matched_lines": [
@@ -610,86 +656,6 @@
                 "fragment": "goto out_drop;",
                 "matched_lines": [
                   62
-                ]
-              },
-              {
-                "evidence_line": 64,
-                "fragment": "nfs_file_set_open_context(filp, ctx);",
-                "matched_lines": [
-                  64
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[3]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 66,
-                "fragment": "err = 0;",
-                "matched_lines": [
-                  66
-                ]
-              },
-              {
-                "evidence_line": 74,
-                "fragment": "out_drop:",
-                "matched_lines": [
-                  74
-                ]
-              },
-              {
-                "evidence_line": 75,
-                "fragment": "d_drop(dentry);",
-                "matched_lines": [
-                  75
-                ]
-              },
-              {
-                "evidence_line": 76,
-                "fragment": "err = -EOPENSTALE;",
-                "matched_lines": [
-                  76
-                ]
-              },
-              {
-                "evidence_line": 77,
-                "fragment": "goto out_put_ctx;",
-                "matched_lines": [
-                  77
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[4]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 32,
-                "fragment": "parent = dget_parent(dentry);",
-                "matched_lines": [
-                  32
-                ]
-              },
-              {
-                "evidence_line": 33,
-                "fragment": "dir = d_inode(parent);",
-                "matched_lines": [
-                  33
-                ]
-              },
-              {
-                "evidence_line": 70,
-                "fragment": "out:",
-                "matched_lines": [
-                  70
-                ]
-              },
-              {
-                "evidence_line": 71,
-                "fragment": "dput(parent);",
-                "matched_lines": [
-                  71
                 ]
               }
             ],
@@ -716,11 +682,6 @@
             "action": "repair_evidence",
             "index": 3,
             "collection": "executions"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 4,
-            "collection": "executions"
           }
         ]
       }
@@ -731,10 +692,10 @@
     "agent_count": 4,
     "mode": "independent_global_views",
     "counts": {
-      "operations": 5,
+      "operations": 7,
       "states": 7,
-      "values": 2,
-      "executions": 5
+      "values": 1,
+      "executions": 4
     },
     "schema_version": "semantic-claims-v4.13",
     "operation_normalization": {
@@ -743,8 +704,8 @@
   },
   "token_usage": {
     "input_tokens": 7121,
-    "output_tokens": 1502,
-    "total_tokens": 8623
+    "output_tokens": 1336,
+    "total_tokens": 8457
   },
   "artifact_metadata": {
     "schema_version": "semantic-claims-v4.13",

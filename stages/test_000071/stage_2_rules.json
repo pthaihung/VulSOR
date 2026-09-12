@@ -1,0 +1,190 @@
+{
+  "sample_id": "test_000071",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "rules",
+  "agent_key": "obligation_reasoner",
+  "output": {
+    "rules": [
+      {
+        "locations": [
+          "L2"
+        ],
+        "expression": "context->input(1)",
+        "requirements": [
+          "the context must have a valid input tensor at index 1"
+        ]
+      },
+      {
+        "locations": [
+          "L5"
+        ],
+        "expression": "context->forward_ref_input_to_ref_output(0, 0)",
+        "requirements": [
+          "the context must have a valid input ref at index 0",
+          "the context must have a valid output ref at index 0"
+        ]
+      },
+      {
+        "locations": [
+          "L24"
+        ],
+        "expression": "*context->input_ref_mutex(0)",
+        "requirements": [
+          "the context must have a valid input ref mutex pointer at index 0"
+        ]
+      },
+      {
+        "locations": [
+          "L25"
+        ],
+        "expression": "context->mutable_input(0, true)",
+        "requirements": [
+          "the context must have a valid mutable input tensor at index 0",
+          "the input ref mutex for index 0 must be held"
+        ]
+      },
+      {
+        "locations": [
+          "L52"
+        ],
+        "expression": "reshaped_old_lhs.CopyFrom(old_lhs, rhs.shape())",
+        "requirements": [
+          "the source tensor old_lhs must have a readable extent sufficient for the element count of rhs.shape()",
+          "the destination tensor reshaped_old_lhs must have a writable extent sufficient for the element count of rhs.shape()"
+        ]
+      },
+      {
+        "locations": [
+          "L53"
+        ],
+        "expression": "context->replace_ref_input(0, reshaped_old_lhs, true)",
+        "requirements": [
+          "the context must have a valid input ref at index 0",
+          "the input ref mutex for index 0 must be held"
+        ]
+      },
+      {
+        "locations": [
+          "L57"
+        ],
+        "expression": "Copy(context, &reshaped_old_lhs, rhs)",
+        "requirements": [
+          "the source tensor rhs must have a readable extent sufficient for its element count",
+          "the destination tensor reshaped_old_lhs must have a writable extent sufficient for the element count of rhs"
+        ]
+      },
+      {
+        "locations": [
+          "L62"
+        ],
+        "expression": "context->forward_input(1, ..., rhs.dtype(), rhs.shape(), DEVICE_MEMORY, attr)",
+        "requirements": [
+          "the context must have a valid input tensor at index 1"
+        ]
+      },
+      {
+        "locations": [
+          "L67"
+        ],
+        "expression": "context->replace_ref_input(0, *input_alias, true)",
+        "requirements": [
+          "the input_alias pointer must designate a valid tensor",
+          "the context must have a valid input ref at index 0",
+          "the input ref mutex for index 0 must be held"
+        ]
+      },
+      {
+        "locations": [
+          "L75"
+        ],
+        "expression": "context->allocate_temp(old_lhs.dtype(), rhs.shape(), &copy_tensor, attr)",
+        "requirements": [
+          "the context must be able to allocate a temporary tensor with the element count of rhs.shape()"
+        ]
+      },
+      {
+        "locations": [
+          "L80"
+        ],
+        "expression": "context->replace_ref_input(0, copy_tensor, true)",
+        "requirements": [
+          "the context must have a valid input ref at index 0",
+          "the input ref mutex for index 0 must be held"
+        ]
+      },
+      {
+        "locations": [
+          "L82"
+        ],
+        "expression": "Copy(context, &copy_tensor, rhs)",
+        "requirements": [
+          "the source tensor rhs must have a readable extent sufficient for its element count",
+          "the destination tensor copy_tensor must have a writable extent sufficient for the element count of rhs"
+        ]
+      },
+      {
+        "locations": [
+          "L91"
+        ],
+        "expression": "context->mutable_input(0, false)",
+        "requirements": [
+          "the context must have a valid mutable input tensor at index 0"
+        ]
+      },
+      {
+        "locations": [
+          "L92"
+        ],
+        "expression": "Copy(context, &old_unlocked_lhs, rhs)",
+        "requirements": [
+          "the source tensor rhs must have a readable extent sufficient for its element count",
+          "the destination tensor old_unlocked_lhs must have a writable extent sufficient for the element count of rhs"
+        ]
+      }
+    ]
+  },
+  "quality_gate": {
+    "status": "passed",
+    "attempts": [
+      {
+        "attempt": 1,
+        "retry_mode": "initial",
+        "errors": [],
+        "token_usage": {
+          "input_tokens": 3291,
+          "output_tokens": 843,
+          "total_tokens": 4134
+        },
+        "max_tokens": 8192,
+        "serialization_prefix_recovered": false
+      }
+    ],
+    "token_usage": {
+      "input_tokens": 3291,
+      "output_tokens": 843,
+      "total_tokens": 4134
+    },
+    "safety_relevance_filter": {
+      "input_operation_groups": 17,
+      "kept_obligations": 14,
+      "filtered_non_safety_candidates": 3
+    }
+  },
+  "token_usage": {
+    "input_tokens": 3291,
+    "output_tokens": 843,
+    "total_tokens": 4134
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "rules",
+    "sample_id": "test_000071",
+    "split": "test",
+    "source_hash": "4643d5369cce6ca87c04ac6f73fd4f968a9ec355f1665ec418f7125d23bd8c66",
+    "upstream_hashes": {
+      "semantic_model": "4def7fbb59e0dfbc4093a3d0502c8011e416ac18035f8174579d2d0b39ddd598"
+    },
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

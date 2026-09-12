@@ -1,0 +1,884 @@
+{
+  "sample_id": "test_000168",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L4"
+          ],
+          "expression": "v->tensor()",
+          "claim": "dereference of RefCountPtr<Var> v to access its tensor member"
+        },
+        {
+          "locations": [
+            "L36"
+          ],
+          "expression": "indices.flat<Index>()",
+          "claim": "flat accessor on indices tensor"
+        },
+        {
+          "locations": [
+            "L37"
+          ],
+          "expression": "params->flat_outer_dims<T>()",
+          "claim": "flat_outer_dims accessor on params tensor"
+        },
+        {
+          "locations": [
+            "L39"
+          ],
+          "expression": "updates.scalar<T>()",
+          "claim": "scalar accessor on updates tensor"
+        },
+        {
+          "locations": [
+            "L47",
+            "L65"
+          ],
+          "expression": "indices_flat(bad_i)",
+          "claim": "indexed access into indices_flat at bad_i"
+        },
+        {
+          "locations": [
+            "L57"
+          ],
+          "expression": "updates.shaped<T, 2>({N, num_updates / N})",
+          "claim": "shaped accessor on updates tensor with computed dimensions"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "v",
+            "LookupResource",
+            "HandleFromInput"
+          ],
+          "claim": "v is a RefCountPtr<Var> that is populated by LookupResource from the resource handle obtained by HandleFromInput(c, 0); on success it owns a reference to the looked-up Var resource.",
+          "evidence": "L2: core::RefCountPtr<Var> v;\nL3: OP_REQUIRES_OK(c, LookupResource(c, HandleFromInput(c, 0), &v));"
+        },
+        {
+          "entities": [
+            "v",
+            "params"
+          ],
+          "claim": "params points to the Tensor owned by the Var resource referenced by v.",
+          "evidence": "L4: Tensor* params = v->tensor();"
+        },
+        {
+          "entities": [
+            "indices",
+            "c"
+          ],
+          "claim": "indices refers to the input tensor at index 1 of the OpKernelContext.",
+          "evidence": "L5: const Tensor& indices = c->input(1);"
+        },
+        {
+          "entities": [
+            "updates",
+            "c"
+          ],
+          "claim": "updates refers to the input tensor at index 2 of the OpKernelContext.",
+          "evidence": "L6: const Tensor& updates = c->input(2);"
+        },
+        {
+          "entities": [
+            "indices",
+            "indices_flat"
+          ],
+          "claim": "indices_flat is a flat view over the storage of the indices tensor.",
+          "evidence": "L36: auto indices_flat = indices.flat<Index>();"
+        },
+        {
+          "entities": [
+            "params",
+            "params_flat"
+          ],
+          "claim": "params_flat is a flat outer-dims view over the storage of the params tensor.",
+          "evidence": "L37: auto params_flat = params->flat_outer_dims<T>();"
+        },
+        {
+          "entities": [
+            "updates",
+            "update"
+          ],
+          "claim": "update is a scalar view over the storage of the updates tensor.",
+          "evidence": "L39: const auto update = updates.scalar<T>();"
+        },
+        {
+          "entities": [
+            "updates",
+            "updates_flat"
+          ],
+          "claim": "updates_flat is a 2-D shaped view over the storage of the updates tensor.",
+          "evidence": "L57: auto updates_flat = updates.shaped<T, 2>({N, num_updates / N});"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "N_big",
+            "Index",
+            "N"
+          ],
+          "claim": "N_big is the number of elements in indices; it is checked to be <= numeric_limits<Index>::max() and then cast to Index N, so N is a valid Index count of indices elements.",
+          "evidence": "L20: const int64_t N_big = indices.NumElements();\nL22: c, N_big <= std::numeric_limits<Index>::max(),\nL27: const Index N = static_cast<Index>(N_big);"
+        },
+        {
+          "entities": [
+            "params",
+            "Index"
+          ],
+          "claim": "params->dim_size(0) is checked to be <= numeric_limits<Index>::max(), bounding the first dimension of params by the Index range.",
+          "evidence": "L29: c, params->dim_size(0) <= std::numeric_limits<Index>::max(),"
+        },
+        {
+          "entities": [
+            "updates",
+            "indices",
+            "params"
+          ],
+          "claim": "updates.dims() must be 0 or equal to indices.dims() + params->dims() - 1.",
+          "evidence": "L10: updates.dims() == 0 ||\nL11: updates.dims() == indices.dims() + params->dims() - 1,"
+        },
+        {
+          "entities": [
+            "updates",
+            "indices",
+            "num_updates",
+            "N",
+            "updates_flat"
+          ],
+          "claim": "num_updates is the total number of elements in updates; updates is reshaped to 2-D {N, num_updates / N}, so the second dimension is the integer quotient num_updates / N.",
+          "evidence": "L50: int64_t num_updates = updates.NumElements();\nL57: auto updates_flat = updates.shaped<T, 2>({N, num_updates / N});"
+        },
+        {
+          "entities": [
+            "updates",
+            "indices"
+          ],
+          "claim": "The shape of indices must be a prefix of the shape of updates.",
+          "evidence": "L52: c, TensorShapeUtils::StartsWith(updates.shape(), indices.shape()),"
+        },
+        {
+          "entities": [
+            "indices_flat",
+            "bad_i"
+          ],
+          "claim": "indices_flat is indexed by bad_i when bad_i >= 0, and bad_i is required to be < 0 for success.",
+          "evidence": "L44: OP_REQUIRES(c, bad_i < 0,\nL47: \" = \", indices_flat(bad_i), \" is not in [0, \",\nL62: OP_REQUIRES(c, bad_i < 0,\nL65: \" = \", indices_flat(bad_i), \" is not in [0, \","
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "updates.dims()",
+            "indices.dims()",
+            "params->dims()"
+          ],
+          "claim": "continuing past the rank check implies updates.dims() == 0 or updates.dims() == indices.dims() + params->dims() - 1",
+          "evidence": "L9: OP_REQUIRES(c,\nL10: updates.dims() == 0 ||\nL11: updates.dims() == indices.dims() + params->dims() - 1,"
+        },
+        {
+          "entities": [
+            "N_big",
+            "Index"
+          ],
+          "claim": "continuing past this check implies N_big <= numeric_limits<Index>::max(), so the cast to Index at L27 is value-preserving",
+          "evidence": "L20: const int64_t N_big = indices.NumElements();\nL21: OP_REQUIRES(\nL22: c, N_big <= std::numeric_limits<Index>::max(),"
+        },
+        {
+          "entities": [
+            "params->dim_size(0)",
+            "Index"
+          ],
+          "claim": "continuing past this check implies params->dim_size(0) <= numeric_limits<Index>::max()",
+          "evidence": "L28: OP_REQUIRES(\nL29: c, params->dim_size(0) <= std::numeric_limits<Index>::max(),"
+        },
+        {
+          "entities": [
+            "N",
+            "indices_flat",
+            "params_flat"
+          ],
+          "claim": "the flat-indexing block is entered only when N > 0, so indices_flat and params_flat are accessed with a nonempty index set",
+          "evidence": "L35: if (N > 0) {\nL36: auto indices_flat = indices.flat<Index>();\nL37: auto params_flat = params->flat_outer_dims<T>();"
+        },
+        {
+          "entities": [
+            "updates.shape()",
+            "indices.shape()",
+            "N",
+            "num_updates"
+          ],
+          "claim": "in the non-scalar-updates branch, continuing past the prefix check implies indices.shape() is a prefix of updates.shape(), and updates_flat is shaped as {N, num_updates / N}",
+          "evidence": "L50: int64_t num_updates = updates.NumElements();\nL51: OP_REQUIRES(\nL52: c, TensorShapeUtils::StartsWith(updates.shape(), indices.shape()),\nL57: auto updates_flat = updates.shaped<T, 2>({N, num_updates / N});"
+        },
+        {
+          "entities": [
+            "bad_i",
+            "indices_flat",
+            "params->dim_size(0)"
+          ],
+          "claim": "continuing past the scalar-updates scatter check implies bad_i < 0, i.e. no index in indices_flat was out of [0, params->dim_size(0))",
+          "evidence": "L42: const Index bad_i = functor(c, c->template eigen_device<Device>(),\nL43: params_flat, update, indices_flat);\nL44: OP_REQUIRES(c, bad_i < 0,"
+        },
+        {
+          "entities": [
+            "bad_i",
+            "indices_flat",
+            "params->dim_size(0)"
+          ],
+          "claim": "continuing past the non-scalar-updates scatter check implies bad_i < 0, i.e. no index in indices_flat was out of [0, params->dim_size(0))",
+          "evidence": "L60: const Index bad_i = functor(c, c->template eigen_device<Device>(),\nL61: params_flat, updates_flat, indices_flat);\nL62: OP_REQUIRES(c, bad_i < 0,"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2986,
+              "output_tokens": 204,
+              "total_tokens": 3190
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2986,
+          "output_tokens": 204,
+          "total_tokens": 3190
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L4",
+                "matched": true,
+                "expression": "v->tensor()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L36",
+                "matched": true,
+                "expression": "indices.flat<Index>()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L37",
+                "matched": true,
+                "expression": "params->flat_outer_dims<T>()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L39",
+                "matched": true,
+                "expression": "updates.scalar<T>()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L47",
+                "matched": true,
+                "expression": "indices_flat(bad_i)"
+              },
+              {
+                "location": "L65",
+                "matched": true,
+                "expression": "indices_flat(bad_i)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L57",
+                "matched": true,
+                "expression": "updates.shaped<T, 2>({N, num_updates / N})"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1589,
+              "output_tokens": 477,
+              "total_tokens": 2066
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1589,
+          "output_tokens": 477,
+          "total_tokens": 2066
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "core::RefCountPtr<Var> v;",
+                "matched_lines": [
+                  2
+                ]
+              },
+              {
+                "evidence_line": 3,
+                "fragment": "OP_REQUIRES_OK(c, LookupResource(c, HandleFromInput(c, 0), &v));",
+                "matched_lines": [
+                  3
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "Tensor* params = v->tensor();",
+                "matched_lines": [
+                  4
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "const Tensor& indices = c->input(1);",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "const Tensor& updates = c->input(2);",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 36,
+                "fragment": "auto indices_flat = indices.flat<Index>();",
+                "matched_lines": [
+                  36
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 37,
+                "fragment": "auto params_flat = params->flat_outer_dims<T>();",
+                "matched_lines": [
+                  37
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 39,
+                "fragment": "const auto update = updates.scalar<T>();",
+                "matched_lines": [
+                  39
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "auto updates_flat = updates.shaped<T, 2>({N, num_updates / N});",
+                "matched_lines": [
+                  57
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1777,
+              "output_tokens": 602,
+              "total_tokens": 2379
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1777,
+          "output_tokens": 602,
+          "total_tokens": 2379
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "const int64_t N_big = indices.NumElements();",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "c, N_big <= std::numeric_limits<Index>::max(),",
+                "matched_lines": [
+                  22
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "const Index N = static_cast<Index>(N_big);",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "c, params->dim_size(0) <= std::numeric_limits<Index>::max(),",
+                "matched_lines": [
+                  29
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "updates.dims() == 0 ||",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "updates.dims() == indices.dims() + params->dims() - 1,",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "int64_t num_updates = updates.NumElements();",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "auto updates_flat = updates.shaped<T, 2>({N, num_updates / N});",
+                "matched_lines": [
+                  57
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 52,
+                "fragment": "c, TensorShapeUtils::StartsWith(updates.shape(), indices.shape()),",
+                "matched_lines": [
+                  52
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "OP_REQUIRES(c, bad_i < 0,",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "\" = \", indices_flat(bad_i), \" is not in [0, \",",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "OP_REQUIRES(c, bad_i < 0,",
+                "matched_lines": [
+                  62
+                ]
+              },
+              {
+                "evidence_line": 65,
+                "fragment": "\" = \", indices_flat(bad_i), \" is not in [0, \",",
+                "matched_lines": [
+                  65
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1457,
+              "output_tokens": 807,
+              "total_tokens": 2264
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1457,
+          "output_tokens": 807,
+          "total_tokens": 2264
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "OP_REQUIRES(c,",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "updates.dims() == 0 ||",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "updates.dims() == indices.dims() + params->dims() - 1,",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "const int64_t N_big = indices.NumElements();",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 21,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "c, N_big <= std::numeric_limits<Index>::max(),",
+                "matched_lines": [
+                  22
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 28,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "c, params->dim_size(0) <= std::numeric_limits<Index>::max(),",
+                "matched_lines": [
+                  29
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 35,
+                "fragment": "if (N > 0) {",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "auto indices_flat = indices.flat<Index>();",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "auto params_flat = params->flat_outer_dims<T>();",
+                "matched_lines": [
+                  37
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "int64_t num_updates = updates.NumElements();",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "c, TensorShapeUtils::StartsWith(updates.shape(), indices.shape()),",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "auto updates_flat = updates.shaped<T, 2>({N, num_updates / N});",
+                "matched_lines": [
+                  57
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 42,
+                "fragment": "const Index bad_i = functor(c, c->template eigen_device<Device>(),",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "params_flat, update, indices_flat);",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "OP_REQUIRES(c, bad_i < 0,",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 60,
+                "fragment": "const Index bad_i = functor(c, c->template eigen_device<Device>(),",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "params_flat, updates_flat, indices_flat);",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "OP_REQUIRES(c, bad_i < 0,",
+                "matched_lines": [
+                  62
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 6,
+      "states": 8,
+      "values": 6,
+      "executions": 7
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 7809,
+    "output_tokens": 2090,
+    "total_tokens": 9899
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000168",
+    "split": "test",
+    "source_hash": "7873684ceb81e1ba9c2db348addf35cdef2dafead091d87ce2961c655aaaf7a9",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

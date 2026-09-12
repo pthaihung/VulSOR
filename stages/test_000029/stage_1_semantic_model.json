@@ -1,0 +1,749 @@
+{
+  "sample_id": "test_000029",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L18"
+          ],
+          "expression": "xla::Compiler::GetForPlatform(platform.ValueOrDie())",
+          "claim": "obtain an XLA compiler for the platform"
+        },
+        {
+          "locations": [
+            "L39"
+          ],
+          "expression": "platform.ValueOrDie()",
+          "claim": "dereference the StatusOr platform value"
+        },
+        {
+          "locations": [
+            "L41"
+          ],
+          "expression": "device->tensorflow_cpu_worker_threads()->num_threads",
+          "claim": "access the CPU worker thread count through the device"
+        },
+        {
+          "locations": [
+            "L45"
+          ],
+          "expression": "flr->config_proto()->gpu_options().visible_device_list()",
+          "claim": "access the visible device list from the config proto"
+        },
+        {
+          "locations": [
+            "L62"
+          ],
+          "expression": "client.ValueOrDie()",
+          "claim": "dereference the StatusOr client value"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "*cache"
+          ],
+          "claim": "*cache is assigned a newly allocated XlaCompilationCache object when platform_info has xla_device_metadata.",
+          "evidence": "L5: *cache = new XlaCompilationCache(\nL6: platform_info.xla_device_metadata()->client(),\nL7: platform_info.xla_device_metadata()->jit_device_type());"
+        },
+        {
+          "entities": [
+            "*cache"
+          ],
+          "claim": "*cache is assigned a newly allocated XlaCompilationCache object constructed from the local client and the registered compilation device type.",
+          "evidence": "L61: *cache = new XlaCompilationCache(\nL62: client.ValueOrDie(), DeviceType(registration->compilation_device_name));"
+        },
+        {
+          "entities": [
+            "platform"
+          ],
+          "claim": "platform is a StatusOr holding the platform obtained from MultiPlatformManager by platform_info.platform_id().",
+          "evidence": "L11: auto platform =\nL12: se::MultiPlatformManager::PlatformWithId(platform_info.platform_id());"
+        },
+        {
+          "entities": [
+            "compiler_for_platform"
+          ],
+          "claim": "compiler_for_platform is a StatusOr holding the compiler obtained from xla::Compiler::GetForPlatform for the resolved platform.",
+          "evidence": "L17: StatusOr<xla::Compiler*> compiler_for_platform =\nL18: xla::Compiler::GetForPlatform(platform.ValueOrDie());"
+        },
+        {
+          "entities": [
+            "client"
+          ],
+          "claim": "client is a StatusOr holding the local client obtained from xla::ClientLibrary::GetOrCreateLocalClient with client_options.",
+          "evidence": "L51: auto client = xla::ClientLibrary::GetOrCreateLocalClient(client_options);"
+        },
+        {
+          "entities": [
+            "registration"
+          ],
+          "claim": "registration is a pointer to the DeviceRegistration populated by XlaOpRegistry::GetCompilationDevice for the platform_info device type.",
+          "evidence": "L55: const XlaOpRegistry::DeviceRegistration* registration;\nL56: if (!XlaOpRegistry::GetCompilationDevice(platform_info.device_type().type(),\nL57: &registration)) {"
+        }
+      ],
+      "values": [],
+      "executions": [
+        {
+          "entities": [
+            "platform_info.xla_device_metadata()"
+          ],
+          "claim": "If xla_device_metadata() is non-null, the function returns immediately after constructing the cache from the metadata client and jit_device_type; no platform lookup or compiler resolution occurs.",
+          "evidence": "L4: if (platform_info.xla_device_metadata()) {\nL5: *cache = new XlaCompilationCache(\nL6: platform_info.xla_device_metadata()->client(),\nL7: platform_info.xla_device_metadata()->jit_device_type());\nL8: return Status::OK();"
+        },
+        {
+          "entities": [
+            "platform"
+          ],
+          "claim": "Continuing past the platform lookup implies platform.ok() is true, so platform.ValueOrDie() is valid for subsequent compiler and client setup.",
+          "evidence": "L11: auto platform =\nL12: se::MultiPlatformManager::PlatformWithId(platform_info.platform_id());\nL13: if (!platform.ok()) {\nL14: return platform.status();\nL15: }"
+        },
+        {
+          "entities": [
+            "compiler_for_platform"
+          ],
+          "claim": "If compiler_for_platform is not ok and its status code is NOT_FOUND, the function returns Unimplemented; otherwise execution continues even when compiler_for_platform is not ok.",
+          "evidence": "L17: StatusOr<xla::Compiler*> compiler_for_platform =\nL18: xla::Compiler::GetForPlatform(platform.ValueOrDie());\nL19: if (!compiler_for_platform.ok()) {\nL30: const Status& status = compiler_for_platform.status();\nL31: if (status.code() == error::NOT_FOUND) {\nL32: return errors::Unimplemented(\"Could not find compiler for platform \","
+        },
+        {
+          "entities": [
+            "flr->config_proto()"
+          ],
+          "claim": "If flr->config_proto() is non-null, allowed_gpus is read from its gpu_options().visible_device_list() and parsed into gpu_ids, which are then set on client_options; if null, client_options retains its default allowed devices.",
+          "evidence": "L43: if (flr->config_proto()) {\nL44: string allowed_gpus =\nL45: flr->config_proto()->gpu_options().visible_device_list();\nL46: TF_ASSIGN_OR_RETURN(absl::optional<std::set<int>> gpu_ids,\nL47: ParseVisibleDeviceList(allowed_gpus));\nL48: client_options.set_allowed_devices(gpu_ids);\nL49: }"
+        },
+        {
+          "entities": [
+            "client"
+          ],
+          "claim": "Continuing past the client creation check implies client.ok() is true, so client.ValueOrDie() is valid for constructing the cache.",
+          "evidence": "L51: auto client = xla::ClientLibrary::GetOrCreateLocalClient(client_options);\nL52: if (!client.ok()) {\nL53: return client.status();\nL54: }"
+        },
+        {
+          "entities": [
+            "registration"
+          ],
+          "claim": "Continuing past the compilation-device lookup implies XlaOpRegistry::GetCompilationDevice returned true and registration points to a valid DeviceRegistration whose compilation_device_name is used for the cache.",
+          "evidence": "L55: const XlaOpRegistry::DeviceRegistration* registration;\nL56: if (!XlaOpRegistry::GetCompilationDevice(platform_info.device_type().type(),\nL57: &registration)) {\nL58: return errors::InvalidArgument(\"No JIT device registered for \",\nL59: platform_info.device_type().type());\nL60: }\nL61: *cache = new XlaCompilationCache(\nL62: client.ValueOrDie(), DeviceType(registration->compilation_device_name));"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2788,
+              "output_tokens": 221,
+              "total_tokens": 3009
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2788,
+          "output_tokens": 221,
+          "total_tokens": 3009
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L18",
+                "matched": true,
+                "expression": "xla::Compiler::GetForPlatform(platform.ValueOrDie())"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L39",
+                "matched": true,
+                "expression": "platform.ValueOrDie()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L41",
+                "matched": true,
+                "expression": "device->tensorflow_cpu_worker_threads()->num_threads"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L45",
+                "matched": true,
+                "expression": "flr->config_proto()->gpu_options().visible_device_list()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L62",
+                "matched": true,
+                "expression": "client.ValueOrDie()"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "drop_ungrounded_item",
+            "index": 0,
+            "expression": "new XlaCompilationCache(...)"
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1391,
+              "output_tokens": 458,
+              "total_tokens": 1849
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1391,
+          "output_tokens": 458,
+          "total_tokens": 1849
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "*cache = new XlaCompilationCache(",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "platform_info.xla_device_metadata()->client(),",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 7,
+                "fragment": "platform_info.xla_device_metadata()->jit_device_type());",
+                "matched_lines": [
+                  7
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 61,
+                "fragment": "*cache = new XlaCompilationCache(",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "client.ValueOrDie(), DeviceType(registration->compilation_device_name));",
+                "matched_lines": [
+                  62
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "auto platform =",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "se::MultiPlatformManager::PlatformWithId(platform_info.platform_id());",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "StatusOr<xla::Compiler*> compiler_for_platform =",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "xla::Compiler::GetForPlatform(platform.ValueOrDie());",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 51,
+                "fragment": "auto client = xla::ClientLibrary::GetOrCreateLocalClient(client_options);",
+                "matched_lines": [
+                  51
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 55,
+                "fragment": "const XlaOpRegistry::DeviceRegistration* registration;",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "if (!XlaOpRegistry::GetCompilationDevice(platform_info.device_type().type(),",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "&registration)) {",
+                "matched_lines": [
+                  57
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1579,
+              "output_tokens": 12,
+              "total_tokens": 1591
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1579,
+          "output_tokens": 12,
+          "total_tokens": 1591
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1259,
+              "output_tokens": 848,
+              "total_tokens": 2107
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1259,
+          "output_tokens": 848,
+          "total_tokens": 2107
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "if (platform_info.xla_device_metadata()) {",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 5,
+                "fragment": "*cache = new XlaCompilationCache(",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "platform_info.xla_device_metadata()->client(),",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 7,
+                "fragment": "platform_info.xla_device_metadata()->jit_device_type());",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": "return Status::OK();",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "auto platform =",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "se::MultiPlatformManager::PlatformWithId(platform_info.platform_id());",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "if (!platform.ok()) {",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "return platform.status();",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "}",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "StatusOr<xla::Compiler*> compiler_for_platform =",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "xla::Compiler::GetForPlatform(platform.ValueOrDie());",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "if (!compiler_for_platform.ok()) {",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "const Status& status = compiler_for_platform.status();",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "if (status.code() == error::NOT_FOUND) {",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "return errors::Unimplemented(\"Could not find compiler for platform \",",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "if (flr->config_proto()) {",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "string allowed_gpus =",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "flr->config_proto()->gpu_options().visible_device_list();",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "TF_ASSIGN_OR_RETURN(absl::optional<std::set<int>> gpu_ids,",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "ParseVisibleDeviceList(allowed_gpus));",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "client_options.set_allowed_devices(gpu_ids);",
+                "matched_lines": [
+                  48
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "}",
+                "matched_lines": [
+                  49
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 51,
+                "fragment": "auto client = xla::ClientLibrary::GetOrCreateLocalClient(client_options);",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "if (!client.ok()) {",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "return client.status();",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "}",
+                "matched_lines": [
+                  54
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 55,
+                "fragment": "const XlaOpRegistry::DeviceRegistration* registration;",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "if (!XlaOpRegistry::GetCompilationDevice(platform_info.device_type().type(),",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "&registration)) {",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "return errors::InvalidArgument(\"No JIT device registered for \",",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "platform_info.device_type().type());",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "}",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "*cache = new XlaCompilationCache(",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "client.ValueOrDie(), DeviceType(registration->compilation_device_name));",
+                "matched_lines": [
+                  62
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 5,
+      "states": 6,
+      "values": 0,
+      "executions": 6
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 7017,
+    "output_tokens": 1539,
+    "total_tokens": 8556
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000029",
+    "split": "test",
+    "source_hash": "87e60eb0173f2e837999471b637e3d2384c45c17c2059efc60119fab27f8c6aa",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "sample_id": "test_000133",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "rules",
+  "agent_key": "obligation_reasoner",
+  "output": {
+    "rules": [
+      {
+        "locations": [
+          "L31"
+        ],
+        "expression": "pvPortMalloc( sizeof( Queue_t ) + xQueueSizeInBytes )",
+        "requirements": [
+          "The allocation size argument must be a valid size for the allocator",
+          "must not exceed the maximum representable allocation size."
+        ]
+      },
+      {
+        "locations": [
+          "L37",
+          "L38"
+        ],
+        "expression": "pucQueueStorage = ( uint8_t * ) pxNewQueue; pucQueueStorage += sizeof( Queue_t )",
+        "requirements": [
+          "The allocated block referenced by pxNewQueue must be large enough to contain a Queue_t object followed by the queue storage region."
+        ]
+      },
+      {
+        "locations": [
+          "L45"
+        ],
+        "expression": "pxNewQueue->ucStaticallyAllocated = pdFALSE",
+        "requirements": [
+          "pxNewQueue must point to a live allocated Queue_t object that is writable for the ucStaticallyAllocated field."
+        ]
+      },
+      {
+        "locations": [
+          "L49"
+        ],
+        "expression": "prvInitialiseNewQueue( uxQueueLength, uxItemSize, pucQueueStorage, ucQueueType, pxNewQueue )",
+        "requirements": [
+          "pucQueueStorage must point to a writable storage region of at least uxQueueLength * uxItemSize bytes within the allocation referenced by pxNewQueue.",
+          "pxNewQueue must point to a live allocated Queue_t object that prvInitialiseNewQueue may initialize."
+        ]
+      }
+    ]
+  },
+  "quality_gate": {
+    "status": "passed",
+    "attempts": [
+      {
+        "attempt": 1,
+        "retry_mode": "initial",
+        "errors": [],
+        "token_usage": {
+          "input_tokens": 2653,
+          "output_tokens": 285,
+          "total_tokens": 2938
+        },
+        "max_tokens": 8192,
+        "serialization_prefix_recovered": false
+      }
+    ],
+    "token_usage": {
+      "input_tokens": 2653,
+      "output_tokens": 285,
+      "total_tokens": 2938
+    },
+    "safety_relevance_filter": {
+      "input_operation_groups": 4,
+      "kept_obligations": 4,
+      "filtered_non_safety_candidates": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 2653,
+    "output_tokens": 285,
+    "total_tokens": 2938
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "rules",
+    "sample_id": "test_000133",
+    "split": "test",
+    "source_hash": "04ba5ebee4da63b2e33da813cae75634182c895037fd2d5be7a30e01b8dcaee8",
+    "upstream_hashes": {
+      "semantic_model": "939aa27e2dbe8af751672366d8c6bde51552f46299541879b8badbd8c160c888"
+    },
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

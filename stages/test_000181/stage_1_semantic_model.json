@@ -1,0 +1,443 @@
+{
+  "sample_id": "test_000181",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [],
+      "states": [
+        {
+          "entities": [
+            "context",
+            "indices_t",
+            "values_t",
+            "dense_shape_t",
+            "default_value_t"
+          ],
+          "claim": "indices_t, values_t, dense_shape_t, and default_value_t are references to the input tensors obtained from context at input indices 0, 1, 2, and 3 respectively; their lifetimes are tied to the context inputs.",
+          "evidence": "L14: const Tensor& indices_t = context->input(kIndicesInput);\nL15: const Tensor& values_t = context->input(kValuesInput);\nL16: const Tensor& dense_shape_t = context->input(kDenseShapeInput);\nL17: const Tensor& default_value_t = context->input(kDefaultValueInput);"
+        },
+        {
+          "entities": [
+            "done"
+          ],
+          "claim": "done is a callback object; if the supplied done is null/false, it is replaced by an empty lambda, so done is non-null for subsequent use.",
+          "evidence": "L5: if (!done) {\nL6: done = [] {};\nL7: }"
+        },
+        {
+          "entities": [
+            "FunctorType",
+            "context",
+            "default_value_t",
+            "indices_t",
+            "values_t",
+            "dense_shape_t",
+            "done"
+          ],
+          "claim": "FunctorType() is invoked with context, default_value_t, indices_t, values_t, dense_shape_t, and done; the call's result is checked by OP_REQUIRES_OK_ASYNC, which may invoke done on failure.",
+          "evidence": "L49: using FunctorType = functor::SparseFillEmptyRows<Device, T, Tindex>;\nL50: OP_REQUIRES_OK_ASYNC(context,\nL51: FunctorType()(context, default_value_t, indices_t,\nL52: values_t, dense_shape_t, done),\nL53: done);"
+        }
+      ],
+      "values": [],
+      "executions": [
+        {
+          "entities": [
+            "dense_shape_t"
+          ],
+          "claim": "continuing past this check implies dense_shape_t.shape() is a vector",
+          "evidence": "L19: OP_REQUIRES_ASYNC(\nL20: context, TensorShapeUtils::IsVector(dense_shape_t.shape()),"
+        },
+        {
+          "entities": [
+            "indices_t"
+          ],
+          "claim": "continuing past this check implies indices_t.shape() is a matrix",
+          "evidence": "L24: OP_REQUIRES_ASYNC(context, TensorShapeUtils::IsMatrix(indices_t.shape()),"
+        },
+        {
+          "entities": [
+            "values_t"
+          ],
+          "claim": "continuing past this check implies values_t.shape() is a vector",
+          "evidence": "L28: OP_REQUIRES_ASYNC(context, TensorShapeUtils::IsVector(values_t.shape()),"
+        },
+        {
+          "entities": [
+            "indices_t",
+            "values_t"
+          ],
+          "claim": "continuing past this check implies indices_t.dim_size(0) == values_t.dim_size(0)",
+          "evidence": "L32: OP_REQUIRES_ASYNC(\nL33: context, indices_t.dim_size(0) == values_t.dim_size(0),"
+        },
+        {
+          "entities": [
+            "default_value_t"
+          ],
+          "claim": "continuing past this check implies default_value_t.shape() is a scalar",
+          "evidence": "L38: OP_REQUIRES_ASYNC(\nL39: context, TensorShapeUtils::IsScalar(default_value_t.shape()),"
+        },
+        {
+          "entities": [
+            "dense_shape_t"
+          ],
+          "claim": "continuing past this check implies dense_shape_t.NumElements() != 0",
+          "evidence": "L45: OP_REQUIRES_ASYNC(context, dense_shape_t.NumElements() != 0,"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2722,
+              "output_tokens": 5,
+              "total_tokens": 2727
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2722,
+          "output_tokens": 5,
+          "total_tokens": 2727
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1325,
+              "output_tokens": 408,
+              "total_tokens": 1733
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1325,
+          "output_tokens": 408,
+          "total_tokens": 1733
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "const Tensor& indices_t = context->input(kIndicesInput);",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "const Tensor& values_t = context->input(kValuesInput);",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "const Tensor& dense_shape_t = context->input(kDenseShapeInput);",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "const Tensor& default_value_t = context->input(kDefaultValueInput);",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "if (!done) {",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "done = [] {};",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 7,
+                "fragment": "}",
+                "matched_lines": [
+                  7
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 49,
+                "fragment": "using FunctorType = functor::SparseFillEmptyRows<Device, T, Tindex>;",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "OP_REQUIRES_OK_ASYNC(context,",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "FunctorType()(context, default_value_t, indices_t,",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "values_t, dense_shape_t, done),",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "done);",
+                "matched_lines": [
+                  53
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1513,
+              "output_tokens": 12,
+              "total_tokens": 1525
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1513,
+          "output_tokens": 12,
+          "total_tokens": 1525
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1193,
+              "output_tokens": 387,
+              "total_tokens": 1580
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1193,
+          "output_tokens": 387,
+          "total_tokens": 1580
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 19,
+                "fragment": "OP_REQUIRES_ASYNC(",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "context, TensorShapeUtils::IsVector(dense_shape_t.shape()),",
+                "matched_lines": [
+                  20
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 24,
+                "fragment": "OP_REQUIRES_ASYNC(context, TensorShapeUtils::IsMatrix(indices_t.shape()),",
+                "matched_lines": [
+                  24
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 28,
+                "fragment": "OP_REQUIRES_ASYNC(context, TensorShapeUtils::IsVector(values_t.shape()),",
+                "matched_lines": [
+                  28
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 32,
+                "fragment": "OP_REQUIRES_ASYNC(",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "context, indices_t.dim_size(0) == values_t.dim_size(0),",
+                "matched_lines": [
+                  33
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 38,
+                "fragment": "OP_REQUIRES_ASYNC(",
+                "matched_lines": [
+                  38
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "context, TensorShapeUtils::IsScalar(default_value_t.shape()),",
+                "matched_lines": [
+                  39
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 45,
+                "fragment": "OP_REQUIRES_ASYNC(context, dense_shape_t.NumElements() != 0,",
+                "matched_lines": [
+                  45
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 0,
+      "states": 3,
+      "values": 0,
+      "executions": 6
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 6753,
+    "output_tokens": 812,
+    "total_tokens": 7565
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000181",
+    "split": "test",
+    "source_hash": "63eefe27cd15f6919a5dff8814e45c34b4fa20bf04cab4932e92488e4024b5a4",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

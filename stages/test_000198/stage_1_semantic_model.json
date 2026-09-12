@@ -1,0 +1,900 @@
+{
+  "sample_id": "test_000198",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L8",
+            "L12"
+          ],
+          "expression": "input_min.dim_size(0) == depth",
+          "claim": "accessing dimension 0 of input_min and input_max tensors"
+        },
+        {
+          "locations": [
+            "L16",
+            "L17"
+          ],
+          "expression": "input_min.flat<float>().data()",
+          "claim": "obtaining typed flat data pointer from input_min and input_max tensors"
+        },
+        {
+          "locations": [
+            "L21"
+          ],
+          "expression": "input.flat_inner_dims<qint32>()",
+          "claim": "obtaining typed inner-dimension view of input tensor"
+        },
+        {
+          "locations": [
+            "L29"
+          ],
+          "expression": "input_matrix.shuffle(shuffling)",
+          "claim": "shuffling input matrix with dimension permutation"
+        },
+        {
+          "locations": [
+            "L44",
+            "L46"
+          ],
+          "expression": "transposed_input.chip<0>(i).minimum()",
+          "claim": "accessing chip i of transposed input for min and max reduction"
+        },
+        {
+          "locations": [
+            "L43",
+            "L47"
+          ],
+          "expression": "min()",
+          "claim": "dereferencing scalar tensor result from minimum and maximum reductions"
+        },
+        {
+          "locations": [
+            "L52"
+          ],
+          "expression": "input_min_data[i]",
+          "claim": "indexed read from input_min_data and input_max_data at channel i"
+        },
+        {
+          "locations": [
+            "L53"
+          ],
+          "expression": "ranges[i]",
+          "claim": "indexed write to ranges vector at channel i"
+        },
+        {
+          "locations": [
+            "L70",
+            "L71"
+          ],
+          "expression": "ctx->allocate_output(kOutputMinIndex, {}, &output_min)",
+          "claim": "allocating output tensors through context"
+        },
+        {
+          "locations": [
+            "L72",
+            "L73"
+          ],
+          "expression": "output_min->flat<float>()(0)",
+          "claim": "indexed write to flat output tensor storage"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "input_min_data"
+          ],
+          "claim": "input_min_data points to the float storage of input_min's flat view.",
+          "evidence": "L16: const float* input_min_data = input_min.flat<float>().data();"
+        },
+        {
+          "entities": [
+            "input_max_data"
+          ],
+          "claim": "input_max_data points to the float storage of input_max's flat view.",
+          "evidence": "L17: const float* input_max_data = input_max.flat<float>().data();"
+        },
+        {
+          "entities": [
+            "input_matrix"
+          ],
+          "claim": "input_matrix is a view over input's qint32 inner-dimension storage.",
+          "evidence": "L21: auto input_matrix = input.flat_inner_dims<qint32>();"
+        },
+        {
+          "entities": [
+            "transposed_input",
+            "input_matrix"
+          ],
+          "claim": "transposed_input is derived from input_matrix by shuffling its dimensions.",
+          "evidence": "L29: auto transposed_input = input_matrix.shuffle(shuffling);"
+        },
+        {
+          "entities": [
+            "output_min"
+          ],
+          "claim": "output_min is allocated as an output tensor by ctx.",
+          "evidence": "L70: OP_REQUIRES_OK(ctx, ctx->allocate_output(kOutputMinIndex, {}, &output_min));"
+        },
+        {
+          "entities": [
+            "output_max"
+          ],
+          "claim": "output_max is allocated as an output tensor by ctx.",
+          "evidence": "L71: OP_REQUIRES_OK(ctx, ctx->allocate_output(kOutputMaxIndex, {}, &output_max));"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "depth",
+            "input_max.NumElements()"
+          ],
+          "claim": "depth is the number of elements in input_max and is used as the extent for ranges and the loop bound.",
+          "evidence": "L6: const size_t depth = input_max.NumElements();\nL18: std::vector<float> ranges(depth);\nL42: for (int64_t i = 0; i < depth; ++i) {"
+        },
+        {
+          "entities": [
+            "input_min.dim_size(0)",
+            "depth"
+          ],
+          "claim": "input_min.dim_size(0) is required to equal depth.",
+          "evidence": "L8: ctx, input_min.dim_size(0) == depth,"
+        },
+        {
+          "entities": [
+            "input_max.dim_size(0)",
+            "depth"
+          ],
+          "claim": "input_max.dim_size(0) is required to equal depth.",
+          "evidence": "L12: ctx, input_max.dim_size(0) == depth,"
+        },
+        {
+          "entities": [
+            "input_min_data",
+            "input_min.flat<float>().data()"
+          ],
+          "claim": "input_min_data points to the float data of input_min.",
+          "evidence": "L16: const float* input_min_data = input_min.flat<float>().data();"
+        },
+        {
+          "entities": [
+            "input_max_data",
+            "input_max.flat<float>().data()"
+          ],
+          "claim": "input_max_data points to the float data of input_max.",
+          "evidence": "L17: const float* input_max_data = input_max.flat<float>().data();"
+        },
+        {
+          "entities": [
+            "i",
+            "depth",
+            "input_min_data",
+            "input_max_data"
+          ],
+          "claim": "Loop index i ranges over [0, depth), and input_min_data[i] and input_max_data[i] are accessed within that range.",
+          "evidence": "L42: for (int64_t i = 0; i < depth; ++i) {\nL52: std::max(std::abs(input_min_data[i]), std::abs(input_max_data[i]));"
+        },
+        {
+          "entities": [
+            "abs_max",
+            "min_per_channel",
+            "max_per_channel"
+          ],
+          "claim": "abs_max is the maximum of the absolute values of min_per_channel and max_per_channel.",
+          "evidence": "L49: const int32_t abs_max =\nL50: std::max(std::abs(min_per_channel), std::abs(max_per_channel));"
+        },
+        {
+          "entities": [
+            "scale",
+            "input_min_data[i]",
+            "input_max_data[i]"
+          ],
+          "claim": "scale is the maximum of the absolute values of input_min_data[i] and input_max_data[i].",
+          "evidence": "L51: float scale =\nL52: std::max(std::abs(input_min_data[i]), std::abs(input_max_data[i]));"
+        },
+        {
+          "entities": [
+            "ranges[i]",
+            "scale",
+            "abs_max"
+          ],
+          "claim": "ranges[i] is computed as scale times abs_max converted to float divided by 2^31 converted to float.",
+          "evidence": "L53: ranges[i] =\nL54: scale * static_cast<float>(abs_max) / static_cast<float>(1L << 31);"
+        },
+        {
+          "entities": [
+            "out_min_max",
+            "ranges[i]"
+          ],
+          "claim": "out_min_max is updated to the maximum of its current value and ranges[i] on each iteration.",
+          "evidence": "L58: out_min_max = std::max(out_min_max, ranges[i]);"
+        },
+        {
+          "entities": [
+            "out_min_max",
+            "clip_value_max_"
+          ],
+          "claim": "out_min_max is clamped to clip_value_max_ if it exceeds clip_value_max_.",
+          "evidence": "L66: if (out_min_max > clip_value_max_) out_min_max = clip_value_max_;"
+        },
+        {
+          "entities": [
+            "output_min",
+            "is_non_negative",
+            "out_min_max"
+          ],
+          "claim": "output_min's single float element is set to 0.0f if is_non_negative is true, otherwise to -out_min_max.",
+          "evidence": "L72: output_min->flat<float>()(0) = is_non_negative ? 0.0f : -out_min_max;"
+        },
+        {
+          "entities": [
+            "output_max",
+            "out_min_max"
+          ],
+          "claim": "output_max's single float element is set to out_min_max.",
+          "evidence": "L73: output_max->flat<float>()(0) = out_min_max;"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "input_min",
+            "input_max",
+            "depth"
+          ],
+          "claim": "continuing past the OP_REQUIRES checks implies input_min.dim_size(0) == depth and input_max.dim_size(0) == depth",
+          "evidence": "L7: OP_REQUIRES(\nL8: ctx, input_min.dim_size(0) == depth,\nL11: OP_REQUIRES(\nL12: ctx, input_max.dim_size(0) == depth,"
+        },
+        {
+          "entities": [
+            "i",
+            "depth"
+          ],
+          "claim": "inside the loop, 0 <= i < depth",
+          "evidence": "L42: for (int64_t i = 0; i < depth; ++i) {"
+        },
+        {
+          "entities": [
+            "out_min_max",
+            "clip_value_max_"
+          ],
+          "claim": "after the clip, out_min_max <= clip_value_max_",
+          "evidence": "L66: if (out_min_max > clip_value_max_) out_min_max = clip_value_max_;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3060,
+              "output_tokens": 355,
+              "total_tokens": 3415
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3060,
+          "output_tokens": 355,
+          "total_tokens": 3415
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L8",
+                "matched": true,
+                "expression": "input_min.dim_size(0) == depth"
+              },
+              {
+                "location": "L12",
+                "matched": true,
+                "expression": "input_min.dim_size(0) == depth"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L16",
+                "matched": true,
+                "expression": "input_min.flat<float>().data()"
+              },
+              {
+                "location": "L17",
+                "matched": true,
+                "expression": "input_min.flat<float>().data()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L21",
+                "matched": true,
+                "expression": "input.flat_inner_dims<qint32>()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L29",
+                "matched": true,
+                "expression": "input_matrix.shuffle(shuffling)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L44",
+                "matched": true,
+                "expression": "transposed_input.chip<0>(i).minimum()"
+              },
+              {
+                "location": "L46",
+                "matched": true,
+                "expression": "transposed_input.chip<0>(i).minimum()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L43",
+                "matched": true,
+                "expression": "min()"
+              },
+              {
+                "location": "L47",
+                "matched": true,
+                "expression": "min()"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L52",
+                "matched": true,
+                "expression": "input_min_data[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L53",
+                "matched": true,
+                "expression": "ranges[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L70",
+                "matched": true,
+                "expression": "ctx->allocate_output(kOutputMinIndex, {}, &output_min)"
+              },
+              {
+                "location": "L71",
+                "matched": true,
+                "expression": "ctx->allocate_output(kOutputMinIndex, {}, &output_min)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[9]": {
+            "expression_matches": [
+              {
+                "location": "L72",
+                "matched": true,
+                "expression": "output_min->flat<float>()(0)"
+              },
+              {
+                "location": "L73",
+                "matched": true,
+                "expression": "output_min->flat<float>()(0)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_operation_locations",
+            "index": 5,
+            "locations": [
+              "L43",
+              "L47"
+            ]
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1663,
+              "output_tokens": 305,
+              "total_tokens": 1968
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1663,
+          "output_tokens": 305,
+          "total_tokens": 1968
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "const float* input_min_data = input_min.flat<float>().data();",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "const float* input_max_data = input_max.flat<float>().data();",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 21,
+                "fragment": "auto input_matrix = input.flat_inner_dims<qint32>();",
+                "matched_lines": [
+                  21
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "auto transposed_input = input_matrix.shuffle(shuffling);",
+                "matched_lines": [
+                  29
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 70,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->allocate_output(kOutputMinIndex, {}, &output_min));",
+                "matched_lines": [
+                  70
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 71,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->allocate_output(kOutputMaxIndex, {}, &output_max));",
+                "matched_lines": [
+                  71
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1851,
+              "output_tokens": 894,
+              "total_tokens": 2745
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1851,
+          "output_tokens": 894,
+          "total_tokens": 2745
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "const size_t depth = input_max.NumElements();",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "std::vector<float> ranges(depth);",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 42,
+                "fragment": "for (int64_t i = 0; i < depth; ++i) {",
+                "matched_lines": [
+                  42
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "ctx, input_min.dim_size(0) == depth,",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "ctx, input_max.dim_size(0) == depth,",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "const float* input_min_data = input_min.flat<float>().data();",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "const float* input_max_data = input_max.flat<float>().data();",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 42,
+                "fragment": "for (int64_t i = 0; i < depth; ++i) {",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "std::max(std::abs(input_min_data[i]), std::abs(input_max_data[i]));",
+                "matched_lines": [
+                  52
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 49,
+                "fragment": "const int32_t abs_max =",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "std::max(std::abs(min_per_channel), std::abs(max_per_channel));",
+                "matched_lines": [
+                  50
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 51,
+                "fragment": "float scale =",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "std::max(std::abs(input_min_data[i]), std::abs(input_max_data[i]));",
+                "matched_lines": [
+                  52
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 53,
+                "fragment": "ranges[i] =",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "scale * static_cast<float>(abs_max) / static_cast<float>(1L << 31);",
+                "matched_lines": [
+                  54
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 58,
+                "fragment": "out_min_max = std::max(out_min_max, ranges[i]);",
+                "matched_lines": [
+                  58
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 66,
+                "fragment": "if (out_min_max > clip_value_max_) out_min_max = clip_value_max_;",
+                "matched_lines": [
+                  66
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 72,
+                "fragment": "output_min->flat<float>()(0) = is_non_negative ? 0.0f : -out_min_max;",
+                "matched_lines": [
+                  72
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 73,
+                "fragment": "output_max->flat<float>()(0) = out_min_max;",
+                "matched_lines": [
+                  73
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1531,
+              "output_tokens": 230,
+              "total_tokens": 1761
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1531,
+          "output_tokens": 230,
+          "total_tokens": 1761
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": "ctx, input_min.dim_size(0) == depth,",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "ctx, input_max.dim_size(0) == depth,",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 42,
+                "fragment": "for (int64_t i = 0; i < depth; ++i) {",
+                "matched_lines": [
+                  42
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 66,
+                "fragment": "if (out_min_max > clip_value_max_) out_min_max = clip_value_max_;",
+                "matched_lines": [
+                  66
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 10,
+      "states": 6,
+      "values": 13,
+      "executions": 3
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 8105,
+    "output_tokens": 1784,
+    "total_tokens": 9889
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000198",
+    "split": "test",
+    "source_hash": "d2e8d01a83bbec9efa583738d77566a3877b3af1da2eea49517fefaabeb5c803",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

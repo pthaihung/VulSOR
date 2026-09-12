@@ -1,0 +1,2855 @@
+{
+  "sample_id": "test_000082",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L70"
+          ],
+          "expression": "memchr(pos, '\\n', left)",
+          "claim": "search for a byte within the readable extent of the input buffer"
+        },
+        {
+          "locations": [
+            "L86"
+          ],
+          "expression": "memcpy(gopherState->buf + gopherState->len, pos, llen)",
+          "claim": "copy llen bytes into the state buffer at the current offset"
+        },
+        {
+          "locations": [
+            "L86",
+            "L93",
+            "L97"
+          ],
+          "expression": "memcpy(line, ..., llen)",
+          "claim": "copy line bytes into the fixed-size line buffer"
+        },
+        {
+          "locations": [
+            "L99"
+          ],
+          "expression": "line[llen + 1] = '\\0'",
+          "claim": "write a terminator at an index within the fixed-size line buffer"
+        },
+        {
+          "locations": [
+            "L105"
+          ],
+          "expression": "*line",
+          "claim": "read the first byte of the line buffer"
+        },
+        {
+          "locations": [
+            "L117"
+          ],
+          "expression": "*tline",
+          "claim": "read the first byte of the current line"
+        },
+        {
+          "locations": [
+            "L120"
+          ],
+          "expression": "strchr(tline, TAB)",
+          "claim": "scan the current line for a tab within its terminated extent"
+        },
+        {
+          "locations": [
+            "L123"
+          ],
+          "expression": "*selector = '\\0'",
+          "claim": "write a terminator through the selector pointer"
+        },
+        {
+          "locations": [
+            "L125"
+          ],
+          "expression": "strchr(selector, TAB)",
+          "claim": "scan the selector substring for a tab"
+        },
+        {
+          "locations": [
+            "L128"
+          ],
+          "expression": "*host = '\\0'",
+          "claim": "write a terminator through the host pointer"
+        },
+        {
+          "locations": [
+            "L130"
+          ],
+          "expression": "strchr(host, TAB)",
+          "claim": "scan the host substring for a tab"
+        },
+        {
+          "locations": [
+            "L134"
+          ],
+          "expression": "port[0] = ':'",
+          "claim": "write through the port pointer"
+        },
+        {
+          "locations": [
+            "L135",
+            "L140",
+            "L145"
+          ],
+          "expression": "strchr(host, ...)",
+          "claim": "scan the host substring for a delimiter"
+        },
+        {
+          "locations": [
+            "L138",
+            "L143",
+            "L148"
+          ],
+          "expression": "*junk++ = 0",
+          "claim": "write a terminator through the junk pointer"
+        },
+        {
+          "locations": [
+            "L152"
+          ],
+          "expression": "port[1] == '0' && !port[2]",
+          "claim": "read bytes at offsets from the port pointer"
+        },
+        {
+          "locations": [
+            "L153"
+          ],
+          "expression": "port[0] = 0",
+          "claim": "write through the port pointer"
+        },
+        {
+          "locations": [
+            "L227"
+          ],
+          "expression": "strlen(escaped_selector)",
+          "claim": "measure the length of the escaped selector string"
+        },
+        {
+          "locations": [
+            "L228",
+            "L232",
+            "L237",
+            "L241",
+            "L244",
+            "L248",
+            "L287",
+            "L290",
+            "L321"
+          ],
+          "expression": "snprintf(tmpbuf, TEMP_BUF_SIZE, ...)",
+          "claim": "format text into the fixed-size temporary buffer"
+        },
+        {
+          "locations": [
+            "L239"
+          ],
+          "expression": "strncmp(selector, \"GET /\", 5)",
+          "claim": "read the first five bytes of the selector string"
+        },
+        {
+          "locations": [
+            "L253"
+          ],
+          "expression": "safe_free(escaped_selector)",
+          "claim": "release the allocated escaped selector"
+        },
+        {
+          "locations": [
+            "L268"
+          ],
+          "expression": "line[0]",
+          "claim": "read the first byte of the line buffer"
+        },
+        {
+          "locations": [
+            "L272",
+            "L273",
+            "L274",
+            "L299",
+            "L300"
+          ],
+          "expression": "strtok(...)",
+          "claim": "tokenize the line buffer in place"
+        },
+        {
+          "locations": [
+            "L279",
+            "L281",
+            "L305"
+          ],
+          "expression": "atoi(...)",
+          "claim": "parse an integer from a token string"
+        },
+        {
+          "locations": [
+            "L339"
+          ],
+          "expression": "entry->append(outbuf.rawBuf(), outbuf.size())",
+          "claim": "append the accumulated output buffer to the entry"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "gopherState->buf",
+            "gopherState->len"
+          ],
+          "claim": "gopherState->buf holds gopherState->len bytes of buffered partial-line data carried over from a previous invocation; when a complete line is assembled, those bytes are copied into line and gopherState->len is reset to 0.",
+          "evidence": "L86: memcpy(gopherState->buf + gopherState->len, pos, llen);\nL87: gopherState->len += llen;\nL92: memcpy(line, gopherState->buf, gopherState->len);\nL93: memcpy(line + gopherState->len, pos, llen);\nL94: llen += gopherState->len;\nL95: gopherState->len = 0;"
+        },
+        {
+          "entities": [
+            "line",
+            "pos",
+            "lpos",
+            "llen"
+          ],
+          "claim": "line is a TEMP_BUF_SIZE local buffer into which the current input line (including any carried-over gopherState->buf bytes) is copied; line[llen + 1] is set to '\\0' after the copy.",
+          "evidence": "L6: LOCAL_ARRAY(char, line, TEMP_BUF_SIZE);\nL92: memcpy(line, gopherState->buf, gopherState->len);\nL93: memcpy(line + gopherState->len, pos, llen);\nL97: memcpy(line, pos, llen);\nL99: line[llen + 1] = '\\0';"
+        },
+        {
+          "entities": [
+            "tline",
+            "line"
+          ],
+          "claim": "tline is set to point at the start of line, then advanced past the first character so that name points at the remainder of the line.",
+          "evidence": "L116: tline = line;\nL117: gtype = *tline;\nL118: ++tline;\nL119: name = tline;"
+        },
+        {
+          "entities": [
+            "selector",
+            "tline",
+            "line"
+          ],
+          "claim": "selector points into line at the first TAB after tline; that TAB is replaced with '\\0' and selector is advanced past it.",
+          "evidence": "L120: selector = strchr(tline, TAB);\nL123: *selector = '\\0';\nL124: ++selector;"
+        },
+        {
+          "entities": [
+            "host",
+            "selector",
+            "line"
+          ],
+          "claim": "host points into line at the first TAB after selector; that TAB is replaced with '\\0' and host is advanced past it.",
+          "evidence": "L125: host = strchr(selector, TAB);\nL128: *host = '\\0';\nL129: ++host;"
+        },
+        {
+          "entities": [
+            "port",
+            "host",
+            "line"
+          ],
+          "claim": "port points into line at the first TAB after host; port[0] is overwritten with ':' and the port field is terminated by replacing a following TAB, '\\r', or '\\n' with '\\0'.",
+          "evidence": "L130: port = strchr(host, TAB);\nL134: port[0] = ':';\nL135: junk = strchr(host, TAB);\nL138: *junk++ = 0;    /* Chop port */\nL140: junk = strchr(host, '\\r');\nL143: *junk++ = 0;    /* Chop port */\nL145: junk = strchr(host, '\\n');\nL148: *junk++ = 0;    /* Chop port */"
+        },
+        {
+          "entities": [
+            "escaped_selector",
+            "selector"
+          ],
+          "claim": "escaped_selector is a heap-allocated copy of the escaped selector string, later released with safe_free.",
+          "evidence": "L157: escaped_selector = xstrdup(rfc1738_escape_part(selector));\nL253: safe_free(escaped_selector);"
+        },
+        {
+          "entities": [
+            "icon_url"
+          ],
+          "claim": "icon_url is assigned a URL returned by mimeGetIconURL for the gopher type, or NULL for GOPHER_INFO.",
+          "evidence": "L162: icon_url = mimeGetIconURL(\"internal-menu\");\nL168: icon_url = mimeGetIconURL(\"internal-text\");\nL174: icon_url = mimeGetIconURL(\"internal-index\");\nL182: icon_url = mimeGetIconURL(\"internal-image\");\nL188: icon_url = mimeGetIconURL(\"internal-sound\");\nL192: icon_url = mimeGetIconURL(\"internal-movie\");\nL198: icon_url = mimeGetIconURL(\"internal-telnet\");\nL208: icon_url = mimeGetIconURL(\"internal-binary\");\nL212: icon_url = NULL;\nL216: icon_url = mimeGetIconURL(\"internal-link\");\nL220: icon_url = mimeGetIconURL(\"internal-unknown\");"
+        },
+        {
+          "entities": [
+            "tmpbuf"
+          ],
+          "claim": "tmpbuf is a TEMP_BUF_SIZE local buffer that is zeroed before each formatted line is written into it.",
+          "evidence": "L7: LOCAL_ARRAY(char, tmpbuf, TEMP_BUF_SIZE);\nL17: memset(tmpbuf, '\\0', TEMP_BUF_SIZE);\nL224: memset(tmpbuf, '\\0', TEMP_BUF_SIZE);"
+        },
+        {
+          "entities": [
+            "entry",
+            "gopherState->entry"
+          ],
+          "claim": "entry is set to the StoreEntry pointer held by gopherState.",
+          "evidence": "L20: entry = gopherState->entry;"
+        },
+        {
+          "entities": [
+            "gopherState->HTML_header_added"
+          ],
+          "claim": "gopherState->HTML_header_added is set to 1 after the HTML header is emitted.",
+          "evidence": "L32: gopherState->HTML_header_added = 1;\nL47: gopherState->HTML_header_added = 1;\nL62: gopherState->HTML_header_added = 1;"
+        },
+        {
+          "entities": [
+            "gopherState->HTML_pre"
+          ],
+          "claim": "gopherState->HTML_pre is set to 1 when the header is added.",
+          "evidence": "L64: gopherState->HTML_pre = 1;"
+        },
+        {
+          "entities": [
+            "gopherState->overflowed"
+          ],
+          "claim": "gopherState->overflowed is set to true when the accumulated line length would exceed TEMP_BUF_SIZE.",
+          "evidence": "L80: gopherState->overflowed = true; // may already be true"
+        },
+        {
+          "entities": [
+            "gopherState->cso_recno"
+          ],
+          "claim": "gopherState->cso_recno is updated to the current record number when a new CSO record is emitted.",
+          "evidence": "L288: gopherState->cso_recno = recno;"
+        },
+        {
+          "entities": [
+            "outbuf"
+          ],
+          "claim": "outbuf is a String object that accumulates the generated HTML fragments and is cleaned before the function returns.",
+          "evidence": "L52: String outbuf;\nL254: outbuf.append(tmpbuf);\nL293: outbuf.append(tmpbuf);\nL322: outbuf.append(tmpbuf);\nL344: outbuf.clean();"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "TEMP_BUF_SIZE",
+            "line",
+            "tmpbuf"
+          ],
+          "claim": "line and tmpbuf are LOCAL_ARRAY buffers of compile-time extent TEMP_BUF_SIZE bytes.",
+          "evidence": "L6: LOCAL_ARRAY(char, line, TEMP_BUF_SIZE);\nL7: LOCAL_ARRAY(char, tmpbuf, TEMP_BUF_SIZE);"
+        },
+        {
+          "entities": [
+            "pos",
+            "inbuf",
+            "len"
+          ],
+          "claim": "pos is initialized to inbuf, so pos - inbuf is the byte offset consumed from the input buffer of length len.",
+          "evidence": "L3: char *pos = inbuf;\nL67: while (pos < inbuf + len) {"
+        },
+        {
+          "entities": [
+            "left",
+            "len",
+            "pos",
+            "inbuf"
+          ],
+          "claim": "left = len - (pos - inbuf) is the remaining byte count in inbuf from pos.",
+          "evidence": "L69: int left = len - (pos - inbuf);"
+        },
+        {
+          "entities": [
+            "lpos",
+            "pos",
+            "left"
+          ],
+          "claim": "lpos is the address of the first '\\n' within the next left bytes starting at pos, or NULL if none.",
+          "evidence": "L70: lpos = (char *)memchr(pos, '\\n', left);"
+        },
+        {
+          "entities": [
+            "lpos",
+            "llen",
+            "pos"
+          ],
+          "claim": "When lpos is non-NULL, lpos is incremented past the newline and llen = lpos - pos is the line length including the newline.",
+          "evidence": "L71: if (lpos) {\nL72: ++lpos;             /* Next line is after \\n */\nL73: llen = lpos - pos;"
+        },
+        {
+          "entities": [
+            "llen",
+            "left"
+          ],
+          "claim": "When no newline is found, llen = left, the remaining byte count.",
+          "evidence": "L74: } else {\nL75: llen = left;"
+        },
+        {
+          "entities": [
+            "gopherState->len",
+            "llen",
+            "TEMP_BUF_SIZE"
+          ],
+          "claim": "If gopherState->len + llen >= TEMP_BUF_SIZE, llen is reduced to TEMP_BUF_SIZE - gopherState->len - 1.",
+          "evidence": "L77: if (gopherState->len + llen >= TEMP_BUF_SIZE) {\nL79: llen = TEMP_BUF_SIZE - gopherState->len - 1;"
+        },
+        {
+          "entities": [
+            "gopherState->buf",
+            "gopherState->len",
+            "pos",
+            "llen"
+          ],
+          "claim": "When no complete line exists, llen bytes from pos are copied to gopherState->buf + gopherState->len, and gopherState->len is increased by llen.",
+          "evidence": "L86: memcpy(gopherState->buf + gopherState->len, pos, llen);\nL87: gopherState->len += llen;"
+        },
+        {
+          "entities": [
+            "line",
+            "gopherState->buf",
+            "gopherState->len",
+            "pos",
+            "llen"
+          ],
+          "claim": "When gopherState->len != 0, gopherState->len bytes from gopherState->buf are copied to line, then llen bytes from pos are copied to line + gopherState->len, and llen becomes llen + gopherState->len.",
+          "evidence": "L92: memcpy(line, gopherState->buf, gopherState->len);\nL93: memcpy(line + gopherState->len, pos, llen);\nL94: llen += gopherState->len;"
+        },
+        {
+          "entities": [
+            "line",
+            "llen"
+          ],
+          "claim": "line[llen + 1] is written with '\\0', so the index llen+1 must be within the line buffer extent.",
+          "evidence": "L99: line[llen + 1] = '\\0';"
+        },
+        {
+          "entities": [
+            "pos",
+            "lpos"
+          ],
+          "claim": "pos is advanced to lpos, the position just past the consumed newline.",
+          "evidence": "L101: pos = lpos;"
+        },
+        {
+          "entities": [
+            "tline",
+            "line",
+            "gtype"
+          ],
+          "claim": "tline is set to line; gtype is the first byte *tline, then tline is incremented by one.",
+          "evidence": "L116: tline = line;\nL117: gtype = *tline;\nL118: ++tline;"
+        },
+        {
+          "entities": [
+            "name",
+            "tline"
+          ],
+          "claim": "name points to tline, the byte after the type character in line.",
+          "evidence": "L119: name = tline;"
+        },
+        {
+          "entities": [
+            "selector",
+            "tline",
+            "TAB"
+          ],
+          "claim": "selector is the address of the first TAB in tline, or NULL.",
+          "evidence": "L120: selector = strchr(tline, TAB);"
+        },
+        {
+          "entities": [
+            "selector"
+          ],
+          "claim": "When selector is non-NULL, *selector is set to '\\0' and selector is incremented by one.",
+          "evidence": "L123: *selector = '\\0';\nL124: ++selector;"
+        },
+        {
+          "entities": [
+            "host",
+            "selector",
+            "TAB"
+          ],
+          "claim": "host is the address of the first TAB in selector, or NULL.",
+          "evidence": "L125: host = strchr(selector, TAB);"
+        },
+        {
+          "entities": [
+            "host"
+          ],
+          "claim": "When host is non-NULL, *host is set to '\\0' and host is incremented by one.",
+          "evidence": "L128: *host = '\\0';\nL129: ++host;"
+        },
+        {
+          "entities": [
+            "port",
+            "host",
+            "TAB"
+          ],
+          "claim": "port is the address of the first TAB in host, or NULL.",
+          "evidence": "L130: port = strchr(host, TAB);"
+        },
+        {
+          "entities": [
+            "port"
+          ],
+          "claim": "When port is non-NULL, port[0] is set to ':' and port[1] and port[2] are read to test for the string \"0\".",
+          "evidence": "L134: port[0] = ':';\nL152: if ((port[1] == '0') && (!port[2]))"
+        },
+        {
+          "entities": [
+            "port"
+          ],
+          "claim": "If port[1] == '0' and port[2] == '\\0', port[0] is set to 0.",
+          "evidence": "L152: if ((port[1] == '0') && (!port[2]))\nL153: port[0] = 0;    /* 0 means none */"
+        },
+        {
+          "entities": [
+            "escaped_selector",
+            "selector"
+          ],
+          "claim": "escaped_selector is a heap-allocated escaped copy of selector.",
+          "evidence": "L157: escaped_selector = xstrdup(rfc1738_escape_part(selector));"
+        },
+        {
+          "entities": [
+            "tmpbuf",
+            "TEMP_BUF_SIZE"
+          ],
+          "claim": "tmpbuf is zeroed over TEMP_BUF_SIZE bytes before each snprintf into it.",
+          "evidence": "L224: memset(tmpbuf, '\\0', TEMP_BUF_SIZE);"
+        },
+        {
+          "entities": [
+            "tmpbuf",
+            "TEMP_BUF_SIZE"
+          ],
+          "claim": "snprintf writes into tmpbuf with size limit TEMP_BUF_SIZE.",
+          "evidence": "L228: snprintf(tmpbuf, TEMP_BUF_SIZE, \"<IMG border=\\\"0\\\" SRC=\\\"%s\\\"> <A HREF=\\\"telnet://%s@%s%s%s/\\\">%s</A>\\n\","
+        },
+        {
+          "entities": [
+            "selector"
+          ],
+          "claim": "strncmp(selector, \"GET /\", 5) reads up to 5 bytes from selector.",
+          "evidence": "L239: if (strncmp(selector, \"GET /\", 5) == 0) {"
+        },
+        {
+          "entities": [
+            "selector"
+          ],
+          "claim": "selector + 5 is passed as the argument after the \"GET /\" prefix.",
+          "evidence": "L242: icon_url, host, rfc1738_escape_unescaped(selector + 5), html_quote(name));"
+        },
+        {
+          "entities": [
+            "line"
+          ],
+          "claim": "line[0] is read to test for '-' in the CSO result path.",
+          "evidence": "L268: if (line[0] == '-') {"
+        },
+        {
+          "entities": [
+            "line"
+          ],
+          "claim": "strtok is called on line + 1, so the token scan starts at the second byte of line.",
+          "evidence": "L272: s_code = strtok(line + 1, \":\\n\");"
+        },
+        {
+          "entities": [
+            "outbuf",
+            "entry"
+          ],
+          "claim": "outbuf.rawBuf() and outbuf.size() are passed to entry->append, so the appended length is outbuf.size().",
+          "evidence": "L338: if (outbuf.size() > 0) {\nL339: entry->append(outbuf.rawBuf(), outbuf.size());"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "pos",
+            "inbuf",
+            "len"
+          ],
+          "claim": "Loop continues only while pos < inbuf + len, so each iteration has at least one byte remaining in the input buffer.",
+          "evidence": "L67: while (pos < inbuf + len) {"
+        },
+        {
+          "entities": [
+            "left",
+            "len",
+            "pos",
+            "inbuf"
+          ],
+          "claim": "left is the number of bytes from pos to the end of the input buffer, so left >= 1 inside the loop.",
+          "evidence": "L69: int left = len - (pos - inbuf);"
+        },
+        {
+          "entities": [
+            "lpos",
+            "pos",
+            "left"
+          ],
+          "claim": "If lpos is non-null, it points to a newline within the next left bytes and is incremented to point just past that newline; llen is then the line length including the newline.",
+          "evidence": "L70: lpos = (char *)memchr(pos, '\\n', left);\nL71: if (lpos) {\nL72: ++lpos;             /* Next line is after \\n */\nL73: llen = lpos - pos;"
+        },
+        {
+          "entities": [
+            "llen",
+            "left"
+          ],
+          "claim": "If no newline is found, llen equals left, the remaining byte count.",
+          "evidence": "L74: } else {\nL75: llen = left;"
+        },
+        {
+          "entities": [
+            "llen",
+            "gopherState->len"
+          ],
+          "claim": "After the overflow check, gopherState->len + llen < TEMP_BUF_SIZE, so the combined buffered length plus new line length fits within TEMP_BUF_SIZE.",
+          "evidence": "L77: if (gopherState->len + llen >= TEMP_BUF_SIZE) {\nL78: debugs(10, DBG_IMPORTANT, \"GopherHTML: Buffer overflow. Lost some data on URL: \" << entry->url()  );\nL79: llen = TEMP_BUF_SIZE - gopherState->len - 1;\nL80: gopherState->overflowed = true; // may already be true\nL81: }"
+        },
+        {
+          "entities": [
+            "llen",
+            "gopherState->len"
+          ],
+          "claim": "When the overflow branch is taken, llen is set to TEMP_BUF_SIZE - gopherState->len - 1, so gopherState->len + llen == TEMP_BUF_SIZE - 1.",
+          "evidence": "L79: llen = TEMP_BUF_SIZE - gopherState->len - 1;"
+        },
+        {
+          "entities": [
+            "lpos",
+            "llen",
+            "gopherState->buf",
+            "gopherState->len",
+            "pos"
+          ],
+          "claim": "If no newline was found, llen bytes are copied from pos into gopherState->buf at offset gopherState->len, gopherState->len is increased by llen, and the loop breaks.",
+          "evidence": "L82: if (!lpos) {\nL86: memcpy(gopherState->buf + gopherState->len, pos, llen);\nL87: gopherState->len += llen;\nL88: break;"
+        },
+        {
+          "entities": [
+            "line",
+            "gopherState->buf",
+            "gopherState->len",
+            "pos",
+            "llen"
+          ],
+          "claim": "When gopherState->len != 0, the existing buffered bytes are copied to line, then llen bytes from pos are copied after them, llen is increased by gopherState->len, and gopherState->len is reset to 0.",
+          "evidence": "L90: if (gopherState->len != 0) {\nL92: memcpy(line, gopherState->buf, gopherState->len);\nL93: memcpy(line + gopherState->len, pos, llen);\nL94: llen += gopherState->len;\nL95: gopherState->len = 0;"
+        },
+        {
+          "entities": [
+            "line",
+            "pos",
+            "llen"
+          ],
+          "claim": "When gopherState->len == 0, llen bytes are copied from pos directly into line.",
+          "evidence": "L96: } else {\nL97: memcpy(line, pos, llen);"
+        },
+        {
+          "entities": [
+            "line",
+            "llen"
+          ],
+          "claim": "After copying, line[llen + 1] is set to '\\0', so the string terminator is placed one byte past the copied line length.",
+          "evidence": "L99: line[llen + 1] = '\\0';"
+        },
+        {
+          "entities": [
+            "pos",
+            "lpos"
+          ],
+          "claim": "After processing a complete line, pos is advanced to lpos, the position just past the newline.",
+          "evidence": "L101: pos = lpos;"
+        },
+        {
+          "entities": [
+            "line"
+          ],
+          "claim": "If the line begins with '.', the line buffer is cleared and the loop continues without processing the line.",
+          "evidence": "L105: if (*line == '.') {\nL107: memset(line, '\\0', TEMP_BUF_SIZE);\nL108: continue;"
+        },
+        {
+          "entities": [
+            "tline",
+            "line",
+            "gtype"
+          ],
+          "claim": "In the HTML_DIR/HTML_INDEX_RESULT case, tline points to line, gtype is the first character, and tline is advanced past it.",
+          "evidence": "L116: tline = line;\nL117: gtype = *tline;\nL118: ++tline;"
+        },
+        {
+          "entities": [
+            "name",
+            "tline"
+          ],
+          "claim": "name points to tline, the start of the name field after the type character.",
+          "evidence": "L119: name = tline;"
+        },
+        {
+          "entities": [
+            "selector",
+            "tline"
+          ],
+          "claim": "selector is the first TAB in tline, or NULL if no TAB is present.",
+          "evidence": "L120: selector = strchr(tline, TAB);"
+        },
+        {
+          "entities": [
+            "selector"
+          ],
+          "claim": "If selector is non-null, the TAB is replaced with '\\0' and selector is advanced past it.",
+          "evidence": "L122: if (selector) {\nL123: *selector = '\\0';\nL124: ++selector;"
+        },
+        {
+          "entities": [
+            "host",
+            "selector"
+          ],
+          "claim": "host is the first TAB in selector, or NULL if no TAB is present.",
+          "evidence": "L125: host = strchr(selector, TAB);"
+        },
+        {
+          "entities": [
+            "host"
+          ],
+          "claim": "If host is non-null, the TAB is replaced with '\\0' and host is advanced past it.",
+          "evidence": "L127: if (host) {\nL128: *host = '\\0';\nL129: ++host;"
+        },
+        {
+          "entities": [
+            "port",
+            "host"
+          ],
+          "claim": "port is the first TAB in host, or NULL if no TAB is present.",
+          "evidence": "L130: port = strchr(host, TAB);"
+        },
+        {
+          "entities": [
+            "port"
+          ],
+          "claim": "If port is non-null, port[0] is set to ':' and the port field is terminated at the next TAB, '\\r', or '\\n' found in host.",
+          "evidence": "L132: if (port) {\nL134: port[0] = ':';\nL135: junk = strchr(host, TAB);\nL137: if (junk)\nL138: *junk++ = 0;    /* Chop port */\nL140: junk = strchr(host, '\\r');\nL142: if (junk)\nL143: *junk++ = 0;    /* Chop port */\nL145: junk = strchr(host, '\\n');\nL147: if (junk)\nL148: *junk++ = 0;    /* Chop port */"
+        },
+        {
+          "entities": [
+            "port"
+          ],
+          "claim": "If port[1] is '0' and port[2] is '\\0', port[0] is set to 0, meaning no port.",
+          "evidence": "L152: if ((port[1] == '0') && (!port[2]))\nL153: port[0] = 0;    /* 0 means none */"
+        },
+        {
+          "entities": [
+            "escaped_selector",
+            "selector"
+          ],
+          "claim": "escaped_selector is a newly allocated escaped copy of selector.",
+          "evidence": "L157: escaped_selector = xstrdup(rfc1738_escape_part(selector));"
+        },
+        {
+          "entities": [
+            "escaped_selector"
+          ],
+          "claim": "escaped_selector is freed after use in the HTML_DIR/HTML_INDEX_RESULT case.",
+          "evidence": "L253: safe_free(escaped_selector);"
+        },
+        {
+          "entities": [
+            "line"
+          ],
+          "claim": "If selector is NULL, line is cleared and the loop continues without processing the line.",
+          "evidence": "L259: } else {\nL260: memset(line, '\\0', TEMP_BUF_SIZE);\nL261: continue;"
+        },
+        {
+          "entities": [
+            "line"
+          ],
+          "claim": "If host is NULL, line is cleared and the loop continues without processing the line.",
+          "evidence": "L255: } else {\nL256: memset(line, '\\0', TEMP_BUF_SIZE);\nL257: continue;"
+        },
+        {
+          "entities": [
+            "result"
+          ],
+          "claim": "In the HTML_CSO_RESULT case with a leading '-', if result is NULL the switch case breaks without further processing.",
+          "evidence": "L276: if (!result)\nL277: break;"
+        },
+        {
+          "entities": [
+            "code"
+          ],
+          "claim": "In the HTML_CSO_RESULT case with a leading '-', if code != 200 the switch case breaks without further processing.",
+          "evidence": "L283: if (code != 200)\nL284: break;"
+        },
+        {
+          "entities": [
+            "result"
+          ],
+          "claim": "In the HTML_CSO_RESULT case without a leading '-', if result is NULL the switch case breaks without further processing.",
+          "evidence": "L302: if (!result)\nL303: break;"
+        },
+        {
+          "entities": [
+            "outbuf",
+            "entry"
+          ],
+          "claim": "If outbuf has size greater than 0, its raw buffer is appended to entry and entry is flushed.",
+          "evidence": "L338: if (outbuf.size() > 0) {\nL339: entry->append(outbuf.rawBuf(), outbuf.size());\nL341: entry->flush();\nL342: }"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 5800,
+              "output_tokens": 795,
+              "total_tokens": 6595
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 5800,
+          "output_tokens": 795,
+          "total_tokens": 6595
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L70",
+                "matched": true,
+                "expression": "memchr(pos, '\\n', left)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L86",
+                "matched": true,
+                "expression": "memcpy(gopherState->buf + gopherState->len, pos, llen)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L86",
+                "matched": true,
+                "expression": "memcpy(line, ..., llen)"
+              },
+              {
+                "location": "L93",
+                "matched": true,
+                "expression": "memcpy(line, ..., llen)"
+              },
+              {
+                "location": "L97",
+                "matched": true,
+                "expression": "memcpy(line, ..., llen)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L99",
+                "matched": true,
+                "expression": "line[llen + 1] = '\\0'"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L105",
+                "matched": true,
+                "expression": "*line"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L117",
+                "matched": true,
+                "expression": "*tline"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L120",
+                "matched": true,
+                "expression": "strchr(tline, TAB)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L123",
+                "matched": true,
+                "expression": "*selector = '\\0'"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L125",
+                "matched": true,
+                "expression": "strchr(selector, TAB)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[9]": {
+            "expression_matches": [
+              {
+                "location": "L128",
+                "matched": true,
+                "expression": "*host = '\\0'"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[10]": {
+            "expression_matches": [
+              {
+                "location": "L130",
+                "matched": true,
+                "expression": "strchr(host, TAB)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[11]": {
+            "expression_matches": [
+              {
+                "location": "L134",
+                "matched": true,
+                "expression": "port[0] = ':'"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[12]": {
+            "expression_matches": [
+              {
+                "location": "L135",
+                "matched": true,
+                "expression": "strchr(host, ...)"
+              },
+              {
+                "location": "L140",
+                "matched": true,
+                "expression": "strchr(host, ...)"
+              },
+              {
+                "location": "L145",
+                "matched": true,
+                "expression": "strchr(host, ...)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[13]": {
+            "expression_matches": [
+              {
+                "location": "L138",
+                "matched": true,
+                "expression": "*junk++ = 0"
+              },
+              {
+                "location": "L143",
+                "matched": true,
+                "expression": "*junk++ = 0"
+              },
+              {
+                "location": "L148",
+                "matched": true,
+                "expression": "*junk++ = 0"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[14]": {
+            "expression_matches": [
+              {
+                "location": "L152",
+                "matched": true,
+                "expression": "port[1] == '0' && !port[2]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[15]": {
+            "expression_matches": [
+              {
+                "location": "L153",
+                "matched": true,
+                "expression": "port[0] = 0"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[16]": {
+            "expression_matches": [
+              {
+                "location": "L227",
+                "matched": true,
+                "expression": "strlen(escaped_selector)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[17]": {
+            "expression_matches": [
+              {
+                "location": "L228",
+                "matched": true,
+                "expression": "snprintf(tmpbuf, TEMP_BUF_SIZE, ...)"
+              },
+              {
+                "location": "L232",
+                "matched": true,
+                "expression": "snprintf(tmpbuf, TEMP_BUF_SIZE, ...)"
+              },
+              {
+                "location": "L237",
+                "matched": true,
+                "expression": "snprintf(tmpbuf, TEMP_BUF_SIZE, ...)"
+              },
+              {
+                "location": "L241",
+                "matched": true,
+                "expression": "snprintf(tmpbuf, TEMP_BUF_SIZE, ...)"
+              },
+              {
+                "location": "L244",
+                "matched": true,
+                "expression": "snprintf(tmpbuf, TEMP_BUF_SIZE, ...)"
+              },
+              {
+                "location": "L248",
+                "matched": true,
+                "expression": "snprintf(tmpbuf, TEMP_BUF_SIZE, ...)"
+              },
+              {
+                "location": "L287",
+                "matched": true,
+                "expression": "snprintf(tmpbuf, TEMP_BUF_SIZE, ...)"
+              },
+              {
+                "location": "L290",
+                "matched": true,
+                "expression": "snprintf(tmpbuf, TEMP_BUF_SIZE, ...)"
+              },
+              {
+                "location": "L321",
+                "matched": true,
+                "expression": "snprintf(tmpbuf, TEMP_BUF_SIZE, ...)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[18]": {
+            "expression_matches": [
+              {
+                "location": "L239",
+                "matched": true,
+                "expression": "strncmp(selector, \"GET /\", 5)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[19]": {
+            "expression_matches": [
+              {
+                "location": "L253",
+                "matched": true,
+                "expression": "safe_free(escaped_selector)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[20]": {
+            "expression_matches": [
+              {
+                "location": "L268",
+                "matched": true,
+                "expression": "line[0]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[21]": {
+            "expression_matches": [
+              {
+                "location": "L272",
+                "matched": true,
+                "expression": "strtok(...)"
+              },
+              {
+                "location": "L273",
+                "matched": true,
+                "expression": "strtok(...)"
+              },
+              {
+                "location": "L274",
+                "matched": true,
+                "expression": "strtok(...)"
+              },
+              {
+                "location": "L299",
+                "matched": true,
+                "expression": "strtok(...)"
+              },
+              {
+                "location": "L300",
+                "matched": true,
+                "expression": "strtok(...)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[22]": {
+            "expression_matches": [
+              {
+                "location": "L279",
+                "matched": true,
+                "expression": "atoi(...)"
+              },
+              {
+                "location": "L281",
+                "matched": true,
+                "expression": "atoi(...)"
+              },
+              {
+                "location": "L305",
+                "matched": true,
+                "expression": "atoi(...)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[23]": {
+            "expression_matches": [
+              {
+                "location": "L339",
+                "matched": true,
+                "expression": "entry->append(outbuf.rawBuf(), outbuf.size())"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_operation_locations",
+            "index": 2,
+            "locations": [
+              "L86",
+              "L93",
+              "L97"
+            ]
+          }
+        ]
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 4403,
+              "output_tokens": 1542,
+              "total_tokens": 5945
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 4403,
+          "output_tokens": 1542,
+          "total_tokens": 5945
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 86,
+                "fragment": "memcpy(gopherState->buf + gopherState->len, pos, llen);",
+                "matched_lines": [
+                  86
+                ]
+              },
+              {
+                "evidence_line": 87,
+                "fragment": "gopherState->len += llen;",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 92,
+                "fragment": "memcpy(line, gopherState->buf, gopherState->len);",
+                "matched_lines": [
+                  92
+                ]
+              },
+              {
+                "evidence_line": 93,
+                "fragment": "memcpy(line + gopherState->len, pos, llen);",
+                "matched_lines": [
+                  93
+                ]
+              },
+              {
+                "evidence_line": 94,
+                "fragment": "llen += gopherState->len;",
+                "matched_lines": [
+                  94
+                ]
+              },
+              {
+                "evidence_line": 95,
+                "fragment": "gopherState->len = 0;",
+                "matched_lines": [
+                  95
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "LOCAL_ARRAY(char, line, TEMP_BUF_SIZE);",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 92,
+                "fragment": "memcpy(line, gopherState->buf, gopherState->len);",
+                "matched_lines": [
+                  92
+                ]
+              },
+              {
+                "evidence_line": 93,
+                "fragment": "memcpy(line + gopherState->len, pos, llen);",
+                "matched_lines": [
+                  93
+                ]
+              },
+              {
+                "evidence_line": 97,
+                "fragment": "memcpy(line, pos, llen);",
+                "matched_lines": [
+                  97
+                ]
+              },
+              {
+                "evidence_line": 99,
+                "fragment": "line[llen + 1] = '\\0';",
+                "matched_lines": [
+                  99
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 116,
+                "fragment": "tline = line;",
+                "matched_lines": [
+                  116
+                ]
+              },
+              {
+                "evidence_line": 117,
+                "fragment": "gtype = *tline;",
+                "matched_lines": [
+                  117
+                ]
+              },
+              {
+                "evidence_line": 118,
+                "fragment": "++tline;",
+                "matched_lines": [
+                  118
+                ]
+              },
+              {
+                "evidence_line": 119,
+                "fragment": "name = tline;",
+                "matched_lines": [
+                  119
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 120,
+                "fragment": "selector = strchr(tline, TAB);",
+                "matched_lines": [
+                  120
+                ]
+              },
+              {
+                "evidence_line": 123,
+                "fragment": "*selector = '\\0';",
+                "matched_lines": [
+                  123
+                ]
+              },
+              {
+                "evidence_line": 124,
+                "fragment": "++selector;",
+                "matched_lines": [
+                  124
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 125,
+                "fragment": "host = strchr(selector, TAB);",
+                "matched_lines": [
+                  125
+                ]
+              },
+              {
+                "evidence_line": 128,
+                "fragment": "*host = '\\0';",
+                "matched_lines": [
+                  128
+                ]
+              },
+              {
+                "evidence_line": 129,
+                "fragment": "++host;",
+                "matched_lines": [
+                  129
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 130,
+                "fragment": "port = strchr(host, TAB);",
+                "matched_lines": [
+                  130
+                ]
+              },
+              {
+                "evidence_line": 134,
+                "fragment": "port[0] = ':';",
+                "matched_lines": [
+                  134
+                ]
+              },
+              {
+                "evidence_line": 135,
+                "fragment": "junk = strchr(host, TAB);",
+                "matched_lines": [
+                  135
+                ]
+              },
+              {
+                "evidence_line": 138,
+                "fragment": "*junk++ = 0;    /* Chop port */",
+                "matched_lines": [
+                  138
+                ]
+              },
+              {
+                "evidence_line": 140,
+                "fragment": "junk = strchr(host, '\\r');",
+                "matched_lines": [
+                  140
+                ]
+              },
+              {
+                "evidence_line": 143,
+                "fragment": "*junk++ = 0;    /* Chop port */",
+                "matched_lines": [
+                  143
+                ]
+              },
+              {
+                "evidence_line": 145,
+                "fragment": "junk = strchr(host, '\\n');",
+                "matched_lines": [
+                  145
+                ]
+              },
+              {
+                "evidence_line": 148,
+                "fragment": "*junk++ = 0;    /* Chop port */",
+                "matched_lines": [
+                  148
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 157,
+                "fragment": "escaped_selector = xstrdup(rfc1738_escape_part(selector));",
+                "matched_lines": [
+                  157
+                ]
+              },
+              {
+                "evidence_line": 253,
+                "fragment": "safe_free(escaped_selector);",
+                "matched_lines": [
+                  253
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 162,
+                "fragment": "icon_url = mimeGetIconURL(\"internal-menu\");",
+                "matched_lines": [
+                  162
+                ]
+              },
+              {
+                "evidence_line": 168,
+                "fragment": "icon_url = mimeGetIconURL(\"internal-text\");",
+                "matched_lines": [
+                  168
+                ]
+              },
+              {
+                "evidence_line": 174,
+                "fragment": "icon_url = mimeGetIconURL(\"internal-index\");",
+                "matched_lines": [
+                  174
+                ]
+              },
+              {
+                "evidence_line": 182,
+                "fragment": "icon_url = mimeGetIconURL(\"internal-image\");",
+                "matched_lines": [
+                  182
+                ]
+              },
+              {
+                "evidence_line": 188,
+                "fragment": "icon_url = mimeGetIconURL(\"internal-sound\");",
+                "matched_lines": [
+                  188
+                ]
+              },
+              {
+                "evidence_line": 192,
+                "fragment": "icon_url = mimeGetIconURL(\"internal-movie\");",
+                "matched_lines": [
+                  192
+                ]
+              },
+              {
+                "evidence_line": 198,
+                "fragment": "icon_url = mimeGetIconURL(\"internal-telnet\");",
+                "matched_lines": [
+                  198
+                ]
+              },
+              {
+                "evidence_line": 208,
+                "fragment": "icon_url = mimeGetIconURL(\"internal-binary\");",
+                "matched_lines": [
+                  208
+                ]
+              },
+              {
+                "evidence_line": 212,
+                "fragment": "icon_url = NULL;",
+                "matched_lines": [
+                  212
+                ]
+              },
+              {
+                "evidence_line": 216,
+                "fragment": "icon_url = mimeGetIconURL(\"internal-link\");",
+                "matched_lines": [
+                  216
+                ]
+              },
+              {
+                "evidence_line": 220,
+                "fragment": "icon_url = mimeGetIconURL(\"internal-unknown\");",
+                "matched_lines": [
+                  220
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "LOCAL_ARRAY(char, tmpbuf, TEMP_BUF_SIZE);",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "memset(tmpbuf, '\\0', TEMP_BUF_SIZE);",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 224,
+                "fragment": "memset(tmpbuf, '\\0', TEMP_BUF_SIZE);",
+                "matched_lines": [
+                  224
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "entry = gopherState->entry;",
+                "matched_lines": [
+                  20
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 32,
+                "fragment": "gopherState->HTML_header_added = 1;",
+                "matched_lines": [
+                  32
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "gopherState->HTML_header_added = 1;",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "gopherState->HTML_header_added = 1;",
+                "matched_lines": [
+                  62
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 64,
+                "fragment": "gopherState->HTML_pre = 1;",
+                "matched_lines": [
+                  64
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 80,
+                "fragment": "gopherState->overflowed = true; // may already be true",
+                "matched_lines": [
+                  80
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 288,
+                "fragment": "gopherState->cso_recno = recno;",
+                "matched_lines": [
+                  288
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 52,
+                "fragment": "String outbuf;",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 254,
+                "fragment": "outbuf.append(tmpbuf);",
+                "matched_lines": [
+                  254
+                ]
+              },
+              {
+                "evidence_line": 293,
+                "fragment": "outbuf.append(tmpbuf);",
+                "matched_lines": [
+                  293
+                ]
+              },
+              {
+                "evidence_line": 322,
+                "fragment": "outbuf.append(tmpbuf);",
+                "matched_lines": [
+                  322
+                ]
+              },
+              {
+                "evidence_line": 344,
+                "fragment": "outbuf.clean();",
+                "matched_lines": [
+                  344
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 4591,
+              "output_tokens": 1962,
+              "total_tokens": 6553
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 4591,
+          "output_tokens": 1962,
+          "total_tokens": 6553
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "LOCAL_ARRAY(char, line, TEMP_BUF_SIZE);",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 7,
+                "fragment": "LOCAL_ARRAY(char, tmpbuf, TEMP_BUF_SIZE);",
+                "matched_lines": [
+                  7
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "char *pos = inbuf;",
+                "matched_lines": [
+                  3
+                ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "while (pos < inbuf + len) {",
+                "matched_lines": [
+                  67
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 69,
+                "fragment": "int left = len - (pos - inbuf);",
+                "matched_lines": [
+                  69
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 70,
+                "fragment": "lpos = (char *)memchr(pos, '\\n', left);",
+                "matched_lines": [
+                  70
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 71,
+                "fragment": "if (lpos) {",
+                "matched_lines": [
+                  71
+                ]
+              },
+              {
+                "evidence_line": 72,
+                "fragment": "++lpos;             /* Next line is after \\n */",
+                "matched_lines": [
+                  72
+                ]
+              },
+              {
+                "evidence_line": 73,
+                "fragment": "llen = lpos - pos;",
+                "matched_lines": [
+                  73
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 74,
+                "fragment": "} else {",
+                "matched_lines": [
+                  74
+                ]
+              },
+              {
+                "evidence_line": 75,
+                "fragment": "llen = left;",
+                "matched_lines": [
+                  75
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 77,
+                "fragment": "if (gopherState->len + llen >= TEMP_BUF_SIZE) {",
+                "matched_lines": [
+                  77
+                ]
+              },
+              {
+                "evidence_line": 79,
+                "fragment": "llen = TEMP_BUF_SIZE - gopherState->len - 1;",
+                "matched_lines": [
+                  79
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 86,
+                "fragment": "memcpy(gopherState->buf + gopherState->len, pos, llen);",
+                "matched_lines": [
+                  86
+                ]
+              },
+              {
+                "evidence_line": 87,
+                "fragment": "gopherState->len += llen;",
+                "matched_lines": [
+                  87
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 92,
+                "fragment": "memcpy(line, gopherState->buf, gopherState->len);",
+                "matched_lines": [
+                  92
+                ]
+              },
+              {
+                "evidence_line": 93,
+                "fragment": "memcpy(line + gopherState->len, pos, llen);",
+                "matched_lines": [
+                  93
+                ]
+              },
+              {
+                "evidence_line": 94,
+                "fragment": "llen += gopherState->len;",
+                "matched_lines": [
+                  94
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 99,
+                "fragment": "line[llen + 1] = '\\0';",
+                "matched_lines": [
+                  99
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 101,
+                "fragment": "pos = lpos;",
+                "matched_lines": [
+                  101
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 116,
+                "fragment": "tline = line;",
+                "matched_lines": [
+                  116
+                ]
+              },
+              {
+                "evidence_line": 117,
+                "fragment": "gtype = *tline;",
+                "matched_lines": [
+                  117
+                ]
+              },
+              {
+                "evidence_line": 118,
+                "fragment": "++tline;",
+                "matched_lines": [
+                  118
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 119,
+                "fragment": "name = tline;",
+                "matched_lines": [
+                  119
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 120,
+                "fragment": "selector = strchr(tline, TAB);",
+                "matched_lines": [
+                  120
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 123,
+                "fragment": "*selector = '\\0';",
+                "matched_lines": [
+                  123
+                ]
+              },
+              {
+                "evidence_line": 124,
+                "fragment": "++selector;",
+                "matched_lines": [
+                  124
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[15]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 125,
+                "fragment": "host = strchr(selector, TAB);",
+                "matched_lines": [
+                  125
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[16]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 128,
+                "fragment": "*host = '\\0';",
+                "matched_lines": [
+                  128
+                ]
+              },
+              {
+                "evidence_line": 129,
+                "fragment": "++host;",
+                "matched_lines": [
+                  129
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[17]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 130,
+                "fragment": "port = strchr(host, TAB);",
+                "matched_lines": [
+                  130
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[18]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 134,
+                "fragment": "port[0] = ':';",
+                "matched_lines": [
+                  134
+                ]
+              },
+              {
+                "evidence_line": 152,
+                "fragment": "if ((port[1] == '0') && (!port[2]))",
+                "matched_lines": [
+                  152
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[19]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 152,
+                "fragment": "if ((port[1] == '0') && (!port[2]))",
+                "matched_lines": [
+                  152
+                ]
+              },
+              {
+                "evidence_line": 153,
+                "fragment": "port[0] = 0;    /* 0 means none */",
+                "matched_lines": [
+                  153
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[20]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 157,
+                "fragment": "escaped_selector = xstrdup(rfc1738_escape_part(selector));",
+                "matched_lines": [
+                  157
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[21]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 224,
+                "fragment": "memset(tmpbuf, '\\0', TEMP_BUF_SIZE);",
+                "matched_lines": [
+                  224
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[22]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 228,
+                "fragment": "snprintf(tmpbuf, TEMP_BUF_SIZE, \"<IMG border=\\\"0\\\" SRC=\\\"%s\\\"> <A HREF=\\\"telnet://%s@%s%s%s/\\\">%s</A>\\n\",",
+                "matched_lines": [
+                  228
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[23]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 239,
+                "fragment": "if (strncmp(selector, \"GET /\", 5) == 0) {",
+                "matched_lines": [
+                  239
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[24]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 242,
+                "fragment": "icon_url, host, rfc1738_escape_unescaped(selector + 5), html_quote(name));",
+                "matched_lines": [
+                  242
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[25]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 268,
+                "fragment": "if (line[0] == '-') {",
+                "matched_lines": [
+                  268
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[26]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 272,
+                "fragment": "s_code = strtok(line + 1, \":\\n\");",
+                "matched_lines": [
+                  272
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[27]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 338,
+                "fragment": "if (outbuf.size() > 0) {",
+                "matched_lines": [
+                  338
+                ]
+              },
+              {
+                "evidence_line": 339,
+                "fragment": "entry->append(outbuf.rawBuf(), outbuf.size());",
+                "matched_lines": [
+                  339
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 4271,
+              "output_tokens": 2279,
+              "total_tokens": 6550
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 4271,
+          "output_tokens": 2279,
+          "total_tokens": 6550
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 67,
+                "fragment": "while (pos < inbuf + len) {",
+                "matched_lines": [
+                  67
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 69,
+                "fragment": "int left = len - (pos - inbuf);",
+                "matched_lines": [
+                  69
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 70,
+                "fragment": "lpos = (char *)memchr(pos, '\\n', left);",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 71,
+                "fragment": "if (lpos) {",
+                "matched_lines": [
+                  71
+                ]
+              },
+              {
+                "evidence_line": 72,
+                "fragment": "++lpos;             /* Next line is after \\n */",
+                "matched_lines": [
+                  72
+                ]
+              },
+              {
+                "evidence_line": 73,
+                "fragment": "llen = lpos - pos;",
+                "matched_lines": [
+                  73
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 74,
+                "fragment": "} else {",
+                "matched_lines": [
+                  74
+                ]
+              },
+              {
+                "evidence_line": 75,
+                "fragment": "llen = left;",
+                "matched_lines": [
+                  75
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 77,
+                "fragment": "if (gopherState->len + llen >= TEMP_BUF_SIZE) {",
+                "matched_lines": [
+                  77
+                ]
+              },
+              {
+                "evidence_line": 78,
+                "fragment": "debugs(10, DBG_IMPORTANT, \"GopherHTML: Buffer overflow. Lost some data on URL: \" << entry->url()  );",
+                "matched_lines": [
+                  78
+                ]
+              },
+              {
+                "evidence_line": 79,
+                "fragment": "llen = TEMP_BUF_SIZE - gopherState->len - 1;",
+                "matched_lines": [
+                  79
+                ]
+              },
+              {
+                "evidence_line": 80,
+                "fragment": "gopherState->overflowed = true; // may already be true",
+                "matched_lines": [
+                  80
+                ]
+              },
+              {
+                "evidence_line": 81,
+                "fragment": "}",
+                "matched_lines": [
+                  81
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 79,
+                "fragment": "llen = TEMP_BUF_SIZE - gopherState->len - 1;",
+                "matched_lines": [
+                  79
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 82,
+                "fragment": "if (!lpos) {",
+                "matched_lines": [
+                  82
+                ]
+              },
+              {
+                "evidence_line": 86,
+                "fragment": "memcpy(gopherState->buf + gopherState->len, pos, llen);",
+                "matched_lines": [
+                  86
+                ]
+              },
+              {
+                "evidence_line": 87,
+                "fragment": "gopherState->len += llen;",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 88,
+                "fragment": "break;",
+                "matched_lines": [
+                  88
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 90,
+                "fragment": "if (gopherState->len != 0) {",
+                "matched_lines": [
+                  90
+                ]
+              },
+              {
+                "evidence_line": 92,
+                "fragment": "memcpy(line, gopherState->buf, gopherState->len);",
+                "matched_lines": [
+                  92
+                ]
+              },
+              {
+                "evidence_line": 93,
+                "fragment": "memcpy(line + gopherState->len, pos, llen);",
+                "matched_lines": [
+                  93
+                ]
+              },
+              {
+                "evidence_line": 94,
+                "fragment": "llen += gopherState->len;",
+                "matched_lines": [
+                  94
+                ]
+              },
+              {
+                "evidence_line": 95,
+                "fragment": "gopherState->len = 0;",
+                "matched_lines": [
+                  95
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 96,
+                "fragment": "} else {",
+                "matched_lines": [
+                  96
+                ]
+              },
+              {
+                "evidence_line": 97,
+                "fragment": "memcpy(line, pos, llen);",
+                "matched_lines": [
+                  97
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 99,
+                "fragment": "line[llen + 1] = '\\0';",
+                "matched_lines": [
+                  99
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 101,
+                "fragment": "pos = lpos;",
+                "matched_lines": [
+                  101
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 105,
+                "fragment": "if (*line == '.') {",
+                "matched_lines": [
+                  105
+                ]
+              },
+              {
+                "evidence_line": 107,
+                "fragment": "memset(line, '\\0', TEMP_BUF_SIZE);",
+                "matched_lines": [
+                  107
+                ]
+              },
+              {
+                "evidence_line": 108,
+                "fragment": "continue;",
+                "matched_lines": [
+                  108
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 116,
+                "fragment": "tline = line;",
+                "matched_lines": [
+                  116
+                ]
+              },
+              {
+                "evidence_line": 117,
+                "fragment": "gtype = *tline;",
+                "matched_lines": [
+                  117
+                ]
+              },
+              {
+                "evidence_line": 118,
+                "fragment": "++tline;",
+                "matched_lines": [
+                  118
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 119,
+                "fragment": "name = tline;",
+                "matched_lines": [
+                  119
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 120,
+                "fragment": "selector = strchr(tline, TAB);",
+                "matched_lines": [
+                  120
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[15]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 122,
+                "fragment": "if (selector) {",
+                "matched_lines": [
+                  122
+                ]
+              },
+              {
+                "evidence_line": 123,
+                "fragment": "*selector = '\\0';",
+                "matched_lines": [
+                  123
+                ]
+              },
+              {
+                "evidence_line": 124,
+                "fragment": "++selector;",
+                "matched_lines": [
+                  124
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[16]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 125,
+                "fragment": "host = strchr(selector, TAB);",
+                "matched_lines": [
+                  125
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[17]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 127,
+                "fragment": "if (host) {",
+                "matched_lines": [
+                  127
+                ]
+              },
+              {
+                "evidence_line": 128,
+                "fragment": "*host = '\\0';",
+                "matched_lines": [
+                  128
+                ]
+              },
+              {
+                "evidence_line": 129,
+                "fragment": "++host;",
+                "matched_lines": [
+                  129
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[18]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 130,
+                "fragment": "port = strchr(host, TAB);",
+                "matched_lines": [
+                  130
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[19]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 132,
+                "fragment": "if (port) {",
+                "matched_lines": [
+                  132
+                ]
+              },
+              {
+                "evidence_line": 134,
+                "fragment": "port[0] = ':';",
+                "matched_lines": [
+                  134
+                ]
+              },
+              {
+                "evidence_line": 135,
+                "fragment": "junk = strchr(host, TAB);",
+                "matched_lines": [
+                  135
+                ]
+              },
+              {
+                "evidence_line": 137,
+                "fragment": "if (junk)",
+                "matched_lines": [
+                  137
+                ]
+              },
+              {
+                "evidence_line": 138,
+                "fragment": "*junk++ = 0;    /* Chop port */",
+                "matched_lines": [
+                  138
+                ]
+              },
+              {
+                "evidence_line": 140,
+                "fragment": "junk = strchr(host, '\\r');",
+                "matched_lines": [
+                  140
+                ]
+              },
+              {
+                "evidence_line": 142,
+                "fragment": "if (junk)",
+                "matched_lines": [
+                  142
+                ]
+              },
+              {
+                "evidence_line": 143,
+                "fragment": "*junk++ = 0;    /* Chop port */",
+                "matched_lines": [
+                  143
+                ]
+              },
+              {
+                "evidence_line": 145,
+                "fragment": "junk = strchr(host, '\\n');",
+                "matched_lines": [
+                  145
+                ]
+              },
+              {
+                "evidence_line": 147,
+                "fragment": "if (junk)",
+                "matched_lines": [
+                  147
+                ]
+              },
+              {
+                "evidence_line": 148,
+                "fragment": "*junk++ = 0;    /* Chop port */",
+                "matched_lines": [
+                  148
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[20]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 152,
+                "fragment": "if ((port[1] == '0') && (!port[2]))",
+                "matched_lines": [
+                  152
+                ]
+              },
+              {
+                "evidence_line": 153,
+                "fragment": "port[0] = 0;    /* 0 means none */",
+                "matched_lines": [
+                  153
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[21]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 157,
+                "fragment": "escaped_selector = xstrdup(rfc1738_escape_part(selector));",
+                "matched_lines": [
+                  157
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[22]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 253,
+                "fragment": "safe_free(escaped_selector);",
+                "matched_lines": [
+                  253
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[23]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 259,
+                "fragment": "} else {",
+                "matched_lines": [
+                  259
+                ]
+              },
+              {
+                "evidence_line": 260,
+                "fragment": "memset(line, '\\0', TEMP_BUF_SIZE);",
+                "matched_lines": [
+                  260
+                ]
+              },
+              {
+                "evidence_line": 261,
+                "fragment": "continue;",
+                "matched_lines": [
+                  261
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[24]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 255,
+                "fragment": "} else {",
+                "matched_lines": [
+                  255
+                ]
+              },
+              {
+                "evidence_line": 256,
+                "fragment": "memset(line, '\\0', TEMP_BUF_SIZE);",
+                "matched_lines": [
+                  256
+                ]
+              },
+              {
+                "evidence_line": 257,
+                "fragment": "continue;",
+                "matched_lines": [
+                  257
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[25]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 276,
+                "fragment": "if (!result)",
+                "matched_lines": [
+                  276
+                ]
+              },
+              {
+                "evidence_line": 277,
+                "fragment": "break;",
+                "matched_lines": [
+                  277
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[26]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 283,
+                "fragment": "if (code != 200)",
+                "matched_lines": [
+                  283
+                ]
+              },
+              {
+                "evidence_line": 284,
+                "fragment": "break;",
+                "matched_lines": [
+                  284
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[27]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 302,
+                "fragment": "if (!result)",
+                "matched_lines": [
+                  302
+                ]
+              },
+              {
+                "evidence_line": 303,
+                "fragment": "break;",
+                "matched_lines": [
+                  303
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[28]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 338,
+                "fragment": "if (outbuf.size() > 0) {",
+                "matched_lines": [
+                  338
+                ]
+              },
+              {
+                "evidence_line": 339,
+                "fragment": "entry->append(outbuf.rawBuf(), outbuf.size());",
+                "matched_lines": [
+                  339
+                ]
+              },
+              {
+                "evidence_line": 341,
+                "fragment": "entry->flush();",
+                "matched_lines": [
+                  341
+                ]
+              },
+              {
+                "evidence_line": 342,
+                "fragment": "}",
+                "matched_lines": [
+                  342
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 24,
+      "states": 15,
+      "values": 28,
+      "executions": 29
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 19065,
+    "output_tokens": 6578,
+    "total_tokens": 25643
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000082",
+    "split": "test",
+    "source_hash": "15f1c43859bac46f664ee601b72d1b51b81cb9d420c2e55e2c68337dbfd5b6da",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

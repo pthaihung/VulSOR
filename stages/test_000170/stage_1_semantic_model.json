@@ -1,0 +1,583 @@
+{
+  "sample_id": "test_000170",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L31"
+          ],
+          "expression": "local->local = 1",
+          "claim": "write through pointer local, which must point to a valid object"
+        },
+        {
+          "locations": [
+            "L44"
+          ],
+          "expression": "snprintf(cl.lockfile, sizeof(cl.lockfile)-1, ...)",
+          "claim": "write into fixed-size buffer cl.lockfile with a size bound"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "local"
+          ],
+          "claim": "local is a pointer to a site object found by find_site_by_name; when found, local->local is set to 1.",
+          "evidence": "L26: if (!find_site_by_name(cl.site, &local, 1)) {\nL31: local->local = 1;"
+        },
+        {
+          "entities": [
+            "cl.lockfile"
+          ],
+          "claim": "cl.lockfile is a character buffer that is initialized with a derived PID file name when its first byte is zero.",
+          "evidence": "L43: if (!cl.lockfile[0]) {\nL44: snprintf(cl.lockfile, sizeof(cl.lockfile)-1,\nL45: \"%s/%s.pid\", BOOTH_RUN_DIR, booth_conf->name);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "cl.lockfile",
+            "sizeof(cl.lockfile)"
+          ],
+          "claim": "The snprintf destination buffer size argument is sizeof(cl.lockfile)-1, one less than the full array size, so at most sizeof(cl.lockfile)-1 bytes are written including the terminating NUL.",
+          "evidence": "L44: snprintf(cl.lockfile, sizeof(cl.lockfile)-1,"
+        },
+        {
+          "entities": [
+            "cl.lockfile",
+            "BOOTH_RUN_DIR",
+            "booth_conf->name"
+          ],
+          "claim": "The formatted lockfile path is \"%s/%s.pid\" with BOOTH_RUN_DIR and booth_conf->name, so the required output length is strlen(BOOTH_RUN_DIR)+1+strlen(booth_conf->name)+4 before truncation.",
+          "evidence": "L44: snprintf(cl.lockfile, sizeof(cl.lockfile)-1,\nL45: \"%s/%s.pid\", BOOTH_RUN_DIR, booth_conf->name);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "rv"
+          ],
+          "claim": "Continuing past line 7 implies rv >= 0 from read_config.",
+          "evidence": "L5: rv = read_config(cl.configfile, type);\nL6: if (rv < 0)\nL7: goto out;"
+        },
+        {
+          "entities": [
+            "rv"
+          ],
+          "claim": "Continuing past line 12 implies rv >= 0 from read_authkey when is_auth_req() is true.",
+          "evidence": "L9: if (is_auth_req()) {\nL10: rv = read_authkey();\nL11: if (rv < 0)\nL12: goto out;"
+        },
+        {
+          "entities": [
+            "rv"
+          ],
+          "claim": "Continuing past line 18 implies gcry_check_version(NULL) returned non-NULL when HAVE_LIBGCRYPT and is_auth_req().",
+          "evidence": "L14: if (!gcry_check_version(NULL)) {\nL15: log_error(\"gcry_check_version\");\nL16: rv = -ENOENT;\nL17: goto out;\nL18: }"
+        },
+        {
+          "entities": [
+            "local"
+          ],
+          "claim": "Reaching line 31 implies find_site_by_name(cl.site, &local, 1) returned non-zero, so local is set.",
+          "evidence": "L25: if (cl.type == DAEMON && cl.site[0]) {\nL26: if (!find_site_by_name(cl.site, &local, 1)) {\nL27: log_error(\"Cannot find \\\"%s\\\" in the configuration.\",\nL28: cl.site);\nL29: return -EINVAL;\nL30: }\nL31: local->local = 1;"
+        },
+        {
+          "entities": [
+            "rv"
+          ],
+          "claim": "Continuing past line 38 implies rv >= 0 from check_config.",
+          "evidence": "L36: rv = check_config(type);\nL37: if (rv < 0)\nL38: goto out;"
+        },
+        {
+          "entities": [
+            "cl.lockfile"
+          ],
+          "claim": "Entering line 44 implies cl.lockfile[0] is zero (empty lockfile).",
+          "evidence": "L43: if (!cl.lockfile[0]) {\nL44: snprintf(cl.lockfile, sizeof(cl.lockfile)-1,"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2490,
+              "output_tokens": 86,
+              "total_tokens": 2576
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2490,
+          "output_tokens": 86,
+          "total_tokens": 2576
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L31",
+                "matched": true,
+                "expression": "local->local = 1"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L44",
+                "matched": true,
+                "expression": "snprintf(cl.lockfile, sizeof(cl.lockfile)-1, ...)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1093,
+              "output_tokens": 196,
+              "total_tokens": 1289
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1093,
+          "output_tokens": 196,
+          "total_tokens": 1289
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 26,
+                "fragment": "if (!find_site_by_name(cl.site, &local, 1)) {",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "local->local = 1;",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "if (!cl.lockfile[0]) {",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "snprintf(cl.lockfile, sizeof(cl.lockfile)-1,",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "\"%s/%s.pid\", BOOTH_RUN_DIR, booth_conf->name);",
+                "matched_lines": [
+                  45
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1281,
+              "output_tokens": 233,
+              "total_tokens": 1514
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1281,
+          "output_tokens": 233,
+          "total_tokens": 1514
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "snprintf(cl.lockfile, sizeof(cl.lockfile)-1,",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "snprintf(cl.lockfile, sizeof(cl.lockfile)-1,",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "\"%s/%s.pid\", BOOTH_RUN_DIR, booth_conf->name);",
+                "matched_lines": [
+                  45
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 961,
+              "output_tokens": 604,
+              "total_tokens": 1565
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 961,
+          "output_tokens": 604,
+          "total_tokens": 1565
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "rv = read_config(cl.configfile, type);",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "if (rv < 0)",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 7,
+                "fragment": "goto out;",
+                "matched_lines": [
+                  7
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "if (is_auth_req()) {",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "rv = read_authkey();",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "if (rv < 0)",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "goto out;",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "if (!gcry_check_version(NULL)) {",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "log_error(\"gcry_check_version\");",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "rv = -ENOENT;",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "goto out;",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "}",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 25,
+                "fragment": "if (cl.type == DAEMON && cl.site[0]) {",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "if (!find_site_by_name(cl.site, &local, 1)) {",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "log_error(\"Cannot find \\\"%s\\\" in the configuration.\",",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "cl.site);",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "return -EINVAL;",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "}",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "local->local = 1;",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 36,
+                "fragment": "rv = check_config(type);",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "if (rv < 0)",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 38,
+                "fragment": "goto out;",
+                "matched_lines": [
+                  38
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "if (!cl.lockfile[0]) {",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "snprintf(cl.lockfile, sizeof(cl.lockfile)-1,",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 2,
+      "states": 2,
+      "values": 2,
+      "executions": 6
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 5825,
+    "output_tokens": 1119,
+    "total_tokens": 6944
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000170",
+    "split": "test",
+    "source_hash": "285c83a09391ffacde4be09797c4ba8e0404bfe5aaa72757f74d388ece4f3e8d",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

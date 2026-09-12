@@ -10,49 +10,53 @@
             "L11"
           ],
           "expression": "node_map_->GetNode(node.input(1))",
-          "claim": "dereference of node_map_ pointer to call GetNode"
+          "claim": "dereference of the node_map_ pointer to call GetNode"
         },
         {
           "locations": [
             "L12"
           ],
           "expression": "*new_shape",
-          "claim": "dereference of new_shape pointer returned by GetNode"
+          "claim": "dereference of the pointer returned by GetNode"
         },
         {
           "locations": [
             "L14"
           ],
           "expression": "new_shape->DebugString()",
-          "claim": "member access through new_shape pointer"
+          "claim": "member access through the new_shape pointer"
         },
         {
           "locations": [
             "L20"
           ],
           "expression": "delete output.tensor",
-          "claim": "deletion of tensor pointer owned by outputs"
+          "claim": "deletion of the tensor pointer owned by each output"
         },
         {
           "locations": [
             "L39"
           ],
           "expression": "props[0]",
-          "claim": "indexed access into props vector"
+          "claim": "indexed access into the props vector"
         },
         {
           "locations": [
-            "L55"
-          ],
-          "expression": "outputs[0]->flat<int32>()(i)",
-          "claim": "indexed access into tensor flat data"
-        },
-        {
-          "locations": [
+            "L52",
+            "L55",
+            "L62",
             "L63"
           ],
-          "expression": "outputs[0]->flat<int64_t>()(i)",
-          "claim": "indexed access into tensor flat data"
+          "expression": "outputs[0]->flat<int32>()(i)",
+          "claim": "indexed access into the tensor's flat data buffer"
+        },
+        {
+          "locations": [
+            "L55",
+            "L63"
+          ],
+          "expression": "outputs[0]->flat<int32>()(i)",
+          "claim": "indexed access into the tensor's flat data buffer"
         }
       ],
       "states": [
@@ -60,14 +64,14 @@
           "entities": [
             "outputs"
           ],
-          "claim": "outputs is a TensorVector whose tensor pointers are owned by the local cleanup object outputs_cleanup, which deletes each output.tensor when the cleanup goes out of scope.",
+          "claim": "outputs is a TensorVector whose tensor pointers are owned by the function and are deleted by the gtl::MakeCleanup cleanup object when it goes out of scope.",
           "evidence": "L17: TensorVector outputs;\nL18: auto outputs_cleanup = gtl::MakeCleanup([&outputs] {\nL19: for (const auto& output : outputs) {\nL20: delete output.tensor;\nL21: }\nL22: });"
         },
         {
           "entities": [
             "new_shape"
           ],
-          "claim": "new_shape is a pointer to a NodeDef obtained from node_map_->GetNode(node.input(1)); it is dereferenced and passed to EvaluateNode.",
+          "claim": "new_shape is a pointer to the NodeDef returned by node_map_->GetNode(node.input(1)); it is dereferenced by IsReallyConstant and EvaluateNode.",
           "evidence": "L11: const NodeDef* new_shape = node_map_->GetNode(node.input(1));\nL12: if (!IsReallyConstant(*new_shape)) {\nL24: Status s = EvaluateNode(*new_shape, TensorVector(), &outputs);"
         },
         {
@@ -90,7 +94,7 @@
             "shape"
           ],
           "claim": "shape is a PartialTensorShape constructed from prop.shape() and is required to be fully defined before use.",
-          "evidence": "L44: const PartialTensorShape shape(prop.shape());\nL45: if (!shape.IsFullyDefined()) {\nL70: if (!shape.IsCompatibleWith(new_dims)) {"
+          "evidence": "L44: const PartialTensorShape shape(prop.shape());\nL45: if (!shape.IsFullyDefined()) {"
         },
         {
           "entities": [
@@ -112,40 +116,50 @@
           "entities": [
             "outputs.size()"
           ],
-          "claim": "Evaluation must produce exactly 1 output; outputs.size() must equal 1.",
+          "claim": "The evaluated shape tensor must have exactly 1 output; outputs.size() must equal 1.",
           "evidence": "L28: if (outputs.size() != 1) {"
         },
         {
           "entities": [
             "props",
-            "node.name()"
+            "prop",
+            "shape"
           ],
-          "claim": "The input properties vector for the node must be non-empty; props[0] is accessed only after this check.",
-          "evidence": "L34: const std::vector<OpInfo::TensorProperties>& props =\nL35: properties.GetInputProperties(node.name());\nL36: if (props.empty()) {"
+          "claim": "The first input property is used as the source shape; props must be non-empty and prop.dtype() must not be DT_INVALID before constructing PartialTensorShape shape(prop.shape()).",
+          "evidence": "L34: const std::vector<OpInfo::TensorProperties>& props =\nL35: properties.GetInputProperties(node.name());\nL36: if (props.empty()) {\nL39: const OpInfo::TensorProperties& prop = props[0];\nL40: if (prop.dtype() == DT_INVALID) {\nL44: const PartialTensorShape shape(prop.shape());"
+        },
+        {
+          "entities": [
+            "shape"
+          ],
+          "claim": "The source PartialTensorShape must be fully defined before compatibility checking.",
+          "evidence": "L45: if (!shape.IsFullyDefined()) {"
         },
         {
           "entities": [
             "outputs[0]->NumElements()",
-            "outputs[0]->flat<int32>()"
+            "outputs[0]->flat<int32>()",
+            "shp"
           ],
-          "claim": "For DT_INT32 outputs, the loop iterates i from 0 while i < outputs[0]->NumElements(), reading flat<int32>()(i).",
-          "evidence": "L54: for (int i = 0; i < outputs[0]->NumElements(); ++i) {\nL55: int32_t dim = outputs[0]->flat<int32>()(i);"
+          "claim": "For DT_INT32 shape tensors, the loop reads exactly outputs[0]->NumElements() int32 elements via flat<int32>()(i) and appends each to shp.",
+          "evidence": "L52: if (outputs[0]->dtype() == DT_INT32) {\nL54: for (int i = 0; i < outputs[0]->NumElements(); ++i) {\nL55: int32_t dim = outputs[0]->flat<int32>()(i);\nL56: shp.push_back(dim);"
         },
         {
           "entities": [
             "outputs[0]->NumElements()",
-            "outputs[0]->flat<int64_t>()"
+            "outputs[0]->flat<int64_t>()",
+            "shp"
           ],
-          "claim": "For non-DT_INT32 outputs, the loop iterates i from 0 while i < outputs[0]->NumElements(), reading flat<int64_t>()(i).",
-          "evidence": "L62: for (int i = 0; i < outputs[0]->NumElements(); ++i) {\nL63: int64_t dim = outputs[0]->flat<int64_t>()(i);"
+          "claim": "For non-DT_INT32 shape tensors, the loop reads exactly outputs[0]->NumElements() int64 elements via flat<int64_t>()(i) and appends each to shp.",
+          "evidence": "L62: for (int i = 0; i < outputs[0]->NumElements(); ++i) {\nL63: int64_t dim = outputs[0]->flat<int64_t>()(i);\nL64: shp.push_back(dim);"
         },
         {
           "entities": [
             "shape",
             "new_dims"
           ],
-          "claim": "The fully defined input shape must be compatible with the shape constructed from the evaluated output dimensions.",
-          "evidence": "L44: const PartialTensorShape shape(prop.shape());\nL45: if (!shape.IsFullyDefined()) {\nL70: if (!shape.IsCompatibleWith(new_dims)) {"
+          "claim": "The source shape must be compatible with the shape constructed from the evaluated shape tensor values.",
+          "evidence": "L70: if (!shape.IsCompatibleWith(new_dims)) {"
         }
       ],
       "executions": [
@@ -161,57 +175,49 @@
             "new_shape"
           ],
           "claim": "continuing past this check implies new_shape is non-null and IsReallyConstant(*new_shape) is true",
-          "evidence": "L11: const NodeDef* new_shape = node_map_->GetNode(node.input(1));\nL12: if (!IsReallyConstant(*new_shape)) {\nL13: return errors::Internal(\"Node \", node.name(), \" has shape \",\nL14: new_shape->DebugString(),\nL15: \" which is not a constant\");"
+          "evidence": "L11: const NodeDef* new_shape = node_map_->GetNode(node.input(1));\nL12: if (!IsReallyConstant(*new_shape)) {\nL13: return errors::Internal(\"Node \", node.name(), \" has shape \","
         },
         {
           "entities": [
             "outputs"
           ],
-          "claim": "continuing past these checks implies EvaluateNode succeeded and outputs.size() == 1",
-          "evidence": "L24: Status s = EvaluateNode(*new_shape, TensorVector(), &outputs);\nL25: if (!s.ok()) {\nL26: return errors::Internal(\"Could not evaluate node \", node.name());\nL27: }\nL28: if (outputs.size() != 1) {\nL29: return errors::Internal(\"Node \", node.name(),\nL30: \" must have exactly 1 output but has \",\nL31: outputs.size());\nL32: }"
+          "claim": "continuing past this check implies EvaluateNode succeeded and outputs.size() == 1",
+          "evidence": "L24: Status s = EvaluateNode(*new_shape, TensorVector(), &outputs);\nL25: if (!s.ok()) {\nL26: return errors::Internal(\"Could not evaluate node \", node.name());\nL28: if (outputs.size() != 1) {"
         },
         {
           "entities": [
             "props"
           ],
           "claim": "continuing past this check implies props is non-empty",
-          "evidence": "L34: const std::vector<OpInfo::TensorProperties>& props =\nL35: properties.GetInputProperties(node.name());\nL36: if (props.empty()) {\nL37: return errors::Internal(\"Node \", node.name(), \" has no properties\");\nL38: }"
+          "evidence": "L34: const std::vector<OpInfo::TensorProperties>& props =\nL35: properties.GetInputProperties(node.name());\nL36: if (props.empty()) {"
         },
         {
           "entities": [
             "prop"
           ],
           "claim": "continuing past this check implies prop.dtype() != DT_INVALID",
-          "evidence": "L39: const OpInfo::TensorProperties& prop = props[0];\nL40: if (prop.dtype() == DT_INVALID) {\nL41: return errors::Internal(\"Node \", node.name(), \" has property \",\nL42: prop.DebugString(), \" with invalid dtype\");\nL43: }"
+          "evidence": "L39: const OpInfo::TensorProperties& prop = props[0];\nL40: if (prop.dtype() == DT_INVALID) {"
         },
         {
           "entities": [
             "shape"
           ],
           "claim": "continuing past this check implies shape.IsFullyDefined() is true",
-          "evidence": "L44: const PartialTensorShape shape(prop.shape());\nL45: if (!shape.IsFullyDefined()) {\nL46: return errors::Internal(\"Node \", node.name(), \" has property \",\nL47: prop.DebugString(), \" with shape \",\nL48: shape.DebugString(), \" which is not fully defined\");\nL49: }"
+          "evidence": "L44: const PartialTensorShape shape(prop.shape());\nL45: if (!shape.IsFullyDefined()) {"
         },
         {
           "entities": [
             "i",
-            "outputs[0]"
+            "outputs[0]->NumElements()"
           ],
-          "claim": "inside the DT_INT32 branch, loop index i satisfies 0 <= i < outputs[0]->NumElements()",
-          "evidence": "L52: if (outputs[0]->dtype() == DT_INT32) {\nL53: std::vector<int32> shp;\nL54: for (int i = 0; i < outputs[0]->NumElements(); ++i) {"
-        },
-        {
-          "entities": [
-            "i",
-            "outputs[0]"
-          ],
-          "claim": "inside the non-DT_INT32 branch, loop index i satisfies 0 <= i < outputs[0]->NumElements()",
-          "evidence": "L60: } else {\nL61: std::vector<int64_t> shp;\nL62: for (int i = 0; i < outputs[0]->NumElements(); ++i) {"
+          "claim": "inside the loop, i is in [0, outputs[0]->NumElements())",
+          "evidence": "L54: for (int i = 0; i < outputs[0]->NumElements(); ++i) {\nL62: for (int i = 0; i < outputs[0]->NumElements(); ++i) {"
         },
         {
           "entities": [
             "new_dims"
           ],
-          "claim": "continuing past each MakeShape call implies the call succeeded and new_dims was populated",
+          "claim": "continuing past each MakeShape call implies the call succeeded and new_dims was set",
           "evidence": "L58: s = TensorShapeUtils::MakeShape(shp, &new_dims);\nL59: if (!s.ok()) return s;\nL66: s = TensorShapeUtils::MakeShape(shp, &new_dims);\nL67: if (!s.ok()) return s;"
         },
         {
@@ -220,7 +226,7 @@
             "new_dims"
           ],
           "claim": "continuing past this check implies shape.IsCompatibleWith(new_dims) is true",
-          "evidence": "L70: if (!shape.IsCompatibleWith(new_dims)) {\nL71: return errors::Internal(\"Expected shape \", shape.DebugString(),\nL72: \"to be compatible with \", new_dims.DebugString());\nL73: }"
+          "evidence": "L70: if (!shape.IsCompatibleWith(new_dims)) {"
         }
       ]
     },
@@ -234,8 +240,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 2897,
-              "output_tokens": 212,
-              "total_tokens": 3109
+              "output_tokens": 233,
+              "total_tokens": 3130
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -243,8 +249,8 @@
         ],
         "token_usage": {
           "input_tokens": 2897,
-          "output_tokens": 212,
-          "total_tokens": 3109
+          "output_tokens": 233,
+          "total_tokens": 3130
         },
         "grounding": {
           "operation_agent.operations[0]": {
@@ -300,7 +306,22 @@
           "operation_agent.operations[5]": {
             "expression_matches": [
               {
+                "location": "L52",
+                "matched": true,
+                "expression": "outputs[0]->flat<int32>()(i)"
+              },
+              {
                 "location": "L55",
+                "matched": true,
+                "expression": "outputs[0]->flat<int32>()(i)"
+              },
+              {
+                "location": "L62",
+                "matched": true,
+                "expression": "outputs[0]->flat<int32>()(i)"
+              },
+              {
+                "location": "L63",
                 "matched": true,
                 "expression": "outputs[0]->flat<int32>()(i)"
               }
@@ -310,9 +331,14 @@
           "operation_agent.operations[6]": {
             "expression_matches": [
               {
+                "location": "L55",
+                "matched": true,
+                "expression": "outputs[0]->flat<int32>()(i)"
+              },
+              {
                 "location": "L63",
                 "matched": true,
-                "expression": "outputs[0]->flat<int64_t>()(i)"
+                "expression": "outputs[0]->flat<int32>()(i)"
               }
             ],
             "status": "pass"
@@ -329,8 +355,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 1500,
-              "output_tokens": 665,
-              "total_tokens": 2165
+              "output_tokens": 609,
+              "total_tokens": 2109
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -338,8 +364,8 @@
         ],
         "token_usage": {
           "input_tokens": 1500,
-          "output_tokens": 665,
-          "total_tokens": 2165
+          "output_tokens": 609,
+          "total_tokens": 2109
         },
         "grounding": {
           "state_agent.states[0]": {
@@ -496,13 +522,6 @@
                 "matched_lines": [
                   45
                 ]
-              },
-              {
-                "evidence_line": 70,
-                "fragment": "if (!shape.IsCompatibleWith(new_dims)) {",
-                "matched_lines": [
-                  70
-                ]
               }
             ],
             "status": "pass"
@@ -534,38 +553,7 @@
             "status": "pass"
           }
         },
-        "item_recovery": [
-          {
-            "action": "repair_evidence",
-            "index": 0,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 1,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 2,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 3,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 4,
-            "collection": "states"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 5,
-            "collection": "states"
-          }
-        ]
+        "item_recovery": []
       },
       "value_agent": {
         "status": "passed",
@@ -576,8 +564,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 1688,
-              "output_tokens": 474,
-              "total_tokens": 2162
+              "output_tokens": 610,
+              "total_tokens": 2298
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -585,8 +573,8 @@
         ],
         "token_usage": {
           "input_tokens": 1688,
-          "output_tokens": 474,
-          "total_tokens": 2162
+          "output_tokens": 610,
+          "total_tokens": 2298
         },
         "grounding": {
           "value_agent.values[0]": {
@@ -635,12 +623,52 @@
                 "matched_lines": [
                   36
                 ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "const OpInfo::TensorProperties& prop = props[0];",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "if (prop.dtype() == DT_INVALID) {",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "const PartialTensorShape shape(prop.shape());",
+                "matched_lines": [
+                  44
+                ]
               }
             ],
             "status": "pass"
           },
           "value_agent.values[3]": {
             "evidence_matches": [
+              {
+                "evidence_line": 45,
+                "fragment": "if (!shape.IsFullyDefined()) {",
+                "matched_lines": [
+                  45
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 52,
+                "fragment": "if (outputs[0]->dtype() == DT_INT32) {",
+                "matched_lines": [
+                  52
+                ]
+              },
               {
                 "evidence_line": 54,
                 "fragment": "for (int i = 0; i < outputs[0]->NumElements(); ++i) {",
@@ -654,11 +682,18 @@
                 "matched_lines": [
                   55
                 ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "shp.push_back(dim);",
+                "matched_lines": [
+                  56
+                ]
               }
             ],
             "status": "pass"
           },
-          "value_agent.values[4]": {
+          "value_agent.values[5]": {
             "evidence_matches": [
               {
                 "evidence_line": 62,
@@ -673,26 +708,19 @@
                 "matched_lines": [
                   63
                 ]
+              },
+              {
+                "evidence_line": 64,
+                "fragment": "shp.push_back(dim);",
+                "matched_lines": [
+                  64
+                ]
               }
             ],
             "status": "pass"
           },
-          "value_agent.values[5]": {
+          "value_agent.values[6]": {
             "evidence_matches": [
-              {
-                "evidence_line": 44,
-                "fragment": "const PartialTensorShape shape(prop.shape());",
-                "matched_lines": [
-                  44
-                ]
-              },
-              {
-                "evidence_line": 45,
-                "fragment": "if (!shape.IsFullyDefined()) {",
-                "matched_lines": [
-                  45
-                ]
-              },
               {
                 "evidence_line": 70,
                 "fragment": "if (!shape.IsCompatibleWith(new_dims)) {",
@@ -715,8 +743,8 @@
             "errors": [],
             "token_usage": {
               "input_tokens": 1368,
-              "output_tokens": 1060,
-              "total_tokens": 2428
+              "output_tokens": 678,
+              "total_tokens": 2046
             },
             "max_tokens": 8192,
             "serialization_prefix_recovered": false
@@ -724,8 +752,8 @@
         ],
         "token_usage": {
           "input_tokens": 1368,
-          "output_tokens": 1060,
-          "total_tokens": 2428
+          "output_tokens": 678,
+          "total_tokens": 2046
         },
         "grounding": {
           "execution_agent.executions[0]": {
@@ -783,20 +811,6 @@
                 "matched_lines": [
                   13
                 ]
-              },
-              {
-                "evidence_line": 14,
-                "fragment": "new_shape->DebugString(),",
-                "matched_lines": [
-                  14
-                ]
-              },
-              {
-                "evidence_line": 15,
-                "fragment": "\" which is not a constant\");",
-                "matched_lines": [
-                  15
-                ]
               }
             ],
             "status": "pass"
@@ -825,45 +839,10 @@
                 ]
               },
               {
-                "evidence_line": 27,
-                "fragment": "}",
-                "matched_lines": [
-                  27
-                ]
-              },
-              {
                 "evidence_line": 28,
                 "fragment": "if (outputs.size() != 1) {",
                 "matched_lines": [
                   28
-                ]
-              },
-              {
-                "evidence_line": 29,
-                "fragment": "return errors::Internal(\"Node \", node.name(),",
-                "matched_lines": [
-                  29
-                ]
-              },
-              {
-                "evidence_line": 30,
-                "fragment": "\" must have exactly 1 output but has \",",
-                "matched_lines": [
-                  30
-                ]
-              },
-              {
-                "evidence_line": 31,
-                "fragment": "outputs.size());",
-                "matched_lines": [
-                  31
-                ]
-              },
-              {
-                "evidence_line": 32,
-                "fragment": "}",
-                "matched_lines": [
-                  32
                 ]
               }
             ],
@@ -891,20 +870,6 @@
                 "matched_lines": [
                   36
                 ]
-              },
-              {
-                "evidence_line": 37,
-                "fragment": "return errors::Internal(\"Node \", node.name(), \" has no properties\");",
-                "matched_lines": [
-                  37
-                ]
-              },
-              {
-                "evidence_line": 38,
-                "fragment": "}",
-                "matched_lines": [
-                  38
-                ]
               }
             ],
             "status": "pass"
@@ -923,27 +888,6 @@
                 "fragment": "if (prop.dtype() == DT_INVALID) {",
                 "matched_lines": [
                   40
-                ]
-              },
-              {
-                "evidence_line": 41,
-                "fragment": "return errors::Internal(\"Node \", node.name(), \" has property \",",
-                "matched_lines": [
-                  41
-                ]
-              },
-              {
-                "evidence_line": 42,
-                "fragment": "prop.DebugString(), \" with invalid dtype\");",
-                "matched_lines": [
-                  42
-                ]
-              },
-              {
-                "evidence_line": 43,
-                "fragment": "}",
-                "matched_lines": [
-                  43
                 ]
               }
             ],
@@ -964,34 +908,6 @@
                 "matched_lines": [
                   45
                 ]
-              },
-              {
-                "evidence_line": 46,
-                "fragment": "return errors::Internal(\"Node \", node.name(), \" has property \",",
-                "matched_lines": [
-                  46
-                ]
-              },
-              {
-                "evidence_line": 47,
-                "fragment": "prop.DebugString(), \" with shape \",",
-                "matched_lines": [
-                  47
-                ]
-              },
-              {
-                "evidence_line": 48,
-                "fragment": "shape.DebugString(), \" which is not fully defined\");",
-                "matched_lines": [
-                  48
-                ]
-              },
-              {
-                "evidence_line": 49,
-                "fragment": "}",
-                "matched_lines": [
-                  49
-                ]
               }
             ],
             "status": "pass"
@@ -999,43 +915,10 @@
           "execution_agent.executions[6]": {
             "evidence_matches": [
               {
-                "evidence_line": 52,
-                "fragment": "if (outputs[0]->dtype() == DT_INT32) {",
-                "matched_lines": [
-                  52
-                ]
-              },
-              {
-                "evidence_line": 53,
-                "fragment": "std::vector<int32> shp;",
-                "matched_lines": [
-                  53
-                ]
-              },
-              {
                 "evidence_line": 54,
                 "fragment": "for (int i = 0; i < outputs[0]->NumElements(); ++i) {",
                 "matched_lines": [
                   54
-                ]
-              }
-            ],
-            "status": "pass"
-          },
-          "execution_agent.executions[7]": {
-            "evidence_matches": [
-              {
-                "evidence_line": 60,
-                "fragment": "} else {",
-                "matched_lines": [
-                  60
-                ]
-              },
-              {
-                "evidence_line": 61,
-                "fragment": "std::vector<int64_t> shp;",
-                "matched_lines": [
-                  61
                 ]
               },
               {
@@ -1048,7 +931,7 @@
             ],
             "status": "pass"
           },
-          "execution_agent.executions[8]": {
+          "execution_agent.executions[7]": {
             "evidence_matches": [
               {
                 "evidence_line": 58,
@@ -1081,7 +964,7 @@
             ],
             "status": "pass"
           },
-          "execution_agent.executions[9]": {
+          "execution_agent.executions[8]": {
             "evidence_matches": [
               {
                 "evidence_line": 70,
@@ -1089,84 +972,12 @@
                 "matched_lines": [
                   70
                 ]
-              },
-              {
-                "evidence_line": 71,
-                "fragment": "return errors::Internal(\"Expected shape \", shape.DebugString(),",
-                "matched_lines": [
-                  71
-                ]
-              },
-              {
-                "evidence_line": 72,
-                "fragment": "\"to be compatible with \", new_dims.DebugString());",
-                "matched_lines": [
-                  72
-                ]
-              },
-              {
-                "evidence_line": 73,
-                "fragment": "}",
-                "matched_lines": [
-                  73
-                ]
               }
             ],
             "status": "pass"
           }
         },
-        "item_recovery": [
-          {
-            "action": "repair_evidence",
-            "index": 0,
-            "collection": "executions"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 1,
-            "collection": "executions"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 2,
-            "collection": "executions"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 3,
-            "collection": "executions"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 4,
-            "collection": "executions"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 5,
-            "collection": "executions"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 6,
-            "collection": "executions"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 7,
-            "collection": "executions"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 8,
-            "collection": "executions"
-          },
-          {
-            "action": "repair_evidence",
-            "index": 9,
-            "collection": "executions"
-          }
-        ]
+        "item_recovery": []
       }
     }
   },
@@ -1177,8 +988,8 @@
     "counts": {
       "operations": 7,
       "states": 6,
-      "values": 6,
-      "executions": 10
+      "values": 7,
+      "executions": 9
     },
     "schema_version": "semantic-claims-v4.13",
     "operation_normalization": {
@@ -1187,8 +998,8 @@
   },
   "token_usage": {
     "input_tokens": 7453,
-    "output_tokens": 2411,
-    "total_tokens": 9864
+    "output_tokens": 2130,
+    "total_tokens": 9583
   },
   "artifact_metadata": {
     "schema_version": "semantic-claims-v4.13",

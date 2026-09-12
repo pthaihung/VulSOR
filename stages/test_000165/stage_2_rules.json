@@ -1,0 +1,512 @@
+{
+  "sample_id": "test_000165",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "rules",
+  "agent_key": "obligation_reasoner",
+  "output": {
+    "rules": [
+      {
+        "locations": [
+          "L63"
+        ],
+        "expression": "sprintf((char *)pat, whole ? \"\\\\<%.*s\\\\>\" : \"%.*s\", len, ptr)",
+        "requirements": [
+          "the destination buffer pat must have enough writable space for the formatted output including the terminating NUL",
+          "the source range ptr[0..len-1] must be readable"
+        ]
+      },
+      {
+        "locations": [
+          "L100",
+          "L429",
+          "L641"
+        ],
+        "expression": "get_line_and_copy(lnum, file_line)",
+        "requirements": [
+          "the destination buffer file_line must be large enough to hold the copied line and its terminator"
+        ]
+      },
+      {
+        "locations": [
+          "L105"
+        ],
+        "expression": "vim_regexec(&incl_regmatch, line, (colnr_T)0)",
+        "requirements": [
+          "incl_regmatch.regprog must designate a valid compiled regex program",
+          "line must designate a readable NUL-terminated string"
+        ]
+      },
+      {
+        "locations": [
+          "L112",
+          "L113"
+        ],
+        "expression": "find_file_name_in_path(incl_regmatch.startp[0], (int)(incl_regmatch.endp[0] - incl_regmatch.startp[0]), ...)",
+        "requirements": [
+          "the span from incl_regmatch.startp[0] through incl_regmatch.endp[0] must be readable"
+        ]
+      },
+      {
+        "locations": [
+          "L117"
+        ],
+        "expression": "file_name_in_line(incl_regmatch.endp[0], 0, ...)",
+        "requirements": [
+          "incl_regmatch.endp[0] must designate a readable NUL-terminated string"
+        ]
+      },
+      {
+        "locations": [
+          "L129"
+        ],
+        "expression": "fullpathcmp(new_fname, files[i].name, TRUE, TRUE)",
+        "requirements": [
+          "new_fname must designate a readable NUL-terminated string",
+          "files[i].name must designate a readable NUL-terminated string"
+        ]
+      },
+      {
+        "locations": [
+          "L172"
+        ],
+        "expression": "msg_home_replace(files[depth_displayed].name)",
+        "requirements": [
+          "files[depth_displayed].name must designate a readable NUL-terminated string"
+        ]
+      },
+      {
+        "locations": [
+          "L196",
+          "L197",
+          "L198"
+        ],
+        "expression": "incl_regmatch.startp[0] / incl_regmatch.endp[0] - incl_regmatch.startp[0]",
+        "requirements": [
+          "incl_regmatch.startp[0] and incl_regmatch.endp[0] must designate positions within the same readable line buffer with startp not after endp"
+        ]
+      },
+      {
+        "locations": [
+          "L206"
+        ],
+        "expression": "for (i = 0; vim_isfilec(p[i]); i++)",
+        "requirements": [
+          "p must designate a readable NUL-terminated string"
+        ]
+      },
+      {
+        "locations": [
+          "L213",
+          "L214"
+        ],
+        "expression": "p = incl_regmatch.endp[0]; i = (int)STRLEN(p)",
+        "requirements": [
+          "p must designate a readable NUL-terminated string"
+        ]
+      },
+      {
+        "locations": [
+          "L220",
+          "L225"
+        ],
+        "expression": "p[-1] == '\"' || p[-1] == '<' / p[i] == '\"' || p[i] == '>'",
+        "requirements": [
+          "p[-1] must be within the readable line buffer",
+          "p[i] must be within the readable line buffer"
+        ]
+      },
+      {
+        "locations": [
+          "L228",
+          "L229",
+          "L231"
+        ],
+        "expression": "save_char = p[i]; p[i] = NUL; ... p[i] = save_char",
+        "requirements": [
+          "p[i] must designate a writable location within the line buffer"
+        ]
+      },
+      {
+        "locations": [
+          "L250"
+        ],
+        "expression": "ALLOC_MULT(SearchedFile, max_path_depth * 2)",
+        "requirements": [
+          "the multiplication max_path_depth * 2 must not overflow the allocation size computation"
+        ]
+      },
+      {
+        "locations": [
+          "L254",
+          "L263"
+        ],
+        "expression": "bigger[i] = files[i] / bigger[i + max_path_depth] = files[i]",
+        "requirements": [
+          "the destination index in bigger must be within the allocated extent of bigger",
+          "the source index in files must be within the allocated extent of files"
+        ]
+      },
+      {
+        "locations": [
+          "L270"
+        ],
+        "expression": "files[depth + 1].fp = mch_fopen((char *)new_fname, \"r\")",
+        "requirements": [
+          "new_fname must designate a readable NUL-terminated string",
+          "depth + 1 must be within the allocated extent of files"
+        ]
+      },
+      {
+        "locations": [
+          "L281"
+        ],
+        "expression": "vim_free(files[old_files].name)",
+        "requirements": [
+          "files[old_files].name must be a pointer previously returned by the allocator or NULL"
+        ]
+      },
+      {
+        "locations": [
+          "L284",
+          "L285",
+          "L286"
+        ],
+        "expression": "files[depth].name = curr_fname = new_fname; files[depth].lnum = 0; files[depth].matched = FALSE",
+        "requirements": [
+          "depth must be within the allocated extent of files"
+        ]
+      },
+      {
+        "locations": [
+          "L315"
+        ],
+        "expression": "vim_regexec(&def_regmatch, line, (colnr_T)0)",
+        "requirements": [
+          "def_regmatch.regprog must designate a valid compiled regex program",
+          "line must designate a readable NUL-terminated string"
+        ]
+      },
+      {
+        "locations": [
+          "L322",
+          "L323",
+          "L324"
+        ],
+        "expression": "p = def_regmatch.endp[0]; while (*p && !vim_iswordc(*p)) p++",
+        "requirements": [
+          "p must designate a readable NUL-terminated string"
+        ]
+      },
+      {
+        "locations": [
+          "L343"
+        ],
+        "expression": "vim_iswordc(startp[len])",
+        "requirements": [
+          "startp[len] must be within the readable line buffer"
+        ]
+      },
+      {
+        "locations": [
+          "L347"
+        ],
+        "expression": "vim_regexec(&regmatch, line, (colnr_T)(p - line))",
+        "requirements": [
+          "regmatch.regprog must designate a valid compiled regex program",
+          "line must designate a readable NUL-terminated string",
+          "p - line must be a valid non-negative offset into line"
+        ]
+      },
+      {
+        "locations": [
+          "L358",
+          "L359"
+        ],
+        "expression": "*line != '#' || STRNCMP(skipwhite(line + 1), \"define\", 6) != 0",
+        "requirements": [
+          "line must designate a readable NUL-terminated string"
+        ]
+      },
+      {
+        "locations": [
+          "L360"
+        ],
+        "expression": "get_leader_len(line, NULL, FALSE, TRUE)",
+        "requirements": [
+          "line must designate a readable NUL-terminated string"
+        ]
+      },
+      {
+        "locations": [
+          "L371",
+          "L372"
+        ],
+        "expression": "p[0] == '/' && p[1] == '*' / for (p = line; *p && p < startp; ++p)",
+        "requirements": [
+          "p[0] and p[1] must be within the readable line buffer",
+          "startp must designate a position within the same readable line buffer as line"
+        ]
+      },
+      {
+        "locations": [
+          "L375",
+          "L376",
+          "L380",
+          "L384"
+        ],
+        "expression": "p[0] == '/' && (p[1] == '*' || p[1] == '/') / p[0] == '*' && p[1] == '/'",
+        "requirements": [
+          "p[0] and p[1] must be within the readable line buffer"
+        ]
+      },
+      {
+        "locations": [
+          "L409",
+          "L410"
+        ],
+        "expression": "p += ins_compl_len(); if (vim_iswordp(p))",
+        "requirements": [
+          "p must designate a readable location within the line buffer"
+        ]
+      },
+      {
+        "locations": [
+          "L420"
+        ],
+        "expression": "STRNCPY(IObuff, aux, i)",
+        "requirements": [
+          "the destination buffer IObuff must have at least i writable bytes",
+          "the source range aux[0..i-1] must be readable"
+        ]
+      },
+      {
+        "locations": [
+          "L431",
+          "L432"
+        ],
+        "expression": "vim_fgets(line = file_line, LSIZE, files[depth].fp)",
+        "requirements": [
+          "file_line must designate a writable buffer of at least LSIZE bytes",
+          "files[depth].fp must designate a valid open input stream"
+        ]
+      },
+      {
+        "locations": [
+          "L443",
+          "L445",
+          "L446",
+          "L449",
+          "L451",
+          "L452",
+          "L453"
+        ],
+        "expression": "*aux != ')' && IObuff[i-1] != TAB / IObuff[i-1] != ' ' / IObuff[i-2] == '.' / IObuff[i-2] == '?' / IObuff[i-2] == '!'",
+        "requirements": [
+          "IObuff[i-1] and IObuff[i-2] must be within the readable extent of IObuff"
+        ]
+      },
+      {
+        "locations": [
+          "L458"
+        ],
+        "expression": "STRNCPY(IObuff + i, aux, p - aux)",
+        "requirements": [
+          "the destination range IObuff[i..i+(p-aux)-1] must be writable",
+          "the source range aux[0..(p-aux)-1] must be readable"
+        ]
+      },
+      {
+        "locations": [
+          "L462"
+        ],
+        "expression": "IObuff[i] = NUL",
+        "requirements": [
+          "IObuff[i] must be a writable location within IObuff"
+        ]
+      },
+      {
+        "locations": [
+          "L469",
+          "L470",
+          "L471"
+        ],
+        "expression": "ins_compl_add_infercase(aux, i, p_ic, curr_fname == curbuf->b_fname ? NULL : curr_fname, dir, cont_s_ipos)",
+        "requirements": [
+          "the source range aux[0..i-1] must be readable",
+          "curr_fname must designate a readable NUL-terminated string or be NULL"
+        ]
+      },
+      {
+        "locations": [
+          "L494",
+          "L495",
+          "L496",
+          "L497"
+        ],
+        "expression": "show_pat_in_path(line, type, TRUE, action, (depth == -1) ? NULL : files[depth].fp, (depth == -1) ? &lnum : &files[depth].lnum, match_count++)",
+        "requirements": [
+          "line must designate a readable NUL-terminated string",
+          "files[depth].fp must designate a valid open input stream when depth is not -1"
+        ]
+      },
+      {
+        "locations": [
+          "L515",
+          "L516",
+          "L517"
+        ],
+        "expression": "show_pat_in_path(line, type, did_show, action, (depth == -1) ? NULL : files[depth].fp, (depth == -1) ? &lnum : &files[depth].lnum, 1L)",
+        "requirements": [
+          "line must designate a readable NUL-terminated string",
+          "files[depth].fp must designate a valid open input stream when depth is not -1"
+        ]
+      },
+      {
+        "locations": [
+          "L547",
+          "L548",
+          "L549"
+        ],
+        "expression": "getfile(curwin_save->w_buffer->b_fnum, NULL, NULL, TRUE, lnum, FALSE)",
+        "requirements": [
+          "curwin_save must designate a valid window structure"
+        ]
+      },
+      {
+        "locations": [
+          "L560",
+          "L561",
+          "L562"
+        ],
+        "expression": "getfile(0, files[depth].name, NULL, TRUE, files[depth].lnum, FALSE)",
+        "requirements": [
+          "files[depth].name must designate a readable NUL-terminated string"
+        ]
+      },
+      {
+        "locations": [
+          "L571"
+        ],
+        "expression": "curwin->w_cursor.col = (colnr_T)(startp - line)",
+        "requirements": [
+          "startp must designate a position within the same readable line buffer as line with startp not before line"
+        ]
+      },
+      {
+        "locations": [
+          "L600"
+        ],
+        "expression": "*(p = startp + mb_ptr2len(startp)) != NUL",
+        "requirements": [
+          "startp must designate a readable location within the line buffer",
+          "startp + mb_ptr2len(startp) must be within the readable line buffer"
+        ]
+      },
+      {
+        "locations": [
+          "L615"
+        ],
+        "expression": "vim_fgets(line = file_line, LSIZE, files[depth].fp)",
+        "requirements": [
+          "file_line must designate a writable buffer of at least LSIZE bytes",
+          "files[depth].fp must designate a valid open input stream"
+        ]
+      },
+      {
+        "locations": [
+          "L617"
+        ],
+        "expression": "fclose(files[depth].fp)",
+        "requirements": [
+          "files[depth].fp must designate a valid open stream"
+        ]
+      },
+      {
+        "locations": [
+          "L619",
+          "L620"
+        ],
+        "expression": "files[old_files].name = files[depth].name; files[old_files].matched = files[depth].matched",
+        "requirements": [
+          "old_files and depth must be within the allocated extent of files"
+        ]
+      },
+      {
+        "locations": [
+          "L631",
+          "L632",
+          "L633",
+          "L634",
+          "L635"
+        ],
+        "expression": "i = (int)STRLEN(line); if (i > 0 && line[i - 1] == '\\n') line[--i] = NUL; if (i > 0 && line[i - 1] == '\\r') line[--i] = NUL",
+        "requirements": [
+          "line must designate a readable NUL-terminated string",
+          "line[i-1] must be a writable location within the line buffer"
+        ]
+      },
+      {
+        "locations": [
+          "L654"
+        ],
+        "expression": "vim_free(files[i].name)",
+        "requirements": [
+          "files[i].name must be a pointer previously returned by the allocator or NULL"
+        ]
+      },
+      {
+        "locations": [
+          "L655"
+        ],
+        "expression": "vim_free(files)",
+        "requirements": [
+          "files must be a pointer previously returned by the allocator or NULL"
+        ]
+      }
+    ]
+  },
+  "quality_gate": {
+    "status": "passed",
+    "attempts": [
+      {
+        "attempt": 1,
+        "retry_mode": "initial",
+        "errors": [],
+        "token_usage": {
+          "input_tokens": 9857,
+          "output_tokens": 2703,
+          "total_tokens": 12560
+        },
+        "max_tokens": 8192,
+        "serialization_prefix_recovered": false
+      }
+    ],
+    "token_usage": {
+      "input_tokens": 9857,
+      "output_tokens": 2703,
+      "total_tokens": 12560
+    },
+    "safety_relevance_filter": {
+      "input_operation_groups": 44,
+      "kept_obligations": 44,
+      "filtered_non_safety_candidates": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 9857,
+    "output_tokens": 2703,
+    "total_tokens": 12560
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "rules",
+    "sample_id": "test_000165",
+    "split": "test",
+    "source_hash": "85a896831db146cb7c0219ec4c6aec25bf6121374e423b23cf891763517dfb7f",
+    "upstream_hashes": {
+      "semantic_model": "ae776626d2585387a5cf5dd44b77d4163ecd25c7c40a17a8d2c55c1db17138a2"
+    },
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

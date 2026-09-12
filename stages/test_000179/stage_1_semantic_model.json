@@ -1,0 +1,3451 @@
+{
+  "sample_id": "test_000179",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L76",
+            "L133",
+            "L148"
+          ],
+          "expression": "gf_list_get(read->channels, i)",
+          "claim": "retrieves the channel object at index i from the channels list"
+        },
+        {
+          "locations": [
+            "L200"
+          ],
+          "expression": "memcpy(data, ch->sample->data, ch->sample->dataLength)",
+          "claim": "copies sample data into the allocated packet buffer"
+        },
+        {
+          "locations": [
+            "L194"
+          ],
+          "expression": "gf_filter_pck_new_shared(ch->pid, NULL, ch->sample->dataLength, NULL)",
+          "claim": "creates a shared packet referencing sample data of the given length"
+        },
+        {
+          "locations": [
+            "L197"
+          ],
+          "expression": "gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data)",
+          "claim": "allocates a packet buffer of the given sample data length"
+        },
+        {
+          "locations": [
+            "L244"
+          ],
+          "expression": "gf_isom_sample_get_subsamples_buffer(read->mov, ch->track, ch->sample_num, &subs_buf_size)",
+          "claim": "retrieves the subsamples buffer for the given track and sample number"
+        },
+        {
+          "locations": [
+            "L251"
+          ],
+          "expression": "PROP_DATA(ch->sai_buffer, ch->sai_buffer_size)",
+          "claim": "constructs a property referencing the SAI buffer of the given size"
+        },
+        {
+          "locations": [
+            "L269"
+          ],
+          "expression": "PROP_DATA((u8 *)finfo.moof_template, finfo.moof_template_size)",
+          "claim": "constructs a property referencing the moof template buffer of the given size"
+        },
+        {
+          "locations": [
+            "L279"
+          ],
+          "expression": "PROP_STRING(p->value.string)",
+          "claim": "constructs a string property from the URL string"
+        },
+        {
+          "locations": [
+            "L318"
+          ],
+          "expression": "gf_isom_get_tfrf(read->mov, ch->track)",
+          "claim": "retrieves the tfrf box for the given track"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "read->pid"
+          ],
+          "claim": "read->pid is non-NULL and refers to the input filter PID used for packet retrieval, EOS checks, property queries, and event sending.",
+          "evidence": "L14: if (read->pid) {\nL29: GF_FilterPacket *pck = gf_filter_pid_get_packet(read->pid);\nL35: if (gf_filter_pid_is_eos(read->pid))\nL58: if (gf_filter_pid_is_eos(read->pid)) {\nL105: prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_CACHED);\nL114: prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILEPATH);\nL276: const GF_PropertyValue *p = gf_filter_pid_get_property(read->pid, GF_PROP_PID_URL);\nL353: GF_FEVT_INIT(evt, GF_FEVT_STOP, read->pid);\nL354: gf_filter_pid_send_event(read->pid, &evt);"
+        },
+        {
+          "entities": [
+            "read->channels",
+            "ch"
+          ],
+          "claim": "read->channels is a list whose entries are ISOMChannel objects obtained via gf_list_get; each ch refers to a channel object with fields playing, eos_sent, pid, sample, etc.",
+          "evidence": "L4: u32 i, count = gf_list_count(read->channels);\nL76: ISOMChannel *ch = gf_list_get(read->channels, i);\nL133: ISOMChannel *ch = gf_list_get(read->channels, i);\nL148: ch = gf_list_get(read->channels, i);"
+        },
+        {
+          "entities": [
+            "ch->pid"
+          ],
+          "claim": "ch->pid refers to the output filter PID for the channel, used for EOS signaling and property setting.",
+          "evidence": "L82: gf_filter_pid_set_eos(ch->pid);\nL187: gf_filter_pid_set_property(ch->pid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(ch->has_rap) );\nL327: gf_filter_pid_set_eos(ch->pid);\nL334: gf_filter_pid_set_eos(ch->pid);"
+        },
+        {
+          "entities": [
+            "ch->sample"
+          ],
+          "claim": "ch->sample is a sample object obtained by isor_reader_get_sample or isor_reader_get_sample_from_item; when non-NULL it provides data and dataLength for packet creation, and is released via isor_reader_release_sample.",
+          "evidence": "L163: isor_reader_get_sample_from_item(ch);\nL165: isor_reader_get_sample(ch);\nL168: if (read->stsd && (ch->last_sample_desc_index != read->stsd) && ch->sample) {\nL169: isor_reader_release_sample(ch);\nL172: if (ch->sample) {\nL194: pck = gf_filter_pck_new_shared(ch->pid, NULL, ch->sample->dataLength, NULL);\nL197: pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);\nL200: memcpy(data, ch->sample->data, ch->sample->dataLength);\nL298: isor_reader_release_sample(ch);"
+        },
+        {
+          "entities": [
+            "pck"
+          ],
+          "claim": "pck is a GF_FilterPacket allocated via gf_filter_pck_new_shared or gf_filter_pck_new_alloc; if allocation fails the function returns GF_OUT_OF_MEM; otherwise pck is populated and sent via gf_filter_pck_send.",
+          "evidence": "L194: pck = gf_filter_pck_new_shared(ch->pid, NULL, ch->sample->dataLength, NULL);\nL195: if (!pck) return GF_OUT_OF_MEM;\nL197: pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);\nL198: if (!pck) return GF_OUT_OF_MEM;\nL297: gf_filter_pck_send(pck);"
+        },
+        {
+          "entities": [
+            "read->mov"
+          ],
+          "claim": "read->mov is a GF_ISOFile used for sample queries, subsample buffer retrieval, fragment start checks, and tfrf retrieval.",
+          "evidence": "L117: e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, new_url);\nL244: subs_buf = gf_isom_sample_get_subsamples_buffer(read->mov, ch->track, ch->sample_num, &subs_buf_size);\nL256: if (gf_isom_sample_is_fragment_start(read->mov, ch->track, ch->sample_num, &finfo) ) {\nL318: tfrf = (void *) gf_isom_get_tfrf(read->mov, ch->track);"
+        },
+        {
+          "entities": [
+            "subs_buf"
+          ],
+          "claim": "subs_buf is a pointer to a subsample buffer returned by gf_isom_sample_get_subsamples_buffer; when non-NULL it is passed as data to PROP_DATA_NO_COPY for the packet property.",
+          "evidence": "L244: subs_buf = gf_isom_sample_get_subsamples_buffer(read->mov, ch->track, ch->sample_num, &subs_buf_size);\nL245: if (subs_buf) {\nL246: gf_filter_pck_set_property(pck, GF_PROP_PCK_SUBS, &PROP_DATA_NO_COPY(subs_buf, subs_buf_size) );"
+        },
+        {
+          "entities": [
+            "ch->sai_buffer"
+          ],
+          "claim": "ch->sai_buffer is a buffer of size ch->sai_buffer_size used as data for the GF_PROP_PCK_CENC_SAI packet property when ch->pck_encrypted is set.",
+          "evidence": "L249: if (ch->sai_buffer && ch->pck_encrypted) {\nL250: assert(ch->sai_buffer_size);\nL251: gf_filter_pck_set_property(pck, GF_PROP_PCK_CENC_SAI, &PROP_DATA(ch->sai_buffer, ch->sai_buffer_size) );"
+        },
+        {
+          "entities": [
+            "finfo.moof_template"
+          ],
+          "claim": "finfo.moof_template is a pointer to a moof template of size finfo.moof_template_size, passed as data to PROP_DATA for the GF_PROP_PCK_MOOF_TEMPLATE packet property.",
+          "evidence": "L268: if (finfo.moof_template) {\nL269: gf_filter_pck_set_property(pck, GF_PROP_PCK_MOOF_TEMPLATE, &PROP_DATA((u8 *)finfo.moof_template, finfo.moof_template_size));"
+        },
+        {
+          "entities": [
+            "tfrf"
+          ],
+          "claim": "tfrf is a pointer returned by gf_isom_get_tfrf; when non-NULL it is passed as a pointer property to gf_filter_pid_set_info_str.",
+          "evidence": "L318: tfrf = (void *) gf_isom_get_tfrf(read->mov, ch->track);\nL319: if (tfrf) {\nL320: gf_filter_pid_set_info_str(ch->pid, \"smooth_tfrf\", &PROP_POINTER(tfrf) );"
+        },
+        {
+          "entities": [
+            "p"
+          ],
+          "claim": "p is a property value pointer obtained from gf_filter_pid_get_property; when non-NULL and p->value.string is non-NULL, the string is used for the GF_PROP_PID_URL packet property.",
+          "evidence": "L276: const GF_PropertyValue *p = gf_filter_pid_get_property(read->pid, GF_PROP_PID_URL);\nL278: if (p && p->value.string) {\nL279: gf_filter_pck_set_property(pck, GF_PROP_PID_URL, &PROP_STRING(p->value.string));"
+        },
+        {
+          "entities": [
+            "prop"
+          ],
+          "claim": "prop is a property value pointer obtained from gf_filter_pid_get_property; when non-NULL and prop->value.boolean is true, read->refresh_fragmented is cleared; when non-NULL, prop->value.string is used as new_url for gf_isom_refresh_fragmented.",
+          "evidence": "L105: prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_CACHED);\nL106: if (prop && prop->value.boolean)\nL114: prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILEPATH);\nL115: if (prop) new_url = prop->value.string;\nL117: e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, new_url);"
+        },
+        {
+          "entities": [
+            "read->mem_blob"
+          ],
+          "claim": "read->mem_blob is a memory blob whose size is compared against read->mstore_size to decide whether to fetch input.",
+          "evidence": "L23: if (!read->force_fetch && read->mem_blob.size > read->mstore_size) {"
+        },
+        {
+          "entities": [
+            "read->input_loaded"
+          ],
+          "claim": "read->input_loaded is set to GF_TRUE when input EOS is reached, when input_is_stop is set, or when extern_mov is used.",
+          "evidence": "L59: read->input_loaded = GF_TRUE;\nL63: read->input_loaded = GF_TRUE;\nL90: read->input_loaded = GF_TRUE;"
+        },
+        {
+          "entities": [
+            "read->eos_signaled"
+          ],
+          "claim": "read->eos_signaled is set to GF_TRUE when EOS is signaled on channels.",
+          "evidence": "L85: read->eos_signaled = GF_TRUE;\nL316: read->eos_signaled = GF_TRUE;\nL333: read->eos_signaled = GF_TRUE;"
+        },
+        {
+          "entities": [
+            "ch->eos_sent"
+          ],
+          "claim": "ch->eos_sent tracks whether EOS has been sent on the channel; it is set to GF_TRUE before gf_filter_pid_set_eos and cleared to GF_FALSE when a sample is sent.",
+          "evidence": "L80: if (!ch->eos_sent) {\nL81: ch->eos_sent = GF_TRUE;\nL154: if (!ch->eos_sent)\nL290: ch->eos_sent = GF_FALSE;\nL311: if (in_is_eos && !ch->eos_sent) {\nL315: ch->eos_sent = GF_TRUE;\nL331: if (!ch->eos_sent) {\nL332: ch->eos_sent = GF_TRUE;"
+        },
+        {
+          "entities": [
+            "read->invalid_segment"
+          ],
+          "claim": "read->invalid_segment is cleared to GF_FALSE after handling invalid segment EOS.",
+          "evidence": "L73: read->invalid_segment = GF_FALSE;"
+        },
+        {
+          "entities": [
+            "read->moov_not_loaded"
+          ],
+          "claim": "read->moov_not_loaded is set to GF_FALSE after handling the moov-not-loaded state.",
+          "evidence": "L95: read->moov_not_loaded = GF_FALSE;"
+        },
+        {
+          "entities": [
+            "read->refresh_fragmented"
+          ],
+          "claim": "read->refresh_fragmented is cleared to GF_FALSE under certain conditions (in_is_eos, cached file property, refresh error, or non-fragmented type).",
+          "evidence": "L103: read->refresh_fragmented = GF_FALSE;\nL107: read->refresh_fragmented = GF_FALSE;\nL121: read->refresh_fragmented = GF_FALSE;\nL140: read->refresh_fragmented = GF_FALSE;"
+        },
+        {
+          "entities": [
+            "read->force_fetch"
+          ],
+          "claim": "read->force_fetch is cleared to GF_FALSE after mem_load_mode handling and set to GF_TRUE when no sample is available.",
+          "evidence": "L26: read->force_fetch = GF_FALSE;\nL338: read->force_fetch = GF_TRUE;"
+        },
+        {
+          "entities": [
+            "read->wait_for_source"
+          ],
+          "claim": "read->wait_for_source is cleared to GF_FALSE after a packet is successfully retrieved.",
+          "evidence": "L41: read->wait_for_source = GF_FALSE;"
+        },
+        {
+          "entities": [
+            "read->input_is_stop"
+          ],
+          "claim": "read->input_is_stop is cleared to GF_FALSE after being handled.",
+          "evidence": "L65: read->input_is_stop = GF_FALSE;"
+        },
+        {
+          "entities": [
+            "read->seg_name_changed"
+          ],
+          "claim": "read->seg_name_changed is cleared to GF_FALSE after handling segment name change.",
+          "evidence": "L277: read->seg_name_changed = GF_FALSE;"
+        },
+        {
+          "entities": [
+            "ch->needs_pid_reconfig"
+          ],
+          "claim": "ch->needs_pid_reconfig is cleared to GF_FALSE after isor_update_channel_config.",
+          "evidence": "L180: ch->needs_pid_reconfig = GF_FALSE;"
+        },
+        {
+          "entities": [
+            "ch->check_has_rap"
+          ],
+          "claim": "ch->check_has_rap is cleared to GF_FALSE and ch->has_rap set to GF_TRUE when sync points are found.",
+          "evidence": "L185: ch->check_has_rap = GF_FALSE;\nL186: ch->has_rap = GF_TRUE;"
+        },
+        {
+          "entities": [
+            "ch->last_has_tfrf"
+          ],
+          "claim": "ch->last_has_tfrf is set to GF_TRUE when tfrf is present and cleared to GF_FALSE when tfrf is absent.",
+          "evidence": "L321: ch->last_has_tfrf = GF_TRUE;\nL324: ch->last_has_tfrf = GF_FALSE;"
+        },
+        {
+          "entities": [
+            "ch->playing"
+          ],
+          "claim": "ch->playing is set to GF_FALSE when in_is_eos and playing==2.",
+          "evidence": "L305: ch->playing = GF_FALSE;"
+        },
+        {
+          "entities": [
+            "ch->last_valid_sample_data_offset"
+          ],
+          "claim": "ch->last_valid_sample_data_offset is updated from ch->sample_data_offset after a sample is sent.",
+          "evidence": "L300: ch->last_valid_sample_data_offset = ch->sample_data_offset;"
+        },
+        {
+          "entities": [
+            "ch->sample_data_offset"
+          ],
+          "claim": "ch->sample_data_offset is reset to 0 at the start of each packet loop iteration.",
+          "evidence": "L158: ch->sample_data_offset = 0;"
+        },
+        {
+          "entities": [
+            "read->mem_load_mode"
+          ],
+          "claim": "read->mem_load_mode controls memory loading behavior; when set, isoffin_push_buffer is called with packet data.",
+          "evidence": "L43: if (read->mem_load_mode) {\nL45: const u8 *pck_data = gf_filter_pck_get_data(pck, &data_size);\nL46: isoffin_push_buffer(filter, read, pck_data, data_size);"
+        },
+        {
+          "entities": [
+            "read->nodata"
+          ],
+          "claim": "read->nodata controls whether packet data is allocated or shared with NULL data.",
+          "evidence": "L193: if (read->nodata) {\nL194: pck = gf_filter_pck_new_shared(ch->pid, NULL, ch->sample->dataLength, NULL);"
+        },
+        {
+          "entities": [
+            "read->sigfrag"
+          ],
+          "claim": "read->sigfrag controls whether fragment boundary information is signaled on packets.",
+          "evidence": "L254: if (read->sigfrag) {"
+        },
+        {
+          "entities": [
+            "read->full_segment_flush"
+          ],
+          "claim": "read->full_segment_flush controls whether blocking on the output PID is checked.",
+          "evidence": "L159: if (!read->full_segment_flush && gf_filter_pid_would_block(ch->pid) )"
+        },
+        {
+          "entities": [
+            "read->stsd"
+          ],
+          "claim": "read->stsd is compared against ch->last_sample_desc_index to decide whether to release and skip a sample.",
+          "evidence": "L168: if (read->stsd && (ch->last_sample_desc_index != read->stsd) && ch->sample) {"
+        },
+        {
+          "entities": [
+            "read->frag_type"
+          ],
+          "claim": "read->frag_type controls whether refresh_fragmented is cleared and whether in_is_eos is forced.",
+          "evidence": "L67: if (!read->frag_type && read->input_loaded) {\nL139: if (!read->frag_type)"
+        },
+        {
+          "entities": [
+            "read->extern_mov"
+          ],
+          "claim": "read->extern_mov indicates external movie input, setting in_is_eos and input_loaded.",
+          "evidence": "L88: } else if (read->extern_mov) {"
+        },
+        {
+          "entities": [
+            "read->is_partial_download"
+          ],
+          "claim": "read->is_partial_download is checked to decide whether to retry loading the init segment.",
+          "evidence": "L18: if (!read->is_partial_download && !read->mem_load_mode && (read->moov_not_loaded==2) ) {"
+        },
+        {
+          "entities": [
+            "read->in_error"
+          ],
+          "claim": "read->in_error is checked and returned if set, indicating an error state.",
+          "evidence": "L11: if (read->in_error)\nL12: return read->in_error;\nL55: if (read->in_error)\nL56: return read->in_error;"
+        },
+        {
+          "entities": [
+            "ch->item_id"
+          ],
+          "claim": "ch->item_id determines whether sample is fetched from item or regular sample path.",
+          "evidence": "L162: if (ch->item_id) {\nL163: isor_reader_get_sample_from_item(ch);"
+        },
+        {
+          "entities": [
+            "ch->last_state"
+          ],
+          "claim": "ch->last_state indicates EOS or invalid file state, affecting channel handling.",
+          "evidence": "L302: } else if (ch->last_state==GF_EOS) {\nL330: } else if (ch->last_state==GF_ISOM_INVALID_FILE) {"
+        },
+        {
+          "entities": [
+            "ch->sap_3",
+            "ch->sap_4_type"
+          ],
+          "claim": "ch->sap_3 and ch->sap_4_type control SAP type setting on the packet.",
+          "evidence": "L211: if (ch->sap_3)\nL213: else if (ch->sap_4_type) {"
+        },
+        {
+          "entities": [
+            "ch->xps_mask"
+          ],
+          "claim": "ch->xps_mask is used to set the GF_PROP_PCK_XPS_MASK packet property for non-SAP packets.",
+          "evidence": "L225: if (ch->xps_mask && !gf_filter_pck_get_sap(pck) ) {\nL226: gf_filter_pck_set_property(pck, GF_PROP_PCK_XPS_MASK, &PROP_UINT(ch->xps_mask) );"
+        },
+        {
+          "entities": [
+            "ch->sender_ntp",
+            "ch->ntp_at_server_ntp"
+          ],
+          "claim": "ch->sender_ntp and ch->ntp_at_server_ntp are used to set NTP-related packet properties.",
+          "evidence": "L284: if (ch->sender_ntp) {\nL285: gf_filter_pck_set_property(pck, GF_PROP_PCK_SENDER_NTP, &PROP_LONGUINT(ch->sender_ntp));\nL286: if (ch->ntp_at_server_ntp) {\nL287: gf_filter_pck_set_property(pck, GF_PROP_PCK_RECEIVER_NTP, &PROP_LONGUINT(ch->ntp_at_server_ntp));"
+        },
+        {
+          "entities": [
+            "ch->pck_encrypted"
+          ],
+          "claim": "ch->pck_encrypted controls crypt flags and CENC SAI property setting.",
+          "evidence": "L240: gf_filter_pck_set_crypt_flags(pck, ch->pck_encrypted ? GF_FILTER_PCK_CRYPT : 0);\nL249: if (ch->sai_buffer && ch->pck_encrypted) {"
+        },
+        {
+          "entities": [
+            "ch->seek_flag"
+          ],
+          "claim": "ch->seek_flag is used to set the seek flag on the packet.",
+          "evidence": "L222: gf_filter_pck_set_seek_flag(pck, ch->seek_flag);"
+        },
+        {
+          "entities": [
+            "ch->au_duration"
+          ],
+          "claim": "ch->au_duration is used to compute sample duration for the packet.",
+          "evidence": "L218: sample_dur = ch->au_duration;"
+        },
+        {
+          "entities": [
+            "ch->dts",
+            "ch->cts"
+          ],
+          "claim": "ch->dts and ch->cts are used to set DTS and CTS on the packet.",
+          "evidence": "L202: gf_filter_pck_set_dts(pck, ch->dts);\nL203: gf_filter_pck_set_cts(pck, ch->cts);"
+        },
+        {
+          "entities": [
+            "ch->sample_num"
+          ],
+          "claim": "ch->sample_num is used for sequence number, subsample retrieval, and fragment start checks.",
+          "evidence": "L241: gf_filter_pck_set_seq_num(pck, ch->sample_num);\nL244: subs_buf = gf_isom_sample_get_subsamples_buffer(read->mov, ch->track, ch->sample_num, &subs_buf_size);\nL256: if (gf_isom_sample_is_fragment_start(read->mov, ch->track, ch->sample_num, &finfo) ) {"
+        },
+        {
+          "entities": [
+            "ch->track"
+          ],
+          "claim": "ch->track is used for sample queries, subsample retrieval, fragment start checks, and tfrf retrieval.",
+          "evidence": "L184: if (ch->check_has_rap && (gf_isom_get_sample_count(ch->owner->mov, ch->track)>1) && (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1)) {\nL244: subs_buf = gf_isom_sample_get_subsamples_buffer(read->mov, ch->track, ch->sample_num, &subs_buf_size);\nL256: if (gf_isom_sample_is_fragment_start(read->mov, ch->track, ch->sample_num, &finfo) ) {\nL318: tfrf = (void *) gf_isom_get_tfrf(read->mov, ch->track);"
+        },
+        {
+          "entities": [
+            "ch->owner"
+          ],
+          "claim": "ch->owner refers to an object with a mov field used for sample count and sync point queries.",
+          "evidence": "L184: if (ch->check_has_rap && (gf_isom_get_sample_count(ch->owner->mov, ch->track)>1) && (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1)) {\nL134: GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, (\"[IsoMedia] refresh track %d fragment - cur sample %d - new sample count %d\\n\", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));"
+        },
+        {
+          "entities": [
+            "data"
+          ],
+          "claim": "data is a pointer to allocated packet data used for memcpy from ch->sample->data.",
+          "evidence": "L197: pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);\nL200: memcpy(data, ch->sample->data, ch->sample->dataLength);"
+        },
+        {
+          "entities": [
+            "pck_data"
+          ],
+          "claim": "pck_data is a pointer to packet data obtained from gf_filter_pck_get_data, passed to isoffin_push_buffer.",
+          "evidence": "L45: const u8 *pck_data = gf_filter_pck_get_data(pck, &data_size);\nL46: isoffin_push_buffer(filter, read, pck_data, data_size);"
+        },
+        {
+          "entities": [
+            "new_url"
+          ],
+          "claim": "new_url is a string pointer from a property, passed to gf_isom_refresh_fragmented.",
+          "evidence": "L113: const char *new_url = NULL;\nL115: if (prop) new_url = prop->value.string;\nL117: e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, new_url);"
+        },
+        {
+          "entities": [
+            "evt"
+          ],
+          "claim": "evt is a GF_FilterEvent initialized with GF_FEVT_STOP and sent to read->pid.",
+          "evidence": "L352: GF_FilterEvent evt;\nL353: GF_FEVT_INIT(evt, GF_FEVT_STOP, read->pid);\nL354: gf_filter_pid_send_event(read->pid, &evt);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "count",
+            "read->channels"
+          ],
+          "claim": "count is the number of elements in read->channels and bounds the loops over channel indices i.",
+          "evidence": "L4: u32 i, count = gf_list_count(read->channels);"
+        },
+        {
+          "entities": [
+            "data_size",
+            "pck_data",
+            "isoffin_push_buffer"
+          ],
+          "claim": "data_size is the byte length of pck_data returned by gf_filter_pck_get_data and is passed as the buffer length to isoffin_push_buffer.",
+          "evidence": "L44: u32 data_size;\nL45: const u8 *pck_data = gf_filter_pck_get_data(pck, &data_size);\nL46: isoffin_push_buffer(filter, read, pck_data, data_size);"
+        },
+        {
+          "entities": [
+            "nb_pck"
+          ],
+          "claim": "nb_pck is initialized to 50 and decremented once per successfully sent sample, bounding the inner sample loop to at most 50 iterations per channel.",
+          "evidence": "L146: u32 nb_pck=50;\nL301: nb_pck--;"
+        },
+        {
+          "entities": [
+            "ch->sample->dataLength",
+            "data",
+            "pck"
+          ],
+          "claim": "ch->sample->dataLength is used as the allocation size for the packet data buffer and as the byte count copied from ch->sample->data into data.",
+          "evidence": "L197: pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);\nL200: memcpy(data, ch->sample->data, ch->sample->dataLength);"
+        },
+        {
+          "entities": [
+            "sample_dur",
+            "ch->au_duration",
+            "ch->sample->nb_pack"
+          ],
+          "claim": "sample_dur is ch->au_duration multiplied by ch->sample->nb_pack when nb_pack is nonzero, and that product is set as the packet duration.",
+          "evidence": "L218: sample_dur = ch->au_duration;\nL219: if (ch->sample->nb_pack)\nL220: sample_dur *= ch->sample->nb_pack;\nL221: gf_filter_pck_set_duration(pck, sample_dur);"
+        },
+        {
+          "entities": [
+            "dep_flags",
+            "ch->isLeading",
+            "ch->dependsOn",
+            "ch->dependedOn",
+            "ch->redundant"
+          ],
+          "claim": "dep_flags is built by shifting left 2 and OR-ing ch->isLeading, ch->dependsOn, ch->dependedOn, and ch->redundant, producing an 8-bit packed dependency value.",
+          "evidence": "L229: dep_flags = ch->isLeading;\nL230: dep_flags <<= 2;\nL231: dep_flags |= ch->dependsOn;\nL232: dep_flags <<= 2;\nL233: dep_flags |= ch->dependedOn;\nL234: dep_flags <<= 2;\nL235: dep_flags |= ch->redundant;"
+        },
+        {
+          "entities": [
+            "subs_buf",
+            "subs_buf_size",
+            "ch->sample_num"
+          ],
+          "claim": "subs_buf_size is the size in bytes of the subsample buffer returned for ch->sample_num and is used as the length of the GF_PROP_PCK_SUBS property data.",
+          "evidence": "L244: subs_buf = gf_isom_sample_get_subsamples_buffer(read->mov, ch->track, ch->sample_num, &subs_buf_size);\nL246: gf_filter_pck_set_property(pck, GF_PROP_PCK_SUBS, &PROP_DATA_NO_COPY(subs_buf, subs_buf_size) );"
+        },
+        {
+          "entities": [
+            "ch->sai_buffer_size",
+            "ch->sai_buffer"
+          ],
+          "claim": "ch->sai_buffer_size is the byte length of ch->sai_buffer used as the GF_PROP_PCK_CENC_SAI property data.",
+          "evidence": "L250: assert(ch->sai_buffer_size);\nL251: gf_filter_pck_set_property(pck, GF_PROP_PCK_CENC_SAI, &PROP_DATA(ch->sai_buffer, ch->sai_buffer_size) );"
+        },
+        {
+          "entities": [
+            "traf_start",
+            "finfo.seg_start_plus_one"
+          ],
+          "claim": "traf_start is 2 when finfo.seg_start_plus_one is nonzero and 1 otherwise.",
+          "evidence": "L258: u32 traf_start = finfo.seg_start_plus_one ? 2 : 1;"
+        },
+        {
+          "entities": [
+            "start",
+            "finfo.frag_start",
+            "finfo.seg_start_plus_one"
+          ],
+          "claim": "start is finfo.frag_start, or finfo.seg_start_plus_one minus 1 when seg_start_plus_one is nonzero.",
+          "evidence": "L265: start = finfo.frag_start;\nL266: if (finfo.seg_start_plus_one) start = finfo.seg_start_plus_one-1;"
+        },
+        {
+          "entities": [
+            "finfo.moof_template_size",
+            "finfo.moof_template"
+          ],
+          "claim": "finfo.moof_template_size is the byte length of finfo.moof_template used as the GF_PROP_PCK_MOOF_TEMPLATE property data.",
+          "evidence": "L269: gf_filter_pck_set_property(pck, GF_PROP_PCK_MOOF_TEMPLATE, &PROP_DATA((u8 *)finfo.moof_template, finfo.moof_template_size));"
+        },
+        {
+          "entities": [
+            "ch->sample_num",
+            "gf_isom_get_sample_count"
+          ],
+          "claim": "ch->sample_num is compared against gf_isom_get_sample_count(read->mov, ch->track) to detect the last sample for audio end-range signaling.",
+          "evidence": "L293: if ((ch->streamType==GF_STREAM_AUDIO) && (ch->sample_num == gf_isom_get_sample_count(read->mov, ch->track))) {"
+        },
+        {
+          "entities": [
+            "min_offset_plus_one",
+            "ch->last_valid_sample_data_offset"
+          ],
+          "claim": "min_offset_plus_one is maintained as one plus the minimum ch->last_valid_sample_data_offset across channels, initialized to 0 and updated when unset or when the current minimum minus one exceeds the channel offset.",
+          "evidence": "L9: u64 min_offset_plus_one = 0;\nL342: if (!min_offset_plus_one || (min_offset_plus_one - 1 > ch->last_valid_sample_data_offset))\nL343: min_offset_plus_one = 1 + ch->last_valid_sample_data_offset;"
+        },
+        {
+          "entities": [
+            "min_offset_plus_one",
+            "isoffin_purge_mem"
+          ],
+          "claim": "When mem_load_mode is set and min_offset_plus_one is nonzero, isoffin_purge_mem is called with min_offset_plus_one minus 1 as the purge offset.",
+          "evidence": "L345: if (read->mem_load_mode && min_offset_plus_one) {\nL346: isoffin_purge_mem(read, min_offset_plus_one-1);"
+        },
+        {
+          "entities": [
+            "nb_forced_end",
+            "count"
+          ],
+          "claim": "nb_forced_end counts non-playing channels and is compared for equality with count to detect that all channels are forced to end.",
+          "evidence": "L150: nb_forced_end++;\nL350: if (read->pid && check_forced_end && (nb_forced_end==count)) {"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "read->in_error"
+          ],
+          "claim": "If read->in_error is nonzero, the function returns immediately and no further processing occurs.",
+          "evidence": "L11: if (read->in_error)\nL12: return read->in_error;"
+        },
+        {
+          "entities": [
+            "read->pid",
+            "read->wait_for_source",
+            "gf_filter_pid_is_eos(read->pid)"
+          ],
+          "claim": "When read->pid is set and no packet is available, if read->wait_for_source is true, execution returns GF_EOS if the pid is at EOS, otherwise returns GF_OK; otherwise the fetch loop breaks.",
+          "evidence": "L28: while (fetch_input) {\nL29: GF_FilterPacket *pck = gf_filter_pid_get_packet(read->pid);\nL30: if (!pck) {\nL33: if (read->wait_for_source) {\nL35: if (gf_filter_pid_is_eos(read->pid))\nL36: return GF_EOS;\nL37: return GF_OK;\nL39: break;"
+        },
+        {
+          "entities": [
+            "read->mem_load_mode",
+            "read->moov_not_loaded",
+            "read->pid"
+          ],
+          "claim": "When read->mem_load_mode is nonzero, each fetched packet is pushed as a buffer; when read->moov_not_loaded equals 2, the packet is dropped and the function returns GF_OK.",
+          "evidence": "L43: if (read->mem_load_mode) {\nL46: isoffin_push_buffer(filter, read, pck_data, data_size);\nL49: else if (read->moov_not_loaded==2) {\nL50: gf_filter_pid_drop_packet(read->pid);\nL51: return GF_OK;"
+        },
+        {
+          "entities": [
+            "read->in_error"
+          ],
+          "claim": "After dropping a packet, if read->in_error becomes nonzero, the function returns that error.",
+          "evidence": "L53: gf_filter_pid_drop_packet(read->pid);\nL54: has_new_data = GF_TRUE;\nL55: if (read->in_error)\nL56: return read->in_error;"
+        },
+        {
+          "entities": [
+            "read->invalid_segment",
+            "in_is_eos"
+          ],
+          "claim": "If read->invalid_segment is set and in_is_eos is false, the function returns GF_OK; otherwise it clears invalid_segment, sends EOS on all playing channels, sets eos_signaled, and returns GF_EOS.",
+          "evidence": "L71: if (read->invalid_segment) {\nL72: if (!in_is_eos) return GF_OK;\nL73: read->invalid_segment = GF_FALSE;\nL85: read->eos_signaled = GF_TRUE;\nL86: return GF_EOS;"
+        },
+        {
+          "entities": [
+            "read->moov_not_loaded",
+            "read->mem_load_mode"
+          ],
+          "claim": "If read->moov_not_loaded equals 1, the function returns GF_OK when mem_load_mode is set, otherwise clears moov_not_loaded and returns the result of isoffin_setup.",
+          "evidence": "L92: if (read->moov_not_loaded==1) {\nL93: if (read->mem_load_mode)\nL94: return GF_OK;\nL95: read->moov_not_loaded = GF_FALSE;\nL96: return isoffin_setup(filter, read);"
+        },
+        {
+          "entities": [
+            "ch->playing",
+            "ch->eos_sent",
+            "is_active"
+          ],
+          "claim": "For each channel, if ch->playing is false the loop continues; otherwise if ch->eos_sent is false, is_active is set true.",
+          "evidence": "L149: if (!ch->playing) {\nL150: nb_forced_end++;\nL151: continue;\nL154: if (!ch->eos_sent)\nL155: is_active = GF_TRUE;"
+        },
+        {
+          "entities": [
+            "read->full_segment_flush",
+            "ch->pid"
+          ],
+          "claim": "Inside the sample loop, if full_segment_flush is false and the channel pid would block, the loop breaks.",
+          "evidence": "L157: while (nb_pck) {\nL159: if (!read->full_segment_flush && gf_filter_pid_would_block(ch->pid) )\nL160: break;"
+        },
+        {
+          "entities": [
+            "read->stsd",
+            "ch->last_sample_desc_index",
+            "ch->sample"
+          ],
+          "claim": "If read->stsd is set and the channel's last_sample_desc_index differs from it and a sample exists, the sample is released and the loop continues.",
+          "evidence": "L168: if (read->stsd && (ch->last_sample_desc_index != read->stsd) && ch->sample) {\nL169: isor_reader_release_sample(ch);\nL170: continue;"
+        },
+        {
+          "entities": [
+            "ch->sample",
+            "ch->last_state"
+          ],
+          "claim": "If ch->sample is non-null, a packet is produced and sent; otherwise if ch->last_state is GF_EOS, EOS handling occurs and the loop breaks; otherwise if ch->last_state is GF_ISOM_INVALID_FILE, the function returns that state; otherwise force_fetch is set and the loop breaks.",
+          "evidence": "L172: if (ch->sample) {\nL297: gf_filter_pck_send(pck);\nL302: } else if (ch->last_state==GF_EOS) {\nL329: break;\nL330: } else if (ch->last_state==GF_ISOM_INVALID_FILE) {\nL336: return ch->last_state;\nL337: } else {\nL338: read->force_fetch = GF_TRUE;\nL339: break;"
+        },
+        {
+          "entities": [
+            "ch->playing",
+            "in_is_eos"
+          ],
+          "claim": "When ch->last_state is GF_EOS and ch->playing equals 2, if in_is_eos is true ch->playing is set false, otherwise nb_forced_end is incremented and check_forced_end is set true.",
+          "evidence": "L302: } else if (ch->last_state==GF_EOS) {\nL303: if (ch->playing == 2) {\nL304: if (in_is_eos) {\nL305: ch->playing = GF_FALSE;\nL306: } else {\nL307: nb_forced_end++;\nL308: check_forced_end = GF_TRUE;"
+        },
+        {
+          "entities": [
+            "read->mem_load_mode",
+            "min_offset_plus_one"
+          ],
+          "claim": "If mem_load_mode is set and min_offset_plus_one is nonzero, memory is purged up to min_offset_plus_one minus one.",
+          "evidence": "L345: if (read->mem_load_mode && min_offset_plus_one) {\nL346: isoffin_purge_mem(read, min_offset_plus_one-1);"
+        },
+        {
+          "entities": [
+            "read->pid",
+            "check_forced_end",
+            "nb_forced_end",
+            "count"
+          ],
+          "claim": "If read->pid is set, check_forced_end is true, and nb_forced_end equals count, a stop event is sent to the input pid.",
+          "evidence": "L350: if (read->pid && check_forced_end && (nb_forced_end==count)) {\nL353: GF_FEVT_INIT(evt, GF_FEVT_STOP, read->pid);\nL354: gf_filter_pid_send_event(read->pid, &evt);"
+        },
+        {
+          "entities": [
+            "is_active"
+          ],
+          "claim": "If is_active is false, the function returns GF_EOS; otherwise it returns GF_OK.",
+          "evidence": "L358: if (!is_active) {\nL359: return GF_EOS;\nL363: return GF_OK;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 7440,
+              "output_tokens": 403,
+              "total_tokens": 7843
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 7440,
+          "output_tokens": 403,
+          "total_tokens": 7843
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L76",
+                "matched": true,
+                "expression": "gf_list_get(read->channels, i)"
+              },
+              {
+                "location": "L133",
+                "matched": true,
+                "expression": "gf_list_get(read->channels, i)"
+              },
+              {
+                "location": "L148",
+                "matched": true,
+                "expression": "gf_list_get(read->channels, i)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L200",
+                "matched": true,
+                "expression": "memcpy(data, ch->sample->data, ch->sample->dataLength)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L194",
+                "matched": true,
+                "expression": "gf_filter_pck_new_shared(ch->pid, NULL, ch->sample->dataLength, NULL)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L197",
+                "matched": true,
+                "expression": "gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L244",
+                "matched": true,
+                "expression": "gf_isom_sample_get_subsamples_buffer(read->mov, ch->track, ch->sample_num, &subs_buf_size)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L251",
+                "matched": true,
+                "expression": "PROP_DATA(ch->sai_buffer, ch->sai_buffer_size)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[6]": {
+            "expression_matches": [
+              {
+                "location": "L269",
+                "matched": true,
+                "expression": "PROP_DATA((u8 *)finfo.moof_template, finfo.moof_template_size)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[7]": {
+            "expression_matches": [
+              {
+                "location": "L279",
+                "matched": true,
+                "expression": "PROP_STRING(p->value.string)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[8]": {
+            "expression_matches": [
+              {
+                "location": "L318",
+                "matched": true,
+                "expression": "gf_isom_get_tfrf(read->mov, ch->track)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 6043,
+              "output_tokens": 6031,
+              "total_tokens": 12074
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 6043,
+          "output_tokens": 6031,
+          "total_tokens": 12074
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "if (read->pid) {",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "GF_FilterPacket *pck = gf_filter_pid_get_packet(read->pid);",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "if (gf_filter_pid_is_eos(read->pid))",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "if (gf_filter_pid_is_eos(read->pid)) {",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 105,
+                "fragment": "prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_CACHED);",
+                "matched_lines": [
+                  105
+                ]
+              },
+              {
+                "evidence_line": 114,
+                "fragment": "prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILEPATH);",
+                "matched_lines": [
+                  114
+                ]
+              },
+              {
+                "evidence_line": 276,
+                "fragment": "const GF_PropertyValue *p = gf_filter_pid_get_property(read->pid, GF_PROP_PID_URL);",
+                "matched_lines": [
+                  276
+                ]
+              },
+              {
+                "evidence_line": 353,
+                "fragment": "GF_FEVT_INIT(evt, GF_FEVT_STOP, read->pid);",
+                "matched_lines": [
+                  353
+                ]
+              },
+              {
+                "evidence_line": 354,
+                "fragment": "gf_filter_pid_send_event(read->pid, &evt);",
+                "matched_lines": [
+                  354
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "u32 i, count = gf_list_count(read->channels);",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 76,
+                "fragment": "ISOMChannel *ch = gf_list_get(read->channels, i);",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 133,
+                "fragment": "ISOMChannel *ch = gf_list_get(read->channels, i);",
+                "matched_lines": [
+                  133
+                ]
+              },
+              {
+                "evidence_line": 148,
+                "fragment": "ch = gf_list_get(read->channels, i);",
+                "matched_lines": [
+                  148
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 82,
+                "fragment": "gf_filter_pid_set_eos(ch->pid);",
+                "matched_lines": [
+                  82
+                ]
+              },
+              {
+                "evidence_line": 187,
+                "fragment": "gf_filter_pid_set_property(ch->pid, GF_PROP_PID_HAS_SYNC, &PROP_BOOL(ch->has_rap) );",
+                "matched_lines": [
+                  187
+                ]
+              },
+              {
+                "evidence_line": 327,
+                "fragment": "gf_filter_pid_set_eos(ch->pid);",
+                "matched_lines": [
+                  327
+                ]
+              },
+              {
+                "evidence_line": 334,
+                "fragment": "gf_filter_pid_set_eos(ch->pid);",
+                "matched_lines": [
+                  334
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 163,
+                "fragment": "isor_reader_get_sample_from_item(ch);",
+                "matched_lines": [
+                  163
+                ]
+              },
+              {
+                "evidence_line": 165,
+                "fragment": "isor_reader_get_sample(ch);",
+                "matched_lines": [
+                  165
+                ]
+              },
+              {
+                "evidence_line": 168,
+                "fragment": "if (read->stsd && (ch->last_sample_desc_index != read->stsd) && ch->sample) {",
+                "matched_lines": [
+                  168
+                ]
+              },
+              {
+                "evidence_line": 169,
+                "fragment": "isor_reader_release_sample(ch);",
+                "matched_lines": [
+                  169
+                ]
+              },
+              {
+                "evidence_line": 172,
+                "fragment": "if (ch->sample) {",
+                "matched_lines": [
+                  172
+                ]
+              },
+              {
+                "evidence_line": 194,
+                "fragment": "pck = gf_filter_pck_new_shared(ch->pid, NULL, ch->sample->dataLength, NULL);",
+                "matched_lines": [
+                  194
+                ]
+              },
+              {
+                "evidence_line": 197,
+                "fragment": "pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);",
+                "matched_lines": [
+                  197
+                ]
+              },
+              {
+                "evidence_line": 200,
+                "fragment": "memcpy(data, ch->sample->data, ch->sample->dataLength);",
+                "matched_lines": [
+                  200
+                ]
+              },
+              {
+                "evidence_line": 298,
+                "fragment": "isor_reader_release_sample(ch);",
+                "matched_lines": [
+                  298
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 194,
+                "fragment": "pck = gf_filter_pck_new_shared(ch->pid, NULL, ch->sample->dataLength, NULL);",
+                "matched_lines": [
+                  194
+                ]
+              },
+              {
+                "evidence_line": 195,
+                "fragment": "if (!pck) return GF_OUT_OF_MEM;",
+                "matched_lines": [
+                  195
+                ]
+              },
+              {
+                "evidence_line": 197,
+                "fragment": "pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);",
+                "matched_lines": [
+                  197
+                ]
+              },
+              {
+                "evidence_line": 198,
+                "fragment": "if (!pck) return GF_OUT_OF_MEM;",
+                "matched_lines": [
+                  198
+                ]
+              },
+              {
+                "evidence_line": 297,
+                "fragment": "gf_filter_pck_send(pck);",
+                "matched_lines": [
+                  297
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 117,
+                "fragment": "e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, new_url);",
+                "matched_lines": [
+                  117
+                ]
+              },
+              {
+                "evidence_line": 244,
+                "fragment": "subs_buf = gf_isom_sample_get_subsamples_buffer(read->mov, ch->track, ch->sample_num, &subs_buf_size);",
+                "matched_lines": [
+                  244
+                ]
+              },
+              {
+                "evidence_line": 256,
+                "fragment": "if (gf_isom_sample_is_fragment_start(read->mov, ch->track, ch->sample_num, &finfo) ) {",
+                "matched_lines": [
+                  256
+                ]
+              },
+              {
+                "evidence_line": 318,
+                "fragment": "tfrf = (void *) gf_isom_get_tfrf(read->mov, ch->track);",
+                "matched_lines": [
+                  318
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 244,
+                "fragment": "subs_buf = gf_isom_sample_get_subsamples_buffer(read->mov, ch->track, ch->sample_num, &subs_buf_size);",
+                "matched_lines": [
+                  244
+                ]
+              },
+              {
+                "evidence_line": 245,
+                "fragment": "if (subs_buf) {",
+                "matched_lines": [
+                  245
+                ]
+              },
+              {
+                "evidence_line": 246,
+                "fragment": "gf_filter_pck_set_property(pck, GF_PROP_PCK_SUBS, &PROP_DATA_NO_COPY(subs_buf, subs_buf_size) );",
+                "matched_lines": [
+                  246
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 249,
+                "fragment": "if (ch->sai_buffer && ch->pck_encrypted) {",
+                "matched_lines": [
+                  249
+                ]
+              },
+              {
+                "evidence_line": 250,
+                "fragment": "assert(ch->sai_buffer_size);",
+                "matched_lines": [
+                  250
+                ]
+              },
+              {
+                "evidence_line": 251,
+                "fragment": "gf_filter_pck_set_property(pck, GF_PROP_PCK_CENC_SAI, &PROP_DATA(ch->sai_buffer, ch->sai_buffer_size) );",
+                "matched_lines": [
+                  251
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 268,
+                "fragment": "if (finfo.moof_template) {",
+                "matched_lines": [
+                  268
+                ]
+              },
+              {
+                "evidence_line": 269,
+                "fragment": "gf_filter_pck_set_property(pck, GF_PROP_PCK_MOOF_TEMPLATE, &PROP_DATA((u8 *)finfo.moof_template, finfo.moof_template_size));",
+                "matched_lines": [
+                  269
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 318,
+                "fragment": "tfrf = (void *) gf_isom_get_tfrf(read->mov, ch->track);",
+                "matched_lines": [
+                  318
+                ]
+              },
+              {
+                "evidence_line": 319,
+                "fragment": "if (tfrf) {",
+                "matched_lines": [
+                  319
+                ]
+              },
+              {
+                "evidence_line": 320,
+                "fragment": "gf_filter_pid_set_info_str(ch->pid, \"smooth_tfrf\", &PROP_POINTER(tfrf) );",
+                "matched_lines": [
+                  320
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 276,
+                "fragment": "const GF_PropertyValue *p = gf_filter_pid_get_property(read->pid, GF_PROP_PID_URL);",
+                "matched_lines": [
+                  276
+                ]
+              },
+              {
+                "evidence_line": 278,
+                "fragment": "if (p && p->value.string) {",
+                "matched_lines": [
+                  278
+                ]
+              },
+              {
+                "evidence_line": 279,
+                "fragment": "gf_filter_pck_set_property(pck, GF_PROP_PID_URL, &PROP_STRING(p->value.string));",
+                "matched_lines": [
+                  279
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 105,
+                "fragment": "prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_CACHED);",
+                "matched_lines": [
+                  105
+                ]
+              },
+              {
+                "evidence_line": 106,
+                "fragment": "if (prop && prop->value.boolean)",
+                "matched_lines": [
+                  106
+                ]
+              },
+              {
+                "evidence_line": 114,
+                "fragment": "prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILEPATH);",
+                "matched_lines": [
+                  114
+                ]
+              },
+              {
+                "evidence_line": 115,
+                "fragment": "if (prop) new_url = prop->value.string;",
+                "matched_lines": [
+                  115
+                ]
+              },
+              {
+                "evidence_line": 117,
+                "fragment": "e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, new_url);",
+                "matched_lines": [
+                  117
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "if (!read->force_fetch && read->mem_blob.size > read->mstore_size) {",
+                "matched_lines": [
+                  23
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 59,
+                "fragment": "read->input_loaded = GF_TRUE;",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 63,
+                "fragment": "read->input_loaded = GF_TRUE;",
+                "matched_lines": [
+                  63
+                ]
+              },
+              {
+                "evidence_line": 90,
+                "fragment": "read->input_loaded = GF_TRUE;",
+                "matched_lines": [
+                  90
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 85,
+                "fragment": "read->eos_signaled = GF_TRUE;",
+                "matched_lines": [
+                  85
+                ]
+              },
+              {
+                "evidence_line": 316,
+                "fragment": "read->eos_signaled = GF_TRUE;",
+                "matched_lines": [
+                  316
+                ]
+              },
+              {
+                "evidence_line": 333,
+                "fragment": "read->eos_signaled = GF_TRUE;",
+                "matched_lines": [
+                  333
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[15]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 80,
+                "fragment": "if (!ch->eos_sent) {",
+                "matched_lines": [
+                  80
+                ]
+              },
+              {
+                "evidence_line": 81,
+                "fragment": "ch->eos_sent = GF_TRUE;",
+                "matched_lines": [
+                  81
+                ]
+              },
+              {
+                "evidence_line": 154,
+                "fragment": "if (!ch->eos_sent)",
+                "matched_lines": [
+                  154
+                ]
+              },
+              {
+                "evidence_line": 290,
+                "fragment": "ch->eos_sent = GF_FALSE;",
+                "matched_lines": [
+                  290
+                ]
+              },
+              {
+                "evidence_line": 311,
+                "fragment": "if (in_is_eos && !ch->eos_sent) {",
+                "matched_lines": [
+                  311
+                ]
+              },
+              {
+                "evidence_line": 315,
+                "fragment": "ch->eos_sent = GF_TRUE;",
+                "matched_lines": [
+                  315
+                ]
+              },
+              {
+                "evidence_line": 331,
+                "fragment": "if (!ch->eos_sent) {",
+                "matched_lines": [
+                  331
+                ]
+              },
+              {
+                "evidence_line": 332,
+                "fragment": "ch->eos_sent = GF_TRUE;",
+                "matched_lines": [
+                  332
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[16]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 73,
+                "fragment": "read->invalid_segment = GF_FALSE;",
+                "matched_lines": [
+                  73
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[17]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 95,
+                "fragment": "read->moov_not_loaded = GF_FALSE;",
+                "matched_lines": [
+                  95
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[18]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 103,
+                "fragment": "read->refresh_fragmented = GF_FALSE;",
+                "matched_lines": [
+                  103
+                ]
+              },
+              {
+                "evidence_line": 107,
+                "fragment": "read->refresh_fragmented = GF_FALSE;",
+                "matched_lines": [
+                  107
+                ]
+              },
+              {
+                "evidence_line": 121,
+                "fragment": "read->refresh_fragmented = GF_FALSE;",
+                "matched_lines": [
+                  121
+                ]
+              },
+              {
+                "evidence_line": 140,
+                "fragment": "read->refresh_fragmented = GF_FALSE;",
+                "matched_lines": [
+                  140
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[19]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 26,
+                "fragment": "read->force_fetch = GF_FALSE;",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 338,
+                "fragment": "read->force_fetch = GF_TRUE;",
+                "matched_lines": [
+                  338
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[20]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 41,
+                "fragment": "read->wait_for_source = GF_FALSE;",
+                "matched_lines": [
+                  41
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[21]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 65,
+                "fragment": "read->input_is_stop = GF_FALSE;",
+                "matched_lines": [
+                  65
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[22]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 277,
+                "fragment": "read->seg_name_changed = GF_FALSE;",
+                "matched_lines": [
+                  277
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[23]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 180,
+                "fragment": "ch->needs_pid_reconfig = GF_FALSE;",
+                "matched_lines": [
+                  180
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[24]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 185,
+                "fragment": "ch->check_has_rap = GF_FALSE;",
+                "matched_lines": [
+                  185
+                ]
+              },
+              {
+                "evidence_line": 186,
+                "fragment": "ch->has_rap = GF_TRUE;",
+                "matched_lines": [
+                  186
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[25]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 321,
+                "fragment": "ch->last_has_tfrf = GF_TRUE;",
+                "matched_lines": [
+                  321
+                ]
+              },
+              {
+                "evidence_line": 324,
+                "fragment": "ch->last_has_tfrf = GF_FALSE;",
+                "matched_lines": [
+                  324
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[26]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 305,
+                "fragment": "ch->playing = GF_FALSE;",
+                "matched_lines": [
+                  305
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[27]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 300,
+                "fragment": "ch->last_valid_sample_data_offset = ch->sample_data_offset;",
+                "matched_lines": [
+                  300
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[28]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 158,
+                "fragment": "ch->sample_data_offset = 0;",
+                "matched_lines": [
+                  158
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[29]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "if (read->mem_load_mode) {",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "const u8 *pck_data = gf_filter_pck_get_data(pck, &data_size);",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "isoffin_push_buffer(filter, read, pck_data, data_size);",
+                "matched_lines": [
+                  46
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[30]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 193,
+                "fragment": "if (read->nodata) {",
+                "matched_lines": [
+                  193
+                ]
+              },
+              {
+                "evidence_line": 194,
+                "fragment": "pck = gf_filter_pck_new_shared(ch->pid, NULL, ch->sample->dataLength, NULL);",
+                "matched_lines": [
+                  194
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[31]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 254,
+                "fragment": "if (read->sigfrag) {",
+                "matched_lines": [
+                  254
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[32]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 159,
+                "fragment": "if (!read->full_segment_flush && gf_filter_pid_would_block(ch->pid) )",
+                "matched_lines": [
+                  159
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[33]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 168,
+                "fragment": "if (read->stsd && (ch->last_sample_desc_index != read->stsd) && ch->sample) {",
+                "matched_lines": [
+                  168
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[34]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 67,
+                "fragment": "if (!read->frag_type && read->input_loaded) {",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 139,
+                "fragment": "if (!read->frag_type)",
+                "matched_lines": [
+                  139
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[35]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 88,
+                "fragment": "} else if (read->extern_mov) {",
+                "matched_lines": [
+                  88
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[36]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "if (!read->is_partial_download && !read->mem_load_mode && (read->moov_not_loaded==2) ) {",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[37]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "if (read->in_error)",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "return read->in_error;",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "if (read->in_error)",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "return read->in_error;",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[38]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 162,
+                "fragment": "if (ch->item_id) {",
+                "matched_lines": [
+                  162
+                ]
+              },
+              {
+                "evidence_line": 163,
+                "fragment": "isor_reader_get_sample_from_item(ch);",
+                "matched_lines": [
+                  163
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[39]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 302,
+                "fragment": "} else if (ch->last_state==GF_EOS) {",
+                "matched_lines": [
+                  302
+                ]
+              },
+              {
+                "evidence_line": 330,
+                "fragment": "} else if (ch->last_state==GF_ISOM_INVALID_FILE) {",
+                "matched_lines": [
+                  330
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[40]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 211,
+                "fragment": "if (ch->sap_3)",
+                "matched_lines": [
+                  211
+                ]
+              },
+              {
+                "evidence_line": 213,
+                "fragment": "else if (ch->sap_4_type) {",
+                "matched_lines": [
+                  213
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[41]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 225,
+                "fragment": "if (ch->xps_mask && !gf_filter_pck_get_sap(pck) ) {",
+                "matched_lines": [
+                  225
+                ]
+              },
+              {
+                "evidence_line": 226,
+                "fragment": "gf_filter_pck_set_property(pck, GF_PROP_PCK_XPS_MASK, &PROP_UINT(ch->xps_mask) );",
+                "matched_lines": [
+                  226
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[42]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 284,
+                "fragment": "if (ch->sender_ntp) {",
+                "matched_lines": [
+                  284
+                ]
+              },
+              {
+                "evidence_line": 285,
+                "fragment": "gf_filter_pck_set_property(pck, GF_PROP_PCK_SENDER_NTP, &PROP_LONGUINT(ch->sender_ntp));",
+                "matched_lines": [
+                  285
+                ]
+              },
+              {
+                "evidence_line": 286,
+                "fragment": "if (ch->ntp_at_server_ntp) {",
+                "matched_lines": [
+                  286
+                ]
+              },
+              {
+                "evidence_line": 287,
+                "fragment": "gf_filter_pck_set_property(pck, GF_PROP_PCK_RECEIVER_NTP, &PROP_LONGUINT(ch->ntp_at_server_ntp));",
+                "matched_lines": [
+                  287
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[43]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 240,
+                "fragment": "gf_filter_pck_set_crypt_flags(pck, ch->pck_encrypted ? GF_FILTER_PCK_CRYPT : 0);",
+                "matched_lines": [
+                  240
+                ]
+              },
+              {
+                "evidence_line": 249,
+                "fragment": "if (ch->sai_buffer && ch->pck_encrypted) {",
+                "matched_lines": [
+                  249
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[44]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 222,
+                "fragment": "gf_filter_pck_set_seek_flag(pck, ch->seek_flag);",
+                "matched_lines": [
+                  222
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[45]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 218,
+                "fragment": "sample_dur = ch->au_duration;",
+                "matched_lines": [
+                  218
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[46]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 202,
+                "fragment": "gf_filter_pck_set_dts(pck, ch->dts);",
+                "matched_lines": [
+                  202
+                ]
+              },
+              {
+                "evidence_line": 203,
+                "fragment": "gf_filter_pck_set_cts(pck, ch->cts);",
+                "matched_lines": [
+                  203
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[47]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 241,
+                "fragment": "gf_filter_pck_set_seq_num(pck, ch->sample_num);",
+                "matched_lines": [
+                  241
+                ]
+              },
+              {
+                "evidence_line": 244,
+                "fragment": "subs_buf = gf_isom_sample_get_subsamples_buffer(read->mov, ch->track, ch->sample_num, &subs_buf_size);",
+                "matched_lines": [
+                  244
+                ]
+              },
+              {
+                "evidence_line": 256,
+                "fragment": "if (gf_isom_sample_is_fragment_start(read->mov, ch->track, ch->sample_num, &finfo) ) {",
+                "matched_lines": [
+                  256
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[48]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 184,
+                "fragment": "if (ch->check_has_rap && (gf_isom_get_sample_count(ch->owner->mov, ch->track)>1) && (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1)) {",
+                "matched_lines": [
+                  184
+                ]
+              },
+              {
+                "evidence_line": 244,
+                "fragment": "subs_buf = gf_isom_sample_get_subsamples_buffer(read->mov, ch->track, ch->sample_num, &subs_buf_size);",
+                "matched_lines": [
+                  244
+                ]
+              },
+              {
+                "evidence_line": 256,
+                "fragment": "if (gf_isom_sample_is_fragment_start(read->mov, ch->track, ch->sample_num, &finfo) ) {",
+                "matched_lines": [
+                  256
+                ]
+              },
+              {
+                "evidence_line": 318,
+                "fragment": "tfrf = (void *) gf_isom_get_tfrf(read->mov, ch->track);",
+                "matched_lines": [
+                  318
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[49]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 184,
+                "fragment": "if (ch->check_has_rap && (gf_isom_get_sample_count(ch->owner->mov, ch->track)>1) && (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1)) {",
+                "matched_lines": [
+                  184
+                ]
+              },
+              {
+                "evidence_line": 134,
+                "fragment": "GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, (\"[IsoMedia] refresh track %d fragment - cur sample %d - new sample count %d\\n\", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));",
+                "matched_lines": [
+                  134
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[50]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 197,
+                "fragment": "pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);",
+                "matched_lines": [
+                  197
+                ]
+              },
+              {
+                "evidence_line": 200,
+                "fragment": "memcpy(data, ch->sample->data, ch->sample->dataLength);",
+                "matched_lines": [
+                  200
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[51]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 45,
+                "fragment": "const u8 *pck_data = gf_filter_pck_get_data(pck, &data_size);",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "isoffin_push_buffer(filter, read, pck_data, data_size);",
+                "matched_lines": [
+                  46
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[52]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 113,
+                "fragment": "const char *new_url = NULL;",
+                "matched_lines": [
+                  113
+                ]
+              },
+              {
+                "evidence_line": 115,
+                "fragment": "if (prop) new_url = prop->value.string;",
+                "matched_lines": [
+                  115
+                ]
+              },
+              {
+                "evidence_line": 117,
+                "fragment": "e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, new_url);",
+                "matched_lines": [
+                  117
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[53]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 352,
+                "fragment": "GF_FilterEvent evt;",
+                "matched_lines": [
+                  352
+                ]
+              },
+              {
+                "evidence_line": 353,
+                "fragment": "GF_FEVT_INIT(evt, GF_FEVT_STOP, read->pid);",
+                "matched_lines": [
+                  353
+                ]
+              },
+              {
+                "evidence_line": 354,
+                "fragment": "gf_filter_pid_send_event(read->pid, &evt);",
+                "matched_lines": [
+                  354
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 12,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 13,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 14,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 15,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 16,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 17,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 18,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 19,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 20,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 21,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 22,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 23,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 24,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 25,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 26,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 27,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 28,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 29,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 30,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 31,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 32,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 33,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 34,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 35,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 36,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 37,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 38,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 39,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 40,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 41,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 42,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 43,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 44,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 45,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 46,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 47,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 48,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 49,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 50,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 51,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 52,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 53,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 6231,
+              "output_tokens": 1751,
+              "total_tokens": 7982
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 6231,
+          "output_tokens": 1751,
+          "total_tokens": 7982
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "u32 i, count = gf_list_count(read->channels);",
+                "matched_lines": [
+                  4
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "u32 data_size;",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "const u8 *pck_data = gf_filter_pck_get_data(pck, &data_size);",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "isoffin_push_buffer(filter, read, pck_data, data_size);",
+                "matched_lines": [
+                  46
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 146,
+                "fragment": "u32 nb_pck=50;",
+                "matched_lines": [
+                  146
+                ]
+              },
+              {
+                "evidence_line": 301,
+                "fragment": "nb_pck--;",
+                "matched_lines": [
+                  301
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 197,
+                "fragment": "pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);",
+                "matched_lines": [
+                  197
+                ]
+              },
+              {
+                "evidence_line": 200,
+                "fragment": "memcpy(data, ch->sample->data, ch->sample->dataLength);",
+                "matched_lines": [
+                  200
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 218,
+                "fragment": "sample_dur = ch->au_duration;",
+                "matched_lines": [
+                  218
+                ]
+              },
+              {
+                "evidence_line": 219,
+                "fragment": "if (ch->sample->nb_pack)",
+                "matched_lines": [
+                  219
+                ]
+              },
+              {
+                "evidence_line": 220,
+                "fragment": "sample_dur *= ch->sample->nb_pack;",
+                "matched_lines": [
+                  220
+                ]
+              },
+              {
+                "evidence_line": 221,
+                "fragment": "gf_filter_pck_set_duration(pck, sample_dur);",
+                "matched_lines": [
+                  221
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 229,
+                "fragment": "dep_flags = ch->isLeading;",
+                "matched_lines": [
+                  229
+                ]
+              },
+              {
+                "evidence_line": 230,
+                "fragment": "dep_flags <<= 2;",
+                "matched_lines": [
+                  230
+                ]
+              },
+              {
+                "evidence_line": 231,
+                "fragment": "dep_flags |= ch->dependsOn;",
+                "matched_lines": [
+                  231
+                ]
+              },
+              {
+                "evidence_line": 232,
+                "fragment": "dep_flags <<= 2;",
+                "matched_lines": [
+                  232
+                ]
+              },
+              {
+                "evidence_line": 233,
+                "fragment": "dep_flags |= ch->dependedOn;",
+                "matched_lines": [
+                  233
+                ]
+              },
+              {
+                "evidence_line": 234,
+                "fragment": "dep_flags <<= 2;",
+                "matched_lines": [
+                  234
+                ]
+              },
+              {
+                "evidence_line": 235,
+                "fragment": "dep_flags |= ch->redundant;",
+                "matched_lines": [
+                  235
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 244,
+                "fragment": "subs_buf = gf_isom_sample_get_subsamples_buffer(read->mov, ch->track, ch->sample_num, &subs_buf_size);",
+                "matched_lines": [
+                  244
+                ]
+              },
+              {
+                "evidence_line": 246,
+                "fragment": "gf_filter_pck_set_property(pck, GF_PROP_PCK_SUBS, &PROP_DATA_NO_COPY(subs_buf, subs_buf_size) );",
+                "matched_lines": [
+                  246
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 250,
+                "fragment": "assert(ch->sai_buffer_size);",
+                "matched_lines": [
+                  250
+                ]
+              },
+              {
+                "evidence_line": 251,
+                "fragment": "gf_filter_pck_set_property(pck, GF_PROP_PCK_CENC_SAI, &PROP_DATA(ch->sai_buffer, ch->sai_buffer_size) );",
+                "matched_lines": [
+                  251
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 258,
+                "fragment": "u32 traf_start = finfo.seg_start_plus_one ? 2 : 1;",
+                "matched_lines": [
+                  258
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 265,
+                "fragment": "start = finfo.frag_start;",
+                "matched_lines": [
+                  265
+                ]
+              },
+              {
+                "evidence_line": 266,
+                "fragment": "if (finfo.seg_start_plus_one) start = finfo.seg_start_plus_one-1;",
+                "matched_lines": [
+                  266
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 269,
+                "fragment": "gf_filter_pck_set_property(pck, GF_PROP_PCK_MOOF_TEMPLATE, &PROP_DATA((u8 *)finfo.moof_template, finfo.moof_template_size));",
+                "matched_lines": [
+                  269
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 293,
+                "fragment": "if ((ch->streamType==GF_STREAM_AUDIO) && (ch->sample_num == gf_isom_get_sample_count(read->mov, ch->track))) {",
+                "matched_lines": [
+                  293
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "u64 min_offset_plus_one = 0;",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 342,
+                "fragment": "if (!min_offset_plus_one || (min_offset_plus_one - 1 > ch->last_valid_sample_data_offset))",
+                "matched_lines": [
+                  342
+                ]
+              },
+              {
+                "evidence_line": 343,
+                "fragment": "min_offset_plus_one = 1 + ch->last_valid_sample_data_offset;",
+                "matched_lines": [
+                  343
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 345,
+                "fragment": "if (read->mem_load_mode && min_offset_plus_one) {",
+                "matched_lines": [
+                  345
+                ]
+              },
+              {
+                "evidence_line": 346,
+                "fragment": "isoffin_purge_mem(read, min_offset_plus_one-1);",
+                "matched_lines": [
+                  346
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 150,
+                "fragment": "nb_forced_end++;",
+                "matched_lines": [
+                  150
+                ]
+              },
+              {
+                "evidence_line": 350,
+                "fragment": "if (read->pid && check_forced_end && (nb_forced_end==count)) {",
+                "matched_lines": [
+                  350
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 12,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 13,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 14,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 5911,
+              "output_tokens": 2014,
+              "total_tokens": 7925
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 5911,
+          "output_tokens": 2014,
+          "total_tokens": 7925
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "if (read->in_error)",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "return read->in_error;",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 28,
+                "fragment": "while (fetch_input) {",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "GF_FilterPacket *pck = gf_filter_pid_get_packet(read->pid);",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "if (!pck) {",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 33,
+                "fragment": "if (read->wait_for_source) {",
+                "matched_lines": [
+                  33
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "if (gf_filter_pid_is_eos(read->pid))",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 36,
+                "fragment": "return GF_EOS;",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "return GF_OK;",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "break;",
+                "matched_lines": [
+                  39
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "if (read->mem_load_mode) {",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 46,
+                "fragment": "isoffin_push_buffer(filter, read, pck_data, data_size);",
+                "matched_lines": [
+                  46
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "else if (read->moov_not_loaded==2) {",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "gf_filter_pid_drop_packet(read->pid);",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "return GF_OK;",
+                "matched_lines": [
+                  51
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 53,
+                "fragment": "gf_filter_pid_drop_packet(read->pid);",
+                "matched_lines": [
+                  53
+                ]
+              },
+              {
+                "evidence_line": 54,
+                "fragment": "has_new_data = GF_TRUE;",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "if (read->in_error)",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "return read->in_error;",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 71,
+                "fragment": "if (read->invalid_segment) {",
+                "matched_lines": [
+                  71
+                ]
+              },
+              {
+                "evidence_line": 72,
+                "fragment": "if (!in_is_eos) return GF_OK;",
+                "matched_lines": [
+                  72
+                ]
+              },
+              {
+                "evidence_line": 73,
+                "fragment": "read->invalid_segment = GF_FALSE;",
+                "matched_lines": [
+                  73
+                ]
+              },
+              {
+                "evidence_line": 85,
+                "fragment": "read->eos_signaled = GF_TRUE;",
+                "matched_lines": [
+                  85
+                ]
+              },
+              {
+                "evidence_line": 86,
+                "fragment": "return GF_EOS;",
+                "matched_lines": [
+                  86
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 92,
+                "fragment": "if (read->moov_not_loaded==1) {",
+                "matched_lines": [
+                  92
+                ]
+              },
+              {
+                "evidence_line": 93,
+                "fragment": "if (read->mem_load_mode)",
+                "matched_lines": [
+                  93
+                ]
+              },
+              {
+                "evidence_line": 94,
+                "fragment": "return GF_OK;",
+                "matched_lines": [
+                  94
+                ]
+              },
+              {
+                "evidence_line": 95,
+                "fragment": "read->moov_not_loaded = GF_FALSE;",
+                "matched_lines": [
+                  95
+                ]
+              },
+              {
+                "evidence_line": 96,
+                "fragment": "return isoffin_setup(filter, read);",
+                "matched_lines": [
+                  96
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 149,
+                "fragment": "if (!ch->playing) {",
+                "matched_lines": [
+                  149
+                ]
+              },
+              {
+                "evidence_line": 150,
+                "fragment": "nb_forced_end++;",
+                "matched_lines": [
+                  150
+                ]
+              },
+              {
+                "evidence_line": 151,
+                "fragment": "continue;",
+                "matched_lines": [
+                  151
+                ]
+              },
+              {
+                "evidence_line": 154,
+                "fragment": "if (!ch->eos_sent)",
+                "matched_lines": [
+                  154
+                ]
+              },
+              {
+                "evidence_line": 155,
+                "fragment": "is_active = GF_TRUE;",
+                "matched_lines": [
+                  155
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 157,
+                "fragment": "while (nb_pck) {",
+                "matched_lines": [
+                  157
+                ]
+              },
+              {
+                "evidence_line": 159,
+                "fragment": "if (!read->full_segment_flush && gf_filter_pid_would_block(ch->pid) )",
+                "matched_lines": [
+                  159
+                ]
+              },
+              {
+                "evidence_line": 160,
+                "fragment": "break;",
+                "matched_lines": [
+                  160
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 168,
+                "fragment": "if (read->stsd && (ch->last_sample_desc_index != read->stsd) && ch->sample) {",
+                "matched_lines": [
+                  168
+                ]
+              },
+              {
+                "evidence_line": 169,
+                "fragment": "isor_reader_release_sample(ch);",
+                "matched_lines": [
+                  169
+                ]
+              },
+              {
+                "evidence_line": 170,
+                "fragment": "continue;",
+                "matched_lines": [
+                  170
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 172,
+                "fragment": "if (ch->sample) {",
+                "matched_lines": [
+                  172
+                ]
+              },
+              {
+                "evidence_line": 297,
+                "fragment": "gf_filter_pck_send(pck);",
+                "matched_lines": [
+                  297
+                ]
+              },
+              {
+                "evidence_line": 302,
+                "fragment": "} else if (ch->last_state==GF_EOS) {",
+                "matched_lines": [
+                  302
+                ]
+              },
+              {
+                "evidence_line": 329,
+                "fragment": "break;",
+                "matched_lines": [
+                  329
+                ]
+              },
+              {
+                "evidence_line": 330,
+                "fragment": "} else if (ch->last_state==GF_ISOM_INVALID_FILE) {",
+                "matched_lines": [
+                  330
+                ]
+              },
+              {
+                "evidence_line": 336,
+                "fragment": "return ch->last_state;",
+                "matched_lines": [
+                  336
+                ]
+              },
+              {
+                "evidence_line": 337,
+                "fragment": "} else {",
+                "matched_lines": [
+                  337
+                ]
+              },
+              {
+                "evidence_line": 338,
+                "fragment": "read->force_fetch = GF_TRUE;",
+                "matched_lines": [
+                  338
+                ]
+              },
+              {
+                "evidence_line": 339,
+                "fragment": "break;",
+                "matched_lines": [
+                  339
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 302,
+                "fragment": "} else if (ch->last_state==GF_EOS) {",
+                "matched_lines": [
+                  302
+                ]
+              },
+              {
+                "evidence_line": 303,
+                "fragment": "if (ch->playing == 2) {",
+                "matched_lines": [
+                  303
+                ]
+              },
+              {
+                "evidence_line": 304,
+                "fragment": "if (in_is_eos) {",
+                "matched_lines": [
+                  304
+                ]
+              },
+              {
+                "evidence_line": 305,
+                "fragment": "ch->playing = GF_FALSE;",
+                "matched_lines": [
+                  305
+                ]
+              },
+              {
+                "evidence_line": 306,
+                "fragment": "} else {",
+                "matched_lines": [
+                  306
+                ]
+              },
+              {
+                "evidence_line": 307,
+                "fragment": "nb_forced_end++;",
+                "matched_lines": [
+                  307
+                ]
+              },
+              {
+                "evidence_line": 308,
+                "fragment": "check_forced_end = GF_TRUE;",
+                "matched_lines": [
+                  308
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 345,
+                "fragment": "if (read->mem_load_mode && min_offset_plus_one) {",
+                "matched_lines": [
+                  345
+                ]
+              },
+              {
+                "evidence_line": 346,
+                "fragment": "isoffin_purge_mem(read, min_offset_plus_one-1);",
+                "matched_lines": [
+                  346
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 350,
+                "fragment": "if (read->pid && check_forced_end && (nb_forced_end==count)) {",
+                "matched_lines": [
+                  350
+                ]
+              },
+              {
+                "evidence_line": 353,
+                "fragment": "GF_FEVT_INIT(evt, GF_FEVT_STOP, read->pid);",
+                "matched_lines": [
+                  353
+                ]
+              },
+              {
+                "evidence_line": 354,
+                "fragment": "gf_filter_pid_send_event(read->pid, &evt);",
+                "matched_lines": [
+                  354
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 358,
+                "fragment": "if (!is_active) {",
+                "matched_lines": [
+                  358
+                ]
+              },
+              {
+                "evidence_line": 359,
+                "fragment": "return GF_EOS;",
+                "matched_lines": [
+                  359
+                ]
+              },
+              {
+                "evidence_line": 363,
+                "fragment": "return GF_OK;",
+                "matched_lines": [
+                  363
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 12,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 13,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 9,
+      "states": 54,
+      "values": 15,
+      "executions": 14
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 25625,
+    "output_tokens": 10199,
+    "total_tokens": 35824
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000179",
+    "split": "test",
+    "source_hash": "24c90f3ab1fdfcea23050c7556e2dd8d436a9fd9a2751b75cca9ec7b5f9b8fc9",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

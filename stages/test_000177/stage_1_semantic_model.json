@@ -1,0 +1,409 @@
+{
+  "sample_id": "test_000177",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L7"
+          ],
+          "expression": "buf->Get(&tuple)",
+          "claim": "call to Buffer::Get with a pointer to a local tuple object"
+        },
+        {
+          "locations": [
+            "L15"
+          ],
+          "expression": "ctx->set_output(i, tuple[i])",
+          "claim": "indexed access to tuple at position i and call to set_output with the resulting value"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "buf"
+          ],
+          "claim": "buf is initialized to nullptr before GetBuffer is called.",
+          "evidence": "L2: Buffer* buf = nullptr;"
+        },
+        {
+          "entities": [
+            "buf"
+          ],
+          "claim": "GetBuffer establishes buf as a non-null pointer to a Buffer object on success.",
+          "evidence": "L3: OP_REQUIRES_OK(ctx, GetBuffer(ctx, def(), &buf));"
+        },
+        {
+          "entities": [
+            "buf",
+            "scope"
+          ],
+          "claim": "scope is a ScopedUnref that owns a reference to the Buffer object pointed to by buf.",
+          "evidence": "L4: core::ScopedUnref scope(buf);"
+        },
+        {
+          "entities": [
+            "tuple"
+          ],
+          "claim": "tuple is a Buffer::Tuple object.",
+          "evidence": "L5: Buffer::Tuple tuple;"
+        },
+        {
+          "entities": [
+            "buf",
+            "tuple"
+          ],
+          "claim": "buf->Get initializes tuple with the Buffer's stored tuple contents.",
+          "evidence": "L7: buf->Get(&tuple);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "tuple.size()",
+            "ctx->num_outputs()"
+          ],
+          "claim": "tuple.size() is compared for equality against (size_t)ctx->num_outputs(); the loop bound is tuple.size().",
+          "evidence": "L10: ctx, tuple.size() == (size_t)ctx->num_outputs(),\nL14: for (size_t i = 0; i < tuple.size(); ++i) {"
+        },
+        {
+          "entities": [
+            "i",
+            "tuple.size()",
+            "ctx->set_output"
+          ],
+          "claim": "Loop index i ranges over [0, tuple.size()) and is passed to ctx->set_output(i, tuple[i]).",
+          "evidence": "L14: for (size_t i = 0; i < tuple.size(); ++i) {\nL15: ctx->set_output(i, tuple[i]);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "i",
+            "tuple.size()",
+            "ctx->num_outputs()"
+          ],
+          "claim": "Continuing past the OP_REQUIRES check implies tuple.size() == ctx->num_outputs(); the loop then executes only for 0 <= i < tuple.size(), so each ctx->set_output(i, ...) uses an index within the validated output count.",
+          "evidence": "L9: OP_REQUIRES(\nL10: ctx, tuple.size() == (size_t)ctx->num_outputs(),\nL14: for (size_t i = 0; i < tuple.size(); ++i) {\nL15: ctx->set_output(i, tuple[i]);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2157,
+              "output_tokens": 78,
+              "total_tokens": 2235
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2157,
+          "output_tokens": 78,
+          "total_tokens": 2235
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L7",
+                "matched": true,
+                "expression": "buf->Get(&tuple)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L15",
+                "matched": true,
+                "expression": "ctx->set_output(i, tuple[i])"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 760,
+              "output_tokens": 227,
+              "total_tokens": 987
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 760,
+          "output_tokens": 227,
+          "total_tokens": 987
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "Buffer* buf = nullptr;",
+                "matched_lines": [
+                  2
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "OP_REQUIRES_OK(ctx, GetBuffer(ctx, def(), &buf));",
+                "matched_lines": [
+                  3
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "core::ScopedUnref scope(buf);",
+                "matched_lines": [
+                  4
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "Buffer::Tuple tuple;",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "buf->Get(&tuple);",
+                "matched_lines": [
+                  7
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 948,
+              "output_tokens": 175,
+              "total_tokens": 1123
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 948,
+          "output_tokens": 175,
+          "total_tokens": 1123
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "ctx, tuple.size() == (size_t)ctx->num_outputs(),",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "for (size_t i = 0; i < tuple.size(); ++i) {",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "for (size_t i = 0; i < tuple.size(); ++i) {",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "ctx->set_output(i, tuple[i]);",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 628,
+              "output_tokens": 156,
+              "total_tokens": 784
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 628,
+          "output_tokens": 156,
+          "total_tokens": 784
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "ctx, tuple.size() == (size_t)ctx->num_outputs(),",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "for (size_t i = 0; i < tuple.size(); ++i) {",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "ctx->set_output(i, tuple[i]);",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 2,
+      "states": 5,
+      "values": 2,
+      "executions": 1
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4493,
+    "output_tokens": 636,
+    "total_tokens": 5129
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000177",
+    "split": "test",
+    "source_hash": "cd3364942e3d14241940bec588a38002a5ede91cccbee9549639787ef2a0248b",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

@@ -1,0 +1,865 @@
+{
+  "sample_id": "test_000049",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L15",
+            "L49"
+          ],
+          "expression": "shapes[0]",
+          "claim": "indexed access to the shapes range at index 0"
+        },
+        {
+          "locations": [
+            "L31"
+          ],
+          "expression": "shapes[shape.index()]",
+          "claim": "indexed access to the shapes range at the enumerated shape index"
+        },
+        {
+          "locations": [
+            "L35"
+          ],
+          "expression": "*joined_dimensions[index]",
+          "claim": "dereference of a pointer stored in joined_dimensions at index"
+        },
+        {
+          "locations": [
+            "L41"
+          ],
+          "expression": "shape_and_rank_for_dim[0].first",
+          "claim": "access to the first element of shape_and_rank_for_dim"
+        },
+        {
+          "locations": [
+            "L47",
+            "L56"
+          ],
+          "expression": "shape_and_rank_for_dim[i]",
+          "claim": "indexed access to shape_and_rank_for_dim at loop index i"
+        },
+        {
+          "locations": [
+            "L49"
+          ],
+          "expression": "shapes[0].getType().cast<RankedTensorType>()",
+          "claim": "cast of the type of shapes[0] to RankedTensorType"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "shapes_found",
+            "analysis",
+            "shapes"
+          ],
+          "claim": "shapes_found holds SymbolicExpr ArrayRefs obtained from analysis.GetValueInfo for each input shape; each entry is valid only if found_shape was non-null.",
+          "evidence": "L8: auto found_shape = analysis.GetValueInfo(shape.value());\nL9: if (!found_shape) return {};\nL10: shapes_found.push_back(*found_shape);"
+        },
+        {
+          "entities": [
+            "joined_dimensions",
+            "shapes_found"
+          ],
+          "claim": "joined_dimensions entries point to SymbolicExpr objects owned by the shapes_found ArrayRefs; a non-null entry aliases a dimension of an input shape.",
+          "evidence": "L18: SmallVector<const ShapeComponentAnalysis::SymbolicExpr*> joined_dimensions(\nL19: maxRank);\nL29: joined_dimensions[index] = &dim.value();"
+        },
+        {
+          "entities": [
+            "shape_and_rank_for_dim",
+            "shapes",
+            "shapes_found"
+          ],
+          "claim": "shape_and_rank_for_dim entries pair an input Value from shapes with the rank of the corresponding shapes_found entry when a non-1 dimension is first recorded.",
+          "evidence": "L20: SmallVector<std::pair<Value, int64_t>> shape_and_rank_for_dim(maxRank);\nL30: shape_and_rank_for_dim[index] =\nL31: std::make_pair(shapes[shape.index()], shape.value().size());"
+        },
+        {
+          "entities": [
+            "elements",
+            "shape_and_rank_for_dim",
+            "builder"
+          ],
+          "claim": "elements is populated with Values created by builder: ConstantOp for filtered 1 dimensions and tensor::ExtractOp results extracted from the input shape Value stored in shape_and_rank_for_dim.",
+          "evidence": "L44: SmallVector<Value> elements;\nL50: elements.push_back(builder->create<ConstantOp>(loc, one));\nL57: elements.push_back(builder->create<tensor::ExtractOp>(\nL58: loc, shape_and_rank_for_dim[i].first, index));"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "maxRank",
+            "shapes_found"
+          ],
+          "claim": "maxRank is the maximum of the sizes of the found shapes, so maxRank equals the largest rank among the input shapes.",
+          "evidence": "L6: size_t maxRank = 0;\nL11: maxRank = std::max(maxRank, found_shape->size());"
+        },
+        {
+          "entities": [
+            "joined_dimensions",
+            "shape_and_rank_for_dim",
+            "maxRank"
+          ],
+          "claim": "joined_dimensions and shape_and_rank_for_dim are allocated with maxRank elements, so valid indices are 0 through maxRank-1.",
+          "evidence": "L18: SmallVector<const ShapeComponentAnalysis::SymbolicExpr*> joined_dimensions(\nL19: maxRank);\nL20: SmallVector<std::pair<Value, int64_t>> shape_and_rank_for_dim(maxRank);"
+        },
+        {
+          "entities": [
+            "index",
+            "maxRank",
+            "dim.index()"
+          ],
+          "claim": "index is computed as maxRank - dim.index() - 1, mapping a reversed dimension index into the range [0, maxRank-1] when dim.index() is in [0, maxRank-1].",
+          "evidence": "L27: auto index = maxRank - dim.index() - 1;"
+        },
+        {
+          "entities": [
+            "shape_and_rank_for_dim[index]",
+            "shapes[shape.index()]",
+            "shape.value().size()"
+          ],
+          "claim": "shape_and_rank_for_dim[index] stores the pair (shapes[shape.index()], shape.value().size()), so its second component is the rank of the corresponding input shape.",
+          "evidence": "L30: shape_and_rank_for_dim[index] =\nL31: std::make_pair(shapes[shape.index()], shape.value().size());"
+        },
+        {
+          "entities": [
+            "i",
+            "maxRank",
+            "shape_and_rank_for_dim[i].second"
+          ],
+          "claim": "The extract index is computed as i - maxRank + shape_and_rank_for_dim[i].second, where i ranges from 0 to maxRank-1 and shape_and_rank_for_dim[i].second is the rank of the source shape.",
+          "evidence": "L45: for (int i = 0; i != maxRank; ++i) {\nL55: Value index = builder->create<ConstantIndexOp>(\nL56: loc, i - maxRank + shape_and_rank_for_dim[i].second);"
+        },
+        {
+          "entities": [
+            "shapes[0].getType()",
+            "RankedTensorType",
+            "getElementType()"
+          ],
+          "claim": "The constant one is created with the element type of shapes[0]'s RankedTensorType.",
+          "evidence": "L48: auto one = builder->getIntegerAttr(\nL49: shapes[0].getType().cast<RankedTensorType>().getElementType(), 1);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "maxRank",
+            "shapes_found",
+            "joined_dimensions",
+            "shape_and_rank_for_dim"
+          ],
+          "claim": "After the first loop, maxRank is the maximum rank among all shapes and shapes_found has one entry per input shape; if any shape info is missing, execution returns early.",
+          "evidence": "L8: auto found_shape = analysis.GetValueInfo(shape.value());\nL9: if (!found_shape) return {};\nL11: maxRank = std::max(maxRank, found_shape->size());"
+        },
+        {
+          "entities": [
+            "maxRank",
+            "shapes"
+          ],
+          "claim": "If maxRank == 0, execution returns a FromElementsOp built from shapes[0].getType() and an empty element list, so shapes[0] must be valid.",
+          "evidence": "L13: if (maxRank == 0) {\nL14: return Value(builder->create<tensor::FromElementsOp>(\nL15: loc, shapes[0].getType(), SmallVector<Value>()));"
+        },
+        {
+          "entities": [
+            "index",
+            "maxRank",
+            "dim.index()"
+          ],
+          "claim": "For each non-constant-1 dimension, index = maxRank - dim.index() - 1, so index is within [0, maxRank) when dim.index() < maxRank.",
+          "evidence": "L24: if (dim.value().isConstant(1)) continue;\nL27: auto index = maxRank - dim.index() - 1;"
+        },
+        {
+          "entities": [
+            "joined_dimensions",
+            "index",
+            "dim.value()"
+          ],
+          "claim": "If joined_dimensions[index] is already set, execution returns early unless the previously recorded dimension equals dim.value().",
+          "evidence": "L28: if (!joined_dimensions[index]) {\nL35: if (*joined_dimensions[index] != dim.value()) return {};"
+        },
+        {
+          "entities": [
+            "shape_and_rank_for_dim",
+            "shapes",
+            "shape.index()",
+            "shape.value().size()"
+          ],
+          "claim": "When a dimension is first recorded at index, shape_and_rank_for_dim[index] is set to (shapes[shape.index()], shape.value().size()).",
+          "evidence": "L30: shape_and_rank_for_dim[index] =\nL31: std::make_pair(shapes[shape.index()], shape.value().size());"
+        },
+        {
+          "entities": [
+            "shape_and_rank_for_dim"
+          ],
+          "claim": "If shape_and_rank_for_dim is a splat and its first element's first field is non-null, execution returns that first field.",
+          "evidence": "L39: if (llvm::is_splat(shape_and_rank_for_dim) &&\nL40: shape_and_rank_for_dim[0].first) {\nL41: return shape_and_rank_for_dim[0].first;"
+        },
+        {
+          "entities": [
+            "i",
+            "maxRank",
+            "shape_and_rank_for_dim"
+          ],
+          "claim": "In the rematerialization loop, i ranges over [0, maxRank); if shape_and_rank_for_dim[i].first is null, a constant 1 is created and pushed, otherwise an ExtractOp index is computed as i - maxRank + shape_and_rank_for_dim[i].second.",
+          "evidence": "L45: for (int i = 0; i != maxRank; ++i) {\nL47: if (!shape_and_rank_for_dim[i].first) {\nL55: Value index = builder->create<ConstantIndexOp>(\nL56: loc, i - maxRank + shape_and_rank_for_dim[i].second);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2840,
+              "output_tokens": 222,
+              "total_tokens": 3062
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2840,
+          "output_tokens": 222,
+          "total_tokens": 3062
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L15",
+                "matched": true,
+                "expression": "shapes[0]"
+              },
+              {
+                "location": "L49",
+                "matched": true,
+                "expression": "shapes[0]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L31",
+                "matched": true,
+                "expression": "shapes[shape.index()]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L35",
+                "matched": true,
+                "expression": "*joined_dimensions[index]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L41",
+                "matched": true,
+                "expression": "shape_and_rank_for_dim[0].first"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L47",
+                "matched": true,
+                "expression": "shape_and_rank_for_dim[i]"
+              },
+              {
+                "location": "L56",
+                "matched": true,
+                "expression": "shape_and_rank_for_dim[i]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L49",
+                "matched": true,
+                "expression": "shapes[0].getType().cast<RankedTensorType>()"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1443,
+              "output_tokens": 452,
+              "total_tokens": 1895
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1443,
+          "output_tokens": 452,
+          "total_tokens": 1895
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "auto found_shape = analysis.GetValueInfo(shape.value());",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "if (!found_shape) return {};",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "shapes_found.push_back(*found_shape);",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "SmallVector<const ShapeComponentAnalysis::SymbolicExpr*> joined_dimensions(",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "maxRank);",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "joined_dimensions[index] = &dim.value();",
+                "matched_lines": [
+                  29
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 20,
+                "fragment": "SmallVector<std::pair<Value, int64_t>> shape_and_rank_for_dim(maxRank);",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "shape_and_rank_for_dim[index] =",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "std::make_pair(shapes[shape.index()], shape.value().size());",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "SmallVector<Value> elements;",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "elements.push_back(builder->create<ConstantOp>(loc, one));",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "elements.push_back(builder->create<tensor::ExtractOp>(",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "loc, shape_and_rank_for_dim[i].first, index));",
+                "matched_lines": [
+                  58
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1631,
+              "output_tokens": 631,
+              "total_tokens": 2262
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1631,
+          "output_tokens": 631,
+          "total_tokens": 2262
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "size_t maxRank = 0;",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "maxRank = std::max(maxRank, found_shape->size());",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "SmallVector<const ShapeComponentAnalysis::SymbolicExpr*> joined_dimensions(",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "maxRank);",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "SmallVector<std::pair<Value, int64_t>> shape_and_rank_for_dim(maxRank);",
+                "matched_lines": [
+                  20
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 27,
+                "fragment": "auto index = maxRank - dim.index() - 1;",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 30,
+                "fragment": "shape_and_rank_for_dim[index] =",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "std::make_pair(shapes[shape.index()], shape.value().size());",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 45,
+                "fragment": "for (int i = 0; i != maxRank; ++i) {",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "Value index = builder->create<ConstantIndexOp>(",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "loc, i - maxRank + shape_and_rank_for_dim[i].second);",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 48,
+                "fragment": "auto one = builder->getIntegerAttr(",
+                "matched_lines": [
+                  48
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "shapes[0].getType().cast<RankedTensorType>().getElementType(), 1);",
+                "matched_lines": [
+                  49
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1311,
+              "output_tokens": 741,
+              "total_tokens": 2052
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1311,
+          "output_tokens": 741,
+          "total_tokens": 2052
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "auto found_shape = analysis.GetValueInfo(shape.value());",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "if (!found_shape) return {};",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "maxRank = std::max(maxRank, found_shape->size());",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "if (maxRank == 0) {",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "return Value(builder->create<tensor::FromElementsOp>(",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "loc, shapes[0].getType(), SmallVector<Value>()));",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 24,
+                "fragment": "if (dim.value().isConstant(1)) continue;",
+                "matched_lines": [
+                  24
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "auto index = maxRank - dim.index() - 1;",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 28,
+                "fragment": "if (!joined_dimensions[index]) {",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "if (*joined_dimensions[index] != dim.value()) return {};",
+                "matched_lines": [
+                  35
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 30,
+                "fragment": "shape_and_rank_for_dim[index] =",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "std::make_pair(shapes[shape.index()], shape.value().size());",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 39,
+                "fragment": "if (llvm::is_splat(shape_and_rank_for_dim) &&",
+                "matched_lines": [
+                  39
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "shape_and_rank_for_dim[0].first) {",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 41,
+                "fragment": "return shape_and_rank_for_dim[0].first;",
+                "matched_lines": [
+                  41
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 45,
+                "fragment": "for (int i = 0; i != maxRank; ++i) {",
+                "matched_lines": [
+                  45
+                ]
+              },
+              {
+                "evidence_line": 47,
+                "fragment": "if (!shape_and_rank_for_dim[i].first) {",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "Value index = builder->create<ConstantIndexOp>(",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 56,
+                "fragment": "loc, i - maxRank + shape_and_rank_for_dim[i].second);",
+                "matched_lines": [
+                  56
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 6,
+      "states": 4,
+      "values": 6,
+      "executions": 7
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 7225,
+    "output_tokens": 2046,
+    "total_tokens": 9271
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000049",
+    "split": "test",
+    "source_hash": "a322cfcc363afa531a83dca315ec8ec3288f832629be6c36bb6355c680a8688d",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

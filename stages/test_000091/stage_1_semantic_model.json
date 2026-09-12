@@ -1,0 +1,1360 @@
+{
+  "sample_id": "test_000091",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L94"
+          ],
+          "expression": "indices_mat(i, d)",
+          "claim": "read the element at row i, column d of the sparse indices matrix"
+        },
+        {
+          "locations": [
+            "L103"
+          ],
+          "expression": "rhs_ref.coeff(idx)",
+          "claim": "read the dense tensor element at the multi-dimensional index idx"
+        },
+        {
+          "locations": [
+            "L103"
+          ],
+          "expression": "dense_gathered_flat(i)",
+          "claim": "write the gathered dense value into the flat output buffer at position i"
+        },
+        {
+          "locations": [
+            "L105"
+          ],
+          "expression": "dense_gathered_flat(i)",
+          "claim": "read the gathered dense value from the flat buffer at position i"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "indices_t",
+            "values_t",
+            "shape_t",
+            "dense_t"
+          ],
+          "claim": "indices_t, values_t, shape_t, and dense_t are input Tensor pointers obtained from ctx and are non-NULL after successful input retrieval.",
+          "evidence": "L3: OP_REQUIRES_OK(ctx, ctx->input(\"sp_indices\", &indices_t));\nL4: OP_REQUIRES_OK(ctx, ctx->input(\"sp_values\", &values_t));\nL5: OP_REQUIRES_OK(ctx, ctx->input(\"sp_shape\", &shape_t));\nL6: OP_REQUIRES_OK(ctx, ctx->input(\"dense\", &dense_t));"
+        },
+        {
+          "entities": [
+            "indices_mat"
+          ],
+          "claim": "indices_mat is a matrix view over the storage of indices_t.",
+          "evidence": "L40: const auto indices_mat = indices_t->matrix<int64_t>();"
+        },
+        {
+          "entities": [
+            "shape_vec"
+          ],
+          "claim": "shape_vec is a vector view over the storage of shape_t.",
+          "evidence": "L41: const auto shape_vec = shape_t->vec<int64_t>();"
+        },
+        {
+          "entities": [
+            "output_values"
+          ],
+          "claim": "output_values is an output Tensor pointer allocated by ctx with shape {nnz}.",
+          "evidence": "L64: Tensor *output_values = nullptr;\nL67: OP_REQUIRES_OK(ctx,\nL68: ctx->allocate_output(0, TensorShape({nnz}), &output_values));"
+        },
+        {
+          "entities": [
+            "dense_gathered"
+          ],
+          "claim": "dense_gathered is a temporary Tensor allocated by ctx with shape {nnz}.",
+          "evidence": "L65: Tensor dense_gathered;\nL69: OP_REQUIRES_OK(\nL70: ctx, ctx->allocate_temp(DataTypeToEnum<T>::value, TensorShape({nnz}),\nL71: &dense_gathered));"
+        },
+        {
+          "entities": [
+            "dense_gathered_flat"
+          ],
+          "claim": "dense_gathered_flat is a flat view over the storage of dense_gathered.",
+          "evidence": "L82: auto dense_gathered_flat = dense_gathered.flat<T>();"
+        },
+        {
+          "entities": [
+            "rhs_ref",
+            "dense_t"
+          ],
+          "claim": "rhs_ref is a TensorRef referring to a shaped and broadcast view derived from dense_t's storage.",
+          "evidence": "L87: TensorRef<Eigen::Tensor<const T, NDIM, Eigen::RowMajor>> rhs_ref =         \\\nL88: dense_t->shaped<T, NDIM>(b.y_reshape())                                \\\nL89: .broadcast(BCast::ToIndexArray<NDIM>(b.y_bcast()));                \\"
+        },
+        {
+          "entities": [
+            "output_values",
+            "values_t",
+            "dense_gathered_flat"
+          ],
+          "claim": "output_values' flat storage is assigned the result of a binary expression over values_t's flat storage and dense_gathered_flat.",
+          "evidence": "L128: output_values->flat<T>().device(ctx->eigen_device<Device>()) =\nL129: values_t->flat<T>().binaryExpr(dense_gathered_flat,\nL130: typename Functor::func());"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "indices_t",
+            "values_t"
+          ],
+          "claim": "values_t->dim_size(0) must equal indices_t->dim_size(0); both are used as the nnz extent for output and temp tensors.",
+          "evidence": "L26: ctx, values_t->dim_size(0) == indices_t->dim_size(0),\nL66: const int64_t nnz = indices_t->dim_size(0);\nL68: ctx->allocate_output(0, TensorShape({nnz}), &output_values));\nL70: ctx, ctx->allocate_temp(DataTypeToEnum<T>::value, TensorShape({nnz}),"
+        },
+        {
+          "entities": [
+            "shape_t",
+            "indices_t"
+          ],
+          "claim": "shape_t->shape().dim_size(0) must equal indices_t->shape().dim_size(1), so the sparse index second dimension matches the number of sparse dimensions.",
+          "evidence": "L31: ctx, shape_t->shape().dim_size(0) == indices_t->shape().dim_size(1),"
+        },
+        {
+          "entities": [
+            "shape_t"
+          ],
+          "claim": "shape_t must have at least one element (NumElements() > 0).",
+          "evidence": "L36: OP_REQUIRES(ctx, shape_t->NumElements() > 0,"
+        },
+        {
+          "entities": [
+            "indices_mat",
+            "indices_t"
+          ],
+          "claim": "indices_mat is a matrix<int64_t> view of indices_t with first dimension nnz and second dimension equal to the sparse rank.",
+          "evidence": "L40: const auto indices_mat = indices_t->matrix<int64_t>();\nL66: const int64_t nnz = indices_t->dim_size(0);"
+        },
+        {
+          "entities": [
+            "shape_vec",
+            "shape_t"
+          ],
+          "claim": "shape_vec is a vec<int64_t> view of shape_t used to build lhs_shape.",
+          "evidence": "L41: const auto shape_vec = shape_t->vec<int64_t>();\nL43: OP_REQUIRES_OK(ctx, TensorShape::BuildTensorShape(shape_vec, &lhs_shape));"
+        },
+        {
+          "entities": [
+            "lhs_dims",
+            "lhs_shape"
+          ],
+          "claim": "lhs_dims is the BCast dimension vector derived from lhs_shape, and ndims is lhs_dims.size().",
+          "evidence": "L44: const auto lhs_dims = BCast::FromShape(lhs_shape);\nL83: const int ndims = lhs_dims.size();"
+        },
+        {
+          "entities": [
+            "rhs_dims",
+            "dense_t"
+          ],
+          "claim": "rhs_dims is the BCast dimension vector derived from dense_t->shape().",
+          "evidence": "L45: const auto rhs_dims = BCast::FromShape(dense_t->shape());"
+        },
+        {
+          "entities": [
+            "VecGreaterEq",
+            "lhs_dims",
+            "rhs_dims"
+          ],
+          "claim": "VecGreaterEq(lhs_dims, rhs_dims) requires lhs_dims.size() >= rhs_dims.size() and each right-aligned lhs dimension >= corresponding rhs dimension.",
+          "evidence": "L50: auto VecGreaterEq = [](ArraySlice<int64_t> lhs, ArraySlice<int64_t> rhs) {\nL51: if (lhs.size() < rhs.size()) return false;\nL52: for (size_t i = 0; i < rhs.size(); ++i) {\nL53: if (lhs[lhs.size() - 1 - i] < rhs[rhs.size() - 1 - i]) return false;"
+        },
+        {
+          "entities": [
+            "dense_gathered_flat",
+            "dense_gathered",
+            "nnz"
+          ],
+          "claim": "dense_gathered_flat is a flat<T> view of dense_gathered, which has nnz elements.",
+          "evidence": "L70: ctx, ctx->allocate_temp(DataTypeToEnum<T>::value, TensorShape({nnz}),\nL82: auto dense_gathered_flat = dense_gathered.flat<T>();"
+        },
+        {
+          "entities": [
+            "idx",
+            "indices_mat",
+            "nnz",
+            "NDIM"
+          ],
+          "claim": "For each i in [0, nnz) and d in [0, NDIM), idx[d] is assigned from indices_mat(i, d) via internal::SubtleMustCopy.",
+          "evidence": "L92: for (int i = 0; i < nnz; ++i) {                                            \\\nL93: for (int d = 0; d < NDIM; ++d) {                                         \\\nL94: idx[d] = internal::SubtleMustCopy(indices_mat(i, d));                  \\"
+        },
+        {
+          "entities": [
+            "idx",
+            "rhs_ref",
+            "NDIM"
+          ],
+          "claim": "Each idx[d] is bounds-checked against rhs_ref.dimension(d) for d in [0, NDIM); if any check fails, indices_valid becomes false.",
+          "evidence": "L95: if (!FastBoundsCheck(idx[d], rhs_ref.dimension(d))) {                  \\\nL96: indices_valid = false;                                               \\"
+        },
+        {
+          "entities": [
+            "rhs_ref",
+            "dense_t",
+            "b"
+          ],
+          "claim": "rhs_ref is a TensorRef over dense_t shaped to NDIM using b.y_reshape() and broadcast using BCast::ToIndexArray<NDIM>(b.y_bcast()).",
+          "evidence": "L87: TensorRef<Eigen::Tensor<const T, NDIM, Eigen::RowMajor>> rhs_ref =         \\\nL88: dense_t->shaped<T, NDIM>(b.y_reshape())                                \\\nL89: .broadcast(BCast::ToIndexArray<NDIM>(b.y_bcast()));                \\"
+        },
+        {
+          "entities": [
+            "dense_gathered_flat",
+            "rhs_ref",
+            "idx"
+          ],
+          "claim": "dense_gathered_flat(i) is assigned rhs_ref.coeff(idx) after the bounds check.",
+          "evidence": "L103: dense_gathered_flat(i) = rhs_ref.coeff(idx);                             \\"
+        },
+        {
+          "entities": [
+            "output_values",
+            "values_t",
+            "dense_gathered_flat"
+          ],
+          "claim": "output_values->flat<T>() is assigned the binary expression of values_t->flat<T>() and dense_gathered_flat.",
+          "evidence": "L128: output_values->flat<T>().device(ctx->eigen_device<Device>()) =\nL129: values_t->flat<T>().binaryExpr(dense_gathered_flat,"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "indices_t",
+            "values_t",
+            "shape_t",
+            "dense_t"
+          ],
+          "claim": "continuing past the input retrieval checks implies all four input tensors were successfully obtained",
+          "evidence": "L3: OP_REQUIRES_OK(ctx, ctx->input(\"sp_indices\", &indices_t));\nL4: OP_REQUIRES_OK(ctx, ctx->input(\"sp_values\", &values_t));\nL5: OP_REQUIRES_OK(ctx, ctx->input(\"sp_shape\", &shape_t));\nL6: OP_REQUIRES_OK(ctx, ctx->input(\"dense\", &dense_t));"
+        },
+        {
+          "entities": [
+            "indices_t"
+          ],
+          "claim": "continuing past this check implies indices_t is a matrix",
+          "evidence": "L9: OP_REQUIRES(ctx, TensorShapeUtils::IsMatrix(indices_t->shape()),"
+        },
+        {
+          "entities": [
+            "values_t",
+            "shape_t"
+          ],
+          "claim": "continuing past this check implies values_t and shape_t are vectors",
+          "evidence": "L13: OP_REQUIRES(ctx,\nL14: TensorShapeUtils::IsVector(values_t->shape()) &&\nL15: TensorShapeUtils::IsVector(shape_t->shape()),"
+        },
+        {
+          "entities": [
+            "shape_t"
+          ],
+          "claim": "continuing past this check implies shape_t is a vector",
+          "evidence": "L21: OP_REQUIRES(\nL22: ctx, TensorShapeUtils::IsVector(shape_t->shape()),"
+        },
+        {
+          "entities": [
+            "values_t",
+            "indices_t"
+          ],
+          "claim": "continuing past this check implies values_t->dim_size(0) == indices_t->dim_size(0)",
+          "evidence": "L25: OP_REQUIRES(\nL26: ctx, values_t->dim_size(0) == indices_t->dim_size(0),"
+        },
+        {
+          "entities": [
+            "shape_t",
+            "indices_t"
+          ],
+          "claim": "continuing past this check implies shape_t->shape().dim_size(0) == indices_t->shape().dim_size(1)",
+          "evidence": "L30: OP_REQUIRES(\nL31: ctx, shape_t->shape().dim_size(0) == indices_t->shape().dim_size(1),"
+        },
+        {
+          "entities": [
+            "shape_t"
+          ],
+          "claim": "continuing past this check implies shape_t->NumElements() > 0",
+          "evidence": "L36: OP_REQUIRES(ctx, shape_t->NumElements() > 0,"
+        },
+        {
+          "entities": [
+            "lhs_shape"
+          ],
+          "claim": "continuing past this check implies lhs_shape was successfully built from shape_vec",
+          "evidence": "L43: OP_REQUIRES_OK(ctx, TensorShape::BuildTensorShape(shape_vec, &lhs_shape));"
+        },
+        {
+          "entities": [
+            "lhs_dims",
+            "rhs_dims",
+            "b"
+          ],
+          "claim": "continuing past this check implies VecGreaterEq(lhs_dims, rhs_dims) is true and b.IsValid() is true",
+          "evidence": "L57: OP_REQUIRES(ctx, VecGreaterEq(lhs_dims, rhs_dims) && b.IsValid(),"
+        },
+        {
+          "entities": [
+            "output_values"
+          ],
+          "claim": "continuing past this check implies output_values was successfully allocated with shape {nnz}",
+          "evidence": "L67: OP_REQUIRES_OK(ctx,\nL68: ctx->allocate_output(0, TensorShape({nnz}), &output_values));"
+        },
+        {
+          "entities": [
+            "dense_gathered"
+          ],
+          "claim": "continuing past this check implies dense_gathered was successfully allocated with shape {nnz}",
+          "evidence": "L69: OP_REQUIRES_OK(\nL70: ctx, ctx->allocate_temp(DataTypeToEnum<T>::value, TensorShape({nnz}),\nL71: &dense_gathered));"
+        },
+        {
+          "entities": [
+            "ndims"
+          ],
+          "claim": "continuing into a CASE branch implies ndims is between 1 and 5",
+          "evidence": "L84: switch (ndims) {\nL114: CASE(1);\nL115: CASE(2);\nL116: CASE(3);\nL117: CASE(4);\nL118: CASE(5);\nL119: default:"
+        },
+        {
+          "entities": [
+            "idx[d]",
+            "rhs_ref"
+          ],
+          "claim": "continuing past the bounds check implies idx[d] is within [0, rhs_ref.dimension(d)) for each d",
+          "evidence": "L95: if (!FastBoundsCheck(idx[d], rhs_ref.dimension(d))) {                  \\\nL96: indices_valid = false;                                               \\\nL97: }                                                                      \\\nL99: OP_REQUIRES(                                                             \\\nL100: ctx, indices_valid,                                                  \\"
+        },
+        {
+          "entities": [
+            "dense_gathered_flat(i)"
+          ],
+          "claim": "when op_is_div is true, continuing past this check implies dense_gathered_flat(i) != 0",
+          "evidence": "L104: if (op_is_div) {                                                         \\\nL105: OP_REQUIRES(ctx, dense_gathered_flat(i) != 0,                          \\"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3925,
+              "output_tokens": 141,
+              "total_tokens": 4066
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3925,
+          "output_tokens": 141,
+          "total_tokens": 4066
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L94",
+                "matched": true,
+                "expression": "indices_mat(i, d)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L103",
+                "matched": true,
+                "expression": "rhs_ref.coeff(idx)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L103",
+                "matched": true,
+                "expression": "dense_gathered_flat(i)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L105",
+                "matched": true,
+                "expression": "dense_gathered_flat(i)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2528,
+              "output_tokens": 705,
+              "total_tokens": 3233
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2528,
+          "output_tokens": 705,
+          "total_tokens": 3233
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"sp_indices\", &indices_t));",
+                "matched_lines": [
+                  3
+                ]
+              },
+              {
+                "evidence_line": 4,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"sp_values\", &values_t));",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 5,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"sp_shape\", &shape_t));",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"dense\", &dense_t));",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 40,
+                "fragment": "const auto indices_mat = indices_t->matrix<int64_t>();",
+                "matched_lines": [
+                  40
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 41,
+                "fragment": "const auto shape_vec = shape_t->vec<int64_t>();",
+                "matched_lines": [
+                  41
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 64,
+                "fragment": "Tensor *output_values = nullptr;",
+                "matched_lines": [
+                  64
+                ]
+              },
+              {
+                "evidence_line": 67,
+                "fragment": "OP_REQUIRES_OK(ctx,",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "ctx->allocate_output(0, TensorShape({nnz}), &output_values));",
+                "matched_lines": [
+                  68
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 65,
+                "fragment": "Tensor dense_gathered;",
+                "matched_lines": [
+                  65
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "OP_REQUIRES_OK(",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "ctx, ctx->allocate_temp(DataTypeToEnum<T>::value, TensorShape({nnz}),",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 71,
+                "fragment": "&dense_gathered));",
+                "matched_lines": [
+                  71
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 82,
+                "fragment": "auto dense_gathered_flat = dense_gathered.flat<T>();",
+                "matched_lines": [
+                  82
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 87,
+                "fragment": "TensorRef<Eigen::Tensor<const T, NDIM, Eigen::RowMajor>> rhs_ref =         \\",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 88,
+                "fragment": "dense_t->shaped<T, NDIM>(b.y_reshape())                                \\",
+                "matched_lines": [
+                  88
+                ]
+              },
+              {
+                "evidence_line": 89,
+                "fragment": ".broadcast(BCast::ToIndexArray<NDIM>(b.y_bcast()));                \\",
+                "matched_lines": [
+                  89
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 128,
+                "fragment": "output_values->flat<T>().device(ctx->eigen_device<Device>()) =",
+                "matched_lines": [
+                  128
+                ]
+              },
+              {
+                "evidence_line": 129,
+                "fragment": "values_t->flat<T>().binaryExpr(dense_gathered_flat,",
+                "matched_lines": [
+                  129
+                ]
+              },
+              {
+                "evidence_line": 130,
+                "fragment": "typename Functor::func());",
+                "matched_lines": [
+                  130
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2716,
+              "output_tokens": 1319,
+              "total_tokens": 4035
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2716,
+          "output_tokens": 1319,
+          "total_tokens": 4035
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 26,
+                "fragment": "ctx, values_t->dim_size(0) == indices_t->dim_size(0),",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 66,
+                "fragment": "const int64_t nnz = indices_t->dim_size(0);",
+                "matched_lines": [
+                  66
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "ctx->allocate_output(0, TensorShape({nnz}), &output_values));",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "ctx, ctx->allocate_temp(DataTypeToEnum<T>::value, TensorShape({nnz}),",
+                "matched_lines": [
+                  70
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 31,
+                "fragment": "ctx, shape_t->shape().dim_size(0) == indices_t->shape().dim_size(1),",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 36,
+                "fragment": "OP_REQUIRES(ctx, shape_t->NumElements() > 0,",
+                "matched_lines": [
+                  36
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 40,
+                "fragment": "const auto indices_mat = indices_t->matrix<int64_t>();",
+                "matched_lines": [
+                  40
+                ]
+              },
+              {
+                "evidence_line": 66,
+                "fragment": "const int64_t nnz = indices_t->dim_size(0);",
+                "matched_lines": [
+                  66
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 41,
+                "fragment": "const auto shape_vec = shape_t->vec<int64_t>();",
+                "matched_lines": [
+                  41
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "OP_REQUIRES_OK(ctx, TensorShape::BuildTensorShape(shape_vec, &lhs_shape));",
+                "matched_lines": [
+                  43
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "const auto lhs_dims = BCast::FromShape(lhs_shape);",
+                "matched_lines": [
+                  44
+                ]
+              },
+              {
+                "evidence_line": 83,
+                "fragment": "const int ndims = lhs_dims.size();",
+                "matched_lines": [
+                  83
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 45,
+                "fragment": "const auto rhs_dims = BCast::FromShape(dense_t->shape());",
+                "matched_lines": [
+                  45
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "auto VecGreaterEq = [](ArraySlice<int64_t> lhs, ArraySlice<int64_t> rhs) {",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "if (lhs.size() < rhs.size()) return false;",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "for (size_t i = 0; i < rhs.size(); ++i) {",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 53,
+                "fragment": "if (lhs[lhs.size() - 1 - i] < rhs[rhs.size() - 1 - i]) return false;",
+                "matched_lines": [
+                  53
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 70,
+                "fragment": "ctx, ctx->allocate_temp(DataTypeToEnum<T>::value, TensorShape({nnz}),",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 82,
+                "fragment": "auto dense_gathered_flat = dense_gathered.flat<T>();",
+                "matched_lines": [
+                  82
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 92,
+                "fragment": "for (int i = 0; i < nnz; ++i) {                                            \\",
+                "matched_lines": [
+                  92
+                ]
+              },
+              {
+                "evidence_line": 93,
+                "fragment": "for (int d = 0; d < NDIM; ++d) {                                         \\",
+                "matched_lines": [
+                  93
+                ]
+              },
+              {
+                "evidence_line": 94,
+                "fragment": "idx[d] = internal::SubtleMustCopy(indices_mat(i, d));                  \\",
+                "matched_lines": [
+                  94
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 95,
+                "fragment": "if (!FastBoundsCheck(idx[d], rhs_ref.dimension(d))) {                  \\",
+                "matched_lines": [
+                  95
+                ]
+              },
+              {
+                "evidence_line": 96,
+                "fragment": "indices_valid = false;                                               \\",
+                "matched_lines": [
+                  96
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 87,
+                "fragment": "TensorRef<Eigen::Tensor<const T, NDIM, Eigen::RowMajor>> rhs_ref =         \\",
+                "matched_lines": [
+                  87
+                ]
+              },
+              {
+                "evidence_line": 88,
+                "fragment": "dense_t->shaped<T, NDIM>(b.y_reshape())                                \\",
+                "matched_lines": [
+                  88
+                ]
+              },
+              {
+                "evidence_line": 89,
+                "fragment": ".broadcast(BCast::ToIndexArray<NDIM>(b.y_bcast()));                \\",
+                "matched_lines": [
+                  89
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 103,
+                "fragment": "dense_gathered_flat(i) = rhs_ref.coeff(idx);                             \\",
+                "matched_lines": [
+                  103
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 128,
+                "fragment": "output_values->flat<T>().device(ctx->eigen_device<Device>()) =",
+                "matched_lines": [
+                  128
+                ]
+              },
+              {
+                "evidence_line": 129,
+                "fragment": "values_t->flat<T>().binaryExpr(dense_gathered_flat,",
+                "matched_lines": [
+                  129
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 12,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2396,
+              "output_tokens": 1051,
+              "total_tokens": 3447
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2396,
+          "output_tokens": 1051,
+          "total_tokens": 3447
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 3,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"sp_indices\", &indices_t));",
+                "matched_lines": [
+                  3
+                ]
+              },
+              {
+                "evidence_line": 4,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"sp_values\", &values_t));",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 5,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"sp_shape\", &shape_t));",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "OP_REQUIRES_OK(ctx, ctx->input(\"dense\", &dense_t));",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "OP_REQUIRES(ctx, TensorShapeUtils::IsMatrix(indices_t->shape()),",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 13,
+                "fragment": "OP_REQUIRES(ctx,",
+                "matched_lines": [
+                  13
+                ]
+              },
+              {
+                "evidence_line": 14,
+                "fragment": "TensorShapeUtils::IsVector(values_t->shape()) &&",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "TensorShapeUtils::IsVector(shape_t->shape()),",
+                "matched_lines": [
+                  15
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 21,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  21
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "ctx, TensorShapeUtils::IsVector(shape_t->shape()),",
+                "matched_lines": [
+                  22
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 25,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  25
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "ctx, values_t->dim_size(0) == indices_t->dim_size(0),",
+                "matched_lines": [
+                  26
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 30,
+                "fragment": "OP_REQUIRES(",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "ctx, shape_t->shape().dim_size(0) == indices_t->shape().dim_size(1),",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 36,
+                "fragment": "OP_REQUIRES(ctx, shape_t->NumElements() > 0,",
+                "matched_lines": [
+                  36
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "OP_REQUIRES_OK(ctx, TensorShape::BuildTensorShape(shape_vec, &lhs_shape));",
+                "matched_lines": [
+                  43
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 57,
+                "fragment": "OP_REQUIRES(ctx, VecGreaterEq(lhs_dims, rhs_dims) && b.IsValid(),",
+                "matched_lines": [
+                  57
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 67,
+                "fragment": "OP_REQUIRES_OK(ctx,",
+                "matched_lines": [
+                  67
+                ]
+              },
+              {
+                "evidence_line": 68,
+                "fragment": "ctx->allocate_output(0, TensorShape({nnz}), &output_values));",
+                "matched_lines": [
+                  68
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 69,
+                "fragment": "OP_REQUIRES_OK(",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "ctx, ctx->allocate_temp(DataTypeToEnum<T>::value, TensorShape({nnz}),",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 71,
+                "fragment": "&dense_gathered));",
+                "matched_lines": [
+                  71
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 84,
+                "fragment": "switch (ndims) {",
+                "matched_lines": [
+                  84
+                ]
+              },
+              {
+                "evidence_line": 114,
+                "fragment": "CASE(1);",
+                "matched_lines": [
+                  114
+                ]
+              },
+              {
+                "evidence_line": 115,
+                "fragment": "CASE(2);",
+                "matched_lines": [
+                  115
+                ]
+              },
+              {
+                "evidence_line": 116,
+                "fragment": "CASE(3);",
+                "matched_lines": [
+                  116
+                ]
+              },
+              {
+                "evidence_line": 117,
+                "fragment": "CASE(4);",
+                "matched_lines": [
+                  117
+                ]
+              },
+              {
+                "evidence_line": 118,
+                "fragment": "CASE(5);",
+                "matched_lines": [
+                  118
+                ]
+              },
+              {
+                "evidence_line": 119,
+                "fragment": "default:",
+                "matched_lines": [
+                  119
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 95,
+                "fragment": "if (!FastBoundsCheck(idx[d], rhs_ref.dimension(d))) {                  \\",
+                "matched_lines": [
+                  95
+                ]
+              },
+              {
+                "evidence_line": 96,
+                "fragment": "indices_valid = false;                                               \\",
+                "matched_lines": [
+                  96
+                ]
+              },
+              {
+                "evidence_line": 97,
+                "fragment": "}                                                                      \\",
+                "matched_lines": [
+                  97
+                ]
+              },
+              {
+                "evidence_line": 99,
+                "fragment": "OP_REQUIRES(                                                             \\",
+                "matched_lines": [
+                  99
+                ]
+              },
+              {
+                "evidence_line": 100,
+                "fragment": "ctx, indices_valid,                                                  \\",
+                "matched_lines": [
+                  100
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 104,
+                "fragment": "if (op_is_div) {                                                         \\",
+                "matched_lines": [
+                  104
+                ]
+              },
+              {
+                "evidence_line": 105,
+                "fragment": "OP_REQUIRES(ctx, dense_gathered_flat(i) != 0,                          \\",
+                "matched_lines": [
+                  105
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 12,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 13,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 4,
+      "states": 8,
+      "values": 14,
+      "executions": 14
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 11565,
+    "output_tokens": 3216,
+    "total_tokens": 14781
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000091",
+    "split": "test",
+    "source_hash": "99409c340b725fc87b843149bbb8c2c4e3b013ddaaa7c8bc75b4f41f206c6151",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

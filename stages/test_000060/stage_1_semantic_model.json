@@ -1,0 +1,273 @@
+{
+  "sample_id": "test_000060",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L8"
+          ],
+          "expression": "ctx->set_output(output_port, shape)",
+          "claim": "calls set_output on ctx with output_port and shape"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "ctx",
+            "node"
+          ],
+          "claim": "ctx is the InferenceContext associated with node, obtained via GetContext(node); it may be NULL.",
+          "evidence": "L4: InferenceContext* ctx = GetContext(node);\nL5: if (ctx == nullptr) {"
+        },
+        {
+          "entities": [
+            "shape",
+            "node",
+            "output_port"
+          ],
+          "claim": "shape is the unknown output ShapeHandle for node at output_port, obtained via GetUnknownOutputShape(node, output_port).",
+          "evidence": "L2: shape_inference::ShapeHandle shape =\nL3: GetUnknownOutputShape(node, output_port);"
+        },
+        {
+          "entities": [
+            "ctx",
+            "output_port",
+            "shape"
+          ],
+          "claim": "ctx's output at output_port is set to shape.",
+          "evidence": "L8: ctx->set_output(output_port, shape);"
+        }
+      ],
+      "values": [],
+      "executions": [
+        {
+          "entities": [
+            "ctx"
+          ],
+          "claim": "Continuing past the null check implies ctx is non-null, so ctx->set_output is reached only with a valid InferenceContext pointer.",
+          "evidence": "L5: if (ctx == nullptr) {\nL6: return errors::InvalidArgument(\"Missing context\");\nL8: ctx->set_output(output_port, shape);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2070,
+              "output_tokens": 44,
+              "total_tokens": 2114
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2070,
+          "output_tokens": 44,
+          "total_tokens": 2114
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L8",
+                "matched": true,
+                "expression": "ctx->set_output(output_port, shape)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 673,
+              "output_tokens": 171,
+              "total_tokens": 844
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 673,
+          "output_tokens": 171,
+          "total_tokens": 844
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 4,
+                "fragment": "InferenceContext* ctx = GetContext(node);",
+                "matched_lines": [
+                  4
+                ]
+              },
+              {
+                "evidence_line": 5,
+                "fragment": "if (ctx == nullptr) {",
+                "matched_lines": [
+                  5
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 2,
+                "fragment": "shape_inference::ShapeHandle shape =",
+                "matched_lines": [
+                  2
+                ]
+              },
+              {
+                "evidence_line": 3,
+                "fragment": "GetUnknownOutputShape(node, output_port);",
+                "matched_lines": [
+                  3
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "ctx->set_output(output_port, shape);",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 861,
+              "output_tokens": 11,
+              "total_tokens": 872
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 861,
+          "output_tokens": 11,
+          "total_tokens": 872
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 541,
+              "output_tokens": 96,
+              "total_tokens": 637
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 541,
+          "output_tokens": 96,
+          "total_tokens": 637
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "if (ctx == nullptr) {",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "return errors::InvalidArgument(\"Missing context\");",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": "ctx->set_output(output_port, shape);",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 1,
+      "states": 3,
+      "values": 0,
+      "executions": 1
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4145,
+    "output_tokens": 322,
+    "total_tokens": 4467
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000060",
+    "split": "test",
+    "source_hash": "8c3fcac043af6ae64c5a24022df8fdffd59461395fc285116a035fd054514d45",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

@@ -1,0 +1,1892 @@
+{
+  "sample_id": "test_000150",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L32"
+          ],
+          "expression": "device->name",
+          "claim": "dereference of device->name pointer to access the name string"
+        },
+        {
+          "locations": [
+            "L50"
+          ],
+          "expression": "list_del_init(&device->dev_alloc_list)",
+          "claim": "list_del_init on device->dev_alloc_list list node"
+        },
+        {
+          "locations": [
+            "L92"
+          ],
+          "expression": "list_del_rcu(&device->dev_list)",
+          "claim": "list_del_rcu on device->dev_list list node"
+        },
+        {
+          "locations": [
+            "L122"
+          ],
+          "expression": "device->name->str",
+          "claim": "dereference of device->name pointer to access str member"
+        },
+        {
+          "locations": [
+            "L129"
+          ],
+          "expression": "list_del_init(&cur_devices->seed_list)",
+          "claim": "list_del_init on cur_devices->seed_list list node"
+        },
+        {
+          "locations": [
+            "L142"
+          ],
+          "expression": "list_add(&device->dev_alloc_list, &fs_devices->alloc_list)",
+          "claim": "list_add inserting device->dev_alloc_list into fs_devices->alloc_list"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "device"
+          ],
+          "claim": "device is a pointer to a btrfs_device object obtained from btrfs_find_device_by_devspec; on success it is non-NULL and not an error pointer.",
+          "evidence": "L18: device = btrfs_find_device_by_devspec(fs_info, devid, device_path);\nL20: if (IS_ERR(device)) {"
+        },
+        {
+          "entities": [
+            "device"
+          ],
+          "claim": "device is detached from the device list (list_del_rcu on device->dev_list) and its dev_alloc_list is removed when writeable.",
+          "evidence": "L50: list_del_init(&device->dev_alloc_list);\nL92: list_del_rcu(&device->dev_list);"
+        },
+        {
+          "entities": [
+            "device"
+          ],
+          "claim": "device is closed via btrfs_close_bdev and then freed via btrfs_free_device; after this point device is no longer a valid object.",
+          "evidence": "L124: btrfs_close_bdev(device);\nL126: btrfs_free_device(device);"
+        },
+        {
+          "entities": [
+            "cur_devices"
+          ],
+          "claim": "cur_devices is set to device->fs_devices, the fs_devices owning the device.",
+          "evidence": "L90: cur_devices = device->fs_devices;"
+        },
+        {
+          "entities": [
+            "cur_devices"
+          ],
+          "claim": "cur_devices may be closed and freed when it has no open devices.",
+          "evidence": "L128: if (cur_devices->open_devices == 0) {\nL130: close_fs_devices(cur_devices);\nL131: free_fs_devices(cur_devices);"
+        },
+        {
+          "entities": [
+            "fs_devices"
+          ],
+          "claim": "fs_devices is initialized to fs_info->fs_devices and is the parent fs_devices.",
+          "evidence": "L6: struct btrfs_fs_devices *fs_devices = fs_info->fs_devices;"
+        },
+        {
+          "entities": [
+            "uuid_mutex"
+          ],
+          "claim": "uuid_mutex is acquired at function entry and released on the out path; it is temporarily released around btrfs_shrink_device and reacquired.",
+          "evidence": "L10: mutex_lock(&uuid_mutex);\nL55: mutex_unlock(&uuid_mutex);\nL59: mutex_lock(&uuid_mutex);\nL135: mutex_unlock(&uuid_mutex);"
+        },
+        {
+          "entities": [
+            "fs_info->chunk_mutex"
+          ],
+          "claim": "fs_info->chunk_mutex is acquired and released around modification of device->dev_alloc_list and rw_devices.",
+          "evidence": "L49: mutex_lock(&fs_info->chunk_mutex);\nL52: mutex_unlock(&fs_info->chunk_mutex);\nL141: mutex_lock(&fs_info->chunk_mutex);\nL145: mutex_unlock(&fs_info->chunk_mutex);"
+        },
+        {
+          "entities": [
+            "fs_devices->device_list_mutex"
+          ],
+          "claim": "fs_devices->device_list_mutex is acquired and released around device list and super_copy num_devices updates.",
+          "evidence": "L91: mutex_lock(&fs_devices->device_list_mutex);\nL113: mutex_unlock(&fs_devices->device_list_mutex);"
+        },
+        {
+          "entities": [
+            "device"
+          ],
+          "claim": "device->bdev is a block device reference; when non-NULL, cur_devices->open_devices is decremented and the sysfs entry is removed.",
+          "evidence": "L105: if (device->bdev) {\nL106: cur_devices->open_devices--;\nL108: btrfs_sysfs_remove_device(device);"
+        },
+        {
+          "entities": [
+            "device"
+          ],
+          "claim": "device->bdev and device->name are used for scratch superblocks when the device is writeable.",
+          "evidence": "L120: if (test_bit(BTRFS_DEV_STATE_WRITEABLE, &device->dev_state))\nL121: btrfs_scratch_superblocks(fs_info, device->bdev,\nL122: device->name->str);"
+        },
+        {
+          "entities": [
+            "device"
+          ],
+          "claim": "device->dev_state has BTRFS_DEV_STATE_IN_FS_METADATA cleared after btrfs_rm_dev_item succeeds.",
+          "evidence": "L72: clear_bit(BTRFS_DEV_STATE_IN_FS_METADATA, &device->dev_state);"
+        },
+        {
+          "entities": [
+            "device"
+          ],
+          "claim": "device->dev_state is tested for BTRFS_DEV_STATE_REPLACE_TGT, BTRFS_DEV_STATE_WRITEABLE, and BTRFS_DEV_STATE_MISSING to gate removal and accounting.",
+          "evidence": "L37: if (test_bit(BTRFS_DEV_STATE_REPLACE_TGT, &device->dev_state)) {\nL42: if (test_bit(BTRFS_DEV_STATE_WRITEABLE, &device->dev_state) &&\nL100: if (test_bit(BTRFS_DEV_STATE_MISSING, &device->dev_state))"
+        },
+        {
+          "entities": [
+            "device"
+          ],
+          "claim": "device->fs_devices->rw_devices is decremented when the device is writeable and re-incremented on error_undo.",
+          "evidence": "L51: device->fs_devices->rw_devices--;\nL144: device->fs_devices->rw_devices++;"
+        },
+        {
+          "entities": [
+            "device"
+          ],
+          "claim": "device->dev_alloc_list is re-added to fs_devices->alloc_list on error_undo when the device is writeable.",
+          "evidence": "L142: list_add(&device->dev_alloc_list,\nL143: &fs_devices->alloc_list);"
+        },
+        {
+          "entities": [
+            "fs_info->super_copy"
+          ],
+          "claim": "fs_info->super_copy num_devices is decremented by one and updated via btrfs_set_super_num_devices.",
+          "evidence": "L111: num_devices = btrfs_super_num_devices(fs_info->super_copy) - 1;\nL112: btrfs_set_super_num_devices(fs_info->super_copy, num_devices);"
+        },
+        {
+          "entities": [
+            "cur_devices"
+          ],
+          "claim": "cur_devices->num_devices, total_devices, and missing_devices are decremented during device removal.",
+          "evidence": "L94: cur_devices->num_devices--;\nL95: cur_devices->total_devices--;\nL101: cur_devices->missing_devices--;"
+        },
+        {
+          "entities": [
+            "fs_devices"
+          ],
+          "claim": "fs_devices->total_devices is decremented when cur_devices differs from fs_devices (seed device case).",
+          "evidence": "L97: if (cur_devices != fs_devices)\nL98: fs_devices->total_devices--;"
+        },
+        {
+          "entities": [
+            "cur_devices"
+          ],
+          "claim": "cur_devices->seed_list is removed from the list before closing/freeing cur_devices.",
+          "evidence": "L129: list_del_init(&cur_devices->seed_list);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "num_devices",
+            "btrfs_num_devices"
+          ],
+          "claim": "num_devices is initialized to the device count returned by btrfs_num_devices(fs_info).",
+          "evidence": "L12: num_devices = btrfs_num_devices(fs_info);"
+        },
+        {
+          "entities": [
+            "num_devices",
+            "btrfs_check_raid_min_devices"
+          ],
+          "claim": "The RAID minimum-device check is performed with num_devices - 1, i.e. the device count after removing one device.",
+          "evidence": "L14: ret = btrfs_check_raid_min_devices(fs_info, num_devices - 1);"
+        },
+        {
+          "entities": [
+            "num_devices",
+            "btrfs_super_num_devices",
+            "btrfs_set_super_num_devices"
+          ],
+          "claim": "num_devices is recomputed as the superblock device count minus 1 and written back to the superblock.",
+          "evidence": "L111: num_devices = btrfs_super_num_devices(fs_info->super_copy) - 1;\nL112: btrfs_set_super_num_devices(fs_info->super_copy, num_devices);"
+        },
+        {
+          "entities": [
+            "cur_devices->num_devices"
+          ],
+          "claim": "cur_devices->num_devices is decremented by one.",
+          "evidence": "L94: cur_devices->num_devices--;"
+        },
+        {
+          "entities": [
+            "cur_devices->total_devices"
+          ],
+          "claim": "cur_devices->total_devices is decremented by one.",
+          "evidence": "L95: cur_devices->total_devices--;"
+        },
+        {
+          "entities": [
+            "fs_devices->total_devices",
+            "cur_devices",
+            "fs_devices"
+          ],
+          "claim": "When cur_devices differs from fs_devices, fs_devices->total_devices is also decremented by one.",
+          "evidence": "L97: if (cur_devices != fs_devices)\nL98: fs_devices->total_devices--;"
+        },
+        {
+          "entities": [
+            "cur_devices->missing_devices"
+          ],
+          "claim": "cur_devices->missing_devices is decremented by one when the device is in the MISSING state.",
+          "evidence": "L100: if (test_bit(BTRFS_DEV_STATE_MISSING, &device->dev_state))\nL101: cur_devices->missing_devices--;"
+        },
+        {
+          "entities": [
+            "cur_devices->open_devices"
+          ],
+          "claim": "cur_devices->open_devices is decremented by one when device->bdev is non-NULL.",
+          "evidence": "L105: if (device->bdev) {\nL106: cur_devices->open_devices--;"
+        },
+        {
+          "entities": [
+            "cur_devices->open_devices"
+          ],
+          "claim": "cur_devices is closed and freed when cur_devices->open_devices equals 0.",
+          "evidence": "L128: if (cur_devices->open_devices == 0) {\nL130: close_fs_devices(cur_devices);\nL131: free_fs_devices(cur_devices);"
+        },
+        {
+          "entities": [
+            "fs_info->fs_devices->rw_devices"
+          ],
+          "claim": "fs_info->fs_devices->rw_devices is decremented by one when the device is writeable.",
+          "evidence": "L48: if (test_bit(BTRFS_DEV_STATE_WRITEABLE, &device->dev_state)) {\nL51: device->fs_devices->rw_devices--;"
+        },
+        {
+          "entities": [
+            "device->fs_devices->rw_devices"
+          ],
+          "claim": "device->fs_devices->rw_devices is incremented by one on the error_undo path when the device is writeable.",
+          "evidence": "L140: if (test_bit(BTRFS_DEV_STATE_WRITEABLE, &device->dev_state)) {\nL144: device->fs_devices->rw_devices++;"
+        },
+        {
+          "entities": [
+            "fs_info->fs_devices->rw_devices"
+          ],
+          "claim": "Removal is rejected with BTRFS_ERROR_DEV_ONLY_WRITABLE when the device is writeable and fs_info->fs_devices->rw_devices equals 1.",
+          "evidence": "L42: if (test_bit(BTRFS_DEV_STATE_WRITEABLE, &device->dev_state) &&\nL43: fs_info->fs_devices->rw_devices == 1) {"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "device",
+            "device_path",
+            "devid"
+          ],
+          "claim": "After btrfs_find_device_by_devspec returns, continuing past the IS_ERR check implies device is a valid non-error pointer; if device is an error, execution goes to out and returns ret without using device as a valid pointer.",
+          "evidence": "L18: device = btrfs_find_device_by_devspec(fs_info, devid, device_path);\nL20: if (IS_ERR(device)) {\nL26: goto out;"
+        },
+        {
+          "entities": [
+            "device",
+            "fs_info"
+          ],
+          "claim": "Continuing past the swapfile check implies btrfs_pinned_by_swapfile(fs_info, device) is false; otherwise execution goes to out.",
+          "evidence": "L29: if (btrfs_pinned_by_swapfile(fs_info, device)) {\nL34: goto out;"
+        },
+        {
+          "entities": [
+            "device"
+          ],
+          "claim": "Continuing past the replace-target check implies BTRFS_DEV_STATE_REPLACE_TGT is not set in device->dev_state; otherwise execution goes to out.",
+          "evidence": "L37: if (test_bit(BTRFS_DEV_STATE_REPLACE_TGT, &device->dev_state)) {\nL39: goto out;"
+        },
+        {
+          "entities": [
+            "device",
+            "fs_info"
+          ],
+          "claim": "Continuing past the only-writable check implies not (BTRFS_DEV_STATE_WRITEABLE is set in device->dev_state and fs_info->fs_devices->rw_devices == 1); otherwise execution goes to out.",
+          "evidence": "L42: if (test_bit(BTRFS_DEV_STATE_WRITEABLE, &device->dev_state) &&\nL43: fs_info->fs_devices->rw_devices == 1) {\nL45: goto out;"
+        },
+        {
+          "entities": [
+            "device",
+            "fs_info"
+          ],
+          "claim": "If BTRFS_DEV_STATE_WRITEABLE is set in device->dev_state, then under chunk_mutex the device is removed from dev_alloc_list and device->fs_devices->rw_devices is decremented before unlocking chunk_mutex.",
+          "evidence": "L48: if (test_bit(BTRFS_DEV_STATE_WRITEABLE, &device->dev_state)) {\nL49: mutex_lock(&fs_info->chunk_mutex);\nL50: list_del_init(&device->dev_alloc_list);\nL51: device->fs_devices->rw_devices--;\nL52: mutex_unlock(&fs_info->chunk_mutex);"
+        },
+        {
+          "entities": [
+            "device"
+          ],
+          "claim": "After btrfs_shrink_device(device, 0), if ret is nonzero execution goes to error_undo; if ret is zero, btrfs_reada_remove_dev(device) is called before reacquiring uuid_mutex.",
+          "evidence": "L56: ret = btrfs_shrink_device(device, 0);\nL57: if (!ret)\nL58: btrfs_reada_remove_dev(device);\nL60: if (ret)\nL61: goto error_undo;"
+        },
+        {
+          "entities": [
+            "device"
+          ],
+          "claim": "After btrfs_rm_dev_item(device), if ret is nonzero execution goes to error_undo; otherwise execution continues to clear BTRFS_DEV_STATE_IN_FS_METADATA and cancel scrub for device.",
+          "evidence": "L68: ret = btrfs_rm_dev_item(device);\nL69: if (ret)\nL70: goto error_undo;\nL72: clear_bit(BTRFS_DEV_STATE_IN_FS_METADATA, &device->dev_state);\nL73: btrfs_scrub_cancel_dev(device);"
+        },
+        {
+          "entities": [
+            "device",
+            "cur_devices",
+            "fs_devices"
+          ],
+          "claim": "At this point cur_devices is assigned from device->fs_devices; under fs_devices->device_list_mutex, device is removed from dev_list, cur_devices->num_devices and cur_devices->total_devices are decremented, and if cur_devices != fs_devices then fs_devices->total_devices is also decremented.",
+          "evidence": "L90: cur_devices = device->fs_devices;\nL91: mutex_lock(&fs_devices->device_list_mutex);\nL92: list_del_rcu(&device->dev_list);\nL94: cur_devices->num_devices--;\nL95: cur_devices->total_devices--;\nL97: if (cur_devices != fs_devices)\nL98: fs_devices->total_devices--;"
+        },
+        {
+          "entities": [
+            "device",
+            "cur_devices"
+          ],
+          "claim": "If BTRFS_DEV_STATE_MISSING is set in device->dev_state, cur_devices->missing_devices is decremented.",
+          "evidence": "L100: if (test_bit(BTRFS_DEV_STATE_MISSING, &device->dev_state))\nL101: cur_devices->missing_devices--;"
+        },
+        {
+          "entities": [
+            "device",
+            "cur_devices"
+          ],
+          "claim": "If device->bdev is non-NULL, cur_devices->open_devices is decremented and the sysfs entry for device is removed.",
+          "evidence": "L105: if (device->bdev) {\nL106: cur_devices->open_devices--;\nL108: btrfs_sysfs_remove_device(device);"
+        },
+        {
+          "entities": [
+            "fs_info",
+            "num_devices"
+          ],
+          "claim": "Under fs_devices->device_list_mutex, num_devices is set to btrfs_super_num_devices(fs_info->super_copy) - 1 and written back to fs_info->super_copy before unlocking.",
+          "evidence": "L111: num_devices = btrfs_super_num_devices(fs_info->super_copy) - 1;\nL112: btrfs_set_super_num_devices(fs_info->super_copy, num_devices);\nL113: mutex_unlock(&fs_devices->device_list_mutex);"
+        },
+        {
+          "entities": [
+            "device",
+            "fs_info"
+          ],
+          "claim": "If BTRFS_DEV_STATE_WRITEABLE is set in device->dev_state, btrfs_scratch_superblocks is called with fs_info, device->bdev, and device->name->str.",
+          "evidence": "L120: if (test_bit(BTRFS_DEV_STATE_WRITEABLE, &device->dev_state))\nL121: btrfs_scratch_superblocks(fs_info, device->bdev,\nL122: device->name->str);"
+        },
+        {
+          "entities": [
+            "device",
+            "cur_devices"
+          ],
+          "claim": "After btrfs_close_bdev(device), synchronize_rcu(), and btrfs_free_device(device), if cur_devices->open_devices == 0 then cur_devices is removed from seed_list, closed, and freed.",
+          "evidence": "L124: btrfs_close_bdev(device);\nL125: synchronize_rcu();\nL126: btrfs_free_device(device);\nL128: if (cur_devices->open_devices == 0) {\nL129: list_del_init(&cur_devices->seed_list);\nL130: close_fs_devices(cur_devices);\nL131: free_fs_devices(cur_devices);"
+        },
+        {
+          "entities": [
+            "device",
+            "fs_info"
+          ],
+          "claim": "At error_undo, btrfs_reada_undo_remove_dev(device) is called; if BTRFS_DEV_STATE_WRITEABLE is set in device->dev_state, under chunk_mutex device is added back to fs_devices->alloc_list and device->fs_devices->rw_devices is incremented.",
+          "evidence": "L138: error_undo:\nL139: btrfs_reada_undo_remove_dev(device);\nL140: if (test_bit(BTRFS_DEV_STATE_WRITEABLE, &device->dev_state)) {\nL141: mutex_lock(&fs_info->chunk_mutex);\nL142: list_add(&device->dev_alloc_list,\nL143: &fs_devices->alloc_list);\nL144: device->fs_devices->rw_devices++;\nL145: mutex_unlock(&fs_info->chunk_mutex);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3842,
+              "output_tokens": 231,
+              "total_tokens": 4073
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3842,
+          "output_tokens": 231,
+          "total_tokens": 4073
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L32",
+                "matched": true,
+                "expression": "device->name"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L50",
+                "matched": true,
+                "expression": "list_del_init(&device->dev_alloc_list)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L92",
+                "matched": true,
+                "expression": "list_del_rcu(&device->dev_list)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[3]": {
+            "expression_matches": [
+              {
+                "location": "L122",
+                "matched": true,
+                "expression": "device->name->str"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[4]": {
+            "expression_matches": [
+              {
+                "location": "L129",
+                "matched": true,
+                "expression": "list_del_init(&cur_devices->seed_list)"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[5]": {
+            "expression_matches": [
+              {
+                "location": "L142",
+                "matched": true,
+                "expression": "list_add(&device->dev_alloc_list, &fs_devices->alloc_list)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2445,
+              "output_tokens": 1625,
+              "total_tokens": 4070
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2445,
+          "output_tokens": 1625,
+          "total_tokens": 4070
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "device = btrfs_find_device_by_devspec(fs_info, devid, device_path);",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "if (IS_ERR(device)) {",
+                "matched_lines": [
+                  20
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 50,
+                "fragment": "list_del_init(&device->dev_alloc_list);",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 92,
+                "fragment": "list_del_rcu(&device->dev_list);",
+                "matched_lines": [
+                  92
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 124,
+                "fragment": "btrfs_close_bdev(device);",
+                "matched_lines": [
+                  124
+                ]
+              },
+              {
+                "evidence_line": 126,
+                "fragment": "btrfs_free_device(device);",
+                "matched_lines": [
+                  126
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 90,
+                "fragment": "cur_devices = device->fs_devices;",
+                "matched_lines": [
+                  90
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 128,
+                "fragment": "if (cur_devices->open_devices == 0) {",
+                "matched_lines": [
+                  128
+                ]
+              },
+              {
+                "evidence_line": 130,
+                "fragment": "close_fs_devices(cur_devices);",
+                "matched_lines": [
+                  130
+                ]
+              },
+              {
+                "evidence_line": 131,
+                "fragment": "free_fs_devices(cur_devices);",
+                "matched_lines": [
+                  131
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "struct btrfs_fs_devices *fs_devices = fs_info->fs_devices;",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "mutex_lock(&uuid_mutex);",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "mutex_unlock(&uuid_mutex);",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 59,
+                "fragment": "mutex_lock(&uuid_mutex);",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 135,
+                "fragment": "mutex_unlock(&uuid_mutex);",
+                "matched_lines": [
+                  135
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 49,
+                "fragment": "mutex_lock(&fs_info->chunk_mutex);",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "mutex_unlock(&fs_info->chunk_mutex);",
+                "matched_lines": [
+                  52
+                ]
+              },
+              {
+                "evidence_line": 141,
+                "fragment": "mutex_lock(&fs_info->chunk_mutex);",
+                "matched_lines": [
+                  141
+                ]
+              },
+              {
+                "evidence_line": 145,
+                "fragment": "mutex_unlock(&fs_info->chunk_mutex);",
+                "matched_lines": [
+                  145
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 91,
+                "fragment": "mutex_lock(&fs_devices->device_list_mutex);",
+                "matched_lines": [
+                  91
+                ]
+              },
+              {
+                "evidence_line": 113,
+                "fragment": "mutex_unlock(&fs_devices->device_list_mutex);",
+                "matched_lines": [
+                  113
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 105,
+                "fragment": "if (device->bdev) {",
+                "matched_lines": [
+                  105
+                ]
+              },
+              {
+                "evidence_line": 106,
+                "fragment": "cur_devices->open_devices--;",
+                "matched_lines": [
+                  106
+                ]
+              },
+              {
+                "evidence_line": 108,
+                "fragment": "btrfs_sysfs_remove_device(device);",
+                "matched_lines": [
+                  108
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 120,
+                "fragment": "if (test_bit(BTRFS_DEV_STATE_WRITEABLE, &device->dev_state))",
+                "matched_lines": [
+                  120
+                ]
+              },
+              {
+                "evidence_line": 121,
+                "fragment": "btrfs_scratch_superblocks(fs_info, device->bdev,",
+                "matched_lines": [
+                  121
+                ]
+              },
+              {
+                "evidence_line": 122,
+                "fragment": "device->name->str);",
+                "matched_lines": [
+                  122
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 72,
+                "fragment": "clear_bit(BTRFS_DEV_STATE_IN_FS_METADATA, &device->dev_state);",
+                "matched_lines": [
+                  72
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 37,
+                "fragment": "if (test_bit(BTRFS_DEV_STATE_REPLACE_TGT, &device->dev_state)) {",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 42,
+                "fragment": "if (test_bit(BTRFS_DEV_STATE_WRITEABLE, &device->dev_state) &&",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 100,
+                "fragment": "if (test_bit(BTRFS_DEV_STATE_MISSING, &device->dev_state))",
+                "matched_lines": [
+                  100
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 51,
+                "fragment": "device->fs_devices->rw_devices--;",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 144,
+                "fragment": "device->fs_devices->rw_devices++;",
+                "matched_lines": [
+                  144
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[14]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 142,
+                "fragment": "list_add(&device->dev_alloc_list,",
+                "matched_lines": [
+                  142
+                ]
+              },
+              {
+                "evidence_line": 143,
+                "fragment": "&fs_devices->alloc_list);",
+                "matched_lines": [
+                  143
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[15]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 111,
+                "fragment": "num_devices = btrfs_super_num_devices(fs_info->super_copy) - 1;",
+                "matched_lines": [
+                  111
+                ]
+              },
+              {
+                "evidence_line": 112,
+                "fragment": "btrfs_set_super_num_devices(fs_info->super_copy, num_devices);",
+                "matched_lines": [
+                  112
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[16]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 94,
+                "fragment": "cur_devices->num_devices--;",
+                "matched_lines": [
+                  94
+                ]
+              },
+              {
+                "evidence_line": 95,
+                "fragment": "cur_devices->total_devices--;",
+                "matched_lines": [
+                  95
+                ]
+              },
+              {
+                "evidence_line": 101,
+                "fragment": "cur_devices->missing_devices--;",
+                "matched_lines": [
+                  101
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[17]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 97,
+                "fragment": "if (cur_devices != fs_devices)",
+                "matched_lines": [
+                  97
+                ]
+              },
+              {
+                "evidence_line": 98,
+                "fragment": "fs_devices->total_devices--;",
+                "matched_lines": [
+                  98
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[18]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 129,
+                "fragment": "list_del_init(&cur_devices->seed_list);",
+                "matched_lines": [
+                  129
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 12,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 13,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 14,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 15,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 16,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 17,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 18,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2633,
+              "output_tokens": 982,
+              "total_tokens": 3615
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2633,
+          "output_tokens": 982,
+          "total_tokens": 3615
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 12,
+                "fragment": "num_devices = btrfs_num_devices(fs_info);",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "ret = btrfs_check_raid_min_devices(fs_info, num_devices - 1);",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 111,
+                "fragment": "num_devices = btrfs_super_num_devices(fs_info->super_copy) - 1;",
+                "matched_lines": [
+                  111
+                ]
+              },
+              {
+                "evidence_line": 112,
+                "fragment": "btrfs_set_super_num_devices(fs_info->super_copy, num_devices);",
+                "matched_lines": [
+                  112
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 94,
+                "fragment": "cur_devices->num_devices--;",
+                "matched_lines": [
+                  94
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 95,
+                "fragment": "cur_devices->total_devices--;",
+                "matched_lines": [
+                  95
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 97,
+                "fragment": "if (cur_devices != fs_devices)",
+                "matched_lines": [
+                  97
+                ]
+              },
+              {
+                "evidence_line": 98,
+                "fragment": "fs_devices->total_devices--;",
+                "matched_lines": [
+                  98
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 100,
+                "fragment": "if (test_bit(BTRFS_DEV_STATE_MISSING, &device->dev_state))",
+                "matched_lines": [
+                  100
+                ]
+              },
+              {
+                "evidence_line": 101,
+                "fragment": "cur_devices->missing_devices--;",
+                "matched_lines": [
+                  101
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 105,
+                "fragment": "if (device->bdev) {",
+                "matched_lines": [
+                  105
+                ]
+              },
+              {
+                "evidence_line": 106,
+                "fragment": "cur_devices->open_devices--;",
+                "matched_lines": [
+                  106
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 128,
+                "fragment": "if (cur_devices->open_devices == 0) {",
+                "matched_lines": [
+                  128
+                ]
+              },
+              {
+                "evidence_line": 130,
+                "fragment": "close_fs_devices(cur_devices);",
+                "matched_lines": [
+                  130
+                ]
+              },
+              {
+                "evidence_line": 131,
+                "fragment": "free_fs_devices(cur_devices);",
+                "matched_lines": [
+                  131
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 48,
+                "fragment": "if (test_bit(BTRFS_DEV_STATE_WRITEABLE, &device->dev_state)) {",
+                "matched_lines": [
+                  48
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "device->fs_devices->rw_devices--;",
+                "matched_lines": [
+                  51
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 140,
+                "fragment": "if (test_bit(BTRFS_DEV_STATE_WRITEABLE, &device->dev_state)) {",
+                "matched_lines": [
+                  140
+                ]
+              },
+              {
+                "evidence_line": 144,
+                "fragment": "device->fs_devices->rw_devices++;",
+                "matched_lines": [
+                  144
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 42,
+                "fragment": "if (test_bit(BTRFS_DEV_STATE_WRITEABLE, &device->dev_state) &&",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "fs_info->fs_devices->rw_devices == 1) {",
+                "matched_lines": [
+                  43
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2313,
+              "output_tokens": 1950,
+              "total_tokens": 4263
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2313,
+          "output_tokens": 1950,
+          "total_tokens": 4263
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "device = btrfs_find_device_by_devspec(fs_info, devid, device_path);",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "if (IS_ERR(device)) {",
+                "matched_lines": [
+                  20
+                ]
+              },
+              {
+                "evidence_line": 26,
+                "fragment": "goto out;",
+                "matched_lines": [
+                  26
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 29,
+                "fragment": "if (btrfs_pinned_by_swapfile(fs_info, device)) {",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 34,
+                "fragment": "goto out;",
+                "matched_lines": [
+                  34
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 37,
+                "fragment": "if (test_bit(BTRFS_DEV_STATE_REPLACE_TGT, &device->dev_state)) {",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 39,
+                "fragment": "goto out;",
+                "matched_lines": [
+                  39
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 42,
+                "fragment": "if (test_bit(BTRFS_DEV_STATE_WRITEABLE, &device->dev_state) &&",
+                "matched_lines": [
+                  42
+                ]
+              },
+              {
+                "evidence_line": 43,
+                "fragment": "fs_info->fs_devices->rw_devices == 1) {",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 45,
+                "fragment": "goto out;",
+                "matched_lines": [
+                  45
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 48,
+                "fragment": "if (test_bit(BTRFS_DEV_STATE_WRITEABLE, &device->dev_state)) {",
+                "matched_lines": [
+                  48
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "mutex_lock(&fs_info->chunk_mutex);",
+                "matched_lines": [
+                  49
+                ]
+              },
+              {
+                "evidence_line": 50,
+                "fragment": "list_del_init(&device->dev_alloc_list);",
+                "matched_lines": [
+                  50
+                ]
+              },
+              {
+                "evidence_line": 51,
+                "fragment": "device->fs_devices->rw_devices--;",
+                "matched_lines": [
+                  51
+                ]
+              },
+              {
+                "evidence_line": 52,
+                "fragment": "mutex_unlock(&fs_info->chunk_mutex);",
+                "matched_lines": [
+                  52
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 56,
+                "fragment": "ret = btrfs_shrink_device(device, 0);",
+                "matched_lines": [
+                  56
+                ]
+              },
+              {
+                "evidence_line": 57,
+                "fragment": "if (!ret)",
+                "matched_lines": [
+                  57
+                ]
+              },
+              {
+                "evidence_line": 58,
+                "fragment": "btrfs_reada_remove_dev(device);",
+                "matched_lines": [
+                  58
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "if (ret)",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 61,
+                "fragment": "goto error_undo;",
+                "matched_lines": [
+                  61
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 68,
+                "fragment": "ret = btrfs_rm_dev_item(device);",
+                "matched_lines": [
+                  68
+                ]
+              },
+              {
+                "evidence_line": 69,
+                "fragment": "if (ret)",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 70,
+                "fragment": "goto error_undo;",
+                "matched_lines": [
+                  70
+                ]
+              },
+              {
+                "evidence_line": 72,
+                "fragment": "clear_bit(BTRFS_DEV_STATE_IN_FS_METADATA, &device->dev_state);",
+                "matched_lines": [
+                  72
+                ]
+              },
+              {
+                "evidence_line": 73,
+                "fragment": "btrfs_scrub_cancel_dev(device);",
+                "matched_lines": [
+                  73
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 90,
+                "fragment": "cur_devices = device->fs_devices;",
+                "matched_lines": [
+                  90
+                ]
+              },
+              {
+                "evidence_line": 91,
+                "fragment": "mutex_lock(&fs_devices->device_list_mutex);",
+                "matched_lines": [
+                  91
+                ]
+              },
+              {
+                "evidence_line": 92,
+                "fragment": "list_del_rcu(&device->dev_list);",
+                "matched_lines": [
+                  92
+                ]
+              },
+              {
+                "evidence_line": 94,
+                "fragment": "cur_devices->num_devices--;",
+                "matched_lines": [
+                  94
+                ]
+              },
+              {
+                "evidence_line": 95,
+                "fragment": "cur_devices->total_devices--;",
+                "matched_lines": [
+                  95
+                ]
+              },
+              {
+                "evidence_line": 97,
+                "fragment": "if (cur_devices != fs_devices)",
+                "matched_lines": [
+                  97
+                ]
+              },
+              {
+                "evidence_line": 98,
+                "fragment": "fs_devices->total_devices--;",
+                "matched_lines": [
+                  98
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 100,
+                "fragment": "if (test_bit(BTRFS_DEV_STATE_MISSING, &device->dev_state))",
+                "matched_lines": [
+                  100
+                ]
+              },
+              {
+                "evidence_line": 101,
+                "fragment": "cur_devices->missing_devices--;",
+                "matched_lines": [
+                  101
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 105,
+                "fragment": "if (device->bdev) {",
+                "matched_lines": [
+                  105
+                ]
+              },
+              {
+                "evidence_line": 106,
+                "fragment": "cur_devices->open_devices--;",
+                "matched_lines": [
+                  106
+                ]
+              },
+              {
+                "evidence_line": 108,
+                "fragment": "btrfs_sysfs_remove_device(device);",
+                "matched_lines": [
+                  108
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 111,
+                "fragment": "num_devices = btrfs_super_num_devices(fs_info->super_copy) - 1;",
+                "matched_lines": [
+                  111
+                ]
+              },
+              {
+                "evidence_line": 112,
+                "fragment": "btrfs_set_super_num_devices(fs_info->super_copy, num_devices);",
+                "matched_lines": [
+                  112
+                ]
+              },
+              {
+                "evidence_line": 113,
+                "fragment": "mutex_unlock(&fs_devices->device_list_mutex);",
+                "matched_lines": [
+                  113
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 120,
+                "fragment": "if (test_bit(BTRFS_DEV_STATE_WRITEABLE, &device->dev_state))",
+                "matched_lines": [
+                  120
+                ]
+              },
+              {
+                "evidence_line": 121,
+                "fragment": "btrfs_scratch_superblocks(fs_info, device->bdev,",
+                "matched_lines": [
+                  121
+                ]
+              },
+              {
+                "evidence_line": 122,
+                "fragment": "device->name->str);",
+                "matched_lines": [
+                  122
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 124,
+                "fragment": "btrfs_close_bdev(device);",
+                "matched_lines": [
+                  124
+                ]
+              },
+              {
+                "evidence_line": 125,
+                "fragment": "synchronize_rcu();",
+                "matched_lines": [
+                  125
+                ]
+              },
+              {
+                "evidence_line": 126,
+                "fragment": "btrfs_free_device(device);",
+                "matched_lines": [
+                  126
+                ]
+              },
+              {
+                "evidence_line": 128,
+                "fragment": "if (cur_devices->open_devices == 0) {",
+                "matched_lines": [
+                  128
+                ]
+              },
+              {
+                "evidence_line": 129,
+                "fragment": "list_del_init(&cur_devices->seed_list);",
+                "matched_lines": [
+                  129
+                ]
+              },
+              {
+                "evidence_line": 130,
+                "fragment": "close_fs_devices(cur_devices);",
+                "matched_lines": [
+                  130
+                ]
+              },
+              {
+                "evidence_line": 131,
+                "fragment": "free_fs_devices(cur_devices);",
+                "matched_lines": [
+                  131
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[13]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 138,
+                "fragment": "error_undo:",
+                "matched_lines": [
+                  138
+                ]
+              },
+              {
+                "evidence_line": 139,
+                "fragment": "btrfs_reada_undo_remove_dev(device);",
+                "matched_lines": [
+                  139
+                ]
+              },
+              {
+                "evidence_line": 140,
+                "fragment": "if (test_bit(BTRFS_DEV_STATE_WRITEABLE, &device->dev_state)) {",
+                "matched_lines": [
+                  140
+                ]
+              },
+              {
+                "evidence_line": 141,
+                "fragment": "mutex_lock(&fs_info->chunk_mutex);",
+                "matched_lines": [
+                  141
+                ]
+              },
+              {
+                "evidence_line": 142,
+                "fragment": "list_add(&device->dev_alloc_list,",
+                "matched_lines": [
+                  142
+                ]
+              },
+              {
+                "evidence_line": 143,
+                "fragment": "&fs_devices->alloc_list);",
+                "matched_lines": [
+                  143
+                ]
+              },
+              {
+                "evidence_line": 144,
+                "fragment": "device->fs_devices->rw_devices++;",
+                "matched_lines": [
+                  144
+                ]
+              },
+              {
+                "evidence_line": 145,
+                "fragment": "mutex_unlock(&fs_info->chunk_mutex);",
+                "matched_lines": [
+                  145
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 6,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 7,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 8,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 9,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 10,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 11,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 12,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 13,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 6,
+      "states": 19,
+      "values": 12,
+      "executions": 14
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 11233,
+    "output_tokens": 4788,
+    "total_tokens": 16021
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000150",
+    "split": "test",
+    "source_hash": "b19517a3bc327cdc10a815e6f9b5f143aa0c915112fdc15010ed204a261c43b4",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

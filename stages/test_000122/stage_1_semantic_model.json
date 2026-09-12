@@ -1,0 +1,416 @@
+{
+  "sample_id": "test_000122",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L14"
+          ],
+          "expression": "memcpy(elem.in_sg[0].iov_base, buf, len)",
+          "claim": "copy len bytes from buf into the first input scatter-gather buffer of the popped virtqueue element"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "vq",
+            "vser->c_ivq"
+          ],
+          "claim": "vq is assigned the VirtQueue pointer from vser->c_ivq.",
+          "evidence": "L6: vq = vser->c_ivq;"
+        },
+        {
+          "entities": [
+            "elem",
+            "vq"
+          ],
+          "claim": "elem is populated by virtqueue_pop from vq, establishing the element's scatter-gather storage.",
+          "evidence": "L10: if (!virtqueue_pop(vq, &elem)) {"
+        },
+        {
+          "entities": [
+            "elem.in_sg[0].iov_base",
+            "buf"
+          ],
+          "claim": "The first input scatter-gather buffer of elem is written with len bytes copied from buf.",
+          "evidence": "L14: memcpy(elem.in_sg[0].iov_base, buf, len);"
+        },
+        {
+          "entities": [
+            "elem",
+            "vq"
+          ],
+          "claim": "elem is pushed back to vq with length len.",
+          "evidence": "L16: virtqueue_push(vq, &elem, len);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "len",
+            "elem.in_sg[0].iov_base",
+            "buf"
+          ],
+          "claim": "memcpy copies len bytes from buf into elem.in_sg[0].iov_base; the destination buffer must have at least len bytes available.",
+          "evidence": "L14: memcpy(elem.in_sg[0].iov_base, buf, len);"
+        },
+        {
+          "entities": [
+            "len",
+            "virtqueue_push"
+          ],
+          "claim": "virtqueue_push is called with len as the used-length argument, so len is the byte count reported to the virtqueue.",
+          "evidence": "L16: virtqueue_push(vq, &elem, len);"
+        },
+        {
+          "entities": [
+            "len"
+          ],
+          "claim": "send_control_msg returns len on success, propagating the same byte count to the caller.",
+          "evidence": "L18: return len;"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "vq"
+          ],
+          "claim": "continuing past the ready check implies virtio_queue_ready(vq) is true",
+          "evidence": "L7: if (!virtio_queue_ready(vq)) {\nL8: return 0;"
+        },
+        {
+          "entities": [
+            "elem"
+          ],
+          "claim": "continuing past the pop check implies virtqueue_pop(vq, &elem) succeeded and elem is populated",
+          "evidence": "L10: if (!virtqueue_pop(vq, &elem)) {\nL11: return 0;"
+        },
+        {
+          "entities": [
+            "elem.in_sg[0].iov_base",
+            "buf",
+            "len"
+          ],
+          "claim": "memcpy writes len bytes from buf into elem.in_sg[0].iov_base, so the destination must be valid for len bytes",
+          "evidence": "L14: memcpy(elem.in_sg[0].iov_base, buf, len);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2158,
+              "output_tokens": 56,
+              "total_tokens": 2214
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2158,
+          "output_tokens": 56,
+          "total_tokens": 2214
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L14",
+                "matched": true,
+                "expression": "memcpy(elem.in_sg[0].iov_base, buf, len)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 761,
+              "output_tokens": 240,
+              "total_tokens": 1001
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 761,
+          "output_tokens": 240,
+          "total_tokens": 1001
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 6,
+                "fragment": "vq = vser->c_ivq;",
+                "matched_lines": [
+                  6
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "if (!virtqueue_pop(vq, &elem)) {",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "memcpy(elem.in_sg[0].iov_base, buf, len);",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "virtqueue_push(vq, &elem, len);",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 949,
+              "output_tokens": 181,
+              "total_tokens": 1130
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 949,
+          "output_tokens": 181,
+          "total_tokens": 1130
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "memcpy(elem.in_sg[0].iov_base, buf, len);",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "virtqueue_push(vq, &elem, len);",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "return len;",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 629,
+              "output_tokens": 214,
+              "total_tokens": 843
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 629,
+          "output_tokens": 214,
+          "total_tokens": 843
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 7,
+                "fragment": "if (!virtio_queue_ready(vq)) {",
+                "matched_lines": [
+                  7
+                ]
+              },
+              {
+                "evidence_line": 8,
+                "fragment": "return 0;",
+                "matched_lines": [
+                  8
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "if (!virtqueue_pop(vq, &elem)) {",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "return 0;",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "memcpy(elem.in_sg[0].iov_base, buf, len);",
+                "matched_lines": [
+                  14
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 1,
+      "states": 4,
+      "values": 3,
+      "executions": 3
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 4497,
+    "output_tokens": 691,
+    "total_tokens": 5188
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000122",
+    "split": "test",
+    "source_hash": "410c385254e4694fb6129354743bceae5dbd5023a7ea597576adb1f51d45cde6",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

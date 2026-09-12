@@ -1,0 +1,1006 @@
+{
+  "sample_id": "test_000126",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L62"
+          ],
+          "expression": "deleted->start[i] = array->start[n]",
+          "claim": "write to deleted array element at index i and read from array element at index n"
+        },
+        {
+          "locations": [
+            "L116"
+          ],
+          "expression": "memcpy(&array->start[start], &args[3], items * sizeof(njs_value_t))",
+          "claim": "copy items elements into array starting at index start"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "deleted"
+          ],
+          "claim": "deleted is a newly allocated array object returned by njs_array_alloc; it is non-NULL after the NULL check and remains allocated through the function, including when stored into vm->retval.",
+          "evidence": "L54: deleted = njs_array_alloc(vm, 0, delete, 0);\nL55: if (njs_slow_path(deleted == NULL)) {\nL152: njs_set_array(&vm->retval, deleted);"
+        },
+        {
+          "entities": [
+            "del_object",
+            "deleted"
+          ],
+          "claim": "del_object is initialized as an array value referring to the deleted array object.",
+          "evidence": "L66: njs_set_array(&del_object, deleted);"
+        },
+        {
+          "entities": [
+            "this",
+            "array"
+          ],
+          "claim": "When this is a fast array, array is set to the njs_array_t storage object backing this.",
+          "evidence": "L59: if (njs_fast_path(njs_is_fast_array(this) && deleted->object.fast_array)) {\nL60: array = njs_array(this);\nL89: if (njs_fast_path(njs_is_fast_array(this))) {\nL90: array = njs_array(this);"
+        },
+        {
+          "entities": [
+            "deleted",
+            "array"
+          ],
+          "claim": "In the fast-array path, elements from array->start are copied into deleted->start, establishing deleted's element storage contents.",
+          "evidence": "L61: for (i = 0, n = start; i < delete; i++, n++) {\nL62: deleted->start[i] = array->start[n];"
+        },
+        {
+          "entities": [
+            "this",
+            "array"
+          ],
+          "claim": "In the fast-array path with delta != 0, array's backing storage may be expanded and its length is updated by delta.",
+          "evidence": "L98: ret = njs_array_expand(vm, array, 0, delta);\nL110: array->length += delta;"
+        },
+        {
+          "entities": [
+            "array",
+            "args"
+          ],
+          "claim": "In the fast-array path with items > 0, new item values are copied from args[3] into array->start at offset start.",
+          "evidence": "L115: if (items > 0) {\nL116: memcpy(&array->start[start], &args[3],\nL117: items * sizeof(njs_value_t));"
+        },
+        {
+          "entities": [
+            "this",
+            "del_object"
+          ],
+          "claim": "In the non-fast-array path, properties are read from this and set onto del_object, and del_object's length is set to delete.",
+          "evidence": "L69: ret = njs_value_property_i64(vm, this, n, &value);\nL76: ret = njs_value_property_i64_set(vm, &del_object, i, &value);\nL83: ret = njs_object_length_set(vm, &del_object, delete);"
+        },
+        {
+          "entities": [
+            "this"
+          ],
+          "claim": "In the non-fast-array path with delta != 0, properties of this are deleted for indices from length - 1 down to length + delta.",
+          "evidence": "L129: for (i = length - 1; i >= length + delta; i--) {\nL130: ret = njs_value_property_i64_delete(vm, this, i, NULL);"
+        },
+        {
+          "entities": [
+            "this",
+            "args"
+          ],
+          "claim": "In the non-fast-array path, new item values from args are set as properties on this, and this's length is set to length + delta.",
+          "evidence": "L139: for (i = 3, n = start; items-- > 0; i++, n++) {\nL140: ret = njs_value_property_i64_set(vm, this, n, &args[i]);\nL146: ret = njs_object_length_set(vm, this, length + delta);"
+        },
+        {
+          "entities": [
+            "vm",
+            "deleted"
+          ],
+          "claim": "The deleted array object is stored as the function's return value in vm->retval.",
+          "evidence": "L152: njs_set_array(&vm->retval, deleted);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "length",
+            "start",
+            "delete"
+          ],
+          "claim": "delete is bounded by length - start, so delete <= length - start and delete >= 0.",
+          "evidence": "L42: delete = njs_min(njs_max(delete, 0), length - start);"
+        },
+        {
+          "entities": [
+            "items",
+            "nargs"
+          ],
+          "claim": "items is nargs - 3, the number of inserted elements.",
+          "evidence": "L35: items = nargs - 3;"
+        },
+        {
+          "entities": [
+            "delta",
+            "items",
+            "delete"
+          ],
+          "claim": "delta equals items - delete, the net change in array length.",
+          "evidence": "L45: delta = items - delete;"
+        },
+        {
+          "entities": [
+            "length",
+            "delta",
+            "NJS_MAX_LENGTH"
+          ],
+          "claim": "The operation is rejected unless length + delta <= NJS_MAX_LENGTH.",
+          "evidence": "L47: if (njs_slow_path((length + delta) > NJS_MAX_LENGTH)) {"
+        },
+        {
+          "entities": [
+            "deleted",
+            "delete"
+          ],
+          "claim": "deleted is allocated with capacity/count delete.",
+          "evidence": "L54: deleted = njs_array_alloc(vm, 0, delete, 0);"
+        },
+        {
+          "entities": [
+            "deleted->start",
+            "array->start",
+            "i",
+            "n",
+            "start",
+            "delete"
+          ],
+          "claim": "The fast-array copy loop copies delete elements from array->start[n] to deleted->start[i], with i starting at 0 and n starting at start.",
+          "evidence": "L61: for (i = 0, n = start; i < delete; i++, n++) {\nL62: deleted->start[i] = array->start[n];"
+        },
+        {
+          "entities": [
+            "array->length",
+            "start",
+            "delete",
+            "delta"
+          ],
+          "claim": "After relocation, array->length is increased by delta.",
+          "evidence": "L110: array->length += delta;"
+        },
+        {
+          "entities": [
+            "array->start",
+            "start",
+            "args",
+            "items"
+          ],
+          "claim": "memcpy copies items * sizeof(njs_value_t) bytes from &args[3] to &array->start[start].",
+          "evidence": "L116: memcpy(&array->start[start], &args[3],\nL117: items * sizeof(njs_value_t));"
+        },
+        {
+          "entities": [
+            "njs_array_copy_within",
+            "start",
+            "items",
+            "delete",
+            "array->length"
+          ],
+          "claim": "The fast-array relocation copies array->length - (start + delete) elements to index start + items from index start + delete.",
+          "evidence": "L104: ret = njs_array_copy_within(vm, this, start + items, start + delete,\nL105: array->length - (start + delete), 0);"
+        },
+        {
+          "entities": [
+            "njs_array_copy_within",
+            "start",
+            "items",
+            "delete",
+            "length"
+          ],
+          "claim": "The non-fast-array relocation copies length - (start + delete) elements to index start + items from index start + delete.",
+          "evidence": "L123: ret = njs_array_copy_within(vm, this, start + items, start + delete,\nL124: length - (start + delete), delta < 0);"
+        },
+        {
+          "entities": [
+            "i",
+            "length",
+            "delta"
+          ],
+          "claim": "The deletion loop iterates i from length - 1 down to length + delta.",
+          "evidence": "L129: for (i = length - 1; i >= length + delta; i--) {"
+        },
+        {
+          "entities": [
+            "i",
+            "n",
+            "start",
+            "items",
+            "args"
+          ],
+          "claim": "The non-fast-array insertion loop sets properties at n starting from start for items elements using args[i] starting at i = 3.",
+          "evidence": "L139: for (i = 3, n = start; items-- > 0; i++, n++) {\nL140: ret = njs_value_property_i64_set(vm, this, n, &args[i]);"
+        },
+        {
+          "entities": [
+            "length",
+            "delta"
+          ],
+          "claim": "The non-fast-array object length is set to length + delta.",
+          "evidence": "L146: ret = njs_object_length_set(vm, this, length + delta);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "start",
+            "length"
+          ],
+          "claim": "After the start normalization, start is clamped to the range 0 <= start <= length.",
+          "evidence": "L26: start = (start < 0) ? njs_max(length + start, 0) : njs_min(start, length);"
+        },
+        {
+          "entities": [
+            "delete",
+            "length",
+            "start"
+          ],
+          "claim": "When nargs == 2, delete is set to length - start, which is nonnegative given 0 <= start <= length.",
+          "evidence": "L31: if (nargs == 2) {\nL32: delete = length - start;"
+        },
+        {
+          "entities": [
+            "delete",
+            "length",
+            "start"
+          ],
+          "claim": "When nargs > 2, delete is clamped to 0 <= delete <= length - start.",
+          "evidence": "L34: } else if (nargs > 2) {\nL42: delete = njs_min(njs_max(delete, 0), length - start);"
+        },
+        {
+          "entities": [
+            "items",
+            "nargs"
+          ],
+          "claim": "When nargs > 2, items is set to nargs - 3, which is nonnegative.",
+          "evidence": "L35: items = nargs - 3;"
+        },
+        {
+          "entities": [
+            "length",
+            "delta"
+          ],
+          "claim": "Continuing past the length check implies length + delta <= NJS_MAX_LENGTH.",
+          "evidence": "L47: if (njs_slow_path((length + delta) > NJS_MAX_LENGTH)) {\nL48: njs_type_error(vm, \"Invalid length\");\nL49: return NJS_ERROR;"
+        },
+        {
+          "entities": [
+            "i",
+            "delete"
+          ],
+          "claim": "In the fast-array deleted-copy loop, i ranges from 0 to delete - 1.",
+          "evidence": "L61: for (i = 0, n = start; i < delete; i++, n++) {"
+        },
+        {
+          "entities": [
+            "i",
+            "delete"
+          ],
+          "claim": "In the non-fast-array deleted-copy loop, i ranges from 0 to delete - 1.",
+          "evidence": "L68: for (i = 0, n = start; i < delete; i++, n++) {"
+        },
+        {
+          "entities": [
+            "i",
+            "length",
+            "delta"
+          ],
+          "claim": "In the non-fast-array deletion loop, i ranges from length - 1 down to length + delta.",
+          "evidence": "L129: for (i = length - 1; i >= length + delta; i--) {"
+        },
+        {
+          "entities": [
+            "items",
+            "i"
+          ],
+          "claim": "In the non-fast-array new-items loop, the loop continues while items-- > 0, so it executes items times.",
+          "evidence": "L139: for (i = 3, n = start; items-- > 0; i++, n++) {"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 3668,
+              "output_tokens": 91,
+              "total_tokens": 3759
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 3668,
+          "output_tokens": 91,
+          "total_tokens": 3759
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L62",
+                "matched": true,
+                "expression": "deleted->start[i] = array->start[n]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L116",
+                "matched": true,
+                "expression": "memcpy(&array->start[start], &args[3], items * sizeof(njs_value_t))"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2271,
+              "output_tokens": 873,
+              "total_tokens": 3144
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2271,
+          "output_tokens": 873,
+          "total_tokens": 3144
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 54,
+                "fragment": "deleted = njs_array_alloc(vm, 0, delete, 0);",
+                "matched_lines": [
+                  54
+                ]
+              },
+              {
+                "evidence_line": 55,
+                "fragment": "if (njs_slow_path(deleted == NULL)) {",
+                "matched_lines": [
+                  55
+                ]
+              },
+              {
+                "evidence_line": 152,
+                "fragment": "njs_set_array(&vm->retval, deleted);",
+                "matched_lines": [
+                  152
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 66,
+                "fragment": "njs_set_array(&del_object, deleted);",
+                "matched_lines": [
+                  66
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 59,
+                "fragment": "if (njs_fast_path(njs_is_fast_array(this) && deleted->object.fast_array)) {",
+                "matched_lines": [
+                  59
+                ]
+              },
+              {
+                "evidence_line": 60,
+                "fragment": "array = njs_array(this);",
+                "matched_lines": [
+                  60
+                ]
+              },
+              {
+                "evidence_line": 89,
+                "fragment": "if (njs_fast_path(njs_is_fast_array(this))) {",
+                "matched_lines": [
+                  89
+                ]
+              },
+              {
+                "evidence_line": 90,
+                "fragment": "array = njs_array(this);",
+                "matched_lines": [
+                  90
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 61,
+                "fragment": "for (i = 0, n = start; i < delete; i++, n++) {",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "deleted->start[i] = array->start[n];",
+                "matched_lines": [
+                  62
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 98,
+                "fragment": "ret = njs_array_expand(vm, array, 0, delta);",
+                "matched_lines": [
+                  98
+                ]
+              },
+              {
+                "evidence_line": 110,
+                "fragment": "array->length += delta;",
+                "matched_lines": [
+                  110
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 115,
+                "fragment": "if (items > 0) {",
+                "matched_lines": [
+                  115
+                ]
+              },
+              {
+                "evidence_line": 116,
+                "fragment": "memcpy(&array->start[start], &args[3],",
+                "matched_lines": [
+                  116
+                ]
+              },
+              {
+                "evidence_line": 117,
+                "fragment": "items * sizeof(njs_value_t));",
+                "matched_lines": [
+                  117
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 69,
+                "fragment": "ret = njs_value_property_i64(vm, this, n, &value);",
+                "matched_lines": [
+                  69
+                ]
+              },
+              {
+                "evidence_line": 76,
+                "fragment": "ret = njs_value_property_i64_set(vm, &del_object, i, &value);",
+                "matched_lines": [
+                  76
+                ]
+              },
+              {
+                "evidence_line": 83,
+                "fragment": "ret = njs_object_length_set(vm, &del_object, delete);",
+                "matched_lines": [
+                  83
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 129,
+                "fragment": "for (i = length - 1; i >= length + delta; i--) {",
+                "matched_lines": [
+                  129
+                ]
+              },
+              {
+                "evidence_line": 130,
+                "fragment": "ret = njs_value_property_i64_delete(vm, this, i, NULL);",
+                "matched_lines": [
+                  130
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 139,
+                "fragment": "for (i = 3, n = start; items-- > 0; i++, n++) {",
+                "matched_lines": [
+                  139
+                ]
+              },
+              {
+                "evidence_line": 140,
+                "fragment": "ret = njs_value_property_i64_set(vm, this, n, &args[i]);",
+                "matched_lines": [
+                  140
+                ]
+              },
+              {
+                "evidence_line": 146,
+                "fragment": "ret = njs_object_length_set(vm, this, length + delta);",
+                "matched_lines": [
+                  146
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 152,
+                "fragment": "njs_set_array(&vm->retval, deleted);",
+                "matched_lines": [
+                  152
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2459,
+              "output_tokens": 848,
+              "total_tokens": 3307
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2459,
+          "output_tokens": 848,
+          "total_tokens": 3307
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 42,
+                "fragment": "delete = njs_min(njs_max(delete, 0), length - start);",
+                "matched_lines": [
+                  42
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 35,
+                "fragment": "items = nargs - 3;",
+                "matched_lines": [
+                  35
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 45,
+                "fragment": "delta = items - delete;",
+                "matched_lines": [
+                  45
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 47,
+                "fragment": "if (njs_slow_path((length + delta) > NJS_MAX_LENGTH)) {",
+                "matched_lines": [
+                  47
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 54,
+                "fragment": "deleted = njs_array_alloc(vm, 0, delete, 0);",
+                "matched_lines": [
+                  54
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 61,
+                "fragment": "for (i = 0, n = start; i < delete; i++, n++) {",
+                "matched_lines": [
+                  61
+                ]
+              },
+              {
+                "evidence_line": 62,
+                "fragment": "deleted->start[i] = array->start[n];",
+                "matched_lines": [
+                  62
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 110,
+                "fragment": "array->length += delta;",
+                "matched_lines": [
+                  110
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 116,
+                "fragment": "memcpy(&array->start[start], &args[3],",
+                "matched_lines": [
+                  116
+                ]
+              },
+              {
+                "evidence_line": 117,
+                "fragment": "items * sizeof(njs_value_t));",
+                "matched_lines": [
+                  117
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 104,
+                "fragment": "ret = njs_array_copy_within(vm, this, start + items, start + delete,",
+                "matched_lines": [
+                  104
+                ]
+              },
+              {
+                "evidence_line": 105,
+                "fragment": "array->length - (start + delete), 0);",
+                "matched_lines": [
+                  105
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[9]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 123,
+                "fragment": "ret = njs_array_copy_within(vm, this, start + items, start + delete,",
+                "matched_lines": [
+                  123
+                ]
+              },
+              {
+                "evidence_line": 124,
+                "fragment": "length - (start + delete), delta < 0);",
+                "matched_lines": [
+                  124
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[10]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 129,
+                "fragment": "for (i = length - 1; i >= length + delta; i--) {",
+                "matched_lines": [
+                  129
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[11]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 139,
+                "fragment": "for (i = 3, n = start; items-- > 0; i++, n++) {",
+                "matched_lines": [
+                  139
+                ]
+              },
+              {
+                "evidence_line": 140,
+                "fragment": "ret = njs_value_property_i64_set(vm, this, n, &args[i]);",
+                "matched_lines": [
+                  140
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[12]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 146,
+                "fragment": "ret = njs_object_length_set(vm, this, length + delta);",
+                "matched_lines": [
+                  146
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2139,
+              "output_tokens": 591,
+              "total_tokens": 2730
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2139,
+          "output_tokens": 591,
+          "total_tokens": 2730
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 26,
+                "fragment": "start = (start < 0) ? njs_max(length + start, 0) : njs_min(start, length);",
+                "matched_lines": [
+                  26
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 31,
+                "fragment": "if (nargs == 2) {",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 32,
+                "fragment": "delete = length - start;",
+                "matched_lines": [
+                  32
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 34,
+                "fragment": "} else if (nargs > 2) {",
+                "matched_lines": [
+                  34
+                ]
+              },
+              {
+                "evidence_line": 42,
+                "fragment": "delete = njs_min(njs_max(delete, 0), length - start);",
+                "matched_lines": [
+                  42
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 35,
+                "fragment": "items = nargs - 3;",
+                "matched_lines": [
+                  35
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 47,
+                "fragment": "if (njs_slow_path((length + delta) > NJS_MAX_LENGTH)) {",
+                "matched_lines": [
+                  47
+                ]
+              },
+              {
+                "evidence_line": 48,
+                "fragment": "njs_type_error(vm, \"Invalid length\");",
+                "matched_lines": [
+                  48
+                ]
+              },
+              {
+                "evidence_line": 49,
+                "fragment": "return NJS_ERROR;",
+                "matched_lines": [
+                  49
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 61,
+                "fragment": "for (i = 0, n = start; i < delete; i++, n++) {",
+                "matched_lines": [
+                  61
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[6]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 68,
+                "fragment": "for (i = 0, n = start; i < delete; i++, n++) {",
+                "matched_lines": [
+                  68
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[7]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 129,
+                "fragment": "for (i = length - 1; i >= length + delta; i--) {",
+                "matched_lines": [
+                  129
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[8]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 139,
+                "fragment": "for (i = 3, n = start; items-- > 0; i++, n++) {",
+                "matched_lines": [
+                  139
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 2,
+      "states": 10,
+      "values": 13,
+      "executions": 9
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 10537,
+    "output_tokens": 2403,
+    "total_tokens": 12940
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000126",
+    "split": "test",
+    "source_hash": "1941fb25e6584980682b6b7d13a8d39067a7e69cc9d538407f4125607cb20679",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

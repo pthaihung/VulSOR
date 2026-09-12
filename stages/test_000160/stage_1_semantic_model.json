@@ -1,0 +1,512 @@
+{
+  "sample_id": "test_000160",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [],
+      "states": [
+        {
+          "entities": [
+            "qeh->qeh_encoder"
+          ],
+          "claim": "qeh->qeh_encoder is initialized by lsqpack_enc_init before any later use; on failure the function returns without setting QEH_HAVE_SETTINGS.",
+          "evidence": "L17: if (0 != lsqpack_enc_init(&qeh->qeh_encoder, (void *) qeh->qeh_conn,\nL19: qeh->qeh_tsu_buf, &qeh->qeh_tsu_sz))\nL22: return -1;"
+        },
+        {
+          "entities": [
+            "qeh->qeh_tsu_buf",
+            "qeh->qeh_tsu_sz"
+          ],
+          "claim": "qeh->qeh_tsu_sz is set to the size of qeh->qeh_tsu_buf before lsqpack_enc_init, and qeh->qeh_tsu_buf is passed as the TSU storage region whose size may be updated by lsqpack_enc_init.",
+          "evidence": "L16: qeh->qeh_tsu_sz = sizeof(qeh->qeh_tsu_buf);\nL19: qeh->qeh_tsu_buf, &qeh->qeh_tsu_sz))"
+        },
+        {
+          "entities": [
+            "qeh->qeh_flags"
+          ],
+          "claim": "QEH_HAVE_SETTINGS is set in qeh->qeh_flags only after successful lsqpack_enc_init.",
+          "evidence": "L25: qeh->qeh_flags |= QEH_HAVE_SETTINGS;"
+        },
+        {
+          "entities": [
+            "qeh->qeh_max_prefix_size",
+            "qeh->qeh_encoder"
+          ],
+          "claim": "qeh->qeh_max_prefix_size is assigned from lsqpack_enc_header_block_prefix_size(&qeh->qeh_encoder) after the encoder is initialized.",
+          "evidence": "L26: qeh->qeh_max_prefix_size =\nL27: lsqpack_enc_header_block_prefix_size(&qeh->qeh_encoder);"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "qeh->qeh_tsu_sz",
+            "sizeof(qeh->qeh_tsu_buf)"
+          ],
+          "claim": "qeh->qeh_tsu_sz is set to the byte size of qeh->qeh_tsu_buf before being passed by address to lsqpack_enc_init.",
+          "evidence": "L16: qeh->qeh_tsu_sz = sizeof(qeh->qeh_tsu_buf);"
+        },
+        {
+          "entities": [
+            "qeh->qeh_tsu_sz",
+            "qeh->qeh_tsu_buf",
+            "lsqpack_enc_init"
+          ],
+          "claim": "lsqpack_enc_init receives qeh->qeh_tsu_buf and the address of qeh->qeh_tsu_sz, so the buffer capacity is the initial value of qeh->qeh_tsu_sz and may be updated by the call.",
+          "evidence": "L17: if (0 != lsqpack_enc_init(&qeh->qeh_encoder, (void *) qeh->qeh_conn,\nL18: max_table_size, dyn_table_size, max_risked_streams, enc_opts,\nL19: qeh->qeh_tsu_buf, &qeh->qeh_tsu_sz))"
+        },
+        {
+          "entities": [
+            "qeh->qeh_max_prefix_size",
+            "lsqpack_enc_header_block_prefix_size"
+          ],
+          "claim": "qeh->qeh_max_prefix_size is assigned the value returned by lsqpack_enc_header_block_prefix_size for qeh->qeh_encoder.",
+          "evidence": "L26: qeh->qeh_max_prefix_size =\nL27: lsqpack_enc_header_block_prefix_size(&qeh->qeh_encoder);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "qeh->qeh_flags"
+          ],
+          "claim": "continuing past the settings guard implies QEH_HAVE_SETTINGS is not set in qeh->qeh_flags",
+          "evidence": "L8: if (qeh->qeh_flags & QEH_HAVE_SETTINGS)\nL11: return -1;"
+        },
+        {
+          "entities": [
+            "qeh->qeh_encoder",
+            "qeh->qeh_tsu_sz",
+            "qeh->qeh_tsu_buf"
+          ],
+          "claim": "continuing past the encoder initialization check implies lsqpack_enc_init returned 0 and qeh->qeh_tsu_sz was updated by the call",
+          "evidence": "L16: qeh->qeh_tsu_sz = sizeof(qeh->qeh_tsu_buf);\nL17: if (0 != lsqpack_enc_init(&qeh->qeh_encoder, (void *) qeh->qeh_conn,\nL19: qeh->qeh_tsu_buf, &qeh->qeh_tsu_sz))\nL22: return -1;"
+        },
+        {
+          "entities": [
+            "qeh->qeh_flags"
+          ],
+          "claim": "after successful initialization, QEH_HAVE_SETTINGS is set in qeh->qeh_flags",
+          "evidence": "L25: qeh->qeh_flags |= QEH_HAVE_SETTINGS;"
+        },
+        {
+          "entities": [
+            "qeh->qeh_max_prefix_size",
+            "qeh->qeh_encoder"
+          ],
+          "claim": "after successful initialization, qeh->qeh_max_prefix_size is assigned from the encoder's header block prefix size",
+          "evidence": "L26: qeh->qeh_max_prefix_size =\nL27: lsqpack_enc_header_block_prefix_size(&qeh->qeh_encoder);"
+        },
+        {
+          "entities": [
+            "qeh->qeh_enc_sm_out"
+          ],
+          "claim": "qeh_begin_out is called only when qeh->qeh_enc_sm_out is nonzero",
+          "evidence": "L30: if (qeh->qeh_enc_sm_out)\nL31: qeh_begin_out(qeh);"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2473,
+              "output_tokens": 5,
+              "total_tokens": 2478
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2473,
+          "output_tokens": 5,
+          "total_tokens": 2478
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1076,
+              "output_tokens": 457,
+              "total_tokens": 1533
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1076,
+          "output_tokens": 457,
+          "total_tokens": 1533
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "if (0 != lsqpack_enc_init(&qeh->qeh_encoder, (void *) qeh->qeh_conn,",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "qeh->qeh_tsu_buf, &qeh->qeh_tsu_sz))",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "return -1;",
+                "matched_lines": [
+                  22
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "qeh->qeh_tsu_sz = sizeof(qeh->qeh_tsu_buf);",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "qeh->qeh_tsu_buf, &qeh->qeh_tsu_sz))",
+                "matched_lines": [
+                  19
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 25,
+                "fragment": "qeh->qeh_flags |= QEH_HAVE_SETTINGS;",
+                "matched_lines": [
+                  25
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 26,
+                "fragment": "qeh->qeh_max_prefix_size =",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "lsqpack_enc_header_block_prefix_size(&qeh->qeh_encoder);",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1264,
+              "output_tokens": 394,
+              "total_tokens": 1658
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1264,
+          "output_tokens": 394,
+          "total_tokens": 1658
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "qeh->qeh_tsu_sz = sizeof(qeh->qeh_tsu_buf);",
+                "matched_lines": [
+                  16
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "if (0 != lsqpack_enc_init(&qeh->qeh_encoder, (void *) qeh->qeh_conn,",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "max_table_size, dyn_table_size, max_risked_streams, enc_opts,",
+                "matched_lines": [
+                  18
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "qeh->qeh_tsu_buf, &qeh->qeh_tsu_sz))",
+                "matched_lines": [
+                  19
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 26,
+                "fragment": "qeh->qeh_max_prefix_size =",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "lsqpack_enc_header_block_prefix_size(&qeh->qeh_encoder);",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 944,
+              "output_tokens": 476,
+              "total_tokens": 1420
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 944,
+          "output_tokens": 476,
+          "total_tokens": 1420
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "if (qeh->qeh_flags & QEH_HAVE_SETTINGS)",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "return -1;",
+                "matched_lines": [
+                  11
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 16,
+                "fragment": "qeh->qeh_tsu_sz = sizeof(qeh->qeh_tsu_buf);",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "if (0 != lsqpack_enc_init(&qeh->qeh_encoder, (void *) qeh->qeh_conn,",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 19,
+                "fragment": "qeh->qeh_tsu_buf, &qeh->qeh_tsu_sz))",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 22,
+                "fragment": "return -1;",
+                "matched_lines": [
+                  22
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 25,
+                "fragment": "qeh->qeh_flags |= QEH_HAVE_SETTINGS;",
+                "matched_lines": [
+                  25
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 26,
+                "fragment": "qeh->qeh_max_prefix_size =",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "lsqpack_enc_header_block_prefix_size(&qeh->qeh_encoder);",
+                "matched_lines": [
+                  27
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 30,
+                "fragment": "if (qeh->qeh_enc_sm_out)",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "qeh_begin_out(qeh);",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 0,
+      "states": 4,
+      "values": 3,
+      "executions": 5
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 5757,
+    "output_tokens": 1332,
+    "total_tokens": 7089
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000160",
+    "split": "test",
+    "source_hash": "0eef961b35907a81114c6464aec78cdadfdaa9bc8a1710d103c00ed93ee82f04",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

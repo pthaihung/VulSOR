@@ -1,0 +1,529 @@
+{
+  "sample_id": "test_000171",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L9"
+          ],
+          "expression": "booth_conf->authfile[0]",
+          "claim": "read the first character of the authfile array through the booth_conf pointer"
+        },
+        {
+          "locations": [
+            "L31"
+          ],
+          "expression": "local->local = 1",
+          "claim": "write to the local member through the local pointer"
+        },
+        {
+          "locations": [
+            "L44"
+          ],
+          "expression": "snprintf(cl.lockfile, sizeof(cl.lockfile)-1, ...)",
+          "claim": "write a formatted string into the cl.lockfile buffer with a bounded size"
+        }
+      ],
+      "states": [],
+      "values": [
+        {
+          "entities": [
+            "cl.lockfile",
+            "sizeof(cl.lockfile)"
+          ],
+          "claim": "snprintf writes at most sizeof(cl.lockfile)-1 bytes into cl.lockfile, leaving room for the terminating NUL.",
+          "evidence": "L44: snprintf(cl.lockfile, sizeof(cl.lockfile)-1,"
+        },
+        {
+          "entities": [
+            "cl.lockfile[0]"
+          ],
+          "claim": "The lockfile is only generated when cl.lockfile[0] is the NUL character, i.e. the lockfile string is empty.",
+          "evidence": "L43: if (!cl.lockfile[0]) {"
+        },
+        {
+          "entities": [
+            "booth_conf->authfile[0]"
+          ],
+          "claim": "read_authkey() is invoked only when booth_conf->authfile[0] is not the NUL character.",
+          "evidence": "L9: if (booth_conf->authfile[0] != '\\0') {"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "rv"
+          ],
+          "claim": "Continuing past line 7 implies read_config succeeded (rv >= 0).",
+          "evidence": "L5: rv = read_config(cl.configfile, type);\nL6: if (rv < 0)\nL7: goto out;"
+        },
+        {
+          "entities": [
+            "rv"
+          ],
+          "claim": "Continuing past line 12 implies read_authkey succeeded (rv >= 0).",
+          "evidence": "L10: rv = read_authkey();\nL11: if (rv < 0)\nL12: goto out;"
+        },
+        {
+          "entities": [
+            "rv"
+          ],
+          "claim": "Continuing past line 18 implies gcry_check_version returned non-NULL.",
+          "evidence": "L14: if (!gcry_check_version(NULL)) {\nL15: log_error(\"gcry_check_version\");\nL16: rv = -ENOENT;\nL17: goto out;\nL18: }"
+        },
+        {
+          "entities": [
+            "rv"
+          ],
+          "claim": "Continuing past line 38 implies check_config succeeded (rv >= 0).",
+          "evidence": "L36: rv = check_config(type);\nL37: if (rv < 0)\nL38: goto out;"
+        },
+        {
+          "entities": [
+            "cl.lockfile"
+          ],
+          "claim": "Entering the snprintf at line 44 implies cl.lockfile[0] == '\\0'.",
+          "evidence": "L43: if (!cl.lockfile[0]) {\nL44: snprintf(cl.lockfile, sizeof(cl.lockfile)-1,"
+        },
+        {
+          "entities": [
+            "local"
+          ],
+          "claim": "Reaching line 31 implies find_site_by_name succeeded and local points to a valid site.",
+          "evidence": "L26: if (!find_site_by_name(cl.site, &local, 1)) {\nL27: log_error(\"Cannot find \\\"%s\\\" in the configuration.\",\nL28: cl.site);\nL29: return -EINVAL;\nL30: }\nL31: local->local = 1;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2497,
+              "output_tokens": 117,
+              "total_tokens": 2614
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2497,
+          "output_tokens": 117,
+          "total_tokens": 2614
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L9",
+                "matched": true,
+                "expression": "booth_conf->authfile[0]"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[1]": {
+            "expression_matches": [
+              {
+                "location": "L31",
+                "matched": true,
+                "expression": "local->local = 1"
+              }
+            ],
+            "status": "pass"
+          },
+          "operation_agent.operations[2]": {
+            "expression_matches": [
+              {
+                "location": "L44",
+                "matched": true,
+                "expression": "snprintf(cl.lockfile, sizeof(cl.lockfile)-1, ...)"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1100,
+              "output_tokens": 12,
+              "total_tokens": 1112
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1100,
+          "output_tokens": 12,
+          "total_tokens": 1112
+        },
+        "grounding": {},
+        "item_recovery": []
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1288,
+              "output_tokens": 215,
+              "total_tokens": 1503
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1288,
+          "output_tokens": 215,
+          "total_tokens": 1503
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 44,
+                "fragment": "snprintf(cl.lockfile, sizeof(cl.lockfile)-1,",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "if (!cl.lockfile[0]) {",
+                "matched_lines": [
+                  43
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 9,
+                "fragment": "if (booth_conf->authfile[0] != '\\0') {",
+                "matched_lines": [
+                  9
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 968,
+              "output_tokens": 538,
+              "total_tokens": 1506
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 968,
+          "output_tokens": 538,
+          "total_tokens": 1506
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "rv = read_config(cl.configfile, type);",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "if (rv < 0)",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 7,
+                "fragment": "goto out;",
+                "matched_lines": [
+                  7
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 10,
+                "fragment": "rv = read_authkey();",
+                "matched_lines": [
+                  10
+                ]
+              },
+              {
+                "evidence_line": 11,
+                "fragment": "if (rv < 0)",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "goto out;",
+                "matched_lines": [
+                  12
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 14,
+                "fragment": "if (!gcry_check_version(NULL)) {",
+                "matched_lines": [
+                  14
+                ]
+              },
+              {
+                "evidence_line": 15,
+                "fragment": "log_error(\"gcry_check_version\");",
+                "matched_lines": [
+                  15
+                ]
+              },
+              {
+                "evidence_line": 16,
+                "fragment": "rv = -ENOENT;",
+                "matched_lines": [
+                  16
+                ]
+              },
+              {
+                "evidence_line": 17,
+                "fragment": "goto out;",
+                "matched_lines": [
+                  17
+                ]
+              },
+              {
+                "evidence_line": 18,
+                "fragment": "}",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 36,
+                "fragment": "rv = check_config(type);",
+                "matched_lines": [
+                  36
+                ]
+              },
+              {
+                "evidence_line": 37,
+                "fragment": "if (rv < 0)",
+                "matched_lines": [
+                  37
+                ]
+              },
+              {
+                "evidence_line": 38,
+                "fragment": "goto out;",
+                "matched_lines": [
+                  38
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[4]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 43,
+                "fragment": "if (!cl.lockfile[0]) {",
+                "matched_lines": [
+                  43
+                ]
+              },
+              {
+                "evidence_line": 44,
+                "fragment": "snprintf(cl.lockfile, sizeof(cl.lockfile)-1,",
+                "matched_lines": [
+                  44
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[5]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 26,
+                "fragment": "if (!find_site_by_name(cl.site, &local, 1)) {",
+                "matched_lines": [
+                  26
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "log_error(\"Cannot find \\\"%s\\\" in the configuration.\",",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "cl.site);",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 29,
+                "fragment": "return -EINVAL;",
+                "matched_lines": [
+                  29
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "}",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "local->local = 1;",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 4,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 5,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 3,
+      "states": 0,
+      "values": 3,
+      "executions": 6
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 5853,
+    "output_tokens": 882,
+    "total_tokens": 6735
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000171",
+    "split": "test",
+    "source_hash": "8b177ce0178b17fd04208ef014c542fde567d5f1c980bd2f646172371d1ae946",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

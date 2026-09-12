@@ -1,0 +1,129 @@
+{
+  "sample_id": "test_000166",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "rules",
+  "agent_key": "obligation_reasoner",
+  "output": {
+    "rules": [
+      {
+        "locations": [
+          "L7"
+        ],
+        "expression": "alloc(bd->startspaces + bd->endspaces + bd->textlen + 1)",
+        "requirements": [
+          "the allocation size argument must be representable as the size type accepted by alloc"
+        ]
+      },
+      {
+        "locations": [
+          "L10"
+        ],
+        "expression": "y_current->y_array[y_idx] = pnew",
+        "requirements": [
+          "y_current->y_array must designate a writable array with at least y_idx + 1 elements",
+          "y_idx must be within the valid index range of y_current->y_array"
+        ]
+      },
+      {
+        "locations": [
+          "L11"
+        ],
+        "expression": "vim_memset(pnew, ' ', (size_t)bd->startspaces)",
+        "requirements": [
+          "the destination range of bd->startspaces bytes starting at pnew must be writable"
+        ]
+      },
+      {
+        "locations": [
+          "L13"
+        ],
+        "expression": "mch_memmove(pnew, bd->textstart, (size_t)bd->textlen)",
+        "requirements": [
+          "the source range of bd->textlen bytes starting at bd->textstart must be readable",
+          "the destination range of bd->textlen bytes starting at pnew must be writable"
+        ]
+      },
+      {
+        "locations": [
+          "L15"
+        ],
+        "expression": "vim_memset(pnew, ' ', (size_t)bd->endspaces)",
+        "requirements": [
+          "the destination range of bd->endspaces bytes starting at pnew must be writable"
+        ]
+      },
+      {
+        "locations": [
+          "L21"
+        ],
+        "expression": "*(bd->textstart + s - 1)",
+        "requirements": [
+          "bd->textstart + s - 1 must designate a readable byte"
+        ]
+      },
+      {
+        "locations": [
+          "L23"
+        ],
+        "expression": "(*mb_head_off)(bd->textstart, bd->textstart + s - 1)",
+        "requirements": [
+          "mb_head_off must designate a callable function pointer",
+          "the second argument bd->textstart + s - 1 must designate a readable byte"
+        ]
+      },
+      {
+        "locations": [
+          "L27"
+        ],
+        "expression": "*pnew = NUL",
+        "requirements": [
+          "pnew must designate a writable byte"
+        ]
+      }
+    ]
+  },
+  "quality_gate": {
+    "status": "passed",
+    "attempts": [
+      {
+        "attempt": 1,
+        "retry_mode": "initial",
+        "errors": [],
+        "token_usage": {
+          "input_tokens": 2712,
+          "output_tokens": 440,
+          "total_tokens": 3152
+        },
+        "max_tokens": 8192,
+        "serialization_prefix_recovered": false
+      }
+    ],
+    "token_usage": {
+      "input_tokens": 2712,
+      "output_tokens": 440,
+      "total_tokens": 3152
+    },
+    "safety_relevance_filter": {
+      "input_operation_groups": 8,
+      "kept_obligations": 8,
+      "filtered_non_safety_candidates": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 2712,
+    "output_tokens": 440,
+    "total_tokens": 3152
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "rules",
+    "sample_id": "test_000166",
+    "split": "test",
+    "source_hash": "bd8f5ffaa60cd828e8cc796cd1b376156eff88060560cc68165ed9ac883a2280",
+    "upstream_hashes": {
+      "semantic_model": "b69445511c997b222d63da97157facae44f3361fd56dec7256888e82d26e01d2"
+    },
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}

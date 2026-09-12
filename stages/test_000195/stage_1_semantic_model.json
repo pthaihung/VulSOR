@@ -1,0 +1,558 @@
+{
+  "sample_id": "test_000195",
+  "schema_version": "semantic-claims-v4.13",
+  "stage": "semantic_model",
+  "output": {
+    "semantic_model": {
+      "operations": [
+        {
+          "locations": [
+            "L20"
+          ],
+          "expression": "input2_data[i]",
+          "claim": "indexed read of input2_data at index i within the loop over input2_elements"
+        }
+      ],
+      "states": [
+        {
+          "entities": [
+            "input1"
+          ],
+          "claim": "input1 is a pointer to the first input tensor, established by GetInputSafe.",
+          "evidence": "L5: const TfLiteTensor* input1;\nL6: TF_LITE_ENSURE_OK(context,\nL7: GetInputSafe(context, node, kInputTensor1, &input1));"
+        },
+        {
+          "entities": [
+            "input2"
+          ],
+          "claim": "input2 is a pointer to the second input tensor, established by GetInputSafe.",
+          "evidence": "L8: const TfLiteTensor* input2;\nL9: TF_LITE_ENSURE_OK(context,\nL10: GetInputSafe(context, node, kInputTensor2, &input2));"
+        },
+        {
+          "entities": [
+            "output"
+          ],
+          "claim": "output is a pointer to the output tensor, established by GetOutputSafe.",
+          "evidence": "L11: TfLiteTensor* output;\nL12: TF_LITE_ENSURE_OK(context,\nL13: GetOutputSafe(context, node, kOutputTensor, &output));"
+        },
+        {
+          "entities": [
+            "input2_data"
+          ],
+          "claim": "input2_data is a pointer to the data of input2, established by GetTensorData<data_type>(input2) within the TF_LITE_CHECK_DIV_NON_ZERO macro.",
+          "evidence": "L17: const auto* input2_data = GetTensorData<data_type>(input2);       \\"
+        }
+      ],
+      "values": [
+        {
+          "entities": [
+            "input2_elements",
+            "input2->bytes",
+            "sizeof(data_type)"
+          ],
+          "claim": "input2_elements is computed as input2->bytes / sizeof(data_type), so the loop bound is the number of data_type elements in input2's byte buffer.",
+          "evidence": "L18: const size_t input2_elements = input2->bytes / sizeof(data_type); \\"
+        },
+        {
+          "entities": [
+            "input2_data",
+            "input2_elements",
+            "i"
+          ],
+          "claim": "The macro loop indexes input2_data[i] for i from 0 while i < input2_elements, so the accessed element range is [0, input2_elements).",
+          "evidence": "L19: for (size_t i = 0; i < input2_elements; i++) {                    \\\nL20: TF_LITE_ENSURE(context, input2_data[i] != 0);                   \\"
+        },
+        {
+          "entities": [
+            "TF_LITE_CHECK_DIV_NON_ZERO",
+            "int32_t"
+          ],
+          "claim": "For the kTfLiteInt32 branch, TF_LITE_CHECK_DIV_NON_ZERO is instantiated with data_type = int32_t, making input2_elements = input2->bytes / sizeof(int32_t).",
+          "evidence": "L27: } else if (output->type == kTfLiteInt32) {\nL28: TF_LITE_CHECK_DIV_NON_ZERO(int32_t);"
+        },
+        {
+          "entities": [
+            "TF_LITE_CHECK_DIV_NON_ZERO",
+            "uint8_t"
+          ],
+          "claim": "For the kTfLiteUInt8 branch, TF_LITE_CHECK_DIV_NON_ZERO is instantiated with data_type = uint8_t, making input2_elements = input2->bytes / sizeof(uint8_t).",
+          "evidence": "L30: } else if (output->type == kTfLiteUInt8) {\nL31: TF_LITE_CHECK_DIV_NON_ZERO(uint8_t);"
+        }
+      ],
+      "executions": [
+        {
+          "entities": [
+            "input2_data[i]"
+          ],
+          "claim": "For int32_t output, every element of input2 must be non-zero before EvalDiv is called.",
+          "evidence": "L27: } else if (output->type == kTfLiteInt32) {\nL28: TF_LITE_CHECK_DIV_NON_ZERO(int32_t);\nL20: TF_LITE_ENSURE(context, input2_data[i] != 0);                   \\"
+        },
+        {
+          "entities": [
+            "input2_data[i]"
+          ],
+          "claim": "For uint8_t output, every element of input2 must be non-zero before EvalQuantized is called.",
+          "evidence": "L30: } else if (output->type == kTfLiteUInt8) {\nL31: TF_LITE_CHECK_DIV_NON_ZERO(uint8_t);\nL20: TF_LITE_ENSURE(context, input2_data[i] != 0);                   \\"
+        },
+        {
+          "entities": [
+            "output->type"
+          ],
+          "claim": "Continuing past the type dispatch implies output->type is kTfLiteFloat32, kTfLiteInt32, or kTfLiteUInt8; otherwise the function returns kTfLiteError.",
+          "evidence": "L23: if (output->type == kTfLiteFloat32) {\nL27: } else if (output->type == kTfLiteInt32) {\nL30: } else if (output->type == kTfLiteUInt8) {\nL35: } else {\nL40: return kTfLiteError;"
+        }
+      ]
+    },
+    "agent_quality_gates": {
+      "operation_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 2665,
+              "output_tokens": 42,
+              "total_tokens": 2707
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 2665,
+          "output_tokens": 42,
+          "total_tokens": 2707
+        },
+        "grounding": {
+          "operation_agent.operations[0]": {
+            "expression_matches": [
+              {
+                "location": "L20",
+                "matched": true,
+                "expression": "input2_data[i]"
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": []
+      },
+      "state_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1268,
+              "output_tokens": 340,
+              "total_tokens": 1608
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1268,
+          "output_tokens": 340,
+          "total_tokens": 1608
+        },
+        "grounding": {
+          "state_agent.states[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 5,
+                "fragment": "const TfLiteTensor* input1;",
+                "matched_lines": [
+                  5
+                ]
+              },
+              {
+                "evidence_line": 6,
+                "fragment": "TF_LITE_ENSURE_OK(context,",
+                "matched_lines": [
+                  6
+                ]
+              },
+              {
+                "evidence_line": 7,
+                "fragment": "GetInputSafe(context, node, kInputTensor1, &input1));",
+                "matched_lines": [
+                  7
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 8,
+                "fragment": "const TfLiteTensor* input2;",
+                "matched_lines": [
+                  8
+                ]
+              },
+              {
+                "evidence_line": 9,
+                "fragment": "TF_LITE_ENSURE_OK(context,",
+                "matched_lines": [
+                  9
+                ]
+              },
+              {
+                "evidence_line": 10,
+                "fragment": "GetInputSafe(context, node, kInputTensor2, &input2));",
+                "matched_lines": [
+                  10
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 11,
+                "fragment": "TfLiteTensor* output;",
+                "matched_lines": [
+                  11
+                ]
+              },
+              {
+                "evidence_line": 12,
+                "fragment": "TF_LITE_ENSURE_OK(context,",
+                "matched_lines": [
+                  12
+                ]
+              },
+              {
+                "evidence_line": 13,
+                "fragment": "GetOutputSafe(context, node, kOutputTensor, &output));",
+                "matched_lines": [
+                  13
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "state_agent.states[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 17,
+                "fragment": "const auto* input2_data = GetTensorData<data_type>(input2);       \\",
+                "matched_lines": [
+                  17
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "states"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "states"
+          }
+        ]
+      },
+      "value_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1456,
+              "output_tokens": 432,
+              "total_tokens": 1888
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1456,
+          "output_tokens": 432,
+          "total_tokens": 1888
+        },
+        "grounding": {
+          "value_agent.values[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 18,
+                "fragment": "const size_t input2_elements = input2->bytes / sizeof(data_type); \\",
+                "matched_lines": [
+                  18
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 19,
+                "fragment": "for (size_t i = 0; i < input2_elements; i++) {                    \\",
+                "matched_lines": [
+                  19
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "TF_LITE_ENSURE(context, input2_data[i] != 0);                   \\",
+                "matched_lines": [
+                  20
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 27,
+                "fragment": "} else if (output->type == kTfLiteInt32) {",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "TF_LITE_CHECK_DIV_NON_ZERO(int32_t);",
+                "matched_lines": [
+                  28
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "value_agent.values[3]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 30,
+                "fragment": "} else if (output->type == kTfLiteUInt8) {",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "TF_LITE_CHECK_DIV_NON_ZERO(uint8_t);",
+                "matched_lines": [
+                  31
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "values"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 3,
+            "collection": "values"
+          }
+        ]
+      },
+      "execution_agent": {
+        "status": "passed",
+        "attempts": [
+          {
+            "attempt": 1,
+            "retry_mode": "initial",
+            "errors": [],
+            "token_usage": {
+              "input_tokens": 1136,
+              "output_tokens": 367,
+              "total_tokens": 1503
+            },
+            "max_tokens": 8192,
+            "serialization_prefix_recovered": false
+          }
+        ],
+        "token_usage": {
+          "input_tokens": 1136,
+          "output_tokens": 367,
+          "total_tokens": 1503
+        },
+        "grounding": {
+          "execution_agent.executions[0]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 27,
+                "fragment": "} else if (output->type == kTfLiteInt32) {",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 28,
+                "fragment": "TF_LITE_CHECK_DIV_NON_ZERO(int32_t);",
+                "matched_lines": [
+                  28
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "TF_LITE_ENSURE(context, input2_data[i] != 0);                   \\",
+                "matched_lines": [
+                  20
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[1]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 30,
+                "fragment": "} else if (output->type == kTfLiteUInt8) {",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 31,
+                "fragment": "TF_LITE_CHECK_DIV_NON_ZERO(uint8_t);",
+                "matched_lines": [
+                  31
+                ]
+              },
+              {
+                "evidence_line": 20,
+                "fragment": "TF_LITE_ENSURE(context, input2_data[i] != 0);                   \\",
+                "matched_lines": [
+                  20
+                ]
+              }
+            ],
+            "status": "pass"
+          },
+          "execution_agent.executions[2]": {
+            "evidence_matches": [
+              {
+                "evidence_line": 23,
+                "fragment": "if (output->type == kTfLiteFloat32) {",
+                "matched_lines": [
+                  23
+                ]
+              },
+              {
+                "evidence_line": 27,
+                "fragment": "} else if (output->type == kTfLiteInt32) {",
+                "matched_lines": [
+                  27
+                ]
+              },
+              {
+                "evidence_line": 30,
+                "fragment": "} else if (output->type == kTfLiteUInt8) {",
+                "matched_lines": [
+                  30
+                ]
+              },
+              {
+                "evidence_line": 35,
+                "fragment": "} else {",
+                "matched_lines": [
+                  35
+                ]
+              },
+              {
+                "evidence_line": 40,
+                "fragment": "return kTfLiteError;",
+                "matched_lines": [
+                  40
+                ]
+              }
+            ],
+            "status": "pass"
+          }
+        },
+        "item_recovery": [
+          {
+            "action": "repair_evidence",
+            "index": 0,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 1,
+            "collection": "executions"
+          },
+          {
+            "action": "repair_evidence",
+            "index": 2,
+            "collection": "executions"
+          }
+        ]
+      }
+    }
+  },
+  "quality_gate": {
+    "status": "passed",
+    "agent_count": 4,
+    "mode": "independent_global_views",
+    "counts": {
+      "operations": 1,
+      "states": 4,
+      "values": 4,
+      "executions": 3
+    },
+    "schema_version": "semantic-claims-v4.13",
+    "operation_normalization": {
+      "dropped_forbidden_preparation_only": 0
+    }
+  },
+  "token_usage": {
+    "input_tokens": 6525,
+    "output_tokens": 1181,
+    "total_tokens": 7706
+  },
+  "artifact_metadata": {
+    "schema_version": "semantic-claims-v4.13",
+    "artifact_version": 9,
+    "stage": "semantic_model",
+    "sample_id": "test_000195",
+    "split": "test",
+    "source_hash": "f1ad353c811955fe1cc51b430e28856801afa95962b02f511d630373e7c3b308",
+    "upstream_hashes": {},
+    "pipeline_fingerprint": "56658f84b7bd2fd69d73ad2505a5b8360fa47141c3031ffd0a7c893be033bea7"
+  }
+}
